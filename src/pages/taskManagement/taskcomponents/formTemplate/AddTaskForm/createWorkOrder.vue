@@ -1,4 +1,4 @@
-<!-- @/components/WorkOrdeForm_Components/form/InternalTaskForm.vue"; -->
+<!-- /senzrfieldopsfrontend/src/pages/taskManagement/taskcomponents/formTemplate/AddTaskForm/createWorkOrder.vue -->
 <template>
   <!-- Right drawer that sits beside page content -->
   <v-navigation-drawer
@@ -64,38 +64,113 @@
         />
         <ErrorState v-else-if="selectedTemplateId && error" :error="error" />
 
-        <!-- 3) Dynamic Form (steps) -->
+        <!-- 3) Dynamic Form (tabs for core fields and job sheets) -->
         <div v-else-if="formDetails">
-          <FormStep
-            :form-details="formDetails"
-            :current-step="currentFormStep"
-            :total-steps="totalFormSteps"
-            :current-step-fields="currentStepFields"
-            :form-data="workOrderFormData"
-            :form-valid="formValid"
-            :clients="clients"
-            :users="users"
-            :user-role="userRole"
-            :priority="priority"
-            :reschedule-enabled="rescheduleEnabled"
-            :schedule-end-date="scheduleEndDate"
-            :selected-days="selectedDays"
-            :from-date="fromDate"
-            :due-date="dueDate"
-            @next-step="nextFormStep"
-            @prev-step="prevFormStep"
-            @open-qr-scanner="openQrScanner"
-            @open-location-selector="openLocationSelector"
-            @generate-code="generateCode"
-            @field-action="handleFieldAction"
-            @update-priority="updatePriority"
-            @update-reschedule-enabled="updateRescheduleEnabled"
-            @update-schedule-end-date="updateScheduleEndDate"
-            @update-selected-days="updateSelectedDays"
-            @update-from-date="updateFromDate"
-            @update-due-date="updateDueDate"
-            @submit-form="handleSubmit"
-          />
+          <v-tabs
+            v-model="activeTab"
+            bg-color="transparent"
+            color="primary"
+            class="custom-tabs mb-4"
+            slider-color="primary"
+          >
+            <v-tab value="core" :disabled="true" class="custom-tab">
+              <v-icon class="mr-2" size="20">mdi-file-document</v-icon>
+              Task details
+            </v-tab>
+            <v-tab
+              v-for="jobSheet in visibleJobSheets"
+              :key="jobSheet.job_id"
+              :value="jobSheet.job_id"
+              :disabled="true"
+              class="custom-tab"
+            >
+              <v-icon class="mr-2" size="20">mdi-clipboard-text</v-icon>
+              {{ jobSheet.job_name }}
+            </v-tab>
+          </v-tabs>
+
+          <v-window v-model="activeTab">
+            <!-- Core Fields Tab -->
+            <v-window-item value="core">
+              <FormStep
+                :form-details="formDetails"
+                :current-step="currentFormStep"
+                :total-steps="totalFormSteps"
+                :current-step-fields="currentStepFields"
+                :form-data="workOrderFormData"
+                :form-valid="formValid"
+                :clients="clients"
+                :users="users"
+                :departments="departments"
+                :shared-properties="sharedProperties"
+                :user-role="userRole"
+                :priority="priority"
+                :reschedule-enabled="rescheduleEnabled"
+                :schedule-end-date="scheduleEndDate"
+                :selected-days="selectedDays"
+                :from-date="fromDate"
+                :due-date="dueDate"
+                :show-priority-reschedule="activeTab === 'core'"
+                :loading="loading"
+                @next-step="nextFormStep"
+                @prev-step="prevFormStep"
+                @open-qr-scanner="openQrScanner"
+                @open-location-selector="openLocationSelector"
+                @generate-code="generateCode"
+                @field-action="handleFieldAction"
+                @update-priority="updatePriority"
+                @update-reschedule-enabled="updateRescheduleEnabled"
+                @update-schedule-end-date="updateScheduleEndDate"
+                @update-selected-days="updateSelectedDays"
+                @update-from-date="updateFromDate"
+                @update-due-date="updateDueDate"
+                @submit-form="handleSubmit"
+              />
+            </v-window-item>
+
+            <!-- Job Sheet Tabs -->
+            <v-window-item
+              v-for="jobSheet in visibleJobSheets"
+              :key="jobSheet.job_id"
+              :value="jobSheet.job_id"
+            >
+              <FormStep
+                :form-details="formDetails"
+                :current-step="currentFormStep"
+                :total-steps="totalFormSteps"
+                :current-step-fields="currentStepFields"
+                :form-data="workOrderFormData[jobSheet.job_id] || {}"
+                :form-valid="formValid"
+                :clients="clients"
+                :users="users"
+                :departments="departments"
+                :shared-properties="sharedProperties"
+                :user-role="userRole"
+                :priority="priority"
+                :reschedule-enabled="rescheduleEnabled"
+                :schedule-end-date="scheduleEndDate"
+                :selected-days="selectedDays"
+                :from-date="fromDate"
+                :due-date="dueDate"
+                :show-priority-reschedule="activeTab === 'core'"
+                :loading="loading"
+                @next-step="nextFormStep"
+                @prev-step="prevFormStep"
+                @open-qr-scanner="openQrScanner"
+                @open-location-selector="openLocationSelector"
+                @generate-code="generateCode"
+                @field-action="handleFieldAction"
+                @update-priority="updatePriority"
+                @update-reschedule-enabled="updateRescheduleEnabled"
+                @update-schedule-end-date="updateScheduleEndDate"
+                @update-selected-days="updateSelectedDays"
+                @update-from-date="updateFromDate"
+                @update-due-date="updateDueDate"
+                @submit-form="handleSubmit"
+              />
+            </v-window-item>
+          </v-window>
+
           <div class="pb-safe" />
         </div>
 
@@ -151,9 +226,8 @@
     />
   </v-navigation-drawer>
 
-  <!-- Embedded mode (used inside another drawer) -->
+  <!-- Embedded mode -->
   <div v-else>
-    <!-- Only the body content; outer drawer/header/close button live in the parent -->
     <section class="drawer-body" ref="bodyEl">
       <ToastNotification
         :show="showToast"
@@ -192,35 +266,109 @@
       <ErrorState v-else-if="selectedTemplateId && error" :error="error" />
 
       <div v-else-if="formDetails">
-        <FormStep
-          :form-details="formDetails"
-          :current-step="currentFormStep"
-          :total-steps="totalFormSteps"
-          :current-step-fields="currentStepFields"
-          :form-data="workOrderFormData"
-          :form-valid="formValid"
-          :clients="clients"
-          :users="users"
-          :user-role="userRole"
-          :priority="priority"
-          :reschedule-enabled="rescheduleEnabled"
-          :schedule-end-date="scheduleEndDate"
-          :selected-days="selectedDays"
-          :from-date="fromDate"
-          :due-date="dueDate"
-          @next-step="nextFormStep"
-          @prev-step="prevFormStep"
-          @open-qr-scanner="openQrScanner"
-          @open-location-selector="openLocationSelector"
-          @generate-code="generateCode"
-          @field-action="handleFieldAction"
-          @update-priority="updatePriority"
-          @update-reschedule-enabled="updateRescheduleEnabled"
-          @update-schedule-end-date="updateScheduleEndDate"
-          @update-selected-days="updateSelectedDays"
-          @update-from-date="updateFromDate"
-          @update-due-date="updateDueDate"
-        />
+        <v-tabs
+          v-model="activeTab"
+          bg-color="transparent"
+          color="primary"
+          class="custom-tabs mb-4"
+          slider-color="primary"
+        >
+          <v-tab value="core" :disabled="true" class="custom-tab">
+            <v-icon class="mr-2" size="20">mdi-file-document</v-icon>
+            Task details
+          </v-tab>
+          <v-tab
+            v-for="jobSheet in visibleJobSheets"
+            :key="jobSheet.job_id"
+            :value="jobSheet.job_id"
+            :disabled="true"
+            class="custom-tab"
+          >
+            <v-icon class="mr-2" size="20">mdi-clipboard-text</v-icon>
+            {{ jobSheet.job_name }}
+          </v-tab>
+        </v-tabs>
+
+        <v-window v-model="activeTab">
+          <v-window-item value="core">
+            <FormStep
+              :form-details="formDetails"
+              :current-step="currentFormStep"
+              :total-steps="totalFormSteps"
+              :current-step-fields="currentStepFields"
+              :form-data="workOrderFormData"
+              :form-valid="formValid"
+              :clients="clients"
+              :users="users"
+              :departments="departments"
+              :shared-properties="sharedProperties"
+              :user-role="userRole"
+              :priority="priority"
+              :reschedule-enabled="rescheduleEnabled"
+              :schedule-end-date="scheduleEndDate"
+              :selected-days="selectedDays"
+              :from-date="fromDate"
+              :due-date="dueDate"
+              :show-priority-reschedule="activeTab === 'core'"
+              :loading="loading"
+              @next-step="nextFormStep"
+              @prev-step="prevFormStep"
+              @open-qr-scanner="openQrScanner"
+              @open-location-selector="openLocationSelector"
+              @generate-code="generateCode"
+              @field-action="handleFieldAction"
+              @update-priority="updatePriority"
+              @update-reschedule-enabled="updateRescheduleEnabled"
+              @update-schedule-end-date="updateScheduleEndDate"
+              @update-selected-days="updateSelectedDays"
+              @update-from-date="updateFromDate"
+              @update-due-date="updateDueDate"
+              @submit-form="handleSubmit"
+            />
+          </v-window-item>
+
+          <v-window-item
+            v-for="jobSheet in visibleJobSheets"
+            :key="jobSheet.job_id"
+            :value="jobSheet.job_id"
+          >
+            <FormStep
+              :form-details="formDetails"
+              :current-step="currentFormStep"
+              :total-steps="totalFormSteps"
+              :current-step-fields="currentStepFields"
+              :form-data="workOrderFormData[jobSheet.job_id] || {}"
+              :form-valid="formValid"
+              :clients="clients"
+              :users="users"
+              :departments="departments"
+              :shared-properties="sharedProperties"
+              :user-role="userRole"
+              :priority="priority"
+              :reschedule-enabled="rescheduleEnabled"
+              :schedule-end-date="scheduleEndDate"
+              :selected-days="selectedDays"
+              :from-date="fromDate"
+              :due-date="dueDate"
+              :show-priority-reschedule="activeTab === 'core'"
+              :loading="loading"
+              @next-step="nextFormStep"
+              @prev-step="prevFormStep"
+              @open-qr-scanner="openQrScanner"
+              @open-location-selector="openLocationSelector"
+              @generate-code="generateCode"
+              @field-action="handleFieldAction"
+              @update-priority="updatePriority"
+              @update-reschedule-enabled="updateRescheduleEnabled"
+              @update-schedule-end-date="updateScheduleEndDate"
+              @update-selected-days="updateSelectedDays"
+              @update-from-date="updateFromDate"
+              @update-due-date="updateDueDate"
+              @submit-form="handleSubmit"
+            />
+          </v-window-item>
+        </v-window>
+
         <div class="pb-safe" />
       </div>
 
@@ -229,7 +377,6 @@
       </v-alert>
     </section>
 
-    <!-- Dialogs / Overlays still render (scoped to this component) -->
     <EmailDialog
       :show="showEmailDialog"
       :client-email="clientEmail"
@@ -295,12 +442,19 @@ const {
   formDetails,
   clients,
   users,
+  departments,
   loading,
   error,
   fetchFormDetails,
   fetchDropdownData,
   submitForm,
+  uploadImage,
+  getFirstPresent,
 } = formApi();
+
+const sharedProperties = computed(() => {
+  return formDetails.value?.custom_FormTemplate?.shared_properties || {};
+});
 
 const {
   locationTypes,
@@ -326,6 +480,7 @@ const token = ref(authService.getToken());
 const formOptions = ref([]);
 const loadingForms = ref(false);
 const selectedTemplateId = ref(null);
+const activeTab = ref("core"); // Default to core fields
 
 // Form runtime state
 const currentFormStep = ref(1);
@@ -369,16 +524,58 @@ const weekdays = [
   { label: "S", value: "Sun", js: 0 },
 ];
 
+// Computed properties for core fields and job sheets
+const coreFields = computed(
+  () => formDetails.value?.custom_FormTemplate?.corefields || [],
+);
+const jobSheets = computed(
+  () => formDetails.value?.custom_FormTemplate?.jobSheet || [],
+);
+
+const visibleJobSheets = computed(() =>
+  jobSheets.value.filter((js) =>
+    js.fields.some(
+      (f) =>
+        f.field_type === "creation" || f.field_type === "creation/completion",
+    ),
+  ),
+);
+
+const totalFormSteps = computed(() => 1 + visibleJobSheets.value.length); // Core fields + visible job sheets
+
+const currentStepFields = computed(() => {
+  let fields = [];
+  if (activeTab.value === "core") {
+    fields = [...coreFields.value];
+
+    // Add team field to core fields if enabled
+    if (sharedProperties.value?.booleans?.team) {
+      fields.push({
+        key: "team",
+        label: "Department",
+        type: "dropdown",
+        field_type: "creation",
+      });
+    }
+  } else {
+    const jobSheet = jobSheets.value.find(
+      (js) => js.job_id === activeTab.value,
+    );
+    fields = jobSheet?.fields || [];
+  }
+  const filteredFields = fields.filter(
+    (f) =>
+      f.field_type === "creation" || f.field_type === "creation/completion",
+  );
+  return filteredFields;
+});
+
 // IMPROVED Date normalization helper
 const normalizeDateString = (v) => {
   if (!v) return null;
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   if (typeof v === "string") {
-    // Handle datetime-local format first (YYYY-MM-DDTHH:MM)
-    if (v.includes("T")) {
-      return v.split("T")[0];
-    }
-    // Handle date format (YYYY-MM-DD)
+    if (v.includes("T")) return v.split("T")[0];
     const m = v.match(/^(\d{4}-\d{2}-\d{2})/);
     if (m) return m[1];
   }
@@ -407,7 +604,6 @@ const datesInRangeByWeekdays = (startStr, endStr, dayValues) => {
     return [];
   }
 
-  // Clean the dates
   const cleanStart = normalizeDateString(startStr);
   const cleanEnd = normalizeDateString(endStr);
 
@@ -449,25 +645,7 @@ const datesInRangeByWeekdays = (startStr, endStr, dayValues) => {
   return resultDates;
 };
 
-// Sync fromDate and dueDate with formData (dynamic fields)
-const fromDateFields = [
-  "from",
-  "fromDate",
-  "from_date",
-  "startDate",
-  "start_date",
-];
-const dueDateFields = [
-  "dueTime",
-  "due_time",
-  "dueDate",
-  "due_date",
-  "endDate",
-  "end_date",
-  "toDate",
-  "to_date",
-];
-
+// Helper function to get date from formData with multiple key possibilities
 const getDateFromFormData = (formData, fieldNames) => {
   for (const field of fieldNames) {
     if (formData[field]) {
@@ -477,11 +655,27 @@ const getDateFromFormData = (formData, fieldNames) => {
   return null;
 };
 
+// Watchers for date changes to update reactive state
 const fromDateTime = computed(() =>
-  getDateFromFormData(workOrderFormData, fromDateFields),
+  getDateFromFormData(workOrderFormData, [
+    "from",
+    "fromDate",
+    "from_date",
+    "startDate",
+    "start_date",
+  ]),
 );
 const dueDateTime = computed(() =>
-  getDateFromFormData(workOrderFormData, dueDateFields),
+  getDateFromFormData(workOrderFormData, [
+    "dueTime",
+    "due_time",
+    "dueDate",
+    "due_date",
+    "endDate",
+    "end_date",
+    "toDate",
+    "to_date",
+  ]),
 );
 
 watch([fromDateTime, dueDateTime], ([newFrom, newDue]) => {
@@ -489,7 +683,7 @@ watch([fromDateTime, dueDateTime], ([newFrom, newDue]) => {
   dueDate.value = newDue;
 });
 
-// Watchers for date changes
+// Watcher for date changes to adjust reschedule settings
 watch([normalizedFromDate, normalizedDueDate], () => {
   if (!canEnableReschedule.value) {
     rescheduleEnabled.value = false;
@@ -500,7 +694,7 @@ watch([normalizedFromDate, normalizedDueDate], () => {
   }
 });
 
-// Visibility by role
+// Visibility by role helper
 const isFieldVisible = (field) => {
   const roleBasedRequired = field.roleBasedRequired;
   if (roleBasedRequired && typeof roleBasedRequired === "object") {
@@ -514,37 +708,6 @@ const isFieldVisible = (field) => {
   return true;
 };
 
-// Derived fields grouping logic (steps)
-const formFieldSteps = computed(() => {
-  if (!formDetails.value?.custom_FormTemplate?.fields) return [];
-
-  const allVisible = formDetails.value.custom_FormTemplate.fields
-    .filter(
-      (f) =>
-        f.field_type === "creation" || f.field_type === "creation/completion",
-    )
-    .filter(isFieldVisible);
-
-  const perStep = 9999;
-  const steps = [];
-  let chunk = [];
-
-  for (const f of allVisible) {
-    chunk.push(f);
-    if (chunk.length === perStep) {
-      steps.push(chunk);
-      chunk = [];
-    }
-  }
-  if (chunk.length) steps.push(chunk);
-  return steps;
-});
-
-const currentStepFields = computed(
-  () => formFieldSteps.value[currentFormStep.value - 1] || [],
-);
-const totalFormSteps = computed(() => formFieldSteps.value.length);
-
 // Select a form: fetch details + dropdown data and init form model
 const onSelectTemplate = async (id) => {
   if (!id) {
@@ -555,6 +718,7 @@ const onSelectTemplate = async (id) => {
   await fetchDropdownData();
   initFormData();
   currentFormStep.value = 1;
+  activeTab.value = "core";
 };
 
 // Fetch available forms for dropdown
@@ -588,7 +752,6 @@ const loadForms = async () => {
       formName: x.formName,
     }));
 
-    // Set the first form as the default if forms are available
     if (formOptions.value.length > 0 && !selectedTemplateId.value) {
       selectedTemplateId.value = formOptions.value[0].id;
       await onSelectTemplate(selectedTemplateId.value);
@@ -604,8 +767,8 @@ const loadForms = async () => {
 const initFormData = () => {
   Object.keys(workOrderFormData).forEach((k) => delete workOrderFormData[k]);
 
-  const fields = formDetails.value?.custom_FormTemplate?.fields || [];
-  fields
+  const coreFields = formDetails.value?.custom_FormTemplate?.corefields || [];
+  coreFields
     .filter(
       (f) =>
         f.field_type === "creation" || f.field_type === "creation/completion",
@@ -613,12 +776,33 @@ const initFormData = () => {
     .forEach((f) => {
       const type =
         typeof f.type === "object" && f.type.date === true ? "date" : f.type;
-
-      if (type === "boolean") workOrderFormData[f.key] = false;
-      else if (type === "date" || type === "number")
-        workOrderFormData[f.key] = null;
-      else workOrderFormData[f.key] = "";
+      workOrderFormData[f.key] =
+        type === "boolean"
+          ? false
+          : type === "date" || type === "number"
+            ? null
+            : "";
     });
+
+  const jobSheets = formDetails.value?.custom_FormTemplate?.jobSheet || [];
+  jobSheets.forEach((jobSheet) => {
+    workOrderFormData[jobSheet.job_id] = reactive({});
+    jobSheet.fields
+      .filter(
+        (f) =>
+          f.field_type === "creation" || f.field_type === "creation/completion",
+      )
+      .forEach((f) => {
+        const type =
+          typeof f.type === "object" && f.type.date === true ? "date" : f.type;
+        workOrderFormData[jobSheet.job_id][f.key] =
+          type === "boolean"
+            ? false
+            : type === "date" || type === "number"
+              ? null
+              : "";
+      });
+  });
 
   workOrderFormData.priority = null;
   workOrderFormData.fromDate = null;
@@ -627,18 +811,42 @@ const initFormData = () => {
   workOrderFormData.scheduleEndDate = null;
   workOrderFormData.selectedDays = [];
 
-  priority.value = null;
-  fromDate.value = null;
-  dueDate.value = null;
-  rescheduleEnabled.value = false;
-  scheduleEndDate.value = null;
-  selectedDays.value = [];
+  console.log("[v0] Form data initialized:", workOrderFormData);
 };
 
 // Navigation across steps
 const nextFormStep = async () => {
   if (currentFormStep.value < totalFormSteps.value) {
     currentFormStep.value++;
+    activeTab.value = tabKeys.value[currentFormStep.value - 1];
+    if (activeTab.value !== "core" && !workOrderFormData[activeTab.value]) {
+      workOrderFormData[activeTab.value] = reactive({});
+
+      const jobSheet = jobSheets.value.find(
+        (js) => js.job_id === activeTab.value,
+      );
+      if (jobSheet) {
+        jobSheet.fields
+          .filter(
+            (f) =>
+              f.field_type === "creation" ||
+              f.field_type === "creation/completion",
+          )
+          .forEach((f) => {
+            const type =
+              typeof f.type === "object" && f.type.date === true
+                ? "date"
+                : f.type;
+            workOrderFormData[activeTab.value][f.key] =
+              type === "boolean"
+                ? false
+                : type === "date" || type === "number"
+                  ? null
+                  : "";
+          });
+      }
+    }
+
     scrollTop();
     showValidationToast("Step completed successfully!", "success");
   } else {
@@ -649,9 +857,16 @@ const nextFormStep = async () => {
 const prevFormStep = () => {
   if (currentFormStep.value > 1) {
     currentFormStep.value--;
+    activeTab.value = tabKeys.value[currentFormStep.value - 1];
     scrollTop();
   }
 };
+
+const tabKeys = computed(() => {
+  const keys = ["core"];
+  visibleJobSheets.value.forEach((js) => keys.push(js.job_id));
+  return keys;
+});
 
 const bodyEl = ref(null);
 
@@ -793,13 +1008,124 @@ const updateDueDate = (newDueDate) => {
 // ENHANCED Submission with detailed debugging
 const handleSubmit = async () => {
   try {
+    if (!formDetails.value || !formDetails.value.custom_FormTemplate) {
+      showValidationToast(
+        "Form details not loaded. Please try again.",
+        "error",
+      );
+      return;
+    }
+
     let submissionData = { ...workOrderFormData };
+
+    if (sharedProperties.value?.booleans?.team && submissionData.team) {
+      console.log(
+        "[v0] Including team field in submission:",
+        submissionData.team,
+      );
+    }
+
+    const dynamicFields = [];
+
+    // Main task fields (core)
+    const mainFields = {};
+    const coreFields = formDetails.value?.custom_FormTemplate?.corefields || [];
+    for (const f of coreFields) {
+      const key = f.key;
+      if (submissionData[key] !== undefined) {
+        if (key === "user_location") {
+          mainFields[key] = {
+            lat: submissionData.lat,
+            lng: submissionData.lng,
+          };
+        } else if (key === "taskimage" && submissionData[key]) {
+          // Check if it's already an array of IDs (from FieldRenderer multi-upload)
+          if (
+            Array.isArray(submissionData[key]) &&
+            typeof submissionData[key][0] === "string"
+          ) {
+            // Already uploaded, use the array of IDs directly
+            mainFields[key] = submissionData[key];
+          } else if (submissionData[key].length > 0) {
+            // Legacy single file upload
+            mainFields[key] = await uploadImage(submissionData[key][0]);
+          }
+        } else if (
+          ![
+            "orgId",
+            "from",
+            "dueTime",
+            "title",
+            "description",
+            "task_priority",
+          ].includes(key)
+        ) {
+          mainFields[key] = submissionData[key];
+        }
+      }
+    }
+    const employeeIdAlt = getFirstPresent(submissionData, [
+      "UsersId",
+      "employeeId",
+      "empId",
+      "assignedEmployee",
+      "assignedUserId",
+    ]);
+    mainFields.UsersId = employeeIdAlt;
+
+    if (sharedProperties.value?.booleans?.team && submissionData.team) {
+      mainFields.team = submissionData.team;
+    }
+
+    dynamicFields.push({ fields: mainFields });
+
+    // Job sheets
+    const jobSheetsValue =
+      formDetails.value?.custom_FormTemplate?.jobSheet || [];
+    for (const jobSheet of jobSheetsValue) {
+      const jobSheetData = submissionData[jobSheet.job_id] || {};
+      const jobFields = {};
+      Object.keys(jobSheetData).forEach((key) => {
+        if (
+          jobSheetData[key] !== undefined &&
+          jobSheetData[key] !== null &&
+          jobSheetData[key] !== ""
+        ) {
+          jobFields[key] = jobSheetData[key];
+        }
+      });
+      if (jobSheet.requires_location) {
+        const latKey = jobSheet.location_field_key?.lat || "lat";
+        const lngKey = jobSheet.location_field_key?.lng || "lng";
+        if (jobSheetData[latKey] || jobSheetData[lngKey]) {
+          jobFields["user_location"] = {
+            lat: jobSheetData[latKey],
+            lng: jobSheetData[lngKey],
+          };
+        }
+      }
+      if (jobSheetData.taskimage) {
+        // Check if already uploaded (array of IDs)
+        if (
+          Array.isArray(jobSheetData.taskimage) &&
+          typeof jobSheetData.taskimage[0] === "string"
+        ) {
+          jobFields.taskimage = jobSheetData.taskimage;
+        } else if (jobSheetData.taskimage.length > 0) {
+          // Legacy single file upload
+          jobFields.taskimage = await uploadImage(jobSheetData.taskimage[0]);
+        }
+      }
+      jobFields.UsersId = employeeIdAlt;
+      dynamicFields.push({ fields: jobFields });
+    }
+
+    submissionData.dynamicFields = dynamicFields;
 
     if (priority.value) {
       submissionData.task_priority = priority.value;
     }
 
-    // MAIN CONDITION CHECK - Add detailed logging
     const rescheduleConditionMet =
       rescheduleEnabled.value && fromDate.value && scheduleEndDate.value;
 
@@ -808,7 +1134,6 @@ const handleSubmit = async () => {
       const end = normalizeDateString(scheduleEndDate.value);
       const selected = selectedDays.value || [];
 
-      // Check if we have selected days
       if (!selected.length) {
         showValidationToast(
           "Please select at least one day for rescheduling.",
@@ -817,7 +1142,6 @@ const handleSubmit = async () => {
         return;
       }
 
-      // Extract time components - with better fallbacks
       let fromTime = "09:00";
       let dueTime = "17:00";
 
@@ -894,8 +1218,19 @@ const handleSubmit = async () => {
       showValidationToast("Task created successfully!", "success");
     }
 
-    // OTP/Happy code handling
-    const allFields = formDetails.value?.custom_FormTemplate?.fields || [];
+    console.log("formDetails:", formDetails.value);
+    console.log("custom_FormTemplate:", formDetails.value?.custom_FormTemplate);
+    console.log("jobSheets:", jobSheets.value);
+
+    const allFields = [
+      ...(formDetails.value?.custom_FormTemplate?.corefields || []),
+      ...(Array.isArray(jobSheets.value)
+        ? jobSheets.value.reduce(
+            (acc, js) => [...acc, ...(js.fields || [])],
+            [],
+          )
+        : []),
+    ];
     const formMeta = { fields: allFields };
     const selectedOrgId = getSelectedClientOrgId();
 
@@ -926,7 +1261,7 @@ const handleSubmit = async () => {
 
 // Helpers
 const getSelectedClientOrgId = () => {
-  const fields = formDetails.value?.custom_FormTemplate?.fields || [];
+  const fields = formDetails.value?.custom_FormTemplate?.corefields || [];
 
   const clientField = fields.find((f) => {
     const type =
@@ -959,11 +1294,23 @@ const onApplyLocation = () => {
       const latNum = Number(lat);
       const lngNum = Number(lng);
 
-      workOrderFormData[currentGpsFieldKey.value] = `${
+      const targetFormData = currentGpsFieldKey.value.includes("job-")
+        ? workOrderFormData[currentGpsFieldKey.value.split("_")[0]]
+        : workOrderFormData;
+
+      targetFormData[currentGpsFieldKey.value] = `${
         isFinite(latNum) ? latNum.toFixed(6) : lat
       },${isFinite(lngNum) ? lngNum.toFixed(6) : lng}`;
 
-      const fields = formDetails.value?.custom_FormTemplate?.fields || [];
+      const fields = [
+        ...(formDetails.value?.custom_FormTemplate?.corefields || []),
+        ...(Array.isArray(jobSheets.value)
+          ? jobSheets.value.reduce(
+              (acc, js) => [...acc, ...(js.fields || [])],
+              [],
+            )
+          : []),
+      ];
       const keys = fields.map((f) => f.key);
 
       const latCandidates = [
@@ -981,11 +1328,11 @@ const onApplyLocation = () => {
       const lngKey = lngCandidates.find((k) => keys.includes(k));
 
       if (latKey)
-        workOrderFormData[latKey] = isFinite(Number(lat))
+        targetFormData[latKey] = isFinite(Number(lat))
           ? Number(lat).toFixed(6)
           : lat;
       if (lngKey)
-        workOrderFormData[lngKey] = isFinite(Number(lng))
+        targetFormData[lngKey] = isFinite(Number(lng))
           ? Number(lng).toFixed(6)
           : lng;
     }
@@ -997,6 +1344,7 @@ const resetFormRuntime = () => {
   formDetails.value = null;
   Object.keys(workOrderFormData).forEach((k) => delete workOrderFormData[k]);
   currentFormStep.value = 1;
+  activeTab.value = "core";
 };
 
 // Load forms and set default when drawer opens
@@ -1021,7 +1369,6 @@ watch(
   () => props.open,
   async (newVal) => {
     if (newVal && props.embedded) {
-      // Reset form state when switching to Work Order mode
       selectedTemplateId.value = null;
       resetFormRuntime();
       await loadForms();
@@ -1034,7 +1381,7 @@ loadFormsImmediate();
 
 <style scoped>
 .cwo-drawer {
-  z-index: 2050; /* above filters panel */
+  z-index: 2050;
   right: 0px;
   position: fixed !important;
   right: 0;
@@ -1096,9 +1443,82 @@ loadFormsImmediate();
   color: #6b7280;
 }
 
+/* Enhanced tab styling for maximum visibility */
+.custom-tabs {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.custom-tab {
+  text-transform: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  margin: 0 4px;
+  transition: all 0.3s ease;
+  min-height: 48px;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+  position: relative;
+}
+
+/* Super visible active tab with border and shadow */
+.custom-tab.v-tab--selected {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.5) !important;
+  opacity: 1 !important;
+  transform: scale(1.05);
+  border: 2px solid #0d47a1 !important;
+  z-index: 2;
+}
+
+.custom-tab.v-tab--selected .v-icon {
+  color: #ffffff !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Non-active tabs with clear distinction */
+.custom-tab:not(.v-tab--selected) {
+  background: #f5f5f5;
+  color: #757575;
+  border: 1px solid #e0e0e0;
+}
+
+.custom-tab:not(.v-tab--selected) .v-icon {
+  color: #9e9e9e;
+}
+
+/* Disabled state - prevent hover effects */
+.custom-tab:disabled,
+.custom-tab[disabled] {
+  pointer-events: none;
+  cursor: not-allowed !important;
+}
+
+/* Add indicator line under active tab */
+.custom-tab.v-tab--selected::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 3px;
+  background: #1976d2;
+  border-radius: 2px;
+}
+
 @media (max-width: 768px) {
   .cwo-drawer {
     width: 100% !important;
+  }
+
+  .custom-tab {
+    font-size: 0.85rem;
+    min-height: 44px;
   }
 }
 </style>

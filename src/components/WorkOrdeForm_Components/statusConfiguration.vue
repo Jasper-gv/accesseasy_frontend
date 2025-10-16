@@ -1,3 +1,4 @@
+<!-- /senzrGo/senzrfieldopsfrontend/src/components/WorkOrdeForm_Components/statusConfiguration.vue -->
 <template>
   <div class="status-tab">
     <div class="status-container">
@@ -9,21 +10,21 @@
           <div class="guide-text">
             <h3 class="guide-title">Workflow Configuration</h3>
             <p class="guide-description">
-              Define which roles can change work order status.
+              Define which roles can change work order status and configure
+              additional features.
             </p>
           </div>
         </div>
       </div>
-      <!-- ✅ Form Visibility (same design as Status Transitions) -->
-      <h3 class="section-title">Form Visibility</h3>
+
+      <!-- ✅ Form Visibility -->
       <div class="status-item enhanced-status-item">
         <div class="status-header">
-          <h4 class="status-name">Form Visibility To</h4>
+          <h4 class="status-name">Role Based Form Visibility</h4>
         </div>
 
         <div class="status-config-grid">
           <div class="status-roles">
-            <label class="section-label">Visible To Roles</label>
             <div class="toggle-group">
               <div
                 v-for="role in roleOptions"
@@ -34,7 +35,7 @@
                   <input
                     type="checkbox"
                     :checked="
-                      selectedForm.custom_FormTemplate.form_visibility_to?.roles.includes(
+                      selectedForm.custom_FormTemplate.shared_properties.form_visibility_to?.roles.includes(
                         role.name,
                       )
                     "
@@ -52,11 +53,43 @@
         </div>
       </div>
 
+      <!-- ✅ Additional Features (Booleans) -->
+      <div class="status-item enhanced-status-item">
+        <div class="status-header">
+          <h4 class="status-name">Additional Features To Enable</h4>
+        </div>
+
+        <div class="status-config-grid">
+          <div class="status-roles">
+            <div class="toggle-group">
+              <div
+                v-for="(value, key) in selectedForm.custom_FormTemplate
+                  .shared_properties.booleans"
+                :key="key"
+                class="toggle-item"
+              >
+                <label class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    v-model="
+                      selectedForm.custom_FormTemplate.shared_properties
+                        .booleans[key]
+                    "
+                    class="toggle-input"
+                  />
+                  <span class="toggle-slider toggle-slider-small"></span>
+                </label>
+                <span class="toggle-label">{{ formatLabel(key) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ✅ Status Transitions -->
-      <h3 class="section-title">Status</h3>
       <div
         v-for="(transition, statusKey) in selectedForm.custom_FormTemplate
-          ?.status_transitions || {}"
+          ?.shared_properties.status_transitions || {}"
         :key="statusKey"
         class="status-item enhanced-status-item"
       >
@@ -68,7 +101,6 @@
           <!-- Closed-Overdue special case -->
           <template v-if="statusKey === 'closed-overDue'">
             <div class="status-roles">
-              <label class="section-label">Auto-Closure Settings</label>
               <div class="toggle-item">
                 <label class="toggle-switch">
                   <input
@@ -142,9 +174,18 @@ const props = defineProps({
   roleOptions: Array,
 });
 
+const formatLabel = (key) => {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim();
+};
+
 const toggleStatusRole = (statusKey, roleName, isAllowed) => {
   const transition =
-    props.selectedForm.custom_FormTemplate.status_transitions[statusKey];
+    props.selectedForm.custom_FormTemplate.shared_properties.status_transitions[
+      statusKey
+    ];
   if (!transition.can_set_by_roles) transition.can_set_by_roles = [];
 
   if (isAllowed) {
@@ -159,7 +200,8 @@ const toggleStatusRole = (statusKey, roleName, isAllowed) => {
 };
 
 const toggleFormVisibility = (roleName, isVisible) => {
-  const vis = props.selectedForm.custom_FormTemplate.form_visibility_to;
+  const vis =
+    props.selectedForm.custom_FormTemplate.shared_properties.form_visibility_to;
   if (!vis.roles) vis.roles = [];
 
   if (isVisible) {

@@ -395,7 +395,7 @@ async function checkUserPin() {
         throw new Error("User not found");
       }
     } else {
-      // Phone-based login (existing code)
+      // Phone-based login
       let phone =
         route.params.phoneNumber ||
         localStorage.getItem("userPhone") ||
@@ -495,9 +495,9 @@ async function handlePinAction() {
           await savePin(currentPinStr);
           setSuccessMessage("4-digit PIN successfully created");
           if (isResettingPin.value) {
-            // setTimeout(() => {
-            //   router.push("/login");
-            // }, 1500);
+            setTimeout(() => {
+              router.push("/login");
+            }, 1500);
           } else {
             authService.setPinVerified(true);
             setTimeout(() => {
@@ -529,7 +529,6 @@ async function handlePinAction() {
 async function verifyPin() {
   try {
     const enteredPin = currentPin.value.toString().trim();
-
     let databasePin = userPin.value || "";
 
     if (enteredPin.length !== 4) {
@@ -542,13 +541,21 @@ async function verifyPin() {
     }
 
     if (checkIfEncrypted(databasePin)) {
-      databasePin = decryptData(databasePin);
+      databasePin = decryptData(databasePin).trim();
+    } else {
+      databasePin = databasePin.toString().trim();
     }
 
     if (enteredPin === databasePin) {
       setSuccessMessage("PIN verified successfully");
       attempts.value = 0;
+      authService.setPinVerified(true);
       localStorage.setItem("pinVerifiedInSession", "true");
+      const isEmailLogin =
+        route.query.fromEmail === "true" || route.params.email;
+      if (isEmailLogin) {
+        localStorage.setItem("fromEmailOtp", "true");
+      }
       setTimeout(() => {
         router.push("/taskManagement/taskcomponents");
       }, 1500);
@@ -571,7 +578,11 @@ async function verifyPin() {
     });
   } catch (error) {
     console.error("[v0] PIN verification error:", error);
-    throw new Error("Failed to verify PIN. Please try again.");
+    setErrorMessage("Failed to verify PIN. Please try again.");
+    pinDigits.value = Array(4).fill("");
+    nextTick(() => {
+      pinFields.value[0]?.focus();
+    });
   }
 }
 
@@ -637,10 +648,10 @@ function handleSessionTimeout() {
 
 function confirmTimeout() {
   showTimeoutModal.value = false;
-  // router.push({
-  //   path: "/login",
-  //   query: { timeout: true },
-  // });
+  router.push({
+    path: "/login",
+    query: { timeout: true },
+  });
 }
 
 function setupInactivityTracking() {
@@ -663,15 +674,33 @@ function cleanupInactivityTracking() {
 
 onMounted(() => {
   setupInactivityTracking();
-  userPhone.value =
-    route.params.phoneNumber || localStorage.getItem("userPhone");
-  if (!userPhone.value) {
-    setErrorMessage("Phone number not found");
-    // setTimeout(() => {
-    //   router.push("/login");
-    // }, 3000);
-    return;
+
+  // Determine if this is an email-based login
+  const isEmailLogin = route.query.fromEmail === "true" || route.params.email;
+
+  if (isEmailLogin) {
+    const email = route.params.email || localStorage.getItem("email");
+    if (!email) {
+      setErrorMessage("Email not found");
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+      return;
+    }
+    localStorage.setItem("email", email);
+  } else {
+    // Handle phone-based login
+    userPhone.value =
+      route.params.phoneNumber || localStorage.getItem("userPhone");
+    if (!userPhone.value) {
+      setErrorMessage("Phone number not found");
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+      return;
+    }
   }
+
   checkUserPin()
     .then(() => {
       nextTick(() => {
@@ -683,9 +712,9 @@ onMounted(() => {
     .catch((error) => {
       console.error("Error in mounted:", error);
       setErrorMessage("Error initializing PIN verification. Please try again.");
-      // setTimeout(() => {
-      //   router.push("/login");
-      // }, 3000);
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
     });
 });
 

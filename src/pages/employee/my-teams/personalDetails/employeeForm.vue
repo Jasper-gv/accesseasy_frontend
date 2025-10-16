@@ -1719,12 +1719,12 @@ const tabs = [
     icon: "mdi-calendar-account",
     roles: ["Admin", "Manager", "Employee", "Dealer"],
   },
-  {
-    id: "salary",
-    title: "Payroll Category",
-    icon: "mdi-cash",
-    roles: ["Admin", "Dealer"],
-  },
+  // {
+  //   id: "salary",
+  //   title: "Payroll Category",
+  //   icon: "mdi-cash",
+  //   roles: ["Admin", "Dealer"],
+  // },
   // {
   //   id: "access",
   //   title: "Access Management",
@@ -1737,12 +1737,12 @@ const tabs = [
     icon: "mdi-history",
     roles: ["Admin", "Manager", "Employee", "Dealer"],
   },
-  {
-    id: "BankDetails",
-    title: "Bank Details",
-    icon: "mdi-bank",
-    roles: ["Admin", "Manager", "Employee", "Dealer"],
-  },
+  // {
+  //   id: "BankDetails",
+  //   title: "Bank Details",
+  //   icon: "mdi-bank",
+  //   roles: ["Admin", "Manager", "Employee", "Dealer"],
+  // },
   {
     id: "EmergencyContactDetails",
     title: "Emergency Contact Details",

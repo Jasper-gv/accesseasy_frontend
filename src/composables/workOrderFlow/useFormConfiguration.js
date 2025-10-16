@@ -1,5 +1,4 @@
-"use client";
-
+// /senzrGo/senzrfieldopsfrontend/src/composables/workOrderFlow/useFormConfiguration.js
 import { ref } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
@@ -18,12 +17,12 @@ export function useFormConfiguration(
   const loadingTemplates = ref(false);
   const showCreateModal = ref(false);
   const showDeleteModal = ref(false);
+  const showAddFormModal = ref(false);
   const formToDelete = ref(null);
   const organizationsOptions = ref([]);
   const availableTemplates = ref([]);
   const activeTab = ref("fields");
 
-  // Get auth data
   const getAuthData = async () => {
     await currentUserTenant.initialize();
     return {
@@ -70,7 +69,6 @@ export function useFormConfiguration(
       organizationsOptions.value = [];
       showNotification("Failed to fetch organizations.", "error");
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -95,7 +93,7 @@ export function useFormConfiguration(
       params.append("fields[]", "custom_FormTemplate");
       params.append("fields[]", "id");
       params.append("sort[]", "-date_created");
-      params.append("filter[_and][0][_and][0][enableForm][_eq]:", true);
+      params.append("filter[_and][0][enableForm][_eq]", true);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/items/form_template?${params.toString()}`,
@@ -115,7 +113,6 @@ export function useFormConfiguration(
       availableTemplates.value = [];
       showNotification("Failed to fetch templates.", "error");
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -139,7 +136,7 @@ export function useFormConfiguration(
       params.append("fields[]", "formName");
       params.append("fields[]", "custom_FormTemplate");
       params.append("fields[]", "id");
-      params.append("filter[_and][0][_and][0][id][_eq]:", templateId);
+      params.append("filter[_and][0][id][_eq]", templateId);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/items/form_template?${params.toString()}`,
@@ -158,7 +155,6 @@ export function useFormConfiguration(
       console.error("Error fetching template details:", error);
       showNotification("Failed to fetch template details.", "error");
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -251,7 +247,6 @@ export function useFormConfiguration(
       console.error("Error creating form:", error);
       showNotification("Error creating form. Please try again.", "error");
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -311,7 +306,6 @@ export function useFormConfiguration(
       console.error("Error deleting form:", error);
       showNotification("Error deleting form. Please try again.", "error");
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -362,7 +356,6 @@ export function useFormConfiguration(
         "error",
       );
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -381,6 +374,116 @@ export function useFormConfiguration(
     showNotification("JSON copied to clipboard!", "success");
   };
 
+  const closeAddFormModal = () => {
+    showAddFormModal.value = false;
+    availableTemplates.value = [];
+  };
+
+  const confirmAddForm = async (formData) => {
+    if (!formData.form_name.trim()) {
+      showNotification("Form Name is required.", "error");
+      return;
+    }
+
+    if (!selectedForm.value) {
+      showNotification("No form selected to add to.", "error");
+      return;
+    }
+
+    try {
+      const { token } = await getAuthData();
+      if (!token) {
+        throw new Error("Authentication token not available");
+      }
+
+      const newForm = {
+        form_name: formData.form_name.trim(),
+        form_id: `form_${Date.now()}`,
+        requires_location: true,
+        location_field_key: {
+          lat: "",
+          lng: "",
+        },
+        fields: [],
+      };
+
+      if (formData.templateId) {
+        const templateDetails = await fetchTemplateDetails(formData.templateId);
+        if (
+          templateDetails &&
+          templateDetails.custom_FormTemplate?.forms?.length
+        ) {
+          const existingKeys = new Set();
+          selectedForm.value.custom_FormTemplate.forms.forEach((form) => {
+            form.fields?.forEach((field) => {
+              existingKeys.add(field.key);
+            });
+          });
+
+          const restrictedFields = [
+            "orgId",
+            "UsersId",
+            "user_location",
+            "client_location",
+            "from",
+            "dueTime",
+          ];
+          const templateFields =
+            templateDetails.custom_FormTemplate.forms[0]?.fields || [];
+          newForm.fields = templateFields
+            .filter(
+              (field) =>
+                !restrictedFields.includes(field.key) ||
+                !existingKeys.has(field.key),
+            )
+            .map((field) => ({
+              ...JSON.parse(JSON.stringify(field)),
+              key: existingKeys.has(field.key)
+                ? `${field.key}_${Date.now()}`
+                : field.key,
+            }));
+        }
+      }
+
+      selectedForm.value.custom_FormTemplate.forms.push(newForm);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/tenant_template/${selectedForm.value.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            custom_FormTemplate: selectedForm.value.custom_FormTemplate,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        showNotification(
+          `Form "${formData.form_name}" added successfully!`,
+          "success",
+        );
+        closeAddFormModal();
+        await selectForm(selectedForm.value);
+        await fetchFormTemplates();
+      } else {
+        throw new Error("Failed to add form");
+      }
+    } catch (error) {
+      console.error("Error adding form:", error);
+      showNotification("Error adding form. Please try again.", "error");
+      if (
+        error.message.includes("401") ||
+        error.message.includes("Authentication")
+      ) {
+        authService.logout();
+      }
+    }
+  };
+
   return {
     saving,
     creating,
@@ -388,6 +491,7 @@ export function useFormConfiguration(
     loadingTemplates,
     showCreateModal,
     showDeleteModal,
+    showAddFormModal,
     formToDelete,
     organizationsOptions,
     availableTemplates,
@@ -400,5 +504,7 @@ export function useFormConfiguration(
     deleteForm,
     saveConfiguration,
     copyToClipboard,
+    closeAddFormModal,
+    confirmAddForm,
   };
 }

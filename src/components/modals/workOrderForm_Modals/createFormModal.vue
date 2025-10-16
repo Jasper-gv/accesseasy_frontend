@@ -1,3 +1,4 @@
+<!-- /senzrGo/senzrfieldopsfrontend/src/components/modals/workOrderForm_Modals/createFormModal.vue -->
 <template>
   <div v-if="show" class="modal-overlay" @click="$emit('close')">
     <div class="modal-content enhanced-modal" @click.stop>
@@ -5,7 +6,7 @@
         <div class="modal-title-section">
           <h3 class="modal-title">
             <PlusIcon class="modal-title-icon" />
-            Create New Work Order Form
+            Create New Form
           </h3>
           <p class="modal-subtitle">
             Give your form a descriptive name that clearly identifies its
@@ -23,7 +24,7 @@
             Form Name
           </label>
           <input
-            v-model="formData.name"
+            v-model="formData.form_name"
             type="text"
             class="form-input"
             placeholder="e.g., Equipment Maintenance Request"
@@ -44,6 +45,21 @@
               {{ org.orgName }}
             </option>
           </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <MapPinIcon class="label-icon" />
+            Requires Location
+          </label>
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              v-model="formData.requires_location"
+              class="toggle-input"
+            />
+            <span class="toggle-slider"></span>
+          </label>
+          <div class="field-help">Enable if this form requires a location</div>
         </div>
         <!-- Template Selection -->
         <div class="form-group">
@@ -81,7 +97,7 @@
           </div>
           <div v-else class="template-info">
             <CheckCircleIcon class="inline-icon" />
-            Will create form with default service template configuration.
+            Will create form with default configuration.
           </div>
         </div>
         <!-- Tips Section -->
@@ -130,7 +146,7 @@
         <button
           @click="handleCreateForm"
           class="btn btn-primary"
-          :disabled="!formData.name.trim() || creating || loadingTemplates"
+          :disabled="!formData.form_name.trim() || creating || loadingTemplates"
         >
           <div v-if="creating" class="loading-spinner-small"></div>
           <PlusIcon v-else class="btn-icon" />
@@ -151,6 +167,7 @@ import {
   FileTextIcon,
   CheckCircleIcon,
   Lightbulb,
+  MapPinIcon,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -164,10 +181,12 @@ const props = defineProps({
 const emit = defineEmits(["close", "createForm"]);
 
 const formData = ref({
-  name: "",
+  form_name: "",
   orgId: null,
   templateId: null,
   enabled: true,
+  requires_location: false,
+  location_field_key: { lat: "", lng: "" },
 });
 
 const handleCreateForm = () => {
@@ -180,10 +199,12 @@ watch(
   (newVal) => {
     if (!newVal) {
       formData.value = {
-        name: "",
+        form_name: "",
         orgId: null,
         templateId: null,
         enabled: true,
+        requires_location: false,
+        location_field_key: { lat: "", lng: "" },
       };
     }
   },

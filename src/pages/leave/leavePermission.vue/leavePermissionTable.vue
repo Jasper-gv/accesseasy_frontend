@@ -1,32 +1,77 @@
 <template>
   <div class="employee-container">
-    <div class="main-content" :class="{ 'with-filter': showFilters }">
-      <!-- New Tab Navigation -->
-      <div class="d-flex align-center py-2 px-4">
-        <div class="left-tabs">
-          <button
-            @click="switchTab('activity')"
-            :class="{ active: activeLeftTab === 'activity' }"
-          >
-            <i class="fas fa-clock"></i>
-            Recent Activity
-          </button>
-          <button
-            @click="switchTab('history')"
-            :class="{ active: activeLeftTab === 'history' }"
-          >
-            <i class="fas fa-history"></i>
-            History
-          </button>
-        </div>
+    <!-- Filter Panel -->
+    <div class="filter-panel" v-if="showFilters && tenantId">
+      <div class="filter-content">
+        <FilterComponent
+          :tenantId="tenantId"
+          :initialFilters="initialFilters"
+          :initiallyVisible="true"
+          :filter-schema="pageFilters"
+          @apply-filters="handleApplyFilters"
+          @filter-visibility-changed="onFilterVisibilityChanged"
+        />
+      </div>
+    </div>
+
+    <!-- Filter Toggle Button -->
+    <button
+      v-if="isAdmin"
+      class="filter-toggle-static"
+      @click="toggleFilters"
+      :class="{ active: hasActiveFilters }"
+      :title="showFilters ? 'Hide filters' : 'Show filters'"
+      aria-label="Toggle filters"
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+      </svg>
+      <div v-if="hasActiveFilters" class="filter-indicator"></div>
+    </button>
+
+    <div
+      class="main-content"
+      :class="{ 'full-width': !showFilters, 'with-drawer': showAddForm }"
+    >
+      <!-- Add Request Button -->
+      <div class="d-flex align-center py-2 px-4 header-actions">
         <v-spacer></v-spacer>
+        <BaseButton
+          color="primary"
+          :text="`Add request`"
+          @click="toggleAddForm"
+          size="md"
+          :left-icon="Plus"
+        />
       </div>
 
-      <div v-if="tabLoading" class="d-flex justify-center align-center py-2">
+      <!-- Form Component -->
+      <v-navigation-drawer
+        v-model="showAddForm"
+        temporary
+        location="right"
+        width="400"
+        class="form-drawer"
+      >
+        <add
+          v-if="showAddForm"
+          @closeAddPage="toggleAddForm"
+          @leaveApplied="handleLeaveApplied"
+        />
+      </v-navigation-drawer>
+
+      <div v-if="loading" class="d-flex justify-center align-center py-2">
         <v-progress-linear indeterminate color="black"></v-progress-linear>
       </div>
 
-      <!-- Table Container with specific class for width/height issues -->
+      <!-- Table Container -->
       <div class="table-container-large">
         <DataTable
           :items="items"
@@ -55,47 +100,31 @@
           <!-- Custom cell for status -->
           <template #cell-status="{ item }">
             <div class="d-flex align-center">
-              <span
-                v-if="item.status !== 'pending'"
-                :class="getStatusClass(item.status)"
-                class="status-chip compact"
-              >
-                <v-icon
-                  size="small"
-                  class="me-1"
-                  :color="getIconColor(item.status)"
-                >
-                  {{ getStatusIcon(item.status) }}
+              <span class="status-chip status-requested compact">
+                <v-icon size="small" class="me-1" color="amber-darken-3">
+                  mdi-clock-outline
                 </v-icon>
-                {{ formatStatus(item.status) }}
+                Requested
               </span>
-              <div v-else class="d-flex align-center">
-                <span class="status-chip status-requested compact">
-                  <v-icon size="small" class="me-1" color="amber-darken-3">
-                    mdi-clock-outline
-                  </v-icon>
-                  Requested
-                </span>
-                <div class="d-flex ms-2">
-                  <v-btn
-                    size="x-small"
-                    color="success"
-                    class="me-2 status-btn compact"
-                    @click.stop="updateStatus(item.id, 'approved')"
-                  >
-                    <v-icon size="x-small" start>mdi-check</v-icon>
-                    Accept
-                  </v-btn>
-                  <v-btn
-                    size="x-small"
-                    color="error"
-                    class="status-btn compact"
-                    @click.stop="updateStatus(item.id, 'declined')"
-                  >
-                    <v-icon size="x-small" start>mdi-close</v-icon>
-                    Reject
-                  </v-btn>
-                </div>
+              <div class="d-flex ms-2">
+                <v-btn
+                  size="x-small"
+                  color="success"
+                  class="me-2 status-btn compact"
+                  @click.stop="updateStatus(item.id, 'approved')"
+                >
+                  <v-icon size="x-small" start>mdi-check</v-icon>
+                  Accept
+                </v-btn>
+                <v-btn
+                  size="x-small"
+                  color="error"
+                  class="status-btn compact"
+                  @click.stop="updateStatus(item.id, 'declined')"
+                >
+                  <v-icon size="x-small" start>mdi-close</v-icon>
+                  Reject
+                </v-btn>
               </div>
             </div>
           </template>
@@ -104,8 +133,8 @@
           <template #empty-state>
             <div class="empty-content">
               <div class="empty-icon">📋</div>
-              <h3>No leave requests found</h3>
-              <p>There are no leave requests to display.</p>
+              <h3>No pending leave requests found</h3>
+              <p>There are no pending leave requests to display.</p>
             </div>
           </template>
         </DataTable>
@@ -124,11 +153,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, reactive, watch } from "vue";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import { authService } from "@/services/authService";
 import DataTable from "@/components/common/table/DataTable.vue";
+import FilterComponent from "@/components/common/filters/payrollfilter.vue"; // Adjust path as needed
+import add from "../leaveRequest.vue/add.vue";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { Plus, Filter } from "lucide-vue-next";
 
 const emit = defineEmits(["showEditPage"]);
 
@@ -136,7 +169,7 @@ const selected = ref([]);
 const items = ref([]);
 const loading = ref(false);
 const search = ref("");
-const showFilters = ref(false);
+const showAddForm = ref(false);
 const showError = ref(false);
 const errorMessage = ref("");
 const tenantId = currentUserTenant.getTenantId();
@@ -146,27 +179,94 @@ const userId = currentUserTenant.getUserId();
 const page = ref(1);
 const itemsPerPage = ref(25);
 const totalItems = ref(0);
-const activeLeftTab = ref("activity");
-const tabLoading = ref(false);
 const attendanceConflicts = ref({});
-const sortBy = ref([]); // Keep as array to match v-data-table behavior
+const sortBy = ref([]);
+const showFilters = ref(true);
+const isAdmin = computed(() => userRole === "Admin");
+// Filter options
+const filters = reactive({
+  request: "", // Add this
 
-// Define columns for DataTable - FIXED: Use simple key and custom template
+  fromDate: "",
+  toDate: "",
+});
+
+const initialFilters = computed(() => ({
+  request: filters.request,
+
+  fromDate: filters.fromDate,
+  toDate: filters.toDate,
+}));
+
+const pageFilters = ref([
+  {
+    key: "request",
+    label: "Request",
+    type: "select",
+    show: true,
+    defaultValue: "",
+  },
+  { key: "fromDate", label: "From Date", type: "date", show: true },
+  { key: "toDate", label: "To Date", type: "date", show: true },
+]);
+
+const hasActiveFilters = computed(() => {
+  return (
+    filters.request !== "" || filters.fromDate || filters.toDate || search.value
+  );
+});
+
+// Define columns for DataTable
 const columns = ref([
   {
-    key: "employeeName", // Changed to simple key
+    key: "employeeName",
     label: "Employee Name",
     width: "150px",
   },
-  { key: "date_created", label: "Applied On", width: "150px" },
+
   { key: "leaveType", label: "Leave Type", width: "120px" },
   { key: "fromDate", label: "Leave From", width: "120px" },
   { key: "toDate", label: "Leave To", width: "120px" },
+  { key: "date_created", label: "Applied On", width: "150px" },
+
   { key: "reason", label: "Reason", width: "200px" },
+
   { key: "status", label: "Status", width: "250px" },
 ]);
 
-// ALTERNATIVE SOLUTION: Transform data to flatten nested properties
+const toggleAddForm = () => {
+  showAddForm.value = !showAddForm.value;
+};
+
+const toggleFilters = () => {
+  showFilters.value = !showFilters.value;
+};
+
+const onFilterVisibilityChanged = (isVisible) => {
+  showFilters.value = isVisible;
+};
+
+const handleApplyFilters = (newFilters) => {
+  Object.assign(filters, newFilters);
+  page.value = 1;
+  fetchData();
+};
+
+const clearFilters = () => {
+  Object.keys(filters).forEach((key) => {
+    filters[key] = "";
+  });
+  search.value = "";
+  page.value = 1;
+  fetchData();
+};
+
+const handleLeaveApplied = async () => {
+  showAddForm.value = false;
+  await fetchData();
+};
+
+// Process items to flatten nested properties
 const processItems = (rawItems) => {
   return rawItems.map((item) => ({
     ...item,
@@ -174,7 +274,7 @@ const processItems = (rawItems) => {
   }));
 };
 
-// Formatting and status handling functions (unchanged)
+// Formatting and status handling functions
 const formatDate = (date) => {
   if (!date) return "";
   const newDate = new Date(date);
@@ -182,47 +282,19 @@ const formatDate = (date) => {
 };
 
 const getStatusIcon = (status) => {
-  const iconMap = {
-    pending: "mdi-clock-outline",
-    approved: "mdi-check-circle",
-    declined: "mdi-close-circle",
-    accept: "mdi-check-circle",
-    reject: "mdi-circle-outline",
-  };
-  return iconMap[status] || "mdi-help-circle";
+  return "mdi-clock-outline";
 };
 
 const getIconColor = (status) => {
-  const colorMap = {
-    pending: "amber-darken-3",
-    approved: "green-darken-2",
-    declined: "red-darken-2",
-    accept: "mdi-check-circle",
-    reject: "mdi-circle-outline",
-  };
-  return colorMap[status] || "grey";
+  return "amber-darken-3";
 };
 
 const formatStatus = (status) => {
-  const statusMap = {
-    pending: "Requested",
-    approved: "Approved",
-    declined: "Rejected",
-    accept: "mdi-check-circle",
-    reject: "mdi-circle-outline",
-  };
-  return statusMap[status] || status;
+  return "Requested";
 };
 
 const getStatusClass = (status) => {
-  const statusClassMap = {
-    pending: "status-requested",
-    approved: "status-approved",
-    declined: "status-rejected",
-    accept: "mdi-check-circle",
-    reject: "mdi-circle-outline",
-  };
-  return statusClassMap[status] || "";
+  return "status-requested";
 };
 
 // Handle sort events from DataTable
@@ -243,22 +315,6 @@ const handleSort = ({ field, direction }) => {
   fetchData();
 };
 
-// Rest of your existing methods (unchanged)
-const switchTab = async (tab) => {
-  if (activeLeftTab.value === tab || tabLoading.value) return;
-
-  tabLoading.value = true;
-  activeLeftTab.value = tab;
-
-  try {
-    await fetchData();
-  } finally {
-    setTimeout(() => {
-      tabLoading.value = false;
-    }, 500);
-  }
-};
-
 const checkAttendanceConflicts = async () => {
   try {
     const token = getToken();
@@ -267,10 +323,7 @@ const checkAttendanceConflicts = async () => {
       const fromDate = new Date(item.fromDate);
       const today = new Date();
 
-      if (
-        fromDate < today &&
-        (item.status === "pending" || item.status === "approved")
-      ) {
+      if (fromDate < today && item.status === "pending") {
         const params = new URLSearchParams({
           "filter[_and][0][date][_between][0]": item.fromDate,
           "filter[_and][0][date][_between][1]": item.fromDate,
@@ -337,8 +390,16 @@ const updateStatus = async (id, newStatus) => {
     }
 
     const leaveRequestData = await leaveRequestResponse.json();
-    const { requestedBy, leaveType, fromDate, toDate, halfDay } =
-      leaveRequestData.data;
+    const {
+      requestedBy,
+      leaveType,
+      fromDate,
+      toDate,
+      halfDay,
+      timeFrom,
+      timeTo,
+      attendance: leaveAttendanceId,
+    } = leaveRequestData.data;
 
     if (newStatus === "declined") {
       const numberOfDays = calculateDays(fromDate, toDate, halfDay);
@@ -389,7 +450,6 @@ const updateStatus = async (id, newStatus) => {
           },
           body: JSON.stringify({
             leaveTaken: updatedLeaveTaken,
-            // leaveBalance: updatedLeaveBalance,
           }),
         },
       );
@@ -400,44 +460,171 @@ const updateStatus = async (id, newStatus) => {
     }
 
     if (newStatus === "approved") {
-      const start = new Date(fromDate);
-      const end = new Date(toDate);
-      const dateArray = [];
+      // Helper function to extract time from datetime
+      const extractTime = (datetime) => {
+        if (!datetime) return null;
+        const date = new Date(datetime);
+        return date.toTimeString().split(" ")[0]; // Returns HH:MM:SS format
+      };
 
-      let currentDate = new Date(start);
-      while (currentDate <= end) {
-        dateArray.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      const attendancePayload = dateArray.map((date) => {
-        return {
-          date: date.toISOString().split("T")[0],
-          attendance: leaveType === "unpaid" ? "unPaidLeave" : "paidLeave",
-          employeeId: requestedBy,
-          tenant: tenantId,
-          leaveType: leaveType,
-        };
-      });
-
-      try {
-        const attendanceResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/attendance`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+      // Handle abnormal leave type
+      if (leaveType.toLowerCase() === "abnormal" && leaveAttendanceId) {
+        try {
+          const attendanceUpdateResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/attendance/${leaveAttendanceId}`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                outTime: extractTime(timeTo),
+                status: "out",
+                mode: "abnormal",
+              }),
             },
-            body: JSON.stringify(attendancePayload),
-          },
-        );
+          );
 
-        if (!attendanceResponse.ok) {
-          console.error("Failed to update attendance records");
+          if (!attendanceUpdateResponse.ok) {
+            console.error("Failed to update attendance for abnormal leave");
+          }
+        } catch (error) {
+          console.error("Error updating attendance for abnormal leave:", error);
         }
-      } catch (error) {
-        console.error("Error updating attendance records:", error);
+      }
+      // Handle other leave types with timeFrom and timeTo
+      else if (timeFrom && timeTo) {
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+        const dateArray = [];
+
+        let currentDate = new Date(start);
+        while (currentDate <= end) {
+          dateArray.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        for (const date of dateArray) {
+          const dateString = date.toISOString().split("T")[0];
+
+          try {
+            // Check if attendance exists for this date and employee
+            const checkAttendanceResponse = await fetch(
+              `${import.meta.env.VITE_API_URL}/items/attendance?filter[_and][0][date][_eq]=${dateString}&filter[_and][1][employeeId][_eq]=${requestedBy}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              },
+            );
+
+            if (!checkAttendanceResponse.ok) {
+              throw new Error("Failed to check existing attendance");
+            }
+
+            const existingAttendance = await checkAttendanceResponse.json();
+
+            if (existingAttendance.data && existingAttendance.data.length > 0) {
+              // PATCH existing attendance
+              const attendanceId = existingAttendance.data[0].id;
+              const patchResponse = await fetch(
+                `${import.meta.env.VITE_API_URL}/items/attendance/${attendanceId}`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    inTime: timeFrom,
+                    outTime: timeTo,
+                  }),
+                },
+              );
+
+              if (!patchResponse.ok) {
+                console.error(
+                  `Failed to patch attendance for date ${dateString}`,
+                );
+              }
+            } else {
+              // POST new attendance
+              const postResponse = await fetch(
+                `${import.meta.env.VITE_API_URL}/items/attendance`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    date: dateString,
+                    inTime: timeFrom,
+                    outTime: timeTo,
+                    employeeId: requestedBy,
+                    tenant: tenantId,
+                    leaveType: leaveType,
+                  }),
+                },
+              );
+
+              if (!postResponse.ok) {
+                console.error(
+                  `Failed to post attendance for date ${dateString}`,
+                );
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error processing attendance for date ${dateString}:`,
+              error,
+            );
+          }
+        }
+      }
+      // Original flow for regular leave types without time
+      else {
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+        const dateArray = [];
+
+        let currentDate = new Date(start);
+        while (currentDate <= end) {
+          dateArray.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const attendancePayload = dateArray.map((date) => {
+          return {
+            date: date.toISOString().split("T")[0],
+            attendance: leaveType === "unpaid" ? "unPaidLeave" : "paidLeave",
+            employeeId: requestedBy,
+            tenant: tenantId,
+            leaveType: leaveType,
+          };
+        });
+
+        try {
+          const attendanceResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/attendance`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(attendancePayload),
+            },
+          );
+
+          if (!attendanceResponse.ok) {
+            console.error("Failed to update attendance records");
+          }
+        } catch (error) {
+          console.error("Error updating attendance records:", error);
+        }
       }
     }
 
@@ -518,14 +705,11 @@ const fetchReportingUsers = async () => {
     }
 
     const data = await response.json();
-    console.log("Personal Module Data:", data.data);
-
     const reportingUsers = data.data.filter(
       (item) => item.approver && item.approver === userId,
     );
 
     const reportingUserIds = reportingUsers.map((item) => item.id);
-    console.log("Filtered Reporting User IDs:", reportingUserIds);
     return reportingUserIds;
   } catch (error) {
     console.error("Error fetching reporting users:", error);
@@ -539,26 +723,20 @@ const aggregateCount = async () => {
       throw new Error("Authentication required or tenant not found");
     }
 
-    const reportingUserIds = await fetchReportingUsers();
-    console.log("Aggregate Count Reporting User IDs:", reportingUserIds);
-
     const params = {
       "aggregate[count]": "id",
-      ...filterParams(),
+      "filter[status][_eq]": "pending",
+      ...filterParams(), // This will now include the request type logic
     };
 
-    if (reportingUserIds.length > 0) {
-      params["filter[requestedBy][id][_in]"] = reportingUserIds.join(",");
-    } else {
-      console.warn("No reporting users for count, using tenant filter.");
-      params["filter[tenant][tenantId][_eq]"] = tenantId;
-    }
-
     const queryString = Object.keys(params)
-      .map((key) => `${key}=${params[key]}`)
+      .map((key) => {
+        if (key === "fields") {
+          return params[key].map((field) => `fields[]=${field}`).join("&");
+        }
+        return `${key}=${encodeURIComponent(params[key])}`;
+      })
       .join("&");
-
-    console.log("Count Query String:", queryString);
 
     const countResponse = await fetch(
       `${import.meta.env.VITE_API_URL}/items/leaveRequest?${queryString}&limit=-1`,
@@ -575,7 +753,6 @@ const aggregateCount = async () => {
     }
 
     const countData = await countResponse.json();
-    console.log("Count Data:", countData);
     totalItems.value = countData?.data?.[0]?.count?.id || 0;
   } catch (error) {
     console.error("Error fetching aggregate count:", error);
@@ -594,9 +771,6 @@ const fetchData = async () => {
 
   loading.value = true;
   try {
-    const reportingUserIds = await fetchReportingUsers();
-    console.log("Reporting User IDs:", reportingUserIds);
-
     const params = {
       fields: [
         "id",
@@ -612,23 +786,26 @@ const fetchData = async () => {
         "status",
         "tenant.tenantId",
         "tenant.tenantName",
+        "timefrom",
+        "timeTo",
+        "attendance",
       ],
-      ...filterParams(),
       limit: itemsPerPage.value,
       page: page.value,
+      ...filterParams(), // This now handles all filtering including request type
     };
 
-    params["filter[tenant][tenantId][_eq]"] = tenantId;
-
+    // Build query string
     const queryString = Object.keys(params)
       .map((key) => {
         if (key === "fields") {
-          return params[key].map((field) => `fields[]=${field}`).join("&");
+          return params[key]
+            .map((field) => `fields[]=${encodeURIComponent(field)}`)
+            .join("&");
         }
-        return `${key}=${params[key]}`;
+        return `${key}=${encodeURIComponent(params[key])}`;
       })
       .join("&");
-    console.log("Fetch Query String:", queryString);
 
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/leaveRequest?${queryString}`,
@@ -648,15 +825,7 @@ const fetchData = async () => {
     }
 
     const data = await response.json();
-    console.log("Fetched Data:", data.data);
-
-    // OPTION 1: Use the data as-is and rely on custom template
     items.value = Array.isArray(data.data) ? data.data : [];
-
-    // OPTION 2: Process items to flatten nested properties
-    // items.value = Array.isArray(data.data) ? processItems(data.data) : [];
-
-    // await checkAttendanceConflicts();
   } catch (error) {
     console.error("Error fetching leave requests:", error);
     showError.value = true;
@@ -670,38 +839,63 @@ const fetchData = async () => {
 
 const filterParams = () => {
   const params = {};
+  let filterCount = 0;
 
-  if (activeLeftTab.value === "activity") {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const formattedDate = thirtyDaysAgo.toISOString().split("T")[0];
-    params["filter[date_created][_gte]"] = formattedDate;
+  // Handle request type filtering
+  if (filters.request === "myRequests") {
+    // Filter by current user ID for "My Requests"
+    params[`filter[_and][${filterCount}][requestedBy][assignedUser][_eq]`] =
+      userId;
+    filterCount++;
+  } else {
+    // For "All Requests", show all pending requests for the tenant (or reporting users for non-admins)
+    if (userRole !== "Admin" && userRole !== "Dealer") {
+      // For non-admins, still filter by reporting users
+      params[`filter[_and][${filterCount}][requestedBy][approver][id][_eq]`] =
+        userId;
+      filterCount++;
+    }
+    // For admins, no additional user filter - they see all tenant requests
   }
 
-  if (activeLeftTab.value === "history") {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const formattedDate = thirtyDaysAgo.toISOString().split("T")[0];
-    params["filter[date_created][_gte]"] = formattedDate;
-    params["filter[_or][0][status][_eq]"] = "approved";
-    params["filter[_or][1][status][_eq]"] = "declined";
-  }
+  // Always filter by tenant
+  params[`filter[_and][${filterCount}][tenant][tenantId][_eq]`] = tenantId;
+  filterCount++;
 
-  if (userRole !== "Admin" && userRole !== "Dealer") {
-    params["filter[requestedBy][approver][id][_eq]"] = userId;
-  }
-
+  // Search filter
   if (search.value) {
-    params["filter[requestedBy][assignedUser][first_name][_icontains]"] =
-      search.value;
+    params[
+      `filter[_and][${filterCount}][requestedBy][assignedUser][first_name][_icontains]`
+    ] = search.value;
+    filterCount++;
   }
 
-  // Add sorting parameters from sortBy
+  // Leave type filter
+  if (filters.leaveType) {
+    params[`filter[_and][${filterCount}][leaveType][_eq]`] = filters.leaveType;
+    filterCount++;
+  }
+
+  // Date filters
+  if (filters.fromDate) {
+    params[`filter[_and][${filterCount}][fromDate][_gte]`] = filters.fromDate;
+    filterCount++;
+  }
+
+  if (filters.toDate) {
+    params[`filter[_and][${filterCount}][toDate][_lte]`] = filters.toDate;
+    filterCount++;
+  }
+
+  // Status filter (always pending for this page)
+  params[`filter[_and][${filterCount}][status][_eq]`] = "pending";
+  filterCount++;
+
+  // Sorting
   if (sortBy.value.length > 0) {
     const sortParam = sortBy.value
       .map((sortItem) => {
         const direction = sortItem.order === "desc" ? "-" : "";
-        // Handle sorting for employee name
         const sortKey =
           sortItem.key === "employeeName"
             ? "requestedBy.assignedUser.first_name"
@@ -714,7 +908,6 @@ const filterParams = () => {
 
   return params;
 };
-
 const handlePageChange = (newPage) => {
   page.value = newPage;
   fetchData();
@@ -726,24 +919,6 @@ const handleItemsPerPageChange = (newItemsPerPage) => {
   fetchData();
 };
 
-const toggleFilters = () => {
-  showFilters.value = !showFilters.value;
-};
-
-const clearFilters = () => {
-  filters.value = {
-    status: [],
-    leaveType: [],
-    dateFrom: "",
-    dateTo: "",
-  };
-};
-
-const applyFilters = () => {
-  console.log("Applying filters", filters.value);
-  fetchData();
-};
-
 const hasAttendanceConflict = (leaveId) => {
   return (
     attendanceConflicts.value[leaveId] &&
@@ -752,7 +927,7 @@ const hasAttendanceConflict = (leaveId) => {
 };
 
 watch(
-  [search, sortBy],
+  [search, sortBy, filters],
   async () => {
     page.value = 1;
     await fetchData();
@@ -766,27 +941,48 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Existing styles */
 .employee-container {
   display: flex;
-  overflow: hidden;
   position: relative;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .main-content {
   flex: 1;
   overflow: auto;
-  transition: margin-right 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.search-field {
-  max-width: 300px;
+.main-content.with-drawer {
+  margin-right: 400px;
 }
 
-/* NEW: Specific table container class for width/height issues */
+.main-content.full-width {
+  margin-right: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 10px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.form-drawer {
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  top: 0 !important;
+  overflow-y: auto;
+}
+
+:deep(.v-navigation-drawer__scrim) {
+  background: transparent !important;
+}
+
 .table-container-large {
   width: 100%;
-
   max-height: calc(90vh - 100px);
   overflow: auto;
   background: white;
@@ -795,106 +991,59 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 
-/* Adjust column widths for better spacing */
-.table-container-large :deep(.table-body > div > div) {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Status column specific adjustments */
-
-/* DataTable styles */
-.data-table {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-}
-
-.table-scroll-container {
-  overflow: auto;
+.filter-toggle-static {
   position: relative;
+  width: 36px;
+  height: 36px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #374151;
 }
 
-.table-body {
-  min-height: 0;
+.filter-toggle-static:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
-.empty-state {
-  padding: 3rem 2rem;
-  text-align: center;
-  border-top: 1px solid #f1f5f9;
+.filter-toggle-static.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #3b82f6;
 }
 
-.empty-content {
+.filter-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.filter-panel {
+  width: 320px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
 }
 
-.empty-icon {
-  font-size: 3rem;
-  opacity: 0.5;
-}
-
-.empty-content h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-}
-
-.empty-content p {
-  color: #64748b;
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.table-scroll-container {
-  width: 100%;
-  overflow-x: auto;
+.filter-content {
+  flex: 1;
   overflow-y: auto;
 }
 
-.table-body {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-}
-
-.table-body > div {
-  display: table-row;
-}
-
-.table-body > div > div {
-  display: table-cell;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
-}
-
-@media (max-width: 768px) {
-  .table-container-large {
-    max-height: calc(100vh - 180px);
-  }
-
-  .table-container-large :deep(.table-body) {
-    min-width: 800px;
-  }
-
-  .data-table {
-    font-size: 0.75rem;
-  }
-
-  .empty-state {
-    padding: 2rem 1rem;
-  }
-}
-
-/* Existing status and button styles */
 .status-chip {
   padding: 4px 12px;
   border-radius: 16px;
@@ -925,6 +1074,15 @@ onMounted(async () => {
   color: #c62828;
 }
 
+.add-request-btn {
+  background: #1a1b5e !important;
+  color: rgb(236, 236, 236) !important;
+  font-weight: 500;
+  text-transform: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+}
+
 .status-btn {
   min-width: 90px !important;
   text-transform: none !important;
@@ -943,25 +1101,83 @@ onMounted(async () => {
   cursor: default;
 }
 
-.left-tabs button {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 14px;
-  background: #68ade1;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.left-tabs button.active {
-  background-color: rgb(21, 66, 124);
-  color: white;
-}
-
-.left-tabs {
+.empty-content {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  border-top: 1px solid #f1f5f9;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.empty-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.empty-content p {
+  color: #64748b;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 960px) {
+  .main-content.with-drawer {
+    margin-right: 0;
+  }
+
+  .form-drawer {
+    width: 100% !important;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .table-container-large {
+    max-height: calc(100vh - 180px);
+  }
+
+  .data-table {
+    font-size: 0.75rem;
+  }
+
+  .filter-panel {
+    width: 100%;
+    position: absolute;
+    z-index: 10;
+    height: 100%;
+  }
+
+  .main-content.full-width {
+    margin-left: 0;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 </style>

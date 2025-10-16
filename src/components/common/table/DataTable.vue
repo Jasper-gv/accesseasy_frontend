@@ -228,12 +228,13 @@ watch(
   background: white;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  overflow: hidden;
-  /* height: calc(88vh - 190px); */
+  overflow-y: auto;
+
+  height: calc(90vh - 190px);
 }
 
 .table-scroll-container {
-  overflow: auto;
+  /* overflow: auto; */
   position: relative;
 }
 
@@ -274,8 +275,8 @@ watch(
 
 .table-scroll-container {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: auto;
+  /* overflow-x: auto;
+  overflow-y: auto; */
 }
 
 .table-body {

@@ -3,7 +3,7 @@
     <v-main>
       <v-container fluid>
         <!-- Tabs -->
-        <v-tabs v-model="activeTab" color=#68ade1 show-arrows>
+        <v-tabs v-model="activeTab" color="#68ade1" show-arrows>
           <v-tab
             v-for="tab in tabs"
             :key="tab.value"
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import AssignEmployee from "./attendancePolicies/assignToEmployee.vue";
 import PenaltyOverTime from "./attendancePolicies/penality&OverTime.vue";
 
@@ -60,7 +60,7 @@ const props = defineProps({
     type: Number,
     default: null,
   },
-  showSnackbar: { 
+  showSnackbar: {
     type: Function,
     default: null,
   },
@@ -72,11 +72,11 @@ const tabs = [
     value: "penalty-settings",
     icon: "mdi-alert-circle-outline",
   },
-  {
-    title: "Assign to Employee",
-    value: "assign-employee",
-    icon: "mdi-account-cog-outline",
-  },
+  // {
+  //   title: "Assign to Employee",
+  //   value: "assign-employee",
+  //   icon: "mdi-account-cog-outline",
+  // },
 ];
 
 const activeTab = ref("penalty-settings");
@@ -89,6 +89,9 @@ watch(
     }
   },
 );
+onMounted(() => {
+  console.log("1", props.selectedConfig);
+});
 </script>
 
 <style scoped>

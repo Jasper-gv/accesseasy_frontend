@@ -2,7 +2,7 @@
   <div class="employee-container">
     <!-- Main Content with Table -->
     <div class="main-content" :class="{ 'with-drawer': showAddForm }">
-      <v-alert
+      <!-- <v-alert
         v-if="noLeaveTypesEnabled"
         type="info"
         variant="tonal"
@@ -10,7 +10,7 @@
         title="No Leave Types Available"
         text="You don't have access to any leave types. Please contact your administrator to configure your leave settings."
       >
-      </v-alert>
+      </v-alert> -->
 
       <DataTableWrapper
         :searchQuery="search"
@@ -26,7 +26,7 @@
             <BaseButton
               variant="primary"
               size="md"
-              text="Leave Request"
+              text=" Request"
               :leftIcon="Plus"
               @click="toggleAddForm"
             />
@@ -158,12 +158,14 @@ const leaveTaken = ref({});
 const monthLimits = ref({});
 const cumulativeLimits = ref({});
 const personalModuleData = ref(null);
-
+const userRole = currentUserTenant.getRole();
+const isAdmin = computed(() => userRole === "Admin");
+const isEmployee = computed(() => userRole === "Employee");
 const columns = [
   { key: "date_created", label: "Applied On", width: 150, sortable: false },
-  { key: "leaveType", label: "Leave Type", width: 120, sortable: false },
-  { key: "fromDate", label: "Leave From", width: 120, sortable: false },
-  { key: "toDate", label: "Leave To", width: 120, sortable: false },
+  { key: "leaveType", label: " Type", width: 120, sortable: false },
+  { key: "fromDate", label: " From", width: 120, sortable: false },
+  { key: "toDate", label: "To", width: 120, sortable: false },
   { key: "reason", label: "Reason", width: 200, sortable: false },
   { key: "status", label: "Status", width: 250, sortable: false },
 ];

@@ -1,3 +1,4 @@
+<!-- /senzrGo/senzrfieldopsfrontend/src/components/modals/workOrderForm_Modals/fieldWizardModal.vue -->
 <template>
   <div v-if="show" class="modal-overlay" @click="$emit('close')">
     <div class="modal-content enhanced-modal modal-large" @click.stop>
@@ -17,6 +18,24 @@
         </button>
       </div>
       <div class="modal-body">
+        <!-- Form Selection -->
+        <div class="form-group">
+          <label class="form-label">
+            <FileTextIcon class="label-icon" />
+            Select Form
+          </label>
+          <select v-model="selectedFormId" class="form-select">
+            <option
+              v-for="form in selectedForm.custom_FormTemplate?.forms || []"
+              :key="form.form_id"
+              :value="form.form_id"
+            >
+              {{ form.form_name }}
+            </option>
+          </select>
+          <div class="field-help">Choose the form to add this field to</div>
+        </div>
+
         <div class="wizard-steps">
           <div class="wizard-step" :class="{ active: wizardStep === 1 }">
             <div class="step-number">1</div>
@@ -181,7 +200,7 @@
           v-if="wizardStep === 3"
           @click="handleSaveField"
           class="btn btn-primary"
-          :disabled="!wizardField.label?.trim()"
+          :disabled="!wizardField.label?.trim() || !selectedFormId"
         >
           <PlusIcon class="btn-icon" />
           Add Field
@@ -190,7 +209,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, watch } from "vue";
 import {
@@ -205,6 +223,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
+  FileTextIcon,
 } from "lucide-vue-next";
 
 import { fieldTypeOptions } from "@/utils/config/constants";
@@ -218,6 +237,7 @@ const emit = defineEmits(["close", "saveField", "showNotification"]);
 
 const wizardStep = ref(1);
 const wizardField = ref({});
+const selectedFormId = ref(null);
 
 const generateFieldKey = () => {
   if (wizardField.value.label) {
@@ -248,7 +268,7 @@ const isFieldTypeSelected = (fieldType) => {
 
 const canProceedToNextStep = () => {
   if (wizardStep.value === 1) {
-    return wizardField.value.label?.trim();
+    return wizardField.value.label?.trim() && selectedFormId.value;
   }
   if (wizardStep.value === 2) {
     return wizardField.value.type;
@@ -257,7 +277,8 @@ const canProceedToNextStep = () => {
 };
 
 const handleSaveField = () => {
-  if (!props.selectedForm || !wizardField.value.label) return;
+  if (!props.selectedForm || !wizardField.value.label || !selectedFormId.value)
+    return;
 
   const newField = {
     key: wizardField.value.key || `field_${Date.now()}`,
@@ -276,15 +297,8 @@ const handleSaveField = () => {
         : undefined,
   };
 
-  if (!props.selectedForm.custom_FormTemplate) {
-    props.selectedForm.custom_FormTemplate = {
-      fields: [],
-      status_transitions: {},
-    };
-  }
-
-  props.selectedForm.custom_FormTemplate.fields.push(newField);
-  emit("saveField", newField);
+  // Emit both field data and selected form ID
+  emit("saveField", newField, selectedFormId.value);
   emit("showNotification", "Field added successfully!", "success");
   emit("close");
 };
@@ -296,6 +310,7 @@ watch(
     if (!newVal) {
       wizardStep.value = 1;
       wizardField.value = {};
+      selectedFormId.value = null;
     } else {
       wizardField.value = {
         key: `field_${Date.now()}`,
@@ -305,6 +320,11 @@ watch(
         type: "text",
         required: false,
       };
+      // Default to first form if available
+      if (props.selectedForm.custom_FormTemplate?.forms?.length > 0) {
+        selectedFormId.value =
+          props.selectedForm.custom_FormTemplate.forms[0].form_id;
+      }
     }
   },
 );

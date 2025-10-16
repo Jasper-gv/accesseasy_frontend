@@ -357,7 +357,7 @@
               color="blue-lighten-2"
               size="50"
             ></v-progress-circular>
-            <p class="mt-3 text-blue-200">Processing ... Please wait</p>
+            <p class="mt-3 text-blue-200">Processing file... Please wait</p>
           </div>
           <!-- Show response details after upload -->
           <div v-if="uploadResponse">
@@ -1162,7 +1162,15 @@ const closeImportDialog = () => {
   selectedFile.value = null;
   uploadResponse.value = null;
 };
-
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (file && file.name.endsWith(".xlsx")) {
+    selectedFile.value = file;
+  } else {
+    alert("Please select a valid .xlsx file!");
+    event.target.value = "";
+  }
+};
 const isLoading = ref(false);
 const submitFile = async () => {
   if (!selectedFile.value) {
@@ -1179,6 +1187,7 @@ const submitFile = async () => {
 
   try {
     isLoading.value = true;
+    console.log("📤 Uploading file to logImport API...");
     const formData = new FormData();
     formData.append("file", file);
     formData.append("tenantId", tenantId);
@@ -1202,15 +1211,20 @@ const submitFile = async () => {
     const importResult = await importResponse.json();
     isLoading.value = false;
     uploadResponse.value = importResult;
+    console.log("✅ File uploaded to logImport successfully:", importResult);
+
+    // Close dialog now that upload is triggered
+
+    // Second POST call → upload file into Directus TDS Folder
+    console.log("📂 Uploading file to TDS folder...");
     await uploadFile({
       target: { files: [file] },
     });
-    await handleImport();
     alert("Log processed successfully");
+    console.log("🎯 Both uploads completed successfully!");
   } catch (error) {
     console.error("❌ Error during file submission:", error);
     alert("failed");
-    isLoading.value = false;
   }
 };
 
@@ -1247,6 +1261,7 @@ const fetchTDSFolderId = async () => {
 
       if (tdsFolder) {
         tdsFolderId.value = tdsFolder.id;
+        console.log("TDS folder ID:", tdsFolder.id);
         return tdsFolder.id;
       } else {
         console.error("TDS folder not found in tenant data");
@@ -1261,7 +1276,6 @@ const fetchTDSFolderId = async () => {
     return null;
   }
 };
-const fileId = ref("null");
 const uploadFile = async (event) => {
   const file = event.target.files[0];
 
@@ -1270,6 +1284,11 @@ const uploadFile = async (event) => {
   try {
     if (!tdsFolderId.value) {
       await fetchTDSFolderId();
+      if (!tdsFolderId.value) {
+        console.log(
+          "Could not find TDS folder. Using default upload location.",
+        );
+      }
     }
 
     const formData = new FormData();
@@ -1289,36 +1308,9 @@ const uploadFile = async (event) => {
     });
 
     const data = await response.json();
-    fileId.value = data.data.id;
+    editedItem.document = data.data.id;
   } catch (err) {
     console.error("File upload failed:", err);
-  }
-};
-const handleImport = async () => {
-  const payload = {
-    collectionName: "logs",
-    tenant: tenantId,
-    generatedFile: fileId.value,
-  };
-
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/import`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      },
-    );
-    if (!response.ok) {
-      console.log("failed response");
-    }
-  } catch (error) {
-    console.error("Error importing data:", error);
-    alert("Failed to import data. Please try again.");
   }
 };
 // const handleImportCompleted = () => {

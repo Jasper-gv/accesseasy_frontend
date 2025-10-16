@@ -142,11 +142,11 @@
       </div>
 
       <!-- SalaryConfiguration Component -->
-      <SalaryConfiguration
+      <!-- <SalaryConfiguration
         v-if="showSalaryConfig"
         :category="selectedCategory"
         @close="closeSalaryConfig"
-      />
+      /> -->
 
       <!-- Create/Edit Category Dialog -->
       <v-dialog v-model="categoryDialog" max-width="500px">
@@ -195,15 +195,13 @@
 </template>
 
 <script>
-import SalaryConfiguration from "./salaryConfiguration.vue";
+// import SalaryConfiguration from "./salaryConfiguration.vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 
 export default {
   name: "SalaryCategory",
-  components: {
-    SalaryConfiguration,
-  },
+
   props: ["category"],
   data() {
     return {
@@ -497,7 +495,7 @@ export default {
     },
     openCreateDialog() {
       this.showSalary = true;
-      this.$router.push("/settings/payrollCatagory/salary-template");
+      this.$router.push("/payroll/policy/payroll-policy/salary-template");
     },
     async saveCategory() {
       try {
@@ -647,7 +645,7 @@ export default {
 
     closeSalaryConfig() {
       this.showSalaryConfig = false;
-      this.$router.push("/settings/payrollCatagory");
+      this.$router.push("/payroll/policy/payroll-policy");
     },
   },
   watch: {

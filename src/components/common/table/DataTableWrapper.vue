@@ -10,7 +10,7 @@
       <!-- Left Side: Title and Search -->
       <div class="header-left">
         <h2 v-if="title" class="table-title">{{ title }}</h2>
-
+        <slot name="before-search"></slot>
         <!-- Search Bar -->
         <div v-if="showSearch" class="search-input-wrapper">
           <Search :size="16" class="search-icon" />
@@ -125,7 +125,7 @@ const shouldHidePagination = computed(() => {
 <style scoped>
 .data-table-wrapper {
   border-radius: 0.5rem;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 .table-header-row {
@@ -136,6 +136,7 @@ const shouldHidePagination = computed(() => {
   border-bottom: 1px solid #f1f5f9;
   background: #fafbfc;
   gap: 2rem;
+  position: sticky !important;
 }
 
 .header-left {
@@ -227,9 +228,8 @@ const shouldHidePagination = computed(() => {
 }
 
 .table-container {
-  height: calc(86vh - 160px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* height: calc(86vh - 160px); */
+
   border-radius: 8px;
 }
 

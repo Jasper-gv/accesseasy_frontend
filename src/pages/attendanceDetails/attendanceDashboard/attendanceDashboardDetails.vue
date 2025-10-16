@@ -1,6 +1,6 @@
 <template>
   <div class="tasks-container">
-    <template v-if="!showMonthlyReport">
+    <template v-if="!showMonthlyReport && !showCalendarView">
       <!-- Filter Panel -->
       <div
         v-if="showFilters && tenantId && !tenantLoading && isAdmin"
@@ -105,7 +105,6 @@
               item-key="employeeId"
               @rowClick="handleRowClick"
               @sort="handleSort"
-              height="calc(90vh - 190px)"
             >
               <!-- Custom Cell for Employee Name -->
               <template #cell-name="{ item }">
@@ -231,7 +230,7 @@
     </template>
 
     <!-- Monthly Report View -->
-    <template v-else>
+    <!-- <template v-if="showMonthlyReport">
       <v-container fluid class="pa-6">
         <div class="d-flex justify-space-between align-center">
           <BaseButton
@@ -247,6 +246,27 @@
           :employee-id="selectedEmployeeId"
         />
       </v-container>
+    </template> -->
+
+    <!-- Calendar View -->
+    <template v-if="showCalendarView">
+      <v-container fluid class="pa-6">
+        <div class="d-flex justify-space-between align-center">
+          <BaseButton
+            size="md"
+            variant="primary"
+            :leftIcon="ArrowLeft"
+            @click="backToMainView"
+            :text="'Back to Dashboard'"
+          />
+        </div>
+        <CalendarView
+          :month="selectedCalendarMonth"
+          :year="selectedCalendarYear"
+          :attendanceData="selectedMonthAttendanceData"
+          :employee="userData"
+        />
+      </v-container>
     </template>
   </div>
 </template>
@@ -256,6 +276,7 @@ import { ref, onMounted, watch, computed, onUnmounted, reactive } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import UserAttendanceReport from "./monthUserAttendance.vue";
+import CalendarView from "./calanderView.vue";
 import PaginationComponent from "../../../utils/pagination/CustomPagination.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import FilterComponent from "@/components/common/filters/payrollfilter.vue";
@@ -288,12 +309,6 @@ const pageFilters = computed(() => {
   } else {
     return [
       { key: "monthYear", label: "Month & Year", type: "month", show: true },
-      {
-        key: "organization",
-        label: "Organization",
-        type: "select",
-        show: true,
-      },
       { key: "branch", label: "Branch", type: "select", show: true },
       { key: "department", label: "Department", type: "select", show: true },
       {
@@ -317,6 +332,7 @@ const error = ref(null);
 const tenantLoading = ref(true);
 const attendanceData = ref([]);
 const showMonthlyReport = ref(false);
+const showCalendarView = ref(false);
 const selectedEmployeeId = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref(25);
@@ -328,6 +344,10 @@ const sortDirection = ref("asc");
 const tenantId = ref("");
 const userId = currentUserTenant.getUserId();
 const userRole = currentUserTenant.getRole();
+const selectedCalendarMonth = ref(new Date().getMonth()); // 1-12 for January-December
+const selectedCalendarYear = ref(new Date().getFullYear());
+const selectedMonthAttendanceData = ref([]);
+const userData = ref(null);
 const filters = reactive({
   organization: "",
   branch: "",
@@ -475,10 +495,11 @@ const fetchEmployeeId = async () => {
     );
     if (response.data && response.data.data && response.data.data.length > 0) {
       const data = response.data.data[0];
-      return {
+      userData.value = {
         id: data.id,
         name: `${data.assignedUser.first_name}`,
       };
+      return userData.value;
     } else {
       throw new Error("No employee data found for the user");
     }
@@ -540,12 +561,14 @@ const fetchAttendanceData = async (
       throw new Error("No authentication token available");
     }
 
-    // 👇 If user is an employee, resolve employeeId automatically
+    // If user is an employee, resolve employeeId automatically
     if (isEmployee.value && !employeeId) {
-      employeeId = await fetchEmployeeId();
-      if (!employeeId) {
+      const employeeData = await fetchEmployeeId();
+      if (!employeeData) {
         throw new Error("Failed to fetch employee ID");
       }
+      employeeId = employeeData.id;
+      employeeName = employeeData.name;
     }
 
     let apiUrl = `${import.meta.env.VITE_API_URL}/attendance/monthly-dashboard?`;
@@ -677,8 +700,11 @@ const fetchAttendanceData = async (
         ];
         totalItems.value = 1;
       }
+      // Update selectedMonthAttendanceData for CalendarView
+      selectedMonthAttendanceData.value = attendanceData.value;
     } else {
       attendanceData.value = [];
+      selectedMonthAttendanceData.value = [];
     }
   } catch (error) {
     console.error("❌ Error fetching attendance data:", error);
@@ -731,7 +757,12 @@ const clearFilters = () => {
 
 const handleRowClick = (item) => {
   selectedEmployeeId.value = item.employeeId;
-  showMonthlyReport.value = true;
+  userData.value = {
+    id: item.employeeId,
+    name: item.name,
+    employeeCode: item.employeeCode,
+  };
+  showCalendarView.value = true; // Show CalendarView instead of MonthlyReport
 };
 
 const handleSort = ({ field, direction }) => {
@@ -742,10 +773,14 @@ const handleSort = ({ field, direction }) => {
 
 const backToMainView = async () => {
   showMonthlyReport.value = false;
+  showCalendarView.value = false;
   selectedEmployeeId.value = null;
+  userData.value = null;
   await fetchAttendanceCycle();
   await fetchAttendanceData();
-  await fetchEmployeeId();
+  if (isEmployee.value) {
+    await fetchEmployeeId();
+  }
 };
 
 const handlePageChange = (newPage) => {
@@ -1161,30 +1196,24 @@ onUnmounted(() => {
 <style scoped>
 .tasks-container {
   display: flex;
-  height: 100vh;
-  position: relative;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  /* height: 100vh; */
 }
 
 .content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  width: calc(100% - 350px);
   transition: all 0.3s ease;
 }
 
-.content-area.full-width {
+/* .content-area.full-width {
   margin-left: 0;
-}
+} */
 
-:deep(.table-container) {
-  height: calc(95vh - 160px) !important;
-}
+/* :deep(.table-table) {
+  height: calc(95vh - 200px) !important;
+} */
 
 /* Filter Toggle Button */
 .filter-toggle-static {
@@ -1225,7 +1254,7 @@ onUnmounted(() => {
 }
 
 /* Loading Container */
-.loading-container {
+/* .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1233,7 +1262,7 @@ onUnmounted(() => {
   height: 100%;
   gap: 1rem;
   padding: 2rem;
-}
+} */
 
 .loading-spinner {
   width: 40px;
@@ -1275,7 +1304,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  min-width: 0;
+  /* min-width: 0; */
 }
 
 .employee-name {

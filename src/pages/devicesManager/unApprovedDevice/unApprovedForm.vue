@@ -11,6 +11,7 @@
         {{ successMessage }}
       </div>
     </v-snackbar>
+
     <v-snackbar
       class="errormessge"
       v-model="showErrorSnackbar"
@@ -23,6 +24,7 @@
         {{ errorMessage }}
       </div>
     </v-snackbar>
+
     <div class="form-header">
       <div class="header-content">
         <v-btn icon variant="text" @click="$emit('cancel')" class="back-button">
@@ -39,366 +41,292 @@
         <v-btn color="primary" @click="saveController">SAVE</v-btn>
       </div>
     </div>
-    <!-- ADD DEVICE UI (no tabs, only form fields) -->
-    <div v-if="!isEditing" class="form-content-wrapper">
-      <div class="form-content">
-        <div v-if="showDoorWarning" class="info-banner">
-          <v-icon
-            icon="mdi-information-outline"
-            color="info"
-            class="me-2"
-          ></v-icon>
-          <span>
-            Controller type {{ formData.controllerType }} can only have
-            {{ formData.controllerType }} door(s). Please remove extra
-            selections.
-          </span>
-        </div>
-        <v-form ref="form" v-model="valid" @submit.prevent="saveController">
-          <div class="form-section">
-            <!-- Device Details Section (Moved to top) -->
-            <div v-if="formData.controllerName" class="split-section">
-              <div class="image-section">
-                <div v-if="formData.controllerName" class="device-image">
-                  <img :src="getImageUrl()" alt="Device Image" />
+
+    <div v-if="!isEditing" class="main-content">
+      <div v-if="showDoorWarning" class="info-banner">
+        <v-icon
+          icon="mdi-information-outline"
+          color="info"
+          class="me-2"
+        ></v-icon>
+        <span>
+          Controller type {{ formData.controllerType }} can only have
+          {{ formData.controllerType }} door(s). Please remove extra selections.
+        </span>
+      </div>
+
+      <v-form ref="form" v-model="valid" @submit.prevent="saveController">
+        <div class="form-fields">
+          <!-- First row -->
+          <div class="form-row">
+            <v-select
+              v-model="formData.controllerName"
+              :items="['AI face', 'finger print', '4 door device']"
+              label="Device Name *"
+              required
+              variant="outlined"
+              density="comfortable"
+              :error-messages="getFieldErrorMessage('controllerName')"
+              @blur="markFieldAsTouched('controllerName')"
+            ></v-select>
+
+            <v-text-field
+              v-model="formData.controllerId"
+              label="Device ID *"
+              required
+              variant="outlined"
+              density="comfortable"
+              :error-messages="getFieldErrorMessage('controllerId')"
+              @blur="markFieldAsTouched('controllerId')"
+            ></v-text-field>
+
+            <!-- Device Group Dropdown with Search and Add Option -->
+            <div class="device-group-container">
+              <div class="custom-dropdown">
+                <div
+                  label="deviceGroup"
+                  class="dropdown-trigger"
+                  @click="toggleDeviceGroupDropdown"
+                  :class="{ 'dropdown-active': showDeviceGroupDropdown }"
+                >
+                  <span v-if="formData.deviceGroup">{{
+                    formData.deviceGroup
+                  }}</span>
+                  <span v-else class="placeholder">Select device group</span>
+                  <v-icon>{{
+                    showDeviceGroupDropdown
+                      ? "mdi-chevron-up"
+                      : "mdi-chevron-down"
+                  }}</v-icon>
                 </div>
-                <div v-else class="device-image-placeholder">
-                  <v-icon size="48" color="grey-lighten-1">mdi-camera</v-icon>
-                  <div class="placeholder-text">
-                    Select a device to view image
+
+                <div v-if="showDeviceGroupDropdown" class="dropdown-content">
+                  <div class="search-container">
+                    <input
+                      type="text"
+                      v-model="deviceGroupSearch"
+                      placeholder="Search groups..."
+                      @input="filterDeviceGroups"
+                      class="search-input"
+                    />
                   </div>
-                </div>
-              </div>
-              <div class="device-details-section">
-                <h3 class="details-title">Device Details</h3>
-                <div class="details-grid">
-                  <div class="detail-item">
-                    <div class="detail-icon sn-icon">
-                      <v-icon>mdi-barcode</v-icon>
-                    </div>
-                    <div class="detail-content">
-                      <div class="detail-label">SN Number</div>
-                      <div class="detail-value">{{ formData.sn }}</div>
-                    </div>
-                    <v-icon
-                      size="small"
-                      class="info-icon"
-                      @click="showSnInfoDialog = true"
-                      >mdi-information</v-icon
+
+                  <div class="dropdown-items">
+                    <div
+                      v-for="group in filteredDeviceGroups"
+                      :key="group"
+                      class="dropdown-item"
+                      @click="selectDeviceGroup(group)"
+                      :class="{ selected: formData.deviceGroup === group }"
                     >
-                  </div>
-                  <div
-                    class="detail-item"
-                    v-if="formData.controllerName !== 'AI face'"
-                  >
-                    <div class="detail-icon device-type-icon">
-                      <v-icon>mdi-devices</v-icon>
+                      {{ group }}
                     </div>
-                    <div class="detail-content">
-                      <div class="detail-label">Device Type</div>
-                      <div class="detail-value">
-                        {{ formData.controllerType }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <div class="detail-icon attendance-mode-icon">
-                      <v-icon>mdi-clock-check-outline</v-icon>
-                    </div>
-                    <div class="detail-content">
-                      <div class="detail-label">Attendance mode</div>
-                      <div class="detail-value">
-                        {{ formData.attendanceMode }}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    class="detail-item"
-                    v-if="formData.controllerName !== 'AI face'"
-                  >
-                    <div class="detail-icon passback-icon">
-                      <v-icon>mdi-shield-outline</v-icon>
-                    </div>
-                    <div class="detail-content">
-                      <div class="detail-label">Anti Pass-back Mode</div>
-                      <div class="detail-value">
-                        {{ formData.antiPassbackMode }}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    class="detail-item"
-                    v-if="formData.controllerName !== 'AI face'"
-                  >
-                    <div class="detail-icon door-icon">
-                      <v-icon>mdi-door</v-icon>
-                    </div>
-                    <div class="detail-content">
-                      <div class="detail-label">Door Mode</div>
-                      <div class="detail-value">{{ formData.doorMode }}</div>
-                    </div>
-                  </div>
-                  <div
-                    class="detail-item"
-                    v-if="formData.controllerName !== 'AI face'"
-                  >
-                    <div class="detail-icon interlock-icon">
-                      <v-icon>mdi-lock</v-icon>
-                    </div>
-                    <div class="detail-content">
-                      <div class="detail-label">Interlock mode</div>
-                      <div class="detail-value">
-                        {{ formData.interlockMode }}
-                      </div>
+
+                    <div
+                      class="dropdown-item add-new"
+                      @click="showAddGroupPopup = true"
+                    >
+                      <v-icon size="small" class="me-2">mdi-plus</v-icon> Add
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.controllerName"
-                  :items="['AI face', 'finger print', '4 door device']"
-                  label="Device Type *"
-                  required
-                  variant="outlined"
-                  density="comfortable"
-                  :error-messages="getFieldErrorMessage('controllerName')"
-                  @blur="markFieldAsTouched('controllerName')"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.deviceName"
-                  label="Device Name"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="detail-value"
-                />
-              </v-col>
-              <v-col cols="12" md="6">
-                <div class="d-flex align-center">
-                  <v-text-field
-                    v-model="formData.controllerId"
-                    label="Serial Number *"
-                    required
-                    variant="outlined"
-                    density="comfortable"
-                    :error-messages="getFieldErrorMessage('controllerId')"
-                    @blur="markFieldAsTouched('controllerId')"
-                    class="flex-grow-1"
-                  ></v-text-field>
-                  <v-icon
-                    size="small"
-                    class="info-icon ms-2"
-                    @click="showDeviceIdInfoDialog = true"
-                    >mdi-information</v-icon
-                  >
-                </div>
-              </v-col>
-              <v-col cols="12" md="6">
-                <div class="device-group-container">
-                  <div class="custom-dropdown">
-                    <div
-                      label="deviceGroup"
-                      class="dropdown-trigger"
-                      @click="toggleDeviceGroupDropdown"
-                      :class="{ 'dropdown-active': showDeviceGroupDropdown }"
-                    >
-                      <span v-if="formData.deviceGroup">{{
-                        formData.deviceGroup
-                      }}</span>
-                      <span v-else class="placeholder"
-                        >Select device group</span
-                      >
-                      <v-icon>{{
-                        showDeviceGroupDropdown
-                          ? "mdi-chevron-up"
-                          : "mdi-chevron-down"
-                      }}</v-icon>
-                    </div>
-                    <div
-                      v-if="showDeviceGroupDropdown"
-                      class="dropdown-content"
-                    >
-                      <div class="search-container">
-                        <input
-                          type="text"
-                          v-model="deviceGroupSearch"
-                          placeholder="Search groups..."
-                          @input="filterDeviceGroups"
-                          class="search-input"
-                        />
-                      </div>
-                      <div class="dropdown-items">
-                        <div
-                          v-for="group in filteredDeviceGroups"
-                          :key="group"
-                          class="dropdown-item"
-                          @click="selectDeviceGroup(group)"
-                          :class="{ selected: formData.deviceGroup === group }"
-                        >
-                          {{ group }}
-                        </div>
-                        <div
-                          class="dropdown-item add-new"
-                          @click="showAddGroupPopup = true"
-                        >
-                          <v-icon size="small" class="me-2">mdi-plus</v-icon>
-                          Add
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </v-col>
-              <v-col cols="12" md="6" v-if="isAdminRole">
-                <v-select
-                  v-model="formData.tenant"
-                  :items="tenantOptions"
-                  variant="outlined"
-                  density="comfortable"
-                  item-title="name"
-                  item-value="id"
-                  label="Tenant"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.attendanceMode"
-                  :items="attendanceModeOptions"
-                  label="Attendance Mode"
-                  variant="outlined"
-                  density="comfortable"
-                  :error-messages="getFieldErrorMessage('attendanceMode')"
-                  @blur="markFieldAsTouched('attendanceMode')"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.branch"
-                  :items="branchOptions"
-                  variant="outlined"
-                  density="comfortable"
-                  item-title="name"
-                  item-value="id"
-                  label="Branch"
-                ></v-select>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-text-field
-                  v-model="formData.comparison_threshold"
-                  label="Comparison Threshold"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-text-field>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-text-field
-                  v-model="formData.quality_threshold"
-                  label="Quality Threshold"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-text-field>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-text-field
-                  v-model="formData.liveness_threshold"
-                  label="Liveness Threshold"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-text-field>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName !== 'AI face'"
-              >
-                <v-switch
-                  v-model="advanceDoorMode"
-                  label="Advanced Door Mode"
-                  color="primary"
-                  inset
-                  hide-details
-                ></v-switch>
-              </v-col>
-            </v-row>
-            <!-- Advanced Fields for Add Device (conditionally shown) -->
-            <v-row
-              v-if="formData.controllerName !== 'AI face' && advanceDoorMode"
-            >
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.doorMode"
-                  :items="doorModeOptions"
-                  label="Door Mode"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.interval"
-                  :items="heartbeatIntervalOptions"
-                  label="Heartbeat Interval"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.interlockMode"
-                  :items="interlockModeOptions"
-                  label="Interlock Mode"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.antiPassbackMode"
-                  :items="antiPassbackModeOptions"
-                  label="Anti-Passback Mode"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-            </v-row>
-          </div>
-          <!-- Hidden fields -->
-          <div style="display: none">
-            <v-file-input
-              v-model="formData.controllerImageFile"
-              accept="image/*"
-              @update:model-value="handleImageChange"
-            ></v-file-input>
-            <v-text-field v-model="formData.sn"></v-text-field>
+
             <v-select
-              v-model="formData.interlockMode"
-              :items="interlockModeOptions"
+              v-if="formData.controllerName !== 'AI face'"
+              v-model="formData.assignedDoor"
+              :items="doorOptions"
+              item-title="doorName"
+              item-value="id"
+              label="Assigned Door"
+              variant="outlined"
+              density="comfortable"
+              multiple
+              chips
+              closable-chips
+              @update:model-value="handleAssignedDoorUpdate"
+            ></v-select>
+
+            <v-select
+              v-if="isAdminRole"
+              v-model="formData.tenant"
+              :items="tenantOptions"
+              variant="outlined"
+              density="comfortable"
+              item-title="name"
+              item-value="id"
+              label="Tenant"
             ></v-select>
           </div>
-        </v-form>
-      </div>
+
+          <!-- Second row -->
+          <div class="form-row">
+            <v-select
+              v-if="formData.controllerName !== 'AI face'"
+              v-model="formData.controllerType"
+              :items="['1', '2', '3', '4']"
+              label="Device Type *"
+              required
+              variant="outlined"
+              density="comfortable"
+              :error-messages="getFieldErrorMessage('controllerType')"
+              @blur="markFieldAsTouched('controllerType')"
+            ></v-select>
+
+            <v-select
+              v-model="formData.attendanceMode"
+              :items="['in', 'out', 'inandout']"
+              label="Attendance Mode"
+              variant="outlined"
+              density="comfortable"
+              :error-messages="getFieldErrorMessage('attendanceMode')"
+              @blur="markFieldAsTouched('attendanceMode')"
+            ></v-select>
+
+            <v-select
+              v-model="formData.branch"
+              :items="branchOptions"
+              variant="outlined"
+              density="comfortable"
+              item-title="name"
+              item-value="id"
+              label="Branch"
+            ></v-select>
+          </div>
+        </div>
+
+        <div v-if="formData.controllerName" class="split-section">
+          <div class="image-section">
+            <div v-if="formData.controllerName" class="device-image">
+              <img :src="getImageUrl()" alt="Device Image" />
+            </div>
+            <div v-else class="device-image-placeholder">
+              <v-icon size="48" color="grey-lighten-1">mdi-camera</v-icon>
+              <div class="placeholder-text">Select a device to view image</div>
+            </div>
+          </div>
+
+          <div class="device-details-section">
+            <h3 class="details-title">Device Details</h3>
+            <div class="details-grid">
+              <div class="detail-item">
+                <div class="detail-icon sn-icon">
+                  <v-icon>mdi-barcode</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">SN Number</div>
+                  <div class="detail-value">{{ formData.sn }}</div>
+                </div>
+              </div>
+
+              <div
+                class="detail-item"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <div class="detail-icon device-type-icon">
+                  <v-icon>mdi-devices</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Device Type</div>
+                  <div class="detail-value">
+                    {{ formData.controllerType }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon attendance-mode-icon">
+                  <v-icon>mdi-clock-check-outline</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Attendance mode</div>
+                  <div class="detail-value">
+                    {{ formData.attendanceMode }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="detail-item"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <div class="detail-icon passback-icon">
+                  <v-icon>mdi-shield-outline</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Anti Pass-back Mode</div>
+                  <div class="detail-value">
+                    {{ formData.antiPassbackMode }}
+                  </div>
+                </div>
+              </div>
+              <div
+                class="detail-item"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <div class="detail-icon timer-icon">
+                  <v-icon>mdi-timer-outline</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Timer Mode</div>
+                  <div class="detail-value">{{ formData.timerMode }}</div>
+                </div>
+              </div>
+
+              <div
+                class="detail-item"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <div class="detail-icon door-icon">
+                  <v-icon>mdi-door</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Door Mode</div>
+                  <div class="detail-value">{{ formData.doorMode }}</div>
+                </div>
+              </div>
+              <div
+                class="detail-item"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <div class="detail-icon interlock-icon">
+                  <v-icon>mdi-lock</v-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Interlock mode</div>
+                  <div class="detail-value">{{ formData.interlockMode }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden fields -->
+        <div style="display: none">
+          <v-file-input
+            v-model="formData.controllerImageFile"
+            accept="image/*"
+            @update:model-value="handleImageChange"
+          ></v-file-input>
+          <v-text-field v-model="formData.sn"></v-text-field>
+          <v-text-field
+            v-model="formData.interval"
+            type="number"
+          ></v-text-field>
+          <v-select
+            v-model="formData.timerMode"
+            :items="timerModeOptions"
+          ></v-select>
+          <v-select
+            v-model="formData.interlockMode"
+            :items="interlockModeOptions"
+          ></v-select>
+        </div>
+      </v-form>
     </div>
-    <!-- EDIT DEVICE UI (with vertical tabs) -->
+
+    <!-- ORIGINAL UI DESIGN FOR EDIT DEVICE -->
     <div v-else class="form-content-wrapper">
       <div class="sidebar">
         <v-list>
@@ -429,6 +357,7 @@
           </v-list-item>
         </v-list>
       </div>
+
       <!-- Main Form Content -->
       <div class="form-content">
         <div v-if="showDoorWarning" class="info-banner">
@@ -446,57 +375,57 @@
         <v-form ref="form" v-model="valid" @submit.prevent="saveController">
           <div v-show="currentTab === 'basic'" class="form-section">
             <v-row>
-              <v-col cols="12" md="6">
-                <div class="detail-item">
-                  <div class="detail-icon device-type-icon">
-                    <v-icon>mdi-devices</v-icon>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-label">Device Type</div>
-                    <div class="detail-value">
-                      {{ formData.controllerName }}
-                    </div>
-                  </div>
-                </div>
-              </v-col>
-              <v-col cols="12" md="6">
-                <div class="detail-item">
-                  <div class="detail-icon sn-icon">
-                    <v-icon>mdi-barcode</v-icon>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-label">Serial Number</div>
-                    <div class="detail-value">{{ formData.sn }}</div>
-                  </div>
-                </div>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName !== 'AI face'"
-              >
-                <div class="detail-item">
-                  <div class="detail-icon device-type-icon">
-                    <v-icon>mdi-devices</v-icon>
-                  </div>
-                  <div class="detail-content">
-                    <div class="detail-label">Device Type</div>
-                    <div class="detail-value">
-                      {{ formData.controllerType }}
-                    </div>
-                  </div>
-                </div>
-              </v-col>
+              <!-- <v-col cols="12" md="6">
+                <v-file-input
+                  v-model="formData.controllerImageFile"
+                  label="Device Image"
+                  accept="image/*"
+                  prepend-icon="mdi-camera"
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="handleImageChange"
+                  :error-messages="imageError"
+                  :show-size="false"
+                ></v-file-input>
+              </v-col> -->
+
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="formData.deviceName"
-                  label="Device Name"
+                  v-model="formData.controllerId"
+                  label="Device ID *"
+                  required
+                  :error-messages="getFieldErrorMessage('controllerId')"
                   variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="detail-value"
-                />
+                  density="comfortable"
+                  @blur="markFieldAsTouched('controllerId')"
+                ></v-text-field>
               </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="formData.controllerName"
+                  :items="['AI face', 'finger print', '4 door device']"
+                  required
+                  :error-messages="getFieldErrorMessage('controllerName')"
+                  label="Device Name *"
+                  variant="outlined"
+                  density="comfortable"
+                  @blur="markFieldAsTouched('controllerName')"
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="formData.sn"
+                  label="Serial Number"
+                  :error-messages="getFieldErrorMessage('sn')"
+                  variant="outlined"
+                  density="comfortable"
+                  @blur="markFieldAsTouched('sn')"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Device Group Dropdown in Edit Mode -->
               <v-col cols="12" md="6">
                 <div class="device-group-container">
                   <div class="custom-dropdown">
@@ -517,6 +446,7 @@
                           : "mdi-chevron-down"
                       }}</v-icon>
                     </div>
+
                     <div
                       v-if="showDeviceGroupDropdown"
                       class="dropdown-content"
@@ -530,6 +460,7 @@
                           class="search-input"
                         />
                       </div>
+
                       <div class="dropdown-items">
                         <div
                           v-for="group in filteredDeviceGroups"
@@ -540,6 +471,7 @@
                         >
                           {{ group }}
                         </div>
+
                         <div
                           class="dropdown-item add-new"
                           @click="showAddGroupPopup = true"
@@ -552,6 +484,24 @@
                   </div>
                 </div>
               </v-col>
+
+              <v-col
+                cols="12"
+                md="6"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <v-select
+                  v-model="formData.controllerType"
+                  :items="['1', '2', '3', '4']"
+                  label="Device Type *"
+                  required
+                  :error-messages="getFieldErrorMessage('controllerType')"
+                  variant="outlined"
+                  density="comfortable"
+                  @blur="markFieldAsTouched('controllerType')"
+                ></v-select>
+              </v-col>
+
               <v-col cols="12" md="6">
                 <v-select
                   v-model="formData.branch"
@@ -563,6 +513,7 @@
                   density="comfortable"
                 ></v-select>
               </v-col>
+
               <v-col cols="12" md="6" v-if="isAdminRole">
                 <v-select
                   v-model="formData.tenant"
@@ -576,8 +527,40 @@
               </v-col>
             </v-row>
           </div>
+
           <div v-show="currentTab === 'modes'" class="form-section">
             <v-row>
+              <v-col
+                cols="12"
+                md="6"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <v-select
+                  v-model="formData.assignedDoor"
+                  :items="doorOptions"
+                  item-title="doorName"
+                  item-value="id"
+                  label="Assigned Door"
+                  multiple
+                  chips
+                  closable-chips
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="
+                    (val) => {
+                      if (
+                        formData.controllerType &&
+                        val.length > parseInt(formData.controllerType)
+                      ) {
+                        showDoorWarning.value = true;
+                      } else {
+                        showDoorWarning.value = false;
+                      }
+                    }
+                  "
+                ></v-select>
+              </v-col>
+
               <v-col
                 cols="12"
                 md="6"
@@ -591,19 +574,35 @@
                   density="comfortable"
                 ></v-select>
               </v-col>
+
               <v-col
                 cols="12"
                 md="6"
                 v-if="formData.controllerName !== 'AI face'"
               >
                 <v-select
-                  v-model="formData.interval"
-                  :items="heartbeatIntervalOptions"
-                  label="Heartbeat Interval"
+                  v-model="formData.timerMode"
+                  :items="timerModeOptions"
+                  label="Timer Mode"
                   variant="outlined"
                   density="comfortable"
                 ></v-select>
               </v-col>
+
+              <v-col
+                cols="12"
+                md="6"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <v-text-field
+                  v-model="formData.interval"
+                  label="Interval"
+                  type="number"
+                  variant="outlined"
+                  density="comfortable"
+                ></v-text-field>
+              </v-col>
+
               <v-col
                 cols="12"
                 md="6"
@@ -617,10 +616,24 @@
                   density="comfortable"
                 ></v-select>
               </v-col>
+
+              <v-col
+                cols="12"
+                md="6"
+                v-if="formData.controllerName !== 'AI face'"
+              >
+                <v-select
+                  v-model="formData.parkingMode"
+                  :items="['Enabled', 'Disabled']"
+                  label="Parking Mode"
+                  variant="outlined"
+                  density="comfortable"
+                ></v-select>
+              </v-col>
               <v-col cols="12" md="6">
                 <v-select
                   v-model="formData.attendanceMode"
-                  :items="attendanceModeOptions"
+                  :items="['in', 'out', 'InOut']"
                   label="Attendance Mode"
                   :error-messages="getFieldErrorMessage('attendanceMode')"
                   variant="outlined"
@@ -628,6 +641,7 @@
                   @blur="markFieldAsTouched('attendanceMode')"
                 ></v-select>
               </v-col>
+
               <v-col
                 cols="12"
                 md="6"
@@ -641,197 +655,12 @@
                   density="comfortable"
                 ></v-select>
               </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-text-field
-                  v-model="formData.comparison_threshold"
-                  label="Comparison Threshold"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-text-field>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-select
-                  v-model="formData.identification_Intervel"
-                  :items="[3, 5]"
-                  label="Identification Interval (Sec)"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-select>
-              </v-col>
-
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-select
-                  v-model="formData.identification_distance"
-                  :items="[50, 100, 150]"
-                  label="Identification Distance (cm)"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-text-field
-                  v-model="formData.quality_threshold"
-                  label="Quality Threshold"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-text-field>
-              </v-col>
-              <v-col
-                cols="12"
-                md="6"
-                v-if="formData.controllerName === 'AI face'"
-              >
-                <v-text-field
-                  v-model="formData.liveness_threshold"
-                  label="Liveness Threshold"
-                  variant="outlined"
-                  density="comfortable"
-                  type="number"
-                ></v-text-field>
-              </v-col>
             </v-row>
-          </div>
-          <div
-            v-show="currentTab === 'assignedDoors'"
-            v-if="formData.controllerName !== 'AI face'"
-            class="form-section"
-          >
-            <h3 class="section-title">Assigned Doors</h3>
-            <div class="door-grid">
-              <div
-                v-for="i in parseInt(formData.controllerType || '0')"
-                :key="`door-${i}`"
-                class="door-card"
-              >
-                <h4 class="door-title">Door {{ i }}</h4>
-                <v-select
-                  v-model="formData.doorAssignments[i - 1].doorId"
-                  :items="getAvailableDoorOptions(i - 1)"
-                  item-title="doorName"
-                  item-value="id"
-                  label="Select Door"
-                  variant="outlined"
-                  density="comfortable"
-                  clearable
-                  @update:model-value="
-                    (val) => handleDoorAssignmentChange(val, i - 1, 'doorId')
-                  "
-                ></v-select>
-                <div
-                  v-if="formData.doorAssignments[i - 1].doorId"
-                  class="door-options"
-                >
-                  <v-text-field
-                    v-model="formData.doorAssignments[i - 1].timerMode"
-                    label="Door open too long (seconds)"
-                    type="number"
-                    variant="outlined"
-                    density="comfortable"
-                    min="1"
-                    max="120"
-                    @input="
-                      (event) =>
-                        enforceDoorTimerModeRange(event, i - 1, 'timerMode')
-                    "
-                  ></v-text-field>
-                  <v-switch
-                    v-model="formData.doorAssignments[i - 1].passiveMode"
-                    :label="
-                      formData.doorAssignments[i - 1].passiveMode
-                        ? 'Passage Mode: ON'
-                        : 'Passage Mode: OFF'
-                    "
-                    color="primary"
-                    inset
-                    hide-details
-                    @update:model-value="
-                      (val) => {
-                        handleDoorAssignmentChange(val, i - 1, 'passiveMode');
-                      }
-                    "
-                  ></v-switch>
-                  <v-switch
-                    v-model="formData.doorAssignments[i - 1].senzrMode"
-                    :label="
-                      formData.doorAssignments[i - 1].senzrMode
-                        ? 'Senzr Mode: ON'
-                        : 'Senzr Mode: OFF'
-                    "
-                    color="primary"
-                    inset
-                    hide-details
-                    @update:model-value="
-                      (val) => {
-                        handleDoorAssignmentChange(val, i - 1, 'senzrMode');
-                        if (!val)
-                          formData.doorAssignments[i - 1].buzzerMode = false;
-                      }
-                    "
-                  ></v-switch>
-                  <v-switch
-                    v-model="formData.doorAssignments[i - 1].buzzerMode"
-                    :label="
-                      formData.doorAssignments[i - 1].buzzerMode
-                        ? 'Buzzer Mode: ON'
-                        : 'Buzzer Mode: OFF'
-                    "
-                    color="primary"
-                    inset
-                    hide-details
-                    :disabled="!formData.doorAssignments[i - 1].senzrMode"
-                    @update:model-value="
-                      (val) =>
-                        handleDoorAssignmentChange(val, i - 1, 'buzzerMode')
-                    "
-                  ></v-switch>
-                  <div class="mt-4">
-                    <v-text-field
-                      v-if="
-                        formData.doorAssignments[i - 1].buzzerMode !== false
-                      "
-                      v-model="formData.doorAssignments[i - 1].buzzerTimer"
-                      label="Buzzer Timer"
-                      type="number"
-                      variant="outlined"
-                      density="comfortable"
-                      min="1"
-                      max="120"
-                      @input="
-                        (event) =>
-                          enforceBuzzerTimerModeRange(
-                            event,
-                            i - 1,
-                            'buzzerTimer',
-                          )
-                      "
-                    ></v-text-field>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </v-form>
       </div>
     </div>
+
     <!-- Add Group Popup -->
     <div
       v-if="showAddGroupPopup"
@@ -872,51 +701,6 @@
         </div>
       </div>
     </div>
-    <!-- SN Info Dialog -->
-    <v-dialog v-model="showSnInfoDialog" max-width="500">
-      <v-card>
-        <v-card-title class="headline">Device Serial Number Info</v-card-title>
-        <v-card-text>
-          <p>
-            The device serial number (SN) can typically be found on the back
-            side of the device.
-          </p>
-          <p class="mt-3">
-            Please refer to your device's physical label for the exact SN.
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" text @click="showSnInfoDialog = false"
-            >Got It</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <!-- Device ID Info Dialog -->
-    <v-dialog v-model="showDeviceIdInfoDialog" max-width="500">
-      <v-card>
-        <v-card-title class="headline">Serial Number Information</v-card-title>
-        <v-card-text>
-          <p>The Serial Number is a unique identifier for your controller.</p>
-          <p class="mt-3">
-            For most devices, the Serial Number can be found on a sticker or
-            label on the device itself, often near the network port. It might
-            also be accessible through the device's configuration interface.
-          </p>
-          <p class="mt-3">
-            Please consult your device's manual or physical labels for the exact
-            Serial Number.
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" text @click="showDeviceIdInfoDialog = false"
-            >Got It</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -971,10 +755,8 @@ const deviceGroupSearch = ref("");
 const showDeviceGroupDropdown = ref(false);
 const newDeviceGroup = ref("");
 const newGroupInput = ref(null);
+
 const showAddGroupPopup = ref(false);
-const showSnInfoDialog = ref(false);
-const showDeviceIdInfoDialog = ref(false);
-const advanceDoorMode = ref(false);
 
 const isAdminRole = computed(() => {
   return ["esslAdmin", "Administrator"].includes(userRole.value);
@@ -982,17 +764,16 @@ const isAdminRole = computed(() => {
 
 const doorOptions = ref([]);
 const branchOptions = ref([]);
-const globallyAssignedDoorIds = ref(new Set());
-
+const statusOptions = ["unApproved", "approved"];
 const doorModeOptions = [
   "4Reader-4Switch",
   "6Reader-2Switch",
   "8Reader-0Switch",
 ];
+const timerModeOptions = ["10Seconds", "15Seconds", "20Seconds"];
 const interlockModeOptions = [
   "No Interlock",
   "Door 1 & 2",
-  "Door 3 & 4",
   "Door 1,2 & 3",
   "Door (1,2)& (3,4)",
   "Door 1,2,3 & 4",
@@ -1004,77 +785,43 @@ const antiPassbackModeOptions = [
   "Door (1,2) & (3,4)",
   "Door 1,2,3,4",
 ];
-const heartbeatIntervalOptions = ["15", "30", "45", "60"];
-const attendanceModeOptions = computed(() => {
-  if (formData.controllerName === "4 door device") {
-    return ["in", "out"];
-  }
-  return ["in", "out", "InOut"];
-});
 
 const showSuccessMessage = (message) => {
   successMessage.value = message;
   showSuccessSnackbar.value = true;
 };
-
 const showErrorMessage = (message) => {
   errorMessage.value = message;
   showErrorSnackbar.value = true;
 };
 
-const tabs = computed(() => {
-  const baseTabs = [
-    { id: "basic", title: "Basic Info", icon: "mdi-information" },
-    { id: "modes", title: "Device Modes", icon: "mdi-door" },
-  ];
-  if (formData.controllerName !== "AI face") {
-    baseTabs.push({
-      id: "assignedDoors",
-      title: "Assigned Doors",
-      icon: "mdi-door-open",
-    });
-  }
-  return baseTabs;
-});
+const tabs = [
+  { id: "basic", title: "Basic Info", icon: "mdi-information" },
+  { id: "modes", title: "Device Modes", icon: "mdi-door" },
+];
 
 const tabRequiredFields = {
-  basic: ["controllerId", "controllerName"],
+  basic: ["controllerId", "controllerName", "controllerType"],
   modes: ["attendanceMode"],
-  assignedDoors: [],
 };
 
 const formData = reactive({
   controllerImage: null,
   controllerImageFile: null,
-  deviceName: "",
-  comparison_threshold: null,
-  quality_threshold: null,
-  identification_Intervel: null,
-  identification_distance: null,
-
-  liveness_threshold: null,
   controllerId: "",
   controllerName: "",
   controllerIP: "",
   serverIp: "",
   sn: "",
   controllerType: "",
-  status: "approved",
-  doorAssignments: Array(4)
-    .fill(null)
-    .map(() => ({
-      doorId: null,
-      timerMode: "10",
-      buzzerMode: true,
-      junctionId: null,
-      senzrMode: true,
-      buzzerTimer: "",
-      passiveMode: true,
-    })),
+  status: "",
+  assignedDoor: [],
   doorMode: "4Reader-4Switch",
+  timerMode: "10Seconds",
   interlockMode: "No Interlock",
   interval: "60",
-  attendanceMode: "InOut",
+  parkingMode: "Disabled",
+  attendanceMode: "in and out",
   antiPassbackMode: "No anti pass-back mode",
   controllerStatus: "",
   branch: "",
@@ -1082,23 +829,24 @@ const formData = reactive({
   deviceGroup: "",
 });
 
-const enforceDoorTimerModeRange = (event, index, field) => {
-  let value = parseInt(event.target.value);
-  if (isNaN(value) || value < 0) {
-    value = 0;
-  } else if (value > 120) {
-    value = 120;
+const validateNumberInput = (event) => {
+  const keyCode = event.keyCode ? event.keyCode : event.which;
+  if ((keyCode < 48 || keyCode > 57) && keyCode !== 46) {
+    event.preventDefault();
   }
-  formData.doorAssignments[index][field] = String(value);
 };
-const enforceBuzzerTimerModeRange = (event, index, field) => {
-  let value = parseInt(event.target.value);
-  if (isNaN(value) || value < 0) {
-    value = 0;
-  } else if (value > 120) {
-    value = 120;
+
+const formatIPAddress = (field) => {
+  let value = formData[field].replace(/[^\d]/g, "");
+  let formattedIP = "";
+  for (let i = 0; i < value.length && i < 12; i++) {
+    if (i > 0 && i % 3 === 0) {
+      formattedIP += ".";
+    }
+    formattedIP += value[i];
   }
-  formData.doorAssignments[index][field] = String(value);
+
+  formData[field] = formattedIP;
 };
 
 function validateFormData(formData) {
@@ -1107,23 +855,46 @@ function validateFormData(formData) {
     if (!ipRegex.test(ip)) {
       return false;
     }
+
     const octets = ip.split(".");
     return octets.every((octet) => {
       const num = parseInt(octet, 10);
       return num >= 0 && num <= 255;
     });
   }
+
   if (!/^[A-Za-z0-9-_]+$/.test(formData.controllerId)) {
     throw new Error(
-      "Serial Number can only contain letters, numbers, hyphens and underscores",
+      "Controller ID can only contain letters, numbers, hyphens and underscores",
     );
   }
+
   return true;
 }
+
+const getDoorValidationMessage = computed(() => {
+  if (!formData.controllerType || !formData.assignedDoor.length) return "";
+
+  const maxDoors = parseInt(formData.controllerType);
+  const selectedDoors = formData.assignedDoor.length;
+
+  if (selectedDoors > maxDoors) {
+    return `Controller type ${maxDoors} can only have ${maxDoors} door(s). Please remove extra selections.`;
+  }
+  return "";
+});
+
+const validateDoorCount = () => {
+  if (!formData.controllerType) return true;
+
+  const maxDoors = parseInt(formData.controllerType);
+  return formData.assignedDoor.length <= maxDoors;
+};
 
 const tabHasError = (tabId) => {
   if (!formSubmitAttempted.value) return false;
   const requiredFields = tabRequiredFields[tabId];
+
   if (tabId === "modes" && formData.controllerName !== "AI face") {
     return requiredFields
       .filter((field) => field !== "attendanceMode")
@@ -1135,7 +906,6 @@ const tabHasError = (tabId) => {
 const isAttendanceModeRequired = () => {
   return formData.controllerName === "AI face";
 };
-
 const getFieldErrorMessage = (field) => {
   if (field === "attendanceMode") {
     if (
@@ -1147,6 +917,7 @@ const getFieldErrorMessage = (field) => {
     }
     return "";
   }
+
   if (formData[field]) {
     formErrors.value[field] = "";
     return "";
@@ -1197,7 +968,9 @@ async function handleImageUpload(file) {
     },
     body: formData,
   });
+
   if (!response.ok) throw new Error("Failed to upload image");
+
   const data = await response.json();
   return data.data.id;
 }
@@ -1212,6 +985,7 @@ async function deleteImage(fileId) {
       },
     },
   );
+
   if (!response.ok) throw new Error("Failed to delete image");
   return true;
 }
@@ -1226,7 +1000,9 @@ async function fetchUserRole() {
         },
       },
     );
+
     if (!response.ok) throw new Error("Failed to fetch user role");
+
     const data = await response.json();
     userRole.value = data.data?.role?.name || "";
   } catch (error) {
@@ -1236,6 +1012,7 @@ async function fetchUserRole() {
 
 async function fetchTenants() {
   if (!isAdminRole.value) return;
+
   try {
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/tenant`,
@@ -1245,7 +1022,9 @@ async function fetchTenants() {
         },
       },
     );
+
     if (!response.ok) throw new Error("Failed to fetch tenants");
+
     const data = await response.json();
     tenantOptions.value = data.data.map((tenant) => ({
       id: tenant.tenantId,
@@ -1256,6 +1035,7 @@ async function fetchTenants() {
   }
 }
 
+// Device group functions
 const toggleDeviceGroupDropdown = () => {
   showDeviceGroupDropdown.value = !showDeviceGroupDropdown.value;
   if (showDeviceGroupDropdown.value) {
@@ -1274,10 +1054,13 @@ const fetchDeviceGroups = async () => {
         },
       },
     );
+
     if (!response.ok) {
       throw new Error("Failed to fetch device groups");
     }
+
     const data = await response.json();
+
     const uniqueGroups = [
       ...new Set(
         data.data
@@ -1285,6 +1068,7 @@ const fetchDeviceGroups = async () => {
           .filter((group) => group && group.trim() !== ""),
       ),
     ];
+
     deviceGroups.value = uniqueGroups;
     filteredDeviceGroups.value = uniqueGroups;
   } catch (error) {
@@ -1325,12 +1109,16 @@ const addNewDeviceGroup = async () => {
   }
   try {
     const newGroup = newDeviceGroup.value.trim();
+
     deviceGroups.value.push(newGroup);
     filteredDeviceGroups.value = deviceGroups.value;
+
     formData.deviceGroup = newGroup;
+
     showAddGroupPopup.value = false;
     showDeviceGroupDropdown.value = false;
     newDeviceGroup.value = "";
+
     showSuccessMessage("Device group added successfully!");
   } catch (error) {
     console.error("Error creating device group:", error);
@@ -1346,51 +1134,18 @@ async function saveController() {
   }
 }
 
-async function generateSequentialDoorNumber() {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/doors?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=doorNumber`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch door numbers: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.data || data.data.length === 0) {
-      return "1";
-    }
-
-    let maxDoorNumber = 0;
-    for (const door of data.data) {
-      if (door.doorNumber) {
-        const numericPart = parseInt(door.doorNumber.replace(/\D/g, ""), 10);
-        if (!isNaN(numericPart) && numericPart > maxDoorNumber) {
-          maxDoorNumber = numericPart;
-        }
-      }
-    }
-
-    return (maxDoorNumber + 1).toString();
-  } catch (error) {
-    console.error("Error generating door number:", error);
-    return "1";
-  }
-}
-
 async function createNewController() {
   formSubmitAttempted.value = true;
   const mandatoryFields = ["controllerId", "controllerName"];
+
+  if (formData.controllerName !== "AI face") {
+    mandatoryFields.push("controllerType");
+  }
+
   if (isAttendanceModeRequired()) {
     mandatoryFields.push("attendanceMode");
   }
+
   let hasErrors = false;
   mandatoryFields.forEach((field) => {
     if (!formData[field]) {
@@ -1417,13 +1172,18 @@ async function createNewController() {
       isAdminRole.value && formData.tenant
         ? formData.tenant
         : await resolveTenantId();
-    const status = "approved";
+
+    let status;
+    if (formData.controllerName === "AI face") {
+      status = "approved";
+    } else {
+      status = formData.assignedDoor.length > 0 ? "approved" : "unapproved";
+    }
 
     const payload = {
       id: formData.controllerId,
       controllerName: formData.controllerName,
       controllerIP: formData.controllerIP,
-      deviceName: formData.deviceName,
       serverIp: formData.serverIp,
       sn: formData.sn,
       status: status,
@@ -1432,99 +1192,26 @@ async function createNewController() {
       tenant: resolvedTenantId,
       branch: formData.branch || null,
       deviceGroup: formData.deviceGroup || null,
-      selectedDoors: [],
     };
 
     if (formData.controllerName === "AI face") {
       payload.attendanceMode = formData.attendanceMode || null;
       payload.controllerType = "1";
-      payload.identification_Intervel = formData.identification_Intervel || 0;
-      payload.identification_distance = formData.identification_distance || 0;
-      payload.comparison_threshold =
-        parseFloat(formData.comparison_threshold) || 0;
-      payload.quality_threshold = parseFloat(formData.quality_threshold) || 0;
-      payload.liveness_threshold = parseFloat(formData.liveness_threshold) || 0;
     } else {
       payload.controllerType = formData.controllerType;
+      payload.doorMode = formData.doorMode || null;
+      payload.timerMode = formData.timerMode || null;
+      payload.interlockMode = formData.interlockMode || null;
+      payload.interval = formData.interval || null;
+      payload.parkingMode = formData.parkingMode || "Disabled";
       payload.attendanceMode = formData.attendanceMode || null;
+      payload.antiPassbackMode = formData.antiPassbackMode || null;
 
-      if (advanceDoorMode.value) {
-        payload.doorMode = formData.doorMode || null;
-        payload.interlockMode = formData.interlockMode || null;
-        payload.interval = formData.interval || null;
-        payload.antiPassbackMode = formData.antiPassbackMode || null;
-      } else {
-        payload.doorMode = "4Reader-4Switch";
-        payload.interlockMode = "No Interlock";
-        payload.interval = "60";
-        payload.antiPassbackMode = "No anti pass-back mode";
-      }
-
-      const doorCount = parseInt(formData.controllerType) || 0;
-      const createdDoors = [];
-      const selectedDoors = [];
-
-      for (let i = 1; i <= doorCount; i++) {
-        const doorNumber = await generateSequentialDoorNumber();
-        const doorName = `${formData.controllerId}-${i}`;
-        const uniqueId = `${resolvedTenantId}-${doorNumber}`;
-
-        const doorPayload = {
-          doorName: doorName,
-          doorNumber: doorNumber,
-          uniqueId: uniqueId,
-          tenant: resolvedTenantId,
-          branch: formData.branch || null,
-          timerMode: "10",
-          buzzerMode: 0,
-          senzrMode: 0,
-          passiveMode: 0,
-          buzzerTimer: "10",
-          status: "active",
-        };
-
-        const doorResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/doors`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authService.getToken()}`,
-            },
-            body: JSON.stringify(doorPayload),
-          },
-        );
-
-        if (!doorResponse.ok) {
-          const errorData = await doorResponse.json();
-          throw new Error(
-            `Failed to create door ${i}: ${errorData.errors?.[0]?.message || "Unknown error"}`,
-          );
-        }
-
-        const doorData = await doorResponse.json();
-        const doorId = doorData.data.id;
-
-        selectedDoors.push(doorId);
-
-        createdDoors.push({
-          controllers_id: formData.controllerId,
-          doors_id: {
-            id: doorId,
-            buzzerMode: 0,
-            timerMode: "10",
-            senzrMode: 0,
-            passiveMode: 0,
-            buzzerTimer: "10",
-          },
-        });
-      }
-
-      payload.selectedDoors = selectedDoors;
-
-      if (createdDoors.length > 0) {
+      if (formData.assignedDoor.length > 0) {
         payload.assignedDoor = {
-          create: createdDoors,
+          create: formData.assignedDoor.map((doorId) => ({
+            doors_id: { id: doorId },
+          })),
         };
       }
     }
@@ -1549,8 +1236,6 @@ async function createNewController() {
       );
     }
 
-    await fetchDoors();
-
     showSuccessMessage("Device added successfully!");
     setTimeout(() => {
       emit("save-success");
@@ -1566,9 +1251,15 @@ async function createNewController() {
 async function editController() {
   formSubmitAttempted.value = true;
   const mandatoryFields = ["controllerId", "controllerName"];
+
+  if (formData.controllerName !== "AI face") {
+    mandatoryFields.push("controllerType");
+  }
+
   if (isAttendanceModeRequired()) {
     mandatoryFields.push("attendanceMode");
   }
+
   let hasErrors = false;
   mandatoryFields.forEach((field) => {
     if (!formData[field]) {
@@ -1591,86 +1282,39 @@ async function editController() {
   }
 
   try {
-    const status = "approved";
+    let status;
+    if (formData.controllerName === "AI face") {
+      status = "approved";
+    } else {
+      status = formData.assignedDoor.length > 0 ? "approved" : "unapproved";
+    }
+
     const payload = {
       controllerName: formData.controllerName,
       controllerIP: formData.controllerIP,
-      deviceName: formData.deviceName,
       serverIp: formData.serverIp,
       status: status,
       deviceGroup: formData.deviceGroup || null,
-      sn: formData.sn,
-      controllerStatus: "waiting",
-      selectedDoors: [], // Initialize selectedDoors array
     };
 
     if (formData.controllerName === "AI face") {
       payload.attendanceMode = formData.attendanceMode || null;
       payload.controllerType = "1";
-      payload.identification_Intervel =
-        formData.identification_Intervel || null;
-      payload.identification_distance =
-        formData.identification_distance || null;
-      payload.comparison_threshold =
-        parseFloat(formData.comparison_threshold) || 0;
-      payload.quality_threshold = parseFloat(formData.quality_threshold) || 0;
-      payload.liveness_threshold = parseFloat(formData.liveness_threshold) || 0;
     } else {
       payload.controllerType = formData.controllerType;
       payload.doorMode = formData.doorMode || null;
+      payload.timerMode = formData.timerMode || null;
       payload.interlockMode = formData.interlockMode || null;
       payload.interval = formData.interval || null;
+      payload.parkingMode = formData.parkingMode || "Disabled";
       payload.attendanceMode = formData.attendanceMode || null;
       payload.antiPassbackMode = formData.antiPassbackMode || null;
-
-      // Populate selectedDoors with door IDs from doorAssignments
-      payload.selectedDoors = formData.doorAssignments
-        .filter((assignment) => assignment.doorId)
-        .map((assignment) => assignment.doorId);
-
-      // Update door properties via individual PATCH requests
-      const doorsToPatch = formData.doorAssignments
-        .filter((assignment) => assignment.doorId)
-        .map((assignment) => ({
-          id: assignment.doorId,
-          payload: {
-            timerMode: assignment.timerMode || "10",
-            buzzerMode: assignment.buzzerMode ? 1 : 0,
-            senzrMode: assignment.senzrMode ? 1 : 0,
-            passiveMode: assignment.passiveMode ? 1 : 0,
-            buzzerTimer: assignment.buzzerTimer || "10",
-          },
-        }));
-
-      // Send PATCH requests for each door
-      for (const door of doorsToPatch) {
-        const patchResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/doors/${door.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authService.getToken()}`,
-            },
-            body: JSON.stringify(door.payload),
-          },
-        );
-
-        if (!patchResponse.ok) {
-          const errorData = await patchResponse.json();
-          console.error("Failed to update door:", errorData);
-          throw new Error(
-            `Failed to update door ${door.id}: ${
-              errorData.errors?.[0]?.message || "Unknown error"
-            }`,
-          );
-        }
-      }
     }
 
     if (formData.branch) {
       payload.branch = { id: formData.branch };
     }
+
     if (isAdminRole.value && formData.tenant) {
       payload.tenant = formData.tenant;
     }
@@ -1679,8 +1323,26 @@ async function editController() {
       payload.controllerImage = currentImageId.value;
     }
 
+    if (
+      formData.controllerName !== "AI face" &&
+      !arraysEqual(
+        formData.assignedDoor,
+        props.deviceData?.assignedDoor?.map((d) => d.doors_id.id) || [],
+      )
+    ) {
+      payload.assignedDoor = {
+        create: formData.assignedDoor.map((doorId) => ({
+          doors_id: { id: doorId },
+        })),
+        delete: props.deviceData?.assignedDoor?.map((d) => d.id) || [],
+        update: [],
+      };
+    }
+
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/controllers/${props.deviceData?.id}`,
+      `${import.meta.env.VITE_API_URL}/items/controllers/${
+        props.deviceData?.id
+      }`,
       {
         method: "PATCH",
         headers: {
@@ -1699,8 +1361,6 @@ async function editController() {
       );
     }
 
-    await fetchDoors();
-
     showSuccessMessage("Controller updated successfully!");
     setTimeout(() => {
       emit("save-success");
@@ -1711,6 +1371,18 @@ async function editController() {
       error.message || "Failed to update controller. Please try again.",
     );
   }
+}
+
+function arraysEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+
+  return true;
 }
 
 async function resolveTenantId() {
@@ -1724,7 +1396,7 @@ async function fetchExistingControllers() {
   try {
     const resolvedTenantId = await resolveTenantId();
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/controllers?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=assignedDoor.doors_id.id&fields=assignedDoor.doors_id.buzzerMode&fields=assignedDoor.doors_id.timerMode&fields=assignedDoor.doors_id.buzzerMode&fields=assignedDoor.doors_id.timerMode&fields=assignedDoor.doors_id.senzrMode&fields=assignedDoor.doors_id.buzzerTimer&fields=id&fields=assignedDoor.doors_id.passiveMode`,
+      `${import.meta.env.VITE_API_URL}/items/controllers?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=id,assignedDoor.doors_id.id`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
@@ -1732,85 +1404,59 @@ async function fetchExistingControllers() {
       },
     );
     const data = await response.json();
-    const assignedIds = new Set();
-    data.data.forEach((controller) => {
-      controller.assignedDoor?.forEach((assignment) => {
-        if (assignment.doors_id?.id) {
-          assignedIds.add(assignment.doors_id.id);
-        }
-      });
-    });
-    globallyAssignedDoorIds.value = assignedIds;
+    existingControllers.value = data.data;
   } catch (error) {
-    console.error(
-      "Error fetching existing controllers for global door check:",
-      error,
-    );
+    console.error("Error fetching existing controllers:", error);
   }
 }
 
-const getAvailableDoorOptions = (currentIndex) => {
-  const selectedDoorIdsInCurrentForm = new Set(
-    formData.doorAssignments
-      .filter((_, i) => i !== currentIndex)
-      .map((assignment) => assignment.doorId)
-      .filter(Boolean),
-  );
+async function fetchDoors() {
+  try {
+    const resolvedTenantId = await resolveTenantId();
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/doors?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      },
+    );
+    const data = await response.json();
 
-  const currentDeviceAssignedDoorIds = new Set(
-    props.isEditing && props.deviceData?.assignedDoor
-      ? props.deviceData.assignedDoor.map((d) => d.doors_id?.id).filter(Boolean)
-      : [],
-  );
+    let availableDoors = data.data.map((door) => ({
+      id: door.id,
+      doorName: door.doorName,
+    }));
 
-  const filtered = doorOptions.value.filter((door) => {
-    const isSelectedInCurrentForm = selectedDoorIdsInCurrentForm.has(door.id);
-    const isGloballyAssigned = globallyAssignedDoorIds.value.has(door.id);
-    const isAssignedToCurrentDevice = currentDeviceAssignedDoorIds.has(door.id);
+    if (existingControllers.value.length > 0) {
+      availableDoors = availableDoors.filter((door) => {
+        if (props.isEditing && props.deviceData) {
+          const currentControllerDoors =
+            props.deviceData.assignedDoor?.map((d) => d.doors_id?.id) || [];
+          if (currentControllerDoors.includes(door.id)) {
+            return true;
+          }
+        }
 
-    if (props.isEditing && isAssignedToCurrentDevice) {
-      return !isSelectedInCurrentForm;
-    } else {
-      return !isSelectedInCurrentForm && !isGloballyAssigned;
+        const isDoorAssigned = existingControllers.value.some((controller) => {
+          if (props.isEditing && controller.id === props.deviceData?.id) {
+            return false;
+          }
+          return (
+            controller.assignedDoor?.some((d) => d?.doors_id?.id === door.id) ||
+            false
+          );
+        });
+
+        return !isDoorAssigned;
+      });
     }
-  });
 
-  return filtered;
-};
-
-const handleDoorAssignmentChange = (val, index, field) => {
-  if (field === "doorId") {
-    formData.doorAssignments[index].doorId = val;
-    if (val !== null) {
-      const selectedDoor = doorOptions.value.find((door) => door.id === val);
-      if (selectedDoor) {
-        formData.doorAssignments[index].timerMode =
-          selectedDoor.timerMode || "10";
-        formData.doorAssignments[index].buzzerMode = selectedDoor.buzzerMode;
-        formData.doorAssignments[index].senzrMode =
-          selectedDoor.senzrMode || false;
-        formData.doorAssignments[index].passiveMode =
-          selectedDoor.passiveMode || false;
-        formData.doorAssignments[index].buzzerTimer =
-          selectedDoor.buzzerTimer || "10";
-      } else {
-        formData.doorAssignments[index].timerMode = "10";
-        formData.doorAssignments[index].senzrMode = false;
-        formData.doorAssignments[index].buzzerMode = false;
-        formData.doorAssignments[index].passiveMode = false;
-        formData.doorAssignments[index].buzzerTimer = "10";
-      }
-    } else {
-      formData.doorAssignments[index].timerMode = "10";
-      formData.doorAssignments[index].senzrMode = false;
-      formData.doorAssignments[index].buzzerMode = false;
-      formData.doorAssignments[index].passiveMode = false;
-      formData.doorAssignments[index].buzzerTimer = "10";
-    }
-  } else {
-    formData.doorAssignments[index][field] = val;
+    doorOptions.value = availableDoors;
+  } catch (error) {
+    console.error("Error fetching doors:", error);
   }
-};
+}
 
 async function fetchBranches() {
   try {
@@ -1835,138 +1481,65 @@ async function fetchBranches() {
   }
 }
 
-function populateDoorAssignmentsFromDeviceData(newVal) {
-  try {
-    Object.keys(formData).forEach((key) => {
-      if (key !== "doorAssignments") {
-        formData[key] = "";
-      }
-    });
-
-    formData.doorAssignments = Array(4)
-      .fill(null)
-      .map(() => ({
-        doorId: null,
-        timerMode: "10",
-        buzzerMode: false,
-        senzrMode: false,
-        passiveMode: false,
-        buzzerTimer: "10",
-        junctionId: null,
-      }));
-
-    formData.controllerId = newVal.id || "";
-    formData.controllerName = newVal.controllerName || "";
-    formData.controllerIP = newVal.controllerIP || "";
-    formData.deviceName = newVal.deviceName || "";
-    formData.identification_Intervel = newVal.identification_Intervel || "";
-    formData.identification_distance = newVal.identification_distance || "";
-    formData.comparison_threshold = newVal.comparison_threshold || "";
-    formData.quality_threshold = newVal.quality_threshold || "";
-    formData.liveness_threshold = newVal.liveness_threshold || "";
-    formData.serverIp = newVal.serverIp || "";
-    formData.sn = newVal.sn || "";
-    formData.controllerType = newVal.controllerType || "";
-    formData.status = newVal.status || "approved";
-    formData.doorMode = newVal.doorMode || "4Reader-4Switch";
-    formData.interlockMode = newVal.interlockMode || "No Interlock";
-    formData.interval = newVal.interval || "60";
-    formData.attendanceMode = newVal.attendanceMode || "InOut";
-    formData.antiPassbackMode =
-      newVal.antiPassbackMode || "No anti pass-back mode";
-    formData.deviceGroup = newVal.deviceGroup || "";
-
-    if (newVal?.controllerImage?.id) {
-      currentImageId.value = newVal.controllerImage.id;
-      formData.controllerImage = newVal.controllerImage.id;
-    }
-
-    if (newVal?.selectedDoors && newVal.selectedDoors.length > 0) {
-      newVal.selectedDoors.forEach((doorId, index) => {
-        if (index < 4) {
-          const correspondingDoor = doorOptions.value.find(
-            (d) => d.id === doorId,
-          );
-
-          if (correspondingDoor) {
-            console.log("called1", newVal);
-            formData.doorAssignments[index] = {
-              doorId: doorId || null,
-              timerMode: String(correspondingDoor.timerMode || "10"),
-              buzzerMode: correspondingDoor.buzzerMode,
-              senzrMode: correspondingDoor.senzrMode,
-              passiveMode: correspondingDoor.passiveMode,
-              buzzerTimer: String(correspondingDoor.buzzerTimer || "10"),
-            };
-          } else {
-            formData.doorAssignments[index] = {
-              doorId: doorId || null,
-              timerMode: "10",
-              buzzerMode: false,
-              senzrMode: false,
-              passiveMode: false,
-              buzzerTimer: "10",
-            };
-          }
-        }
-      });
-    }
-
-    if (newVal?.branch?.id) {
-      formData.branch = newVal.branch.id;
-    }
-    if (newVal?.tenant?.tenantId) {
-      formData.tenant = newVal.tenant.tenantId;
-    }
-  } catch (error) {
-    console.error("Error populating form data:", error);
-    showErrorMessage("Error loading controller data. Please try again.");
-  }
-}
-const fetchDoors = async () => {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/doors?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=id,doorName,buzzerMode,timerMode,senzrMode,passiveMode,buzzerTimer`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      },
-    );
-    const data = await response.json();
-    let availableDoors = data.data.map((door) => ({
-      id: door.id,
-      doorName: door.doorName,
-      senzrMode: door.senzrMode,
-      passiveMode: door.passiveMode,
-      timerMode: door.timerMode || "10",
-      buzzerMode: door.buzzerMode,
-      buzzerTimer: door.buzzerTimer || "10",
-    }));
-    doorOptions.value = availableDoors;
-  } catch (error) {
-    console.error("Error fetching doors:", error);
+const handleAssignedDoorUpdate = (val) => {
+  if (
+    formData.controllerType &&
+    val.length > parseInt(formData.controllerType)
+  ) {
+    showDoorWarning.value = true;
+  } else {
+    showDoorWarning.value = false;
   }
 };
+
 watch(
   () => props.deviceData,
   (newVal) => {
     if (props.isEditing && newVal) {
-      if (doorOptions.value.length === 0) {
-        const unwatchDoors = watch(
-          doorOptions,
-          (currentDoorOptions) => {
-            if (currentDoorOptions.length > 0) {
-              populateDoorAssignmentsFromDeviceData(newVal);
-              unwatchDoors();
-            }
-          },
-          { immediate: true },
-        );
-        return;
+      try {
+        Object.keys(formData).forEach((key) => {
+          formData[key] = "";
+        });
+
+        formData.controllerId = newVal.id || "";
+        formData.controllerName = newVal.controllerName || "";
+        formData.controllerIP = newVal.controllerIP || "";
+        formData.serverIp = newVal.serverIp || "";
+        formData.sn = newVal.sn || "";
+        formData.controllerType = newVal.controllerType || "";
+        formData.status = newVal.status || "unApproved";
+        formData.doorMode = newVal.doorMode || "4Reader-4Switch";
+        formData.timerMode = newVal.timerMode || "10Seconds";
+        formData.interlockMode = newVal.interlockMode || "No Interlock";
+        formData.interval = newVal.interval || "60";
+        formData.parkingMode = newVal.parkingMode || "Disabled";
+        formData.attendanceMode = newVal.attendanceMode || "in";
+        formData.antiPassbackMode =
+          newVal.antiPassbackMode || "No anti pass-back mode";
+        formData.deviceGroup = newVal.deviceGroup || "";
+
+        if (newVal?.controllerImage?.id) {
+          currentImageId.value = newVal.controllerImage.id;
+          formData.controllerImage = newVal.controllerImage.id;
+        }
+
+        if (newVal?.assignedDoor) {
+          formData.assignedDoor = newVal.assignedDoor
+            .map((door) => door.doors_id?.id)
+            .filter((id) => id);
+        }
+
+        if (newVal?.branch?.id) {
+          formData.branch = newVal.branch.id;
+        }
+
+        if (newVal?.tenant?.tenantId) {
+          formData.tenant = newVal.tenant.tenantId;
+        }
+      } catch (error) {
+        console.error("Error populating form data:", error);
+        showErrorMessage("Error loading controller data. Please try again.");
       }
-      populateDoorAssignmentsFromDeviceData(newVal);
     }
   },
   { immediate: true, deep: true },
@@ -2013,7 +1586,6 @@ watch(
     }
   },
 );
-
 watch(
   () => formData.controllerId,
   (newValue) => {
@@ -2026,12 +1598,9 @@ watch(
   async (newValue) => {
     if (newValue === "AI face") {
       formData.controllerType = "1";
-      if (currentTab.value === "assignedDoors") {
-        currentTab.value = "basic";
-      }
       await uploadImageForController("AI face");
     } else if (newValue === "finger print") {
-      formData.controllerType = "1";
+      formData.controllerType = "4";
       await uploadImageForController("finger print");
     } else if (newValue === "4 door device") {
       formData.controllerType = "4";
@@ -2043,23 +1612,33 @@ watch(
 watch(
   () => formData.controllerType,
   (newValue) => {
-    const newType = parseInt(newValue || "0");
-    formData.doorAssignments.forEach((assignment, index) => {
-      if (index >= newType) {
-        formData.doorAssignments[index] = {
-          doorId: null,
-          timerMode: "10",
-          buzzerMode: false,
-          senzrMode: false,
-          passiveMode: false,
-          buzzerTimer: "10",
-          junctionId: null,
-        };
-      }
-    });
+    if (newValue && formData.assignedDoor.length > parseInt(newValue)) {
+      formData.assignedDoor = formData.assignedDoor.slice(
+        0,
+        parseInt(newValue),
+      );
+    }
   },
 );
-
+watch(
+  () => formData.controllerId,
+  (newValue) => {
+    formData.sn = newValue;
+  },
+);
+watch(
+  () => formData.assignedDoor,
+  (newValue) => {
+    if (
+      formData.controllerType &&
+      newValue.length > parseInt(formData.controllerType)
+    ) {
+      showDoorWarning.value = true;
+    } else {
+      showDoorWarning.value = false;
+    }
+  },
+);
 function getDefaultImagePath(controllerName) {
   switch (controllerName) {
     case "AI face":
@@ -2081,21 +1660,18 @@ const getImageUrl = () => {
   }
   return null;
 };
-
 async function uploadImageForController(controllerName) {
   try {
     const imagePath = getDefaultImagePath(controllerName);
-    if (!imagePath) {
-      console.warn("No default image path for controllerName:", controllerName);
-      return;
-    }
     const response = await fetch(imagePath);
+
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
     const blob = await response.blob();
     const fileName = `${controllerName.replace(/\s+/g, "_")}.jpg`;
     const file = new File([blob], fileName, { type: "image/jpeg" });
+
     const fileId = await handleImageUpload(file);
     currentImageId.value = fileId;
     formData.controllerImage = fileId;
@@ -2108,11 +1684,13 @@ async function uploadImageForController(controllerName) {
 const handleClickOutside = (event) => {
   const dropdowns = document.querySelectorAll(".custom-dropdown");
   let clickedOutside = true;
+
   dropdowns.forEach((dropdown) => {
     if (dropdown.contains(event.target)) {
       clickedOutside = false;
     }
   });
+
   if (clickedOutside && showDeviceGroupDropdown.value) {
     showDeviceGroupDropdown.value = false;
   }
@@ -2121,10 +1699,12 @@ const handleClickOutside = (event) => {
 onMounted(async () => {
   await fetchUserRole();
   await fetchTenants();
-  await fetchDoors();
   await fetchExistingControllers();
+  await fetchDoors();
   await fetchBranches();
+
   document.addEventListener("click", handleClickOutside);
+
   fetchDeviceGroups();
 });
 
@@ -2142,6 +1722,7 @@ onUnmounted(() => {
   width: 100%;
   max-width: 100%;
 }
+
 .form-header {
   position: sticky;
   top: 0;
@@ -2155,33 +1736,38 @@ onUnmounted(() => {
   flex-wrap: wrap;
   border-bottom: 1px solid #e0e0e0;
 }
+
 .header-content {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .action-buttons {
   display: flex;
   gap: 8px;
 }
-/* Common UI Styles for both Add and Edit */
+
+/* Original UI Styles */
 .form-content-wrapper {
   display: flex;
   flex: 1;
-  overflow: hidden; /* Keep this for the overall wrapper */
+  overflow: hidden;
 }
+
 .sidebar {
   width: 280px;
   border-right: 1px solid #e0e0e0;
-  overflow-y: auto; /* Enable scrolling for sidebar if content overflows */
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  overflow-y: auto;
 }
+
 .form-content {
   flex: 1;
   padding: 24px;
-  overflow-y: auto; /* Enable scrolling for main form content */
-  height: calc(100vh - 64px); /* Adjust height to allow scrolling */
+  overflow-y: auto;
+  height: calc(100vh - 64px);
 }
+
 .form-section {
   margin-bottom: 24px;
   background: #fff;
@@ -2189,35 +1775,48 @@ onUnmounted(() => {
   border-radius: 8px;
   border: 1px solid #e0e0e0;
 }
+
 .has-error {
   color: rgb(var(--v-theme-error));
 }
+
 :deep(.v-list-item--active) {
   background-color: #eee;
 }
+
 :deep(.v-list-item:hover) {
   background-color: #f0f0f0;
 }
-/* Form Field Layout */
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 20px;
+
+/* New UI Styles */
+.main-content {
+  padding: 20px;
 }
-.form-row > * {
-  flex: 1 1 280px; /* Allow items to grow and shrink, with a minimum width */
-}
-.split-section {
-  display: flex;
+
+.form-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
   gap: 30px;
-  margin-bottom: 20px; /* Added margin-bottom for spacing after moving */
+  max-width: 1200px;
 }
-.image-section {
-  flex: 1;
-  max-width: 300px;
-  flex-shrink: 0;
+
+.image-panel {
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.image-container {
+  width: 100%;
+  aspect-ratio: 1;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .device-image {
   width: 100%;
   height: auto;
@@ -2227,11 +1826,13 @@ onUnmounted(() => {
   justify-content: center;
   border-radius: 8px;
 }
+
 .device-image img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
+
 .device-image-placeholder {
   display: flex;
   flex-direction: column;
@@ -2250,21 +1851,57 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 500;
 }
+.form-panel {
+  padding: 16px;
+  margin-top: 16px;
+}
+.form-fields {
+  margin-bottom: 30px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-row > * {
+  flex: 1 1 calc(25% - 15px);
+  min-width: 200px;
+  max-width: calc(25% - 15px);
+}
+
+.form-group {
+  max-width: 300px;
+}
+
+.split-section {
+  display: flex;
+  gap: 30px;
+}
+
+.image-section {
+  flex: 1;
+  max-width: 300px;
+}
 .device-details-section {
   flex: 2;
-  min-width: 0;
 }
+
 .details-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 20px;
   color: #333;
 }
+
 .details-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
 }
+
 .detail-item {
   display: flex;
   align-items: center;
@@ -2272,8 +1909,8 @@ onUnmounted(() => {
   padding: 10px;
   background-color: #f9f9f9;
   border-radius: 8px;
-  position: relative;
 }
+
 .detail-icon {
   width: 40px;
   height: 40px;
@@ -2282,6 +1919,7 @@ onUnmounted(() => {
   justify-content: center;
   border-radius: 50%;
 }
+
 .sn-icon {
   background-color: #e3f2fd;
   color: #2196f3;
@@ -2290,10 +1928,12 @@ onUnmounted(() => {
   background-color: #e3f2fd;
   color: #2196f3;
 }
+
 .attendance-mode-icon {
   background-color: #e8f5e9;
   color: #4caf50;
 }
+
 .passback-icon {
   background-color: #fff3e0;
   color: #ff9800;
@@ -2314,6 +1954,7 @@ onUnmounted(() => {
   background-color: #fff3e0;
   color: #ff9800;
 }
+
 .interlock-icon {
   background-color: #ede7f6;
   color: #673ab7;
@@ -2323,18 +1964,17 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 4px;
 }
+
 .detail-label {
   font-size: 0.875rem;
   color: #666;
 }
+
 .detail-value {
   font-weight: 600;
   color: #333;
 }
-.info-icon {
-  cursor: pointer;
-  color: #666;
-}
+
 .info-banner {
   background-color: rgb(231, 242, 252);
   color: rgb(13, 60, 97);
@@ -2345,6 +1985,7 @@ onUnmounted(() => {
   border-radius: 4px;
   width: 100%;
 }
+
 .success-message {
   background-color: #d4edda;
   color: #155724;
@@ -2383,6 +2024,7 @@ onUnmounted(() => {
     opacity: 1;
   }
 }
+
 @keyframes fadeOut {
   from {
     opacity: 1;
@@ -2391,24 +2033,24 @@ onUnmounted(() => {
     opacity: 0;
   }
 }
+
 @media (max-width: 1200px) {
   .form-row > * {
     flex: 1 1 calc(33.33% - 13.33px);
+    max-width: calc(33.33% - 13.33px);
   }
 }
+
 @media (max-width: 900px) {
   .form-row > * {
     flex: 1 1 calc(50% - 10px);
+    max-width: calc(50% - 10px);
   }
 }
+
 @media (max-width: 600px) {
   .form-row > * {
     flex: 1 1 100%;
-  }
-  .split-section {
-    flex-direction: column;
-  }
-  .image-section {
     max-width: 100%;
   }
 }
@@ -2416,22 +2058,34 @@ onUnmounted(() => {
   .form-layout {
     grid-template-columns: 1fr;
   }
+
   .image-panel {
     max-height: 300px;
   }
+
   .details-grid {
     grid-template-columns: 1fr;
   }
+  .split-section {
+    flex-direction: column;
+  }
+
+  .image-section {
+    max-width: 100%;
+  }
 }
+
 /* Device group dropdown styles */
 .device-group-container {
   position: relative;
   width: 100%;
 }
+
 .custom-dropdown {
   position: relative;
   width: 100%;
 }
+
 .dropdown-trigger {
   display: flex;
   justify-content: space-between;
@@ -2443,12 +2097,15 @@ onUnmounted(() => {
   cursor: pointer;
   min-height: 40px;
 }
+
 .dropdown-active {
   border-color: #2196f3;
 }
+
 .placeholder {
   color: #999;
 }
+
 .dropdown-content {
   position: absolute;
   top: 100%;
@@ -2463,6 +2120,7 @@ onUnmounted(() => {
   margin-top: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
+
 .search-container {
   padding: 8px;
   border-bottom: 1px solid #eee;
@@ -2471,26 +2129,32 @@ onUnmounted(() => {
   background-color: white;
   z-index: 1;
 }
+
 .search-input {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+
 .dropdown-items {
   padding: 8px 0;
 }
+
 .dropdown-item {
   padding: 8px 12px;
   cursor: pointer;
 }
+
 .dropdown-item:hover {
   background-color: #f5f5f5;
 }
+
 .dropdown-item.selected {
   background-color: #e3f2fd;
   color: #2196f3;
 }
+
 .dropdown-item.add-new {
   display: flex;
   align-items: center;
@@ -2498,6 +2162,7 @@ onUnmounted(() => {
   border-top: 1px solid #eee;
   margin-top: 8px;
 }
+
 /* Popup styles */
 .popup-overlay {
   position: fixed;
@@ -2511,6 +2176,7 @@ onUnmounted(() => {
   align-items: center;
   z-index: 2000;
 }
+
 .popup-container {
   background-color: white;
   border-radius: 8px;
@@ -2519,6 +2185,7 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   overflow: hidden;
 }
+
 .popup-header {
   display: flex;
   justify-content: space-between;
@@ -2526,27 +2193,33 @@ onUnmounted(() => {
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
 }
+
 .popup-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
+
 .close-icon {
   cursor: pointer;
   color: #666;
 }
+
 .popup-content {
   padding: 20px;
 }
+
 .input-group {
   margin-bottom: 20px;
 }
+
 .input-group label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
   color: #333;
 }
+
 .input-group input {
   width: 100%;
   padding: 10px 12px;
@@ -2554,11 +2227,13 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 16px;
 }
+
 .popup-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
+
 .cancel-btn {
   padding: 8px 16px;
   background-color: transparent;
@@ -2567,6 +2242,7 @@ onUnmounted(() => {
   cursor: pointer;
   font-weight: 500;
 }
+
 .add-btn {
   padding: 8px 16px;
   background-color: #2196f3;
@@ -2576,52 +2252,17 @@ onUnmounted(() => {
   cursor: pointer;
   font-weight: 500;
 }
+
 .add-btn:disabled {
   background-color: #b0bec5;
   cursor: not-allowed;
 }
+
 /* Fix for v-label to match Vuetify styling */
 .v-label {
   color: rgba(0, 0, 0, 0.6);
   font-size: 0.875rem;
   margin-bottom: 4px;
   display: block;
-}
-/* NEW: Door Assignment Section Styles */
-.door-assignment-section {
-  margin-top: 30px;
-  margin-bottom: 30px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-}
-.section-title {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #333;
-}
-.door-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-.door-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 15px;
-  background-color: #fdfdfd;
-}
-.door-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #555;
-}
-.door-options {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px dashed #eee;
 }
 </style>

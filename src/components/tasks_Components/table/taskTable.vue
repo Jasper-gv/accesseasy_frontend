@@ -114,13 +114,13 @@ const taskColumns = [
     width: "2",
     sortable: true,
   },
-  {
-    key: "orgName",
-    label: "Organization",
-    field: "orgName",
-    width: "1.5",
-    sortable: false,
-  },
+  // {
+  //   key: "orgName",
+  //   label: "Organization",
+  //   field: "orgName",
+  //   width: "1.5",
+  //   sortable: false,
+  // },
   {
     key: "from",
     label: "Start Date",

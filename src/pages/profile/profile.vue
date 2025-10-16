@@ -31,8 +31,10 @@
                 </v-btn> -->
               </div>
               <h1 class="profile-name">{{ fullName }}</h1>
-              <div class="profile-role">{{ profileData.roleName }}</div>
-              <div class="profile-tenant">{{ profileData.tenantName }}</div>
+              <div class="profile-role">{{ profileData.role?.name }}</div>
+              <div class="profile-tenant">
+                {{ profileData.tenant?.tenantName }}
+              </div>
             </div>
 
             <div class="quick-info">
@@ -41,7 +43,7 @@
                 <div class="info-details">
                   <span class="info-label">Department</span>
                   <span class="info-value">{{
-                    profileData.departmentName
+                    profileData.departmentName || "Not Set"
                   }}</span>
                 </div>
               </div>
@@ -49,7 +51,9 @@
                 <v-icon color="primary">mdi-office-building</v-icon>
                 <div class="info-details">
                   <span class="info-label">Branch</span>
-                  <span class="info-value">{{ profileData.branchName }}</span>
+                  <span class="info-value">{{
+                    profileData.branchName || "Not Set"
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -64,7 +68,6 @@
               class="profile-tabs"
             >
               <v-tab class="custom-tab">Profile Details</v-tab>
-              <!-- <v-tab class="custom-tab">Additional Info</v-tab> -->
             </v-tabs>
 
             <v-tabs-items v-model="activeTab" class="profile-tabs-content">
@@ -78,39 +81,6 @@
                     <div class="detail-label">{{ field.label }}</div>
                     <div class="detail-value">
                       {{ profileData[field.name] || "Not Set" }}
-                    </div>
-                  </div>
-                </div>
-              </v-tab-item>
-
-              <v-tab-item>
-                <div class="details-grid">
-                  <div class="detail-item">
-                    <div class="detail-label">Department</div>
-                    <div class="detail-value with-icon">
-                      <v-icon color="primary" small>mdi-domain</v-icon>
-                      {{ profileData.departmentName }}
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <div class="detail-label">Access Level</div>
-                    <div class="detail-value with-icon">
-                      <v-icon color="primary" small>mdi-shield-account</v-icon>
-                      {{ profileData.accessLevelName }}
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <div class="detail-label">Branch</div>
-                    <div class="detail-value with-icon">
-                      <v-icon color="primary" small>mdi-office-building</v-icon>
-                      {{ profileData.branchName }}
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <div class="detail-label">Location</div>
-                    <div class="detail-value with-icon">
-                      <v-icon color="primary" small>mdi-map-marker</v-icon>
-                      {{ profileData.location }}
                     </div>
                   </div>
                 </div>
@@ -131,22 +101,24 @@
 </template>
 
 <script>
+import { ref } from "vue";
 import { authService } from "@/services/authService";
+import axios from "axios";
 
 export default {
   name: "ProfilePage",
   data() {
     return {
+      activeTab: 0,
       profileData: {},
       profileFields: [
         { name: "first_name", label: "First Name", editable: true },
         { name: "last_name", label: "Last Name", editable: true },
         { name: "phone", label: "Phone Number", editable: true },
         { name: "email", label: "Email", editable: true },
-        { name: "roleName", label: "Role", editable: false },
-        { name: "tenantName", label: "Tenant Name", editable: false },
+        { name: "role.name", label: "Role", editable: false },
+        { name: "tenant.tenantName", label: "Tenant Name", editable: false },
       ],
-      tenantId: null,
       profileImage: null,
       isLoadingImage: false,
     };
@@ -154,126 +126,97 @@ export default {
 
   computed: {
     fullName() {
-      return `${this.profileData.first_name || ""} ${
-        this.profileData.last_name || ""
-      }`.trim();
+      return (
+        `${this.profileData.first_name || ""} ${
+          this.profileData.last_name || ""
+        }`.trim() || "Not Set"
+      );
     },
   },
 
   mounted() {
-    this.fetchLoginUserDetails();
+    this.fetchProfileData();
   },
 
   methods: {
-    async fetchLoginUserDetails() {
+    async fetchProfileData() {
       try {
-        // Check if user is authenticated
-        if (!authService.isAuthenticated()) {
-          throw new Error("User not authenticated");
-        }
-        const phone = authService.getPhone();
-        if (!phone) {
-          throw new Error("Phone number not found");
-        }
-        const formattedPhone = phone.startsWith("+91") ? phone : `+91${phone}`;
-        // Use protectedApi from authService
-        const userResponse = await authService.protectedApi.get("/users", {
-          params: {
-            "filter[_and][0][phone][_contains]": formattedPhone,
-            "fields[]": ["id", "tenant", "role.name", "phone"],
+        const api = axios.create({
+          baseURL: import.meta.env.VITE_API_URL,
+          headers: {
+            Authorization: `Bearer ${authService.getToken()}`,
+            "Content-Type": "application/json",
           },
         });
-        if (userResponse.data.data?.length) {
-          const userData = userResponse.data.data[0];
-          this.tenantId = userData.tenant;
-          await this.fetchProfileData(userData.id);
-        } else {
-          throw new Error("User not found");
+
+        const token = localStorage.getItem("userToken");
+        if (!token) {
+          throw new Error("No user token found");
         }
-      } catch (error) {
-        console.error("Error fetching login user details:", error);
-        if (error.response?.status === 401) {
-          authService.logout(); // Use authService logout method
-        }
-      }
-    },
-    async fetchProfileData(userId) {
-      try {
-        const phone = authService.getPhone();
-        const formattedPhone = phone.startsWith("+91") ? phone : `+91${phone}`;
-        // Use protectedApi from authService
-        const response = await authService.protectedApi.get(
-          "/items/personalModule",
-          {
-            params: {
-              fields: [
-                "id",
-                "assignedUser.first_name",
-                "assignedUser.last_name",
-                "assignedUser.phone",
-                "assignedUser.email",
-                "assignedUser.role.name",
-                "assignedUser.tenant.tenantName",
-                "assignedDepartment.department_id.departmentName",
-                "assignedAccessLevels.accesslevels_id.accessLevelName",
-                "assignedBranch.branch_id.branchName",
-                "assignedUser.location",
-                "assignedUser.avatar.id",
-                "assignedUser.avatar.type",
-                "assignedUser.avatar.title",
-              ],
-              filter: {
-                _and: [
-                  { assignedUser: { phone: { _contains: formattedPhone } } },
-                ],
-              },
-            },
+
+        const response = await api.get("/users/me", {
+          params: {
+            fields: [
+              "first_name",
+              "last_name",
+              "phone",
+              "email",
+              "avatar.id",
+              "avatar.title",
+              "role.name",
+              "tenant.tenantName",
+            ],
           },
-        );
-        if (response.data.data?.length) {
-          const userData = response.data.data[0];
+        });
+
+        if (response.data?.data) {
+          console.log("Profile response:", response.data);
+          const userData = response.data.data;
           this.profileData = {
-            first_name: userData.assignedUser.first_name,
-            last_name: userData.assignedUser.last_name,
-            phone: userData.assignedUser.phone,
-            email: userData.assignedUser.email,
-            roleName: userData.assignedUser.role.name,
-            tenantName: userData.assignedUser.tenant.tenantName,
-            departmentName:
-              userData.assignedDepartment?.[0]?.department_id?.departmentName ||
-              "Not Set",
-            accessLevelName:
-              userData.assignedAccessLevels?.[0]?.accesslevels_id
-                ?.accessLevelName || "Not Set",
-            branchName:
-              userData.assignedBranch?.[0]?.branch_id?.branchName || "Not Set",
-            location: userData.assignedUser.location || "Not Set",
-            avatar: userData.assignedUser.avatar || null,
+            first_name: userData.first_name || "Not Set",
+            last_name: userData.last_name || "Not Set",
+            phone: userData.phone || "Not Set",
+            email: userData.email || "Not Set",
+            role: userData.role || { name: "Not Set" },
+            tenant: userData.tenant || { tenantName: "Not Set" },
+            avatar: userData.avatar || null,
+            departmentName: userData.departmentName || "Not Set", // Adjust based on your API
+            branchName: userData.branchName || "Not Set", // Adjust based on your API
           };
-          // Set profile image if avatar exists
-          if (this.profileData.avatar?.id) {
+
+          if (userData.avatar?.id) {
             await this.fetchAuthorizedImage(
-              `${import.meta.env.VITE_API_URL}/assets/${
-                this.profileData.avatar.id
-              }`,
+              `${import.meta.env.VITE_API_URL}/assets/${userData.avatar.id}`,
             );
           }
+        } else {
+          throw new Error("No user data found");
         }
       } catch (error) {
         console.error("Error fetching profile data:", error);
+        this.profileData = {
+          first_name: "Guest",
+          last_name: "",
+          phone: "Not Set",
+          email: "Not Set",
+          role: { name: "Employee" },
+          tenant: { tenantName: "No organization" },
+          departmentName: "Not Set",
+          branchName: "Not Set",
+        };
         if (error.response?.status === 401) {
-          authService.logout(); // Use authService logout method
+          authService.logout();
+          this.$router.push("/login");
         }
       }
     },
+
     async fetchAuthorizedImage(imageUrl) {
       this.isLoadingImage = true;
       try {
-        // Use the stored user token for image fetch
-        const token = authService.getToken();
         const response = await fetch(imageUrl, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authService.getToken()}`,
           },
         });
         if (!response.ok) throw new Error("Failed to load image");
@@ -286,20 +229,22 @@ export default {
         this.isLoadingImage = false;
       }
     },
+
     handleImageError() {
       this.profileImage = null;
       console.warn("Failed to load profile image");
     },
+
     triggerImageUpload() {
       this.$refs.imageInput.click();
     },
+
     async handleImageUpload(event) {
       const file = event.target.files[0];
       if (file) {
         try {
           const formData = new FormData();
           formData.append("file", file);
-          // Use protectedApi for file upload
           const response = await authService.protectedApi.post(
             "/files",
             formData,
@@ -309,25 +254,22 @@ export default {
               },
             },
           );
-          if (response.data.id) {
-            // Update profile image
+          if (response.data.data?.id) {
             const reader = new FileReader();
             reader.onload = (e) => {
               this.profileImage = e.target.result;
             };
             reader.readAsDataURL(file);
-            // Update user avatar in backend
-            await authService.protectedApi.patch(
-              `/users/${this.profileData.id}`,
-              {
-                avatar: response.data.id,
-              },
-            );
+            await authService.protectedApi.patch(`/users/me`, {
+              avatar: response.data.data.id,
+            });
+            this.profileData.avatar = { id: response.data.data.id };
           }
         } catch (error) {
           console.error("Error uploading image:", error);
           if (error.response?.status === 401) {
             authService.logout();
+            this.$router.push("/login");
           }
         }
       }
@@ -348,7 +290,6 @@ export default {
 }
 
 .profile-sidebar {
-  /* width: 320px; */
   background-color: #f8fafc;
   padding: 2rem;
   display: flex;
@@ -429,6 +370,7 @@ export default {
   color: #2d3748;
   font-weight: 500;
 }
+
 .custom-tab {
   font-weight: 550;
   font-family: Lato, sans-serif, Arial;
@@ -496,10 +438,9 @@ export default {
   }
 }
 
-/* Updated media query for mobile view */
 @media (max-width: 768px) {
   .details-grid {
-    grid-template-columns: 1fr; /* Single column on mobile */
+    grid-template-columns: 1fr;
   }
 }
 </style>

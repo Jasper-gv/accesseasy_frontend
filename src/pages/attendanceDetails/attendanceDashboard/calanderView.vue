@@ -1,106 +1,203 @@
 <template>
   <div class="calendar-view">
-    <div class="header-actions">
-      <div class="title-section">
-       
-        <h2 class="text-h5">{{ monthName }} {{ year }} Attendance</h2>
-      </div>
-      <div class="action-section">
-        <div class="cycle-info mr-4">
-          <span class="cycle-type">{{ cycleType }}</span>
-          <span class="cycle-dates ml-2"
-            >{{ formattedCycleStartDate }} - {{ formattedCycleEndDate }}</span
-          >
-        </div>
-        <v-btn
-          color="primary"
-          @click="confirmMarkAllPresent"
-          :disabled="loading || isAttendanceLocked"
-        >
-          Mark All Present
-        </v-btn>
-      </div>
-    </div>
-
-    <div v-if="isAttendanceLocked" class="locked-notification">
-      <v-icon color="warning" class="mr-2">mdi-lock</v-icon>
-      <span
-        >This attendance can't be edited because it's already verified. No mode
-        add or edit the attendance, only can view the data.</span
-      >
-    </div>
-
-    <div v-if="loading" class="loading-indicator">
-      <v-progress-circular indeterminate color="primary"></v-progress-circular>
-      <span class="ml-2">Loading attendance data...</span>
-    </div>
-
-    <div v-else>
-      <div class="calendar-weekdays">
-        <div v-for="day in weekDays" :key="day" class="weekday">{{ day }}</div>
-      </div>
-
-      <div class="calendar-grid">
-        <div
-          v-for="(date, index) in allCalendarDates"
-          :key="index"
-          class="calendar-day"
-          :class="{
-            'outside-month': !isCurrentMonth(date),
-            'not-on-cycle': !isDateInCycle(date),
-            locked: isAttendanceLocked || !isDateInCycle(date),
-          }"
-          @click="isDateInCycle(date) ? openPopup(date) : null"
-        >
-          <div class="day-number">{{ date.getDate() }}</div>
-          <div class="attendance-status" :class="getAttendanceClass(date)">
-            {{ getAttendanceStatus(date).status }}
+    <div class="main-content">
+      <div class="calendar-section">
+        <div class="header-actions">
+          <div class="title-section">
+            <h2 class="text-h5">{{ monthName }} {{ year }} Attendance</h2>
+          </div>
+          <div class="action-section">
+            <div class="cycle-info mr-4">
+              <!-- <span class="cycle-type">{{ cycleType }}</span> -->
+              <span class="cycle-dates ml-2"
+                >{{ formattedCycleStartDate }} -
+                {{ formattedCycleEndDate }}</span
+              >
+            </div>
+            <v-btn
+              color="primary"
+              @click="confirmMarkAllPresent"
+              :disabled="loading || isAttendanceLocked"
+            >
+              Mark All Present
+            </v-btn>
           </div>
         </div>
+
+        <div v-if="isAttendanceLocked" class="locked-notification">
+          <v-icon color="warning" class="mr-2">mdi-lock</v-icon>
+          <span
+            >This attendance can't be edited because it's already verified. No
+            mode add or edit the attendance, only can view the data.</span
+          >
+        </div>
+
+        <div v-if="loading" class="loading-indicator">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+          ></v-progress-circular>
+          <span class="ml-2">Loading attendance data...</span>
+        </div>
+
+        <div v-else>
+          <div class="calendar-weekdays">
+            <div v-for="day in weekDays" :key="day" class="weekday">
+              {{ day }}
+            </div>
+          </div>
+
+          <div class="calendar-grid">
+            <div
+              v-for="(date, index) in allCalendarDates"
+              :key="index"
+              class="calendar-day"
+              :class="{
+                'outside-month': !isCurrentMonth(date),
+                'not-on-cycle': !isDateInCycle(date),
+                locked: isAttendanceLocked || !isDateInCycle(date),
+              }"
+              @click="isDateInCycle(date) ? openPopup(date) : null"
+            >
+              <div class="day-number">{{ date.getDate() }}</div>
+              <div class="attendance-status" :class="getAttendanceClass(date)">
+                {{ getAttendanceStatus(date).status }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="calendarAttendanceData.length > 0" class="debug-info mt-4">
+          <!-- <p>API data loaded: {{ calendarAttendanceData.length }} records</p> -->
+        </div>
+
+        <AttendancePopup
+          v-if="showPopup"
+          :empid="props.employee?.id"
+          :day="selectedDay"
+          :month="selectedMonth"
+          :year="selectedYear"
+          :selectedDate="selectedDate"
+          :AttendanceId="selectedAttendanceId"
+          :attendanceStatuses="attendanceStatuses"
+          :currentStatus="currentAttendanceStatus"
+          :isLocked="isAttendanceLocked"
+          @close="closePopup"
+          @update="updateAttendance"
+        />
+
+        <v-dialog v-model="showConfirmationDialog" max-width="500">
+          <v-card>
+            <v-card-title class="text-h5">Confirm Action</v-card-title>
+            <v-card-text>
+              <p v-if="hasExistingData">
+                This month already has attendance data. Do you want to overwrite
+                all days as "Present"?
+              </p>
+              <p v-else>
+                Are you sure you want to mark all days in {{ monthName }} as
+                "Present"?
+              </p>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="error" @click="showConfirmationDialog = false"
+                >Cancel</v-btn
+              >
+              <v-btn color="primary" @click="markAllPresent">Confirm</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </div>
+
+      <div class="summary-section">
+        <h3 class="summary-title">Attendance Summary</h3>
+        <div class="summary-content">
+          <div v-if="loading" class="loading-indicator">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+            ></v-progress-circular>
+            <span class="ml-2">Loading summary...</span>
+          </div>
+          <div v-else-if="summaryData" class="summary-items">
+            <div class="summary-item">
+              <span class="summary-label">Total PayableDays:</span>
+              <span class="summary-value">{{
+                summaryData.totalDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Present:</span>
+              <span class="summary-value">{{
+                summaryData.presentDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Absent:</span>
+              <span class="summary-value">{{
+                summaryData.absentDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Week Off:</span>
+              <span class="summary-value">{{
+                summaryData.weekOffDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Holiday:</span>
+              <span class="summary-value">{{
+                summaryData.holidayDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Paid Leave:</span>
+              <span class="summary-value">{{
+                summaryData.paidLeaveDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Unpaid Leave:</span>
+              <span class="summary-value">{{
+                summaryData.unpaidLeaveDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Work From Home:</span>
+              <span class="summary-value">{{
+                summaryData.workFromHomeDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">On Duty:</span>
+              <span class="summary-value">{{
+                summaryData.onDutyDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Half Day:</span>
+              <span class="summary-value">{{
+                summaryData.halfDayDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Holiday Present:</span>
+              <span class="summary-value">{{
+                summaryData.holidayPresentDays || 0
+              }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Week Off Present:</span>
+              <span class="summary-value">{{
+                summaryData.weekOffPresentDays || 0
+              }}</span>
+            </div>
+          </div>
+          <div v-else class="no-data">No summary data available</div>
+        </div>
       </div>
     </div>
-
-    <div v-if="calendarAttendanceData.length > 0" class="debug-info mt-4">
-      <p>API data loaded: {{ calendarAttendanceData.length }} records</p>
-    </div>
-
-    <AttendancePopup
-      v-if="showPopup"
-      :empid="props.employee?.id"
-      :day="selectedDay"
-      :month="selectedMonth"
-      :year="selectedYear"
-      :selectedDate="selectedDate"
-      :AttendanceId="selectedAttendanceId"
-      :attendanceStatuses="attendanceStatuses"
-      :currentStatus="currentAttendanceStatus"
-      :isLocked="isAttendanceLocked"
-      @close="closePopup"
-      @update="updateAttendance"
-    />
-
-    <v-dialog v-model="showConfirmationDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h5">Confirm Action</v-card-title>
-        <v-card-text>
-          <p v-if="hasExistingData">
-            This month already has attendance data. Do you want to overwrite all
-            days as "Present"?
-          </p>
-          <p v-else>
-            Are you sure you want to mark all days in {{ monthName }} as
-            "Present"?
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="error" @click="showConfirmationDialog = false"
-            >Cancel</v-btn
-          >
-          <v-btn color="primary" @click="markAllPresent">Confirm</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -148,6 +245,7 @@ const cycleType = ref("Standard Cycle");
 const cycleDates = ref([]);
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const isAttendanceLocked = ref(false);
+const summaryData = ref(null);
 
 const emit = defineEmits(["close"]);
 
@@ -252,12 +350,13 @@ const markAllPresent = async () => {
       const dayOfWeek = date.getDay();
       const formattedDate = formatDateForAPI(date);
 
-      const existingRecord = calendarAttendanceData.value.find((r) => r.date === formattedDate);
+      const existingRecord = calendarAttendanceData.value.find(
+        (r) => r.date === formattedDate,
+      );
 
       let attendanceRecord;
 
       if (dayOfWeek === 0) {
-        // Week off logic
         attendanceRecord = {
           employeeId: props.employee.id,
           tenant: tenantId,
@@ -272,7 +371,6 @@ const markAllPresent = async () => {
           leaveType: "none",
         };
       } else {
-        // Present logic
         attendanceRecord = {
           employeeId: props.employee.id,
           tenant: tenantId,
@@ -288,34 +386,37 @@ const markAllPresent = async () => {
         };
       }
 
-  if (existingRecord && existingRecord.id) {
-  // update
-  recordsToUpdate.push({ ...attendanceRecord, id: existingRecord.id });
-} else {
-  // create
-  recordsToCreate.push(attendanceRecord);
-}
-
+      if (existingRecord && existingRecord.id) {
+        recordsToUpdate.push({ ...attendanceRecord, id: existingRecord.id });
+      } else {
+        recordsToCreate.push(attendanceRecord);
+      }
     }
 
-    // Update existing records
     if (recordsToUpdate.length > 0) {
-      await axios.patch(`${import.meta.env.VITE_API_URL}/items/attendance?many=1`, recordsToUpdate, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/items/attendance?many=1`,
+        recordsToUpdate,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
     }
 
-    // Create new records
     if (recordsToCreate.length > 0) {
-      await axios.post(`${import.meta.env.VITE_API_URL}/items/attendance`, recordsToCreate, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/items/attendance`,
+        recordsToCreate,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
     }
 
     await fetchAttendanceData();
@@ -359,6 +460,20 @@ const fetchAttendanceData = async () => {
       cycleStartDate.value = summary.cycleStartDate;
       cycleEndDate.value = summary.cycleEndDate;
       cycleType.value = summary.cycleType || "Standard Cycle";
+      summaryData.value = {
+        totalDays: summary.totalPayableDays || 0,
+        presentDays: summary.present || 0,
+        absentDays: summary.absent || 0,
+        weekOffDays: summary.weekOff || 0,
+        holidayDays: summary.holiday || 0,
+        paidLeaveDays: summary.paidLeave || 0,
+        unpaidLeaveDays: summary.unpaidLeave || 0,
+        workFromHomeDays: summary.workFromHome || 0,
+        onDutyDays: summary.onDuty || 0,
+        halfDayDays: summary.halfDay || 0,
+        holidayPresentDays: summary.holidayPresent || 0,
+        weekOffPresentDays: summary.weekOffPresent || 0,
+      };
 
       cycleDates.value = getAllDatesInRange(
         new Date(summary.cycleStartDate),
@@ -384,7 +499,6 @@ const fetchAttendanceData = async () => {
       console.log(`Received ${records.length} attendance records from API`);
       calendarAttendanceData.value = records;
 
-      // Set the locked status from the API response
       isAttendanceLocked.value =
         attendanceResponse.data.meta?.lockedMonthAttendance === true;
     }
@@ -415,7 +529,6 @@ const formatDateForAPI = (date) => {
 };
 
 const getAttendanceStatus = (date) => {
-  // If date is not in cycle, show "not on cycle"
   if (!isDateInCycle(date)) {
     return { status: "notOnCycle", id: null };
   }
@@ -545,8 +658,61 @@ const attendanceStatuses = [
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  height: calc(80vh - 170px);
+  height: calc(90vh - 170px);
   overflow-y: auto;
+}
+
+.main-content {
+  display: flex;
+  gap: 20px;
+}
+
+.calendar-section {
+  flex: 3;
+}
+
+.summary-section {
+  flex: 1;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.summary-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1e293b;
+}
+
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-label {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.summary-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.no-data {
+  color: #64748b;
+  font-style: italic;
 }
 
 .loading-indicator {

@@ -8,14 +8,13 @@
         <div class="content-card">
           <div class="card-header">
             <h2 class="card-title">Employee Overview</h2>
-            <button
-              class="add-user-btn"
+            <BaseButton
+              color="primary"
               @click="navigateTo('/employee-details/employee/add/personal')"
-              aria-label="Add Users"
-            >
-              <i class="fas fa-user-plus" aria-hidden="true"></i>
-              Add User
-            </button>
+              :text="` Add User`"
+              :left-icon="User2Icon"
+              size="md"
+            />
           </div>
 
           <div class="card-content">
@@ -98,14 +97,12 @@
           <div class="card-header-workorders">
             <h2 class="card-title">Work Orders</h2>
             <div class="workorder-subtitle">{{ formatMonth(currentDate) }}</div>
-            <button
-              class="add-workorder-btn"
+            <BaseButton
+              color="primary"
               @click="navigateTo('/taskManagement/taskcomponents/workorder')"
-              aria-label="Add Work Order"
-            >
-              <i class="fas fa-plus" aria-hidden="true"></i>
-              Add Work Order
-            </button>
+              :text="`Add Work Order`"
+              size="md"
+            />
           </div>
           <div class="card-content">
             <div class="workorders-grid">
@@ -190,20 +187,17 @@
         <!-- Third Card: Organization Metrics -->
         <div class="content-card">
           <div class="card-header">
-            <h2 class="card-title">Organization Overview</h2>
-            <button
-              class="add-user-btn"
+            <h2 class="card-title">Clients&Sites Overview</h2>
+            <BaseButton
+              color="primary"
               @click="navigateTo('/organization/orgmainui')"
-              aria-label="Add Organization"
-            >
-              <i class="fas fa-building" aria-hidden="true"></i>
-              Add Organization
-            </button>
+              :text="`Add Clients`"
+            />
           </div>
           <div class="card-content">
             <div class="metrics-grid-compact">
               <!-- Total Organizations -->
-              <div
+              <!-- <div
                 class="metric-card-compact"
                 @click="navigateTo('/organization/orgmainui')"
                 @keydown.enter="navigateTo('/organization/orgmainui')"
@@ -220,10 +214,10 @@
                   </div>
                   <div class="metric-label-compact">Total Organizations</div>
                 </div>
-              </div>
+              </div> -->
 
               <!-- Tenant Organizations -->
-              <div
+              <!-- <div
                 class="metric-card-compact"
                 @click="navigateTo('/organization/orgmainui?type=tenantorg')"
                 @keydown.enter="
@@ -242,10 +236,10 @@
                   </div>
                   <div class="metric-label-compact">Tenant Orgs</div>
                 </div>
-              </div>
+              </div> -->
 
               <!-- Distributor Organizations -->
-              <div
+              <!-- <div
                 class="metric-card-compact"
                 @click="
                   navigateTo('/organization/orgmainui?type=distributororg')
@@ -266,7 +260,7 @@
                   </div>
                   <div class="metric-label-compact">Distributor Orgs</div>
                 </div>
-              </div>
+              </div> -->
 
               <!-- Client Organizations -->
               <div
@@ -296,15 +290,12 @@
         <!-- Fourth Card: Location Metrics -->
         <div class="content-card">
           <div class="card-header">
-            <h2 class="card-title">Location Overview</h2>
-            <button
-              class="add-user-btn"
+            <h2 class="card-title">Branch&Department Overview</h2>
+            <BaseButton
+              color="primary"
               @click="navigateTo('/organization/org_addlocation')"
-              aria-label="Add Location"
-            >
-              <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-              Add Location
-            </button>
+              :text="` Add Branch & Department`"
+            />
           </div>
           <div class="card-content">
             <div class="metrics-grid-compact">
@@ -685,9 +676,12 @@
 import { useRouter } from "vue-router";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { User, User2Icon } from "lucide-vue-next";
 
 export default {
   name: "Dashboard",
+  components: { BaseButton },
   setup() {
     const router = useRouter();
     return { router };
@@ -1558,7 +1552,7 @@ export default {
 
 /* Add User Button */
 .add-user-btn {
-  background: #2563eb;
+  background: #28c457;
   color: white;
   border: none;
   padding: 0.5rem;
@@ -1574,7 +1568,7 @@ export default {
 }
 
 .add-user-btn:hover {
-  background-color: #1d4ed8;
+  background-color: #122f68;
 }
 
 /* Work Orders */
@@ -1619,7 +1613,7 @@ silly.workorder-metric:focus-visible {
 
 .workorder-icon-blue {
   background-color: #dbeafe;
-  color: #2563eb;
+  color: #122f68;
 }
 
 .workorder-icon-green {
@@ -1645,7 +1639,7 @@ silly.workorder-metric:focus-visible {
 }
 
 .add-workorder-btn {
-  background: #2563eb;
+  background: #28c457;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -1660,7 +1654,7 @@ silly.workorder-metric:focus-visible {
 }
 
 .add-workorder-btn:hover {
-  background-color: #1d4ed8;
+  background-color: #122f68;
 }
 
 /* Tab Header */

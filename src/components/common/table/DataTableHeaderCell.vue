@@ -95,7 +95,7 @@ const handleSort = () => {
 
 .header-label {
   font-weight: 600;
-  color: #0f3b82;
+  color: #000;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

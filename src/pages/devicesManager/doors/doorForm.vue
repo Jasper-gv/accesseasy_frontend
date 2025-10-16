@@ -12,6 +12,7 @@
         {{ successMessage }}
       </div>
     </v-snackbar>
+
     <v-snackbar
       class="errormessge"
       v-model="showErrorSnackbar"
@@ -24,7 +25,6 @@
         {{ errorMessage }}
       </div>
     </v-snackbar>
-
     <!-- Header -->
     <div class="form-header">
       <div class="header-content">
@@ -59,6 +59,7 @@
                 {{ tab.icon }}
               </v-icon>
             </template>
+
             <v-list-item-title>
               {{ tab.title }}
               <v-icon
@@ -67,8 +68,8 @@
                 size="small"
                 class="ms-2"
               >
-                mdi-alert-circle</v-icon
-              >
+                mdi-alert-circle
+              </v-icon>
             </v-list-item-title>
           </v-list-item>
         </v-list>
@@ -91,7 +92,6 @@
                   @blur="markFieldAsTouched('doorName')"
                 ></v-text-field>
               </v-col>
-
               <!-- Door Type -->
               <v-col cols="12" md="6">
                 <v-select
@@ -122,6 +122,7 @@
                           : "mdi-chevron-down"
                       }}</v-icon>
                     </div>
+
                     <div v-if="showDoorGroupDropdown" class="dropdown-content">
                       <div class="search-container">
                         <input
@@ -132,6 +133,7 @@
                           class="search-input"
                         />
                       </div>
+
                       <div class="dropdown-items">
                         <div
                           v-for="group in filteredDoorGroups"
@@ -142,6 +144,7 @@
                         >
                           {{ group }}
                         </div>
+
                         <div
                           class="dropdown-item add-new"
                           @click="showAddDoorGroupPopup = true"
@@ -196,6 +199,7 @@
                   density="comfortable"
                 ></v-text-field>
               </v-col>
+
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="formData.accessEndTime"
@@ -263,6 +267,7 @@ const props = defineProps({
   doorData: Object,
   tenantId: String,
 });
+
 const emit = defineEmits(["save-success", "cancel"]);
 
 // Initialize reactive references
@@ -287,6 +292,7 @@ const newDoorGroupInput = ref(null);
 const showAddDoorGroupPopup = ref(false);
 
 const tabs = [{ id: "basic", title: "Basic Details", icon: "mdi-door" }];
+
 const tabRequiredFields = {
   basic: ["doorName"],
 };
@@ -295,7 +301,6 @@ const showSuccessMessage = (message) => {
   successMessage.value = message;
   showSuccessSnackbar.value = true;
 };
-
 const showErrorMessage = (message) => {
   errorMessage.value = message;
   showErrorSnackbar.value = true;
@@ -347,7 +352,9 @@ async function fetchDepartments() {
   try {
     const resolvedTenantId = await resolveTenantId();
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/department?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
+      `${
+        import.meta.env.VITE_API_URL
+      }/items/department?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
@@ -368,7 +375,9 @@ async function fetchBranches() {
   try {
     const resolvedTenantId = await resolveTenantId();
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/branch?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
+      `${
+        import.meta.env.VITE_API_URL
+      }/items/branch?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
@@ -389,7 +398,9 @@ async function fetchAccessLevels() {
   try {
     const resolvedTenantId = await resolveTenantId();
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/accesslevels?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
+      `${
+        import.meta.env.VITE_API_URL
+      }/items/accesslevels?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
@@ -427,10 +438,13 @@ const fetchDoorGroups = async () => {
         },
       },
     );
+
     if (!response.ok) {
       throw new Error("Failed to fetch door groups");
     }
+
     const data = await response.json();
+
     const uniqueGroups = [
       ...new Set(
         data.data
@@ -438,6 +452,7 @@ const fetchDoorGroups = async () => {
           .filter((group) => group && group.trim() !== ""),
       ),
     ];
+
     doorGroups.value = uniqueGroups;
     filteredDoorGroups.value = uniqueGroups;
   } catch (error) {
@@ -466,14 +481,19 @@ const addNewDoorGroup = async () => {
   if (!newDoorGroup.value.trim()) {
     return;
   }
+
   try {
     const newGroup = newDoorGroup.value.trim();
+
     doorGroups.value.push(newGroup);
     filteredDoorGroups.value = doorGroups.value;
+
     formData.doorGroup = newGroup;
+
     showAddDoorGroupPopup.value = false;
     showDoorGroupDropdown.value = false;
     newDoorGroup.value = "";
+
     showSuccessMessage("Door group added successfully!");
   } catch (error) {
     console.error("Error creating door group:", error);
@@ -500,6 +520,7 @@ async function createNewDoor() {
   formSubmitAttempted.value = true;
   const mandatoryFields = ["doorName"];
   let hasErrors = false;
+
   mandatoryFields.forEach((field) => {
     if (!formData[field]) {
       hasErrors = true;
@@ -515,7 +536,8 @@ async function createNewDoor() {
 
   try {
     const resolvedTenantId = await resolveTenantId();
-    const DoorNumber = await generateSequentialDoorNumber(); // Corrected function call
+    const DoorNumber = await generateSequentialDoorNumber();
+
     const selectedDepartment = departmentOptions.value.find(
       (dept) => dept.name === formData.assignedDepts,
     );
@@ -538,9 +560,7 @@ async function createNewDoor() {
       accessStartTime: formData.accessStartTime,
       accessEndTime: formData.accessEndTime,
       doorGroup: formData.doorGroup || null,
-      uniqueId: `${resolvedTenantId}-${DoorNumber}`,
     };
-
     if (selectedDepartment?.id) {
       payload.assignedDepartment = {
         create: [
@@ -553,7 +573,6 @@ async function createNewDoor() {
         delete: [],
       };
     }
-
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/doors`,
       {
@@ -586,6 +605,7 @@ async function editDoor() {
   formSubmitAttempted.value = true;
   const mandatoryFields = ["doorName", "doorNumber"];
   let hasErrors = false;
+
   mandatoryFields.forEach((field) => {
     if (!formData[field]) {
       hasErrors = true;
@@ -601,8 +621,9 @@ async function editDoor() {
 
   try {
     const resolvedTenantId = await resolveTenantId();
+
     const selectedDepartment = departmentOptions.value.find(
-      (dept) => dept.name === formData.assignedDepts,
+      (dept) => dept.name === formData.department,
     );
     const selectedBranch = branchOptions.value.find(
       (branch) => branch.name === formData.branch,
@@ -652,48 +673,32 @@ async function editDoor() {
     );
   }
 }
-
-// Corrected generateSequentialDoorNumber function
 async function generateSequentialDoorNumber() {
   try {
     const resolvedTenantId = await resolveTenantId();
-    // Fetch all door numbers for the tenant to find the maximum numerically
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/doors?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=doorNumber`,
+      `${
+        import.meta.env.VITE_API_URL
+      }/items/doors?filter[tenant][tenantId][_eq]=${resolvedTenantId}&sort[]=-doorNumber&limit=1`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
       },
     );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch door numbers: ${response.statusText}`);
-    }
-
     const data = await response.json();
 
     if (!data.data || data.data.length === 0) {
       return "1";
     }
-
-    let maxDoorNumber = 0;
-    for (const door of data.data) {
-      if (door.doorNumber) {
-        const numericPart = parseInt(door.doorNumber.replace(/\D/g, ""), 10);
-        if (!isNaN(numericPart) && numericPart > maxDoorNumber) {
-          maxDoorNumber = numericPart;
-        }
-      }
-    }
-
-    return (maxDoorNumber + 1).toString();
+    const lastDoorNumber = data.data[0].doorNumber;
+    const lastNumber = parseInt(lastDoorNumber.replace(/\D/g, "")) || 0;
+    return (lastNumber + 1).toString();
   } catch (error) {
     console.error("Error generating door number:", error);
     return "1";
   }
 }
-
 async function deleteDoor() {
   try {
     const response = await fetch(
@@ -705,9 +710,11 @@ async function deleteDoor() {
         },
       },
     );
+
     if (!response.ok) {
       throw new Error("Failed to delete door");
     }
+
     showSuccessMessage("Door deleted successfully!");
     emit("save-success");
   } catch (error) {
@@ -723,7 +730,9 @@ onMounted(async () => {
   await fetchBranches();
   await fetchAccessLevels();
   await fetchDoorGroups();
-  // formData.tenant = authService.getTenantId();
+
+  formData.tenant = authService.getTenantId();
+
   document.addEventListener("click", handleClickOutside);
 });
 
@@ -736,6 +745,7 @@ watch(
   (newVal) => {
     if (props.isEditing && newVal) {
       console.log("Populating form with door data:", newVal);
+
       try {
         // Reset form data
         Object.keys(formData).forEach((key) => {
@@ -761,10 +771,12 @@ watch(
         if (newVal.assignedDepts) {
           formData.assignedDepts = newVal.assignedDepts.departmentName || "";
         }
+
         // Handle branch
         if (newVal.branch) {
           formData.branch = newVal.branch.branchName || "";
         }
+
         // Access Level
         if (newVal.accessLevel) {
           const accessLevel = accessLevelOptions.value.find(
@@ -772,6 +784,7 @@ watch(
           );
           formData.accessLevel = accessLevel?.accessLevelName || "";
         }
+
         console.log("Form data populated:", formData);
       } catch (error) {
         console.error("Error populating form data:", error);
@@ -812,11 +825,13 @@ watch(currentTab, (newTab, oldTab) => {
 const handleClickOutside = (event) => {
   const dropdowns = document.querySelectorAll(".custom-dropdown");
   let clickedOutside = true;
+
   dropdowns.forEach((dropdown) => {
     if (dropdown.contains(event.target)) {
       clickedOutside = false;
     }
   });
+
   if (clickedOutside && showDoorGroupDropdown.value) {
     showDoorGroupDropdown.value = false;
   }
@@ -916,7 +931,6 @@ const handleClickOutside = (event) => {
   min-height: 14px;
   padding-top: 2px;
 }
-
 :deep(.v-field--error) {
   --v-field-border-width: 2px;
   border-color: rgb(var(--v-theme-error));

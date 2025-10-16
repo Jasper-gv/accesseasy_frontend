@@ -641,7 +641,7 @@ onMounted(async () => {
 
 .main-content {
   flex: 1;
-  overflow: auto;
+
   transition: margin-right 0.3s ease;
 } /* Toolbar with Stats */
 .toolbar-with-stats {

@@ -16,7 +16,7 @@
               class="mr-2"
             ></v-btn>
             <h2 class="text-h5 font-weight-bold text-black mb-0">
-              Create Category
+              Create Payroll Policy
             </h2>
           </div>
 
@@ -54,7 +54,7 @@
           style="background-color: #f8fafc; border-radius: 8px"
         >
           <v-row>
-            <v-col cols="3">
+            <!-- <v-col cols="3">
               <v-select
                 v-model="selectedState"
                 :items="states"
@@ -67,7 +67,7 @@
                 required
                 :error-messages="limitMessage"
               />
-            </v-col>
+            </v-col> -->
             <v-col cols="3">
               <v-text-field
                 v-model="categoryName"
@@ -330,7 +330,7 @@
                       <div class="field-name">Employer ESI</div>
                     </v-col>
                     <v-col cols="8">
-                      <v-row v-if="!hasESIAccount" class="align-center">
+                      <!-- <v-row v-if="!hasESIAccount" class="align-center">
                         <v-col cols="3" class="d-flex align-center">
                           <v-icon color="red" class="mr-2"
                             >mdi-alert-circle</v-icon
@@ -350,8 +350,8 @@
                             Add ESI Account
                           </BaseButton>
                         </v-col>
-                      </v-row>
-                      <v-row v-else dense>
+                      </v-row> -->
+                      <v-row dense>
                         <v-col cols="3">
                           <v-select
                             :items="[
@@ -461,6 +461,18 @@
                       </v-row>
 
                       <v-row v-else class="align-center">
+                        <v-col cols="6">
+                          <v-select
+                            v-model="selectedState"
+                            :items="states"
+                            item-title="text"
+                            item-value="value"
+                            label="Select State"
+                            variant="outlined"
+                            density="compact"
+                          />
+                        </v-col>
+
                         <v-col cols="6" class="d-flex align-center">
                           <v-icon color="grey-darken-1" class="mr-2"
                             >mdi-information-outline</v-icon
@@ -568,7 +580,7 @@
                       <div class="field-name">Employee ESI</div>
                     </v-col>
                     <v-col cols="8">
-                      <v-row v-if="!hasESIAccount" class="align-center">
+                      <!-- <v-row v-if="!hasESIAccount" class="align-center">
                         <v-col cols="3" class="d-flex align-center">
                           <v-icon color="red" class="mr-2"
                             >mdi-alert-circle</v-icon
@@ -588,8 +600,8 @@
                             Add ESI Account
                           </BaseButton>
                         </v-col>
-                      </v-row>
-                      <v-row v-else dense>
+                      </v-row> -->
+                      <v-row dense>
                         <v-col cols="3">
                           <v-select
                             :items="[
@@ -647,6 +659,17 @@
                         </v-col>
                       </v-row>
                       <v-row v-else class="align-center">
+                        <v-col cols="6">
+                          <v-select
+                            v-model="selectedState"
+                            :items="states"
+                            item-title="text"
+                            item-value="value"
+                            label="Select State"
+                            variant="outlined"
+                            density="compact"
+                          />
+                        </v-col>
                         <v-col cols="6" class="d-flex align-center">
                           <v-icon color="grey-darken-1" class="mr-2"
                             >mdi-information-outline</v-icon
@@ -665,6 +688,17 @@
                     </v-col>
                     <v-col cols="8">
                       <v-row class="align-center">
+                        <v-col cols="6">
+                          <v-select
+                            v-model="selectedState"
+                            :items="states"
+                            item-title="text"
+                            item-value="value"
+                            label="Select State"
+                            variant="outlined"
+                            density="compact"
+                          />
+                        </v-col>
                         <v-col cols="6" class="d-flex align-center">
                           <v-icon color="grey-darken-1" class="mr-2"
                             >mdi-information-outline</v-icon
@@ -912,7 +946,7 @@ const fetchTenant = async () => {
   }
 };
 const handleAddPfClick = () => {
-  if (!selectedState.value || !categoryName.value) {
+  if (!categoryName.value) {
     alert("Please select State and Category first");
     return;
   }
@@ -926,8 +960,8 @@ const handleAddESIClick = () => {
   showAddDialog.value = true;
 };
 const save = async () => {
-  if (!selectedState.value || !categoryName.value) {
-    alert("Please select a state and enter category name before saving.");
+  if (!categoryName.value) {
+    alert("Please  enter category name before saving.");
     return;
   }
   const percentageEarnings = form.value.earning.filter(
@@ -1304,7 +1338,7 @@ function removeDeduction(idx) {
 
 const goBack = () => {
   emit("close");
-  router.push("/settings/payrollCatagory");
+  router.push("/configuration");
 };
 
 watch(
@@ -1333,18 +1367,18 @@ watch(
   { deep: true },
 );
 
-watch(selectedState, async (newVal) => {
-  const selectedItem = states.value.find((s) => s.value === newVal);
-  if (selectedItem) {
-    const res = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/salarySetting?filter[stateTaxes][_eq]=${newVal}&filter[tenant][tenantId][_eq]=${tenantId}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    const data = await res.json();
-    categoryName.value = `${selectedItem.text} ${data.data.length + 1}`;
-    await fetchTenant();
-  }
-});
+// watch(selectedState, async (newVal) => {
+//   const selectedItem = states.value.find((s) => s.value === newVal);
+//   if (selectedItem) {
+//     const res = await fetch(
+//       `${import.meta.env.VITE_API_URL}/items/salarySetting?filter[stateTaxes][_eq]=${newVal}&filter[tenant][tenantId][_eq]=${tenantId}`,
+//       { headers: { Authorization: `Bearer ${token}` } },
+//     );
+//     const data = await res.json();
+//     categoryName.value = `${selectedItem.text} ${data.data.length + 1}`;
+//     await fetchTenant();
+//   }
+// });
 
 onMounted(async () => {
   await fetchStateData();

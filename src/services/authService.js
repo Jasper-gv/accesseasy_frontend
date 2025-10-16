@@ -68,6 +68,15 @@ class AuthService {
     return localStorage.getItem("userPhone");
   }
 
+  setEmail(email) {
+    if (!email) return;
+    localStorage.setItem("email", email);
+  }
+
+  getEmail() {
+    return localStorage.getItem("email");
+  }
+
   // Add tenant-related methods
   setTenantData(tenantData) {
     if (tenantData) {
@@ -122,7 +131,7 @@ class AuthService {
   }
 
   isAuthenticated() {
-    return !!(this.getToken() && this.getPhone());
+    return !!(this.getToken() && (this.getPhone() || this.getEmail()));
   }
 
   // logout() {
@@ -141,6 +150,7 @@ class AuthService {
     Cookies.remove("userToken");
     localStorage.removeItem("userToken");
     localStorage.removeItem("userPhone");
+    localStorage.removeItem("email");
     localStorage.removeItem("sessionUuid");
     localStorage.removeItem("pinVerifiedInSession");
     localStorage.removeItem("userData");
@@ -290,7 +300,14 @@ class AuthService {
       throw new Error("User not authenticated");
     }
     const phone = this.getPhone();
-    return this.getUserByPhone(phone);
+    const email = this.getEmail();
+    if (phone) {
+      return this.getUserByPhone(phone);
+    } else if (email) {
+      return this.getUserByEmail(email);
+    } else {
+      throw new Error("No phone or email found for current user");
+    }
   }
 
   async getUserByPhone(phone) {
@@ -441,8 +458,15 @@ class AuthService {
 
       // Store token and clean up
       this.setToken(response.data.token);
-      localStorage.setItem("email", email);
+      this.setEmail(email);
       localStorage.removeItem("emailSessionUuid");
+
+      // Fetch and store user data after successful login
+      try {
+        this.setUserData(userData);
+      } catch (error) {
+        console.error("Error storing user data after email login:", error);
+      }
 
       return response.data;
     } catch (error) {

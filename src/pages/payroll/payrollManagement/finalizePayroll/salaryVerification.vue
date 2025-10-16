@@ -54,113 +54,159 @@
         </div>
       </div>
     </div>
-
-    <!-- Main Content Area -->
-    <div class="main-content">
-      <!-- Salary Calculation View -->
-      <div class="salary-view">
-        <div class="content-wrapper">
-          <div class="content-section">
-            <div class="section-header">
-              <v-icon color="primary" class="mr-2">mdi-currency-inr</v-icon>
-              <h2>Salary Overview</h2>
-            </div>
-
-            <div class="salary-overview-grid">
-              <div class="overview-card">
-                <div class="overview-label">CTC / MONTH</div>
-                <div class="overview-value">
-                  ₹ {{ formatAmount(totalMonthlyCTC) }}
-                </div>
-              </div>
-              <div class="overview-card">
-                <div class="overview-label">PAYABLE AMOUNT</div>
-                <div class="overview-value">
-                  ₹ {{ formatAmount(totalPayableAmount) }}
-                </div>
-              </div>
-              <div class="overview-card">
-                <div class="overview-label">PAID</div>
-                <div class="overview-value">
-                  ₹ {{ formatAmount(totalPaidAmount) }}
-                </div>
-              </div>
-              <div class="overview-card">
-                <div class="overview-label">REMAINING</div>
-                <div class="overview-value">
-                  ₹ {{ formatAmount(totalRemainingAmount) }}
-                </div>
-              </div>
-            </div>
-            <div v-if="showInitialLoading" class="loading-container">
-              <v-progress-circular
-                indeterminate
-                color="primary"
-                size="64"
-              ></v-progress-circular>
-              <div class="loading-text">Loading employee Salary data...</div>
-            </div>
-            <!-- Salary Cards instead of a table -->
-            <div v-else class="salary-grid">
-              <div
-                v-for="(employee, index) in employeeSalaryData"
-                :key="index"
-                class="salary-card"
-                @click="viewEmployeeDetails(employee)"
-              >
-                <div class="salary-card-header">
-                  <div class="employee-name">
-                    {{ employee.employee.assignedUser.first_name }}
-                  </div>
-                  <div class="employee-id">
-                    {{ employee.employee.employeeId }}
-                  </div>
-                </div>
-                <div class="salary-card-body">
-                  <div class="salary-detail">
-                    <div class="detail-label">CTC / Month</div>
-                    <div class="detail-value">
-                      ₹{{ formatAmount(employee.monthlyCTC) }}
-                    </div>
-                  </div>
-                  <div class="salary-detail">
-                    <div class="detail-label">Total Earnings</div>
-                    <div class="detail-value earnings">
-                      ₹{{ formatAmount(employee.totalEarnings) }}
-                    </div>
-                  </div>
-                  <div class="salary-detail">
-                    <div class="detail-label">Total Deductions</div>
-                    <div class="detail-value deductions">
-                      ₹{{ formatAmount(employee.totalDeductions) }}
-                    </div>
-                  </div>
-                  <div class="salary-detail">
-                    <div class="detail-label">Total Benefits</div>
-                    <div class="detail-value benefits">
-                      ₹{{ formatAmount(employee.totalBenefits) }}
-                    </div>
-                  </div>
-                  <div class="salary-detail net-salary">
-                    <div class="detail-label">Net Salary</div>
-                    <div class="detail-value">
-                      ₹{{ formatAmount(employee.netSalary) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="salary-card-footer">
-                  <v-btn small color="primary" text>
-                    <v-icon left size="16">mdi-eye</v-icon>
-                    View Details
-                  </v-btn>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="content-section">
+      <div class="section-header">
+        <v-icon color="primary" class="mr-2">mdi-currency-inr</v-icon>
+        <h2>Salary Overview</h2>
       </div>
-    </div>
+      <!-- Main Content Area -->
+      <template v-if="isLoadingEmployees">
+        <SkeletonLoader
+          variant="table-body-only"
+          :rows="itemsPerPage || 10"
+          :columns="7"
+        />
+      </template>
 
+      <!-- Table Wrapper -->
+      <template v-else>
+        <data-table-wrapper
+          :show-search="true"
+          v-model:searchQuery="searchEmployee"
+          :search-placeholder="'Search employee salary...'"
+          :is-empty="employeeSalaryData.length === 0"
+        >
+          <template v-if="employeeSalaryData.length > 0">
+            <DataTable
+              :items="employeeSalaryData"
+              :columns="columns"
+              :expandable="true"
+              item-key="employee.employeeId"
+              wrapper-class="salary-table compact-table"
+              style="height: calc(80vh - 160px); overflow-y: auto"
+            >
+              <!-- Expanded Section (optional detailed view) -->
+              <template #expanded-content="{ item }">
+                <tr>
+                  <td colspan="8" style="color: yellow; background: #222">
+                    Expanded row active — {{ item?.employee?.employeeId }}
+                    {{ console.log("Expanded item triggered:", item) }}
+                  </td>
+                  <td class="expanded-content-wrapper" colspan="8">
+                    <div class="expanded-details">
+                      <h3 class="section-title">Detailed Salary Breakdown</h3>
+                      <div v-if="logExpanded(item)"></div>
+                      <div class="details-grid">
+                        <div class="detail-row">
+                          <span class="detail-label">Payable Amount</span>
+                          <span class="detail-value">
+                            ₹{{ formatAmount(item.totalPayableAmount) || "" }}
+                          </span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="detail-label">Paid Amount</span>
+                          <span class="detail-value success-text">
+                            ₹{{ formatAmount(item.totalPaidAmount) || "" }}
+                          </span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="detail-label">Remaining Amount</span>
+                          <span class="detail-value warning-text">
+                            ₹{{ formatAmount(item.totalRemainingAmount) || "" }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+
+              <!-- Employee Name -->
+              <template #cell-name="{ item }">
+                <div class="employee-info">
+                  <div class="employee-details">
+                    <h3 class="employee-name">
+                      {{ item?.employee?.assignedUser?.first_name || "N/A" }}
+                    </h3>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Employee ID -->
+              <template #cell-id="{ item }">
+                {{ item?.employee?.employeeId || "SZR1108" }}
+              </template>
+
+              <!-- Monthly CTC -->
+              <template #cell-monthlyCTC="{ item }">
+                ₹{{ formatAmount(item?.monthlyCTC || 0) }}
+              </template>
+
+              <!-- Total Earnings -->
+              <template #cell-totalEarnings="{ item }">
+                <span class="success-text">
+                  ₹{{ formatAmount(item?.totalEarnings || 0) }}
+                </span>
+              </template>
+
+              <!-- Total Deductions -->
+              <template #cell-totalDeductions="{ item }">
+                <span class="error-text">
+                  ₹{{ formatAmount(item?.totalDeductions || 0) }}
+                </span>
+              </template>
+
+              <!-- Total Benefits -->
+              <template #cell-totalBenefits="{ item }">
+                <span class="info-text">
+                  ₹{{ formatAmount(item?.totalBenefits || 0) }}
+                </span>
+              </template>
+
+              <!-- Net Salary -->
+              <template #cell-netSalary="{ item }">
+                <strong>₹{{ formatAmount(item?.netSalary || 0) }}</strong>
+              </template>
+
+              <!-- Actions -->
+              <template #cell-actions="{ item }">
+                <v-btn
+                  small
+                  color="primary"
+                  text
+                  @click="
+                    () => {
+                      console.log('item:', item);
+                      viewEmployeeDetails(item);
+                    }
+                  "
+                >
+                  <v-icon left size="16">mdi-eye</v-icon>
+                  View
+                </v-btn>
+              </template>
+            </DataTable>
+          </template>
+
+          <!-- Empty State -->
+          <template v-else>
+            <EmptyState
+              title="No salary data found"
+              message="Try refreshing or check your filters"
+              :primary-action="{ text: 'Reload', icon: 'mdi-reload' }"
+              @primaryAction="fetchEmployeeSalaryData"
+            />
+          </template>
+        </data-table-wrapper>
+        <CustomPagination
+          v-model:page="currentPage"
+          v-model:itemsPerPage="itemsPerPage"
+          :total-items="totalEmployees"
+          @update:page="handlePageChange"
+          @update:itemsPerPage="handleItemsPerPageChange"
+        />
+      </template>
+    </div>
     <!-- Action Buttons -->
     <div class="action-footer">
       <BaseButton
@@ -545,7 +591,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
@@ -555,900 +601,865 @@ import LoadingProgressIndicator from "@/components/loadingProgresss/loadingProgr
 import { fetchPayrollVerification } from "../../../../services/payrollManagemnet/tdsCalculation";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import { SidebarClose, CheckCircle } from "lucide-vue-next";
+import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
+import CustomPagination from "@/utils/pagination/CustomPagination.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
+import EmptyState from "@/components/common/states/EmptyState.vue";
+import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 
 // import { fetchTdsDeduction } from "../../../../services/payrollManagemnet/tdsCalculation";
 
-export default {
-  components: {
-    LoadingProgressIndicator,
-    BaseButton,
-  },
-  setup() {
-    const router = useRouter();
-    const route = useRoute();
-    const selectedEmployees = ref([]);
-    const payrollDate = ref({
-      start: route.query.start,
-      end: route.query.end,
-    });
+const router = useRouter();
+const route = useRoute();
+const selectedEmployees = ref([]);
+const payrollDate = ref({
+  start: route.query.start,
+  end: route.query.end,
+});
+const token = authService.getToken();
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const processing = ref(false);
+const showSnackbar = ref(false);
+const snackbarMessage = ref("");
+const snackbarColor = ref("success");
+// const employeeSalaryData = ref([]);
+const showEmployeeDetails = ref(false);
+const selectedEmployeeDetail = ref(null);
+const activeTab = ref("earnings");
+const totalPaidAmount = ref(0);
+const daysInAttendanceCycle = ref(0);
+const tdsDeduction = ref(0);
+const tenantId = currentUserTenant.getTenantId();
+
+// Loading progress indicators
+const showInitialLoading = ref(false);
+const loadingProgress = ref(0);
+const showFinalizationLoading = ref(false);
+const finalizationProgress = ref(0);
+const finalizationStatus = ref("");
+
+const columns = [
+  { key: "id", label: "Employee ID", width: "150px" },
+  { key: "name", label: "Employee Name", width: "180px" },
+  { key: "monthlyCTC", label: "Monthly CTC", width: "150px" },
+  { key: "totalEarnings", label: "Total Earnings", width: "150px" },
+  { key: "totalDeductions", label: "Total Deductions", width: "150px" },
+  { key: "totalBenefits", label: "Total Benefits", width: "150px" },
+  { key: "netSalary", label: "Net Salary", width: "150px" },
+  { key: "actions", label: "Actions", width: "150px" },
+];
+
+const onInitialLoadComplete = () => {};
+
+const onFinalizationComplete = () => {};
+
+const formatPayrollDate = (dateString) => {
+  const date = new Date(dateString + "-01");
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+};
+
+// Computed properties
+const totalMonthlyCTC = computed(() => {
+  if (
+    !Array.isArray(employeeSalaryData.value) ||
+    !employeeSalaryData.value.length
+  )
+    return 0;
+  return employeeSalaryData.value.reduce((sum, emp) => {
+    return sum + (parseFloat(emp.monthlyCTC) || 0);
+  }, 0);
+});
+
+const totalPayableAmount = computed(() => {
+  if (
+    !Array.isArray(employeeSalaryData.value) ||
+    !employeeSalaryData.value.length
+  )
+    return 0;
+  return employeeSalaryData.value.reduce((sum, emp) => {
+    return sum + (parseFloat(emp.netSalary) || 0);
+  }, 0);
+});
+
+const totalRemainingAmount = computed(() => {
+  return (totalPayableAmount.value || 0) - (totalPaidAmount.value || 0);
+});
+
+const selectedYear = computed(() => payrollDate.value.end.split("-")[0]);
+const selectedMonth = computed(() => payrollDate.value.end.split("-")[1]);
+const switches = ref({
+  allowPF: "",
+  allowESI: "",
+  allowLWF: "",
+});
+const PFAccount = ref();
+const ESIAccount = ref();
+const shopAccount = ref();
+
+const isAnniversaryMonth = (
+  dateOfJoining,
+  frequency,
+  currentMonth,
+  currentYear,
+) => {
+  if (!dateOfJoining || !frequency) {
+    return false;
+  }
+
+  const joinDate = new Date(dateOfJoining);
+  const joinMonth = joinDate.getMonth() + 1; // JavaScript months are 0-indexed
+  const joinYear = joinDate.getFullYear();
+
+  // Calculate years since joining
+  const yearsDiff = currentYear - joinYear;
+
+  switch (frequency.toLowerCase()) {
+    case "yearly":
+      return currentMonth === joinMonth && yearsDiff >= 1;
+    case "half-yearly":
+      const halfYearMonth =
+        joinMonth + 6 > 12 ? joinMonth + 6 - 12 : joinMonth + 6;
+      return (
+        (currentMonth === joinMonth || currentMonth === halfYearMonth) &&
+        yearsDiff >= 1
+      );
+    case "quarterly":
+      const quarterMonths = [
+        joinMonth,
+        joinMonth + 3 > 12 ? joinMonth + 3 - 12 : joinMonth + 3,
+        joinMonth + 6 > 12 ? joinMonth + 6 - 12 : joinMonth + 6,
+        joinMonth + 9 > 12 ? joinMonth + 9 - 12 : joinMonth + 9,
+      ];
+      return quarterMonths.includes(currentMonth) && yearsDiff >= 1;
+    case "monthly":
+      return true;
+    default:
+      return false;
+  }
+};
+let month;
+const loadEmployeeData = async () => {
+  try {
+    const storedEmployees = localStorage.getItem("selectedEmployees");
+
+    if (storedEmployees) {
+      selectedEmployees.value = JSON.parse(storedEmployees);
+      console.log(
+        "✅ selectedEmployees loaded from 'selectedEmployees':",
+        selectedEmployees.value,
+      );
+    } else {
+      const storedEmployee = localStorage.getItem("selectedEmployee");
+
+      if (storedEmployee) {
+        selectedEmployees.value = [JSON.parse(storedEmployee)];
+        console.log(
+          "✅ selectedEmployees loaded from 'selectedEmployee':",
+          selectedEmployees.value,
+        );
+      } else {
+        console.warn(
+          "❌ No selected employee found in localStorage, redirecting...",
+        );
+        router.push("/payroll");
+        return;
+      }
+    }
+    const startDate = new Date(payrollDate.value.start);
+    const endDate = new Date(payrollDate.value.end);
+    month = payrollDate.value.end.slice(0, 7);
+
+    const diffTime = endDate.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    daysInAttendanceCycle.value = diffDays;
+  } catch (error) {
+    console.error("❌ Error loading employee data:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = `Error loading employee data: ${error.message}`;
+    snackbarColor.value = "error";
+  }
+};
+
+const formatAmount = (value) => {
+  if (!value) return "0.00";
+  return parseFloat(value)
+    .toFixed(2)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+// Get current month and year from payroll date
+const currentMonth = computed(() => {
+  if (!payrollDate.value.end) return null;
+  const date = new Date(payrollDate.value.end);
+  return date.getMonth() + 1; // JavaScript months are 0-indexed
+});
+
+const currentYear = computed(() => {
+  if (!payrollDate.value.end) return null;
+  const date = new Date(payrollDate.value.end);
+  return date.getFullYear();
+});
+const goBack = () => {
+  router.push("/payroll/attendance-verification");
+};
+
+const onDateChange = () => {
+  showInitialLoading.value = true;
+  employeeSalaryData.value = [];
+  loadEmployeeData();
+};
+
+const bonusAmount = ref(0);
+const incentiveAmount = ref(0);
+const retentionPayAmount = ref(0);
+
+const salaryVerificationData = ref([]);
+let excessLeaveMap = {};
+const fetchLeaveData = async () => {
+  try {
     const token = authService.getToken();
-    const formatDate = (dateString) => {
-      if (!dateString) return "";
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
+    const employeeIds = selectedEmployees.value
+      .filter((e) => e?.employee?.id)
+      .map((e) => e.employee.id);
+
+    const employeeBatchSize = 100;
+    const allLeaveData = [];
+
+    for (let i = 0; i < employeeIds.length; i += employeeBatchSize) {
+      const employeeIdBatch = employeeIds.slice(i, i + employeeBatchSize);
+
+      const params = {
+        "filter[assignedTo][_in]": employeeIdBatch.join(","),
+        fields: "id,assignedTo,leaveTaken,leaveBalance",
+      };
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/items/leave`,
+        {
+          params: params,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      allLeaveData.push(...(response.data.data || []));
+    }
+
+    return allLeaveData;
+  } catch (error) {
+    console.error("Error fetching leave data:", error);
+    return [];
+  }
+};
+const logExpanded = (item) => {
+  console.log("Expanded row data:", item);
+  return true; // ensures v-if renders the div
+};
+
+const fetchSalaryBreakdowns = async () => {
+  try {
+    const token = authService.getToken();
+    const employeeIds = selectedEmployees.value
+      .filter((e) => e?.employee?.id)
+      .map((e) => e.employee.id);
+
+    const employeeBatchSize = 100;
+    const allBreakdownData = [];
+    const endDate = payrollDate.value.end;
+
+    for (let i = 0; i < employeeIds.length; i += employeeBatchSize) {
+      const employeeIdBatch = employeeIds.slice(i, i + employeeBatchSize);
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/breakdown`,
+        {
+          params: {
+            "filter[employee][_in]": employeeIdBatch.join(","),
+            date: endDate,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const batchData = response.data.data || [];
+      allBreakdownData.push(...batchData);
+    }
+    if (allBreakdownData.length) {
+      await patchSalaryBreakdown(allBreakdownData);
+    }
+  } catch (error) {
+    console.error("Error fetching salary breakdown:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = "Error loading salary breakdown data";
+    snackbarColor.value = "error";
+  }
+};
+const patchSalaryBreakdown = async (breakdowns) => {
+  const token = authService.getToken();
+  const batchSize = 100;
+
+  const transform = (breakdown) => ({
+    id: breakdown.id,
+    earnings: breakdown.earnings?.reduce((acc, item) => {
+      const [key, value] = item.split(": ");
+      acc[key] = Number(value) || 0;
+      return acc;
+    }, {}),
+    employeeDeduction: breakdown.employeeContributions?.reduce((acc, item) => {
+      const [key, value] = item.split(": ");
+      acc[key] = Number(value) || 0;
+      return acc;
+    }, {}),
+    deduction: breakdown.deductionsList?.reduce((acc, item) => {
+      const [key, value] = item.split(": ");
+      acc[key] = Number(value) || 0;
+      return acc;
+    }, {}),
+    employersContribution: Object.entries(
+      breakdown.employerContributions || {},
+    ).reduce((acc, [key, value]) => {
+      acc[key] = {
+        amount: Number(value.amount) || 0,
+        includedInCTC: !!value.includedInCTC,
+      };
+      return acc;
+    }, {}),
+
+    basicSalary: breakdown.monthlyCTC,
+    basicPay: breakdown.basicPayValue,
+    totalEarnings: breakdown.totalEarnings,
+    totalDeductions: breakdown.totalDeductions,
+    netSalary: breakdown.netSalary,
+    employerLwf: breakdown.employerLWF,
+    employeeLwf: breakdown.employeeLWF,
+    employeradmin: breakdown.adminAmount,
+    voluntaryPFAmount: breakdown.voluntaryPFAmount || 0,
+  });
+
+  for (let i = 0; i < breakdowns.length; i += batchSize) {
+    const batch = breakdowns
+      .slice(i, i + batchSize)
+      .filter((b) => b?.id)
+      .map(transform);
+
+    try {
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/items/SalaryBreakdown`,
+        batch,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      console.log(`Patched batch ${i / batchSize + 1} (${batch.length} items)`);
+    } catch (error) {
+      console.error(`Patch failed for batch ${i / batchSize + 1}:`, error);
+    }
+  }
+};
+
+const fetchSalaryVerification = async () => {
+  try {
+    showInitialLoading.value = true;
+    await loadEmployeeData();
+    await fetchSalaryBreakdowns();
+    loadingProgress.value = 0;
+
+    const token = authService.getToken();
+    const employeeIds = selectedEmployees.value
+      .filter((e) => e?.employee?.id)
+      .map((e) => e.employee.id);
+
+    loadingProgress.value = 30;
+
+    const employeeBatchSize = 100;
+    const allData = [];
+
+    for (let i = 0; i < employeeIds.length; i += employeeBatchSize) {
+      const employeeIdBatch = employeeIds.slice(i, i + employeeBatchSize);
+
+      const params = {
+        startDate: payrollDate.value.start,
+        endDate: payrollDate.value.end,
+        totalDays: daysInAttendanceCycle.value,
+        "filter[employeeIds][_in]": employeeIdBatch.join(","),
+      };
+
+      loadingProgress.value = 30 + (i / employeeIds.length) * 50;
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/salaryVerification`,
+        {
+          params: params,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      allData.push(...(response.data.data || []));
+    }
+
+    loadingProgress.value = 80;
+    const leaveData = await fetchLeaveData();
+    salaryVerificationData.value = await calculation(allData);
+    await calculateLeaveBalances(salaryVerificationData.value, leaveData);
+
+    loadingProgress.value = 100;
+  } catch (error) {
+    console.error("Error fetching salary verification:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = "Error loading salary verification data";
+    snackbarColor.value = "error";
+  } finally {
+    showInitialLoading.value = false;
+  }
+};
+
+const calculation = async (salaryVerificationArray) => {
+  const dataArray = Array.isArray(salaryVerificationArray)
+    ? salaryVerificationArray
+    : [];
+
+  // const tdsMap = await fetchPayrollVerification(
+  //   dataArray.map((item) => {
+  //     const employeePf =
+  //       (item.employeeDeductions || []).find((d) => d.name === "EmployeePF")
+  //         ?.rupee || 0;
+
+  //     return {
+  //       employeeId: item.id,
+  //       monthlyCTC: item.monthlyCtc || 0,
+  //       employeePF: item.employeePf || 0,
+  //       currentEarnings: item.totalEarnings || 0,
+  //       currentPF: parseFloat(employeePf) || 0,
+  //       currentBenefits: item.totalBenefits || 0,
+  //     };
+  //   }),
+  //   payrollDate.value.end,
+  // );
+
+  return dataArray.map((item) => {
+    const earnings = {};
+    const deductions = {};
+    const complianceDetails = {};
+
+    for (const [key, value] of Object.entries(item.earnings || {})) {
+      earnings[key] = parseFloat(value) || 0;
+    }
+
+    earnings["Weekoff OT"] = item.weekOffOTPay;
+    earnings["Holiday OT"] = item.holidayOTPay;
+    earnings["workingHours OT"] = item.workingHoursOTPay;
+    earnings["Admin Charge"] = item.adminCharge?.rupee || 0;
+    earnings["EmployerLwf"] = item.employerLwf || 0;
+    earnings["Loan Credits"] = Object.values(
+      item.loanCreditAmounts || {},
+    ).reduce((sum, val) => sum + (Number(val) || 0), 0);
+
+    (item.employerContributions || []).forEach(({ name, rupee }) => {
+      const val = parseFloat(rupee) || 0;
+      earnings[name] = val;
+      deductions[name] = val;
+    });
+
+    (item.employerContributionsFull || []).forEach(({ name, rupee }) => {
+      complianceDetails[name] = parseFloat(rupee) || 0;
+    });
+
+    complianceDetails["Admin Charge"] = item.admin?.rupee || 0;
+
+    for (const [key, value] of Object.entries(item.deduction || {})) {
+      deductions[key] = parseFloat(value) || 0;
+    }
+
+    (item.employeeDeductions || []).forEach((ded) => {
+      deductions[ded.name] = parseFloat(ded.rupee) || 0;
+    });
+
+    if (item.pt) {
+      deductions["Professional Tax"] = parseFloat(item.pt) || 0;
+    }
+
+    deductions["Admin Charge"] = item.adminCharge?.rupee || 0;
+    deductions["EmployerLwf"] = item.employerLwf || 0;
+    deductions["employeeLwf"] = item.employeeLwf || 0;
+    // deductions["TDS"] = tdsMap[item.id]?.tdsPerMonth || 0;
+    deductions["VoluntaryPF"] = item.voluntaryPFAmount || 0;
+    deductions["Loan Debits"] = Object.values(
+      item.loanDebitAmounts || {},
+    ).reduce((sum, val) => sum + (Number(val) || 0), 0);
+
+    const monthlyCTC = item.monthlyCtc || 0;
+    const employeePf = item.employeePf || 0;
+
+    const salaryArrearsTotal = Object.values(item.salaryArrears || {}).reduce(
+      (sum, val) => sum + (parseFloat(val) || 0),
+      0,
+    );
+
+    const otherDeductionsTotal = Object.values(
+      item.otherDeductions || {},
+    ).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
+    const filteredEarnings = Object.fromEntries(
+      Object.entries(earnings).filter(([, val]) => val !== 0),
+    );
+
+    const filteredDeductions = Object.fromEntries(
+      Object.entries(deductions).filter(([, val]) => val !== 0),
+    );
+
+    const filteredCompliance = Object.fromEntries(
+      Object.entries(complianceDetails).filter(([, val]) => val !== 0),
+    );
+
+    const filteredPendingEarnings = Object.fromEntries(
+      Object.entries(item.salaryArrears || {}).filter(
+        ([, val]) => parseFloat(val) !== 0,
+      ),
+    );
+
+    const filteredOtherDeductions = Object.fromEntries(
+      Object.entries(item.otherDeductions || {}).filter(
+        ([, val]) => parseFloat(val) !== 0,
+      ),
+    );
+
+    const totalEarnings =
+      Object.values(filteredEarnings).reduce(
+        (sum, val) => sum + (parseFloat(val) || 0),
+        0,
+      ) + salaryArrearsTotal;
+
+    const totalDeductions =
+      Object.values(filteredDeductions).reduce(
+        (sum, val) => sum + (parseFloat(val) || 0),
+        0,
+      ) + otherDeductionsTotal;
+
+    const totalPenalities =
+      item.latePenalty + item.earlyLeavingPenalty + item.workingHourPenalty;
+
+    const netSalary =
+      totalEarnings - totalDeductions - totalPenalities + item.totalBenefits;
+    const excessLeaveCount = excessLeaveMap[item.id] || 0;
+
+    return {
+      payrollId: item.payrollId,
+      employee: {
+        id: item.id,
+        employeeId: item.id,
+        assignedUser: {
+          first_name: item.name || `Employee ${item.id}`,
+        },
+      },
+      monthlyCTC,
+      totalEarnings,
+      totalDeductions,
+      totalPenalities,
+      totalBenefits: item.totalBenefits,
+      netSalary,
+      earnings: filteredEarnings,
+      deductions: filteredDeductions,
+      otherDeductions: filteredOtherDeductions,
+      pendingEarnings: filteredPendingEarnings,
+      complianceDetails: filteredCompliance,
+      penalties: {
+        latePenalty: item.latePenalty || 0,
+        earlyLeavingPenalty: item.earlyLeavingPenalty || 0,
+        workingHourPenalty: item.workingHourPenalty || 0,
+      },
+      attendance: {
+        totalPayable: (item.payableDays || 0) - excessLeaveCount,
+      },
+      employerContributions: item.employerContributions || [],
+      employerContributionsFull: item.employerContributionsFull,
+      employeeDeductions: item.employeeDeductions,
+      benefitsDetails: {
+        bonusManual: (item.bonusDetails || []).map((b) => ({
+          reason: b.reason,
+          amount: b.amount,
+        })),
+        incentiveManual: (item.incentiveDetails || []).map((i) => ({
+          reason: i.reason,
+          amount: i.amount,
+        })),
+        retentionPayManual: (item.retentionDetails || []).map((r) => ({
+          reason: r.reason,
+          amount: r.amount,
+        })),
+      },
+
+      penalityLeaveCount: item.lateLeave.count,
+      penalityLeave: item.lateLeave.leave,
     };
+  });
+};
 
-    const processing = ref(false);
-    const showSnackbar = ref(false);
-    const snackbarMessage = ref("");
-    const snackbarColor = ref("success");
-    // const employeeSalaryData = ref([]);
-    const showEmployeeDetails = ref(false);
-    const selectedEmployeeDetail = ref(null);
-    const activeTab = ref("earnings");
-    const totalPaidAmount = ref(0);
-    const daysInAttendanceCycle = ref(0);
-    const tdsDeduction = ref(0);
-    const tenantId = currentUserTenant.getTenantId();
+const calculateLeaveBalances = async (salaryVerificationArray, leaveData) => {
+  excessLeaveMap = {};
+  const pendingLeaveUpdates = [];
+  for (const item of salaryVerificationArray) {
+    const leaveType = item.penalityLeave;
+    const leaveCount = item.penalityLeaveCount;
 
-    // Loading progress indicators
-    const showInitialLoading = ref(false);
-    const loadingProgress = ref(0);
-    const showFinalizationLoading = ref(false);
-    const finalizationProgress = ref(0);
-    const finalizationStatus = ref("");
+    if (!leaveType || !leaveCount) {
+      continue;
+    }
 
-    const onInitialLoadComplete = () => {};
+    const leaveRecord = leaveData.find(
+      (leave) => leave.assignedTo === item.employee.id,
+    );
 
-    const onFinalizationComplete = () => {};
+    const matchedLeaveKey = leaveRecord
+      ? Object.keys(leaveRecord.leaveBalance || {}).find(
+          (key) =>
+            key.toLowerCase().replace(/\s+/g, "") ===
+            leaveType.toLowerCase().replace(/\s+/g, ""),
+        )
+      : null;
 
-    const formatPayrollDate = (dateString) => {
-      const date = new Date(dateString + "-01");
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-    };
-
-    // Computed properties
-    const totalMonthlyCTC = computed(() => {
-      if (
-        !Array.isArray(employeeSalaryData.value) ||
-        !employeeSalaryData.value.length
-      )
-        return 0;
-      return employeeSalaryData.value.reduce((sum, emp) => {
-        return sum + (parseFloat(emp.monthlyCTC) || 0);
-      }, 0);
-    });
-
-    const totalPayableAmount = computed(() => {
-      if (
-        !Array.isArray(employeeSalaryData.value) ||
-        !employeeSalaryData.value.length
-      )
-        return 0;
-      return employeeSalaryData.value.reduce((sum, emp) => {
-        return sum + (parseFloat(emp.netSalary) || 0);
-      }, 0);
-    });
-
-    const totalRemainingAmount = computed(() => {
-      return (totalPayableAmount.value || 0) - (totalPaidAmount.value || 0);
-    });
-
-    const selectedYear = computed(() => payrollDate.value.end.split("-")[0]);
-    const selectedMonth = computed(() => payrollDate.value.end.split("-")[1]);
-    const switches = ref({
-      allowPF: "",
-      allowESI: "",
-      allowLWF: "",
-    });
-    const PFAccount = ref();
-    const ESIAccount = ref();
-    const shopAccount = ref();
-
-    const isAnniversaryMonth = (
-      dateOfJoining,
-      frequency,
-      currentMonth,
-      currentYear,
-    ) => {
-      if (!dateOfJoining || !frequency) {
-        return false;
+    if (leaveRecord && matchedLeaveKey) {
+      const currentBalance = leaveRecord.leaveBalance[matchedLeaveKey];
+      if (currentBalance === 0) {
+        console.log("⛔ Leave balance already zero", {
+          employeeId: item.employee.id,
+          leaveType: matchedLeaveKey,
+        });
+        excessLeaveMap[item.employee.id] = leaveCount;
+        continue;
       }
 
-      const joinDate = new Date(dateOfJoining);
-      const joinMonth = joinDate.getMonth() + 1; // JavaScript months are 0-indexed
-      const joinYear = joinDate.getFullYear();
+      const usedLeave = Math.min(currentBalance, leaveCount);
+      const remainingLeave = leaveCount - usedLeave;
+      const newBalance = Math.max(currentBalance - leaveCount, 0);
 
-      // Calculate years since joining
-      const yearsDiff = currentYear - joinYear;
+      const updatedBalance = {
+        ...leaveRecord.leaveBalance,
+        [matchedLeaveKey]: newBalance,
+      };
 
-      switch (frequency.toLowerCase()) {
-        case "yearly":
-          return currentMonth === joinMonth && yearsDiff >= 1;
-        case "half-yearly":
-          const halfYearMonth =
-            joinMonth + 6 > 12 ? joinMonth + 6 - 12 : joinMonth + 6;
-          return (
-            (currentMonth === joinMonth || currentMonth === halfYearMonth) &&
-            yearsDiff >= 1
-          );
-        case "quarterly":
-          const quarterMonths = [
-            joinMonth,
-            joinMonth + 3 > 12 ? joinMonth + 3 - 12 : joinMonth + 3,
-            joinMonth + 6 > 12 ? joinMonth + 6 - 12 : joinMonth + 6,
-            joinMonth + 9 > 12 ? joinMonth + 9 - 12 : joinMonth + 9,
-          ];
-          return quarterMonths.includes(currentMonth) && yearsDiff >= 1;
-        case "monthly":
-          return true;
-        default:
-          return false;
-      }
-    };
-    let month;
-    const loadEmployeeData = async () => {
-      try {
-        const storedEmployees = localStorage.getItem("selectedEmployees");
+      const updatedTaken = {
+        ...leaveRecord.leaveTaken,
+        [`t${matchedLeaveKey}`]:
+          (leaveRecord.leaveTaken?.[`t${matchedLeaveKey}`] || 0) + usedLeave,
+      };
 
-        if (storedEmployees) {
-          selectedEmployees.value = JSON.parse(storedEmployees);
-          console.log(
-            "✅ selectedEmployees loaded from 'selectedEmployees':",
-            selectedEmployees.value,
-          );
-        } else {
-          const storedEmployee = localStorage.getItem("selectedEmployee");
+      const updatePayload = {
+        id: leaveRecord.id,
+        leaveBalance: updatedBalance,
+        leaveTaken: updatedTaken,
+      };
 
-          if (storedEmployee) {
-            selectedEmployees.value = [JSON.parse(storedEmployee)];
-            console.log(
-              "✅ selectedEmployees loaded from 'selectedEmployee':",
-              selectedEmployees.value,
-            );
-          } else {
-            console.warn(
-              "❌ No selected employee found in localStorage, redirecting...",
-            );
-            router.push("/payroll");
-            return;
-          }
-        }
-        const startDate = new Date(payrollDate.value.start);
-        const endDate = new Date(payrollDate.value.end);
-        month = payrollDate.value.end.slice(0, 7);
+      excessLeaveMap[item.employee.id] = remainingLeave;
 
-        const diffTime = endDate.getTime() - startDate.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      pendingLeaveUpdates.push(updatePayload);
+    }
+  }
 
-        daysInAttendanceCycle.value = diffDays;
-      } catch (error) {
-        console.error("❌ Error loading employee data:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = `Error loading employee data: ${error.message}`;
-        snackbarColor.value = "error";
-      }
-    };
+  window.pendingLeaveUpdates = pendingLeaveUpdates;
 
-    const formatAmount = (value) => {
-      if (!value) return "0.00";
-      return parseFloat(value)
-        .toFixed(2)
-        .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    };
-    // Get current month and year from payroll date
-    const currentMonth = computed(() => {
-      if (!payrollDate.value.end) return null;
-      const date = new Date(payrollDate.value.end);
-      return date.getMonth() + 1; // JavaScript months are 0-indexed
-    });
+  return excessLeaveMap;
+};
+const employeeSalaryData = computed(() => {
+  return salaryVerificationData.value || [];
+});
 
-    const currentYear = computed(() => {
-      if (!payrollDate.value.end) return null;
-      const date = new Date(payrollDate.value.end);
-      return date.getFullYear();
-    });
-    const goBack = () => {
-      router.push("/payroll/attendance-verification");
-    };
+const patchAllSalaryVerifications = async (salaryVerificationList) => {
+  const token = authService.getToken();
 
-    const onDateChange = () => {
-      showInitialLoading.value = true;
-      employeeSalaryData.value = [];
-      loadEmployeeData();
-    };
+  const parseEntries = (obj) =>
+    Object.fromEntries(
+      Object.entries(obj || {}).map(([k, v]) => [k, parseFloat(v) || 0]),
+    );
 
-    const bonusAmount = ref(0);
-    const incentiveAmount = ref(0);
-    const retentionPayAmount = ref(0);
-
-    const salaryVerificationData = ref([]);
-    let excessLeaveMap = {};
-    const fetchLeaveData = async () => {
-      try {
-        const token = authService.getToken();
-        const employeeIds = selectedEmployees.value
-          .filter((e) => e?.employee?.id)
-          .map((e) => e.employee.id);
-
-        const employeeBatchSize = 100;
-        const allLeaveData = [];
-
-        for (let i = 0; i < employeeIds.length; i += employeeBatchSize) {
-          const employeeIdBatch = employeeIds.slice(i, i + employeeBatchSize);
-
-          const params = {
-            "filter[assignedTo][_in]": employeeIdBatch.join(","),
-            fields: "id,assignedTo,leaveTaken,leaveBalance",
-          };
-
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/items/leave`,
-            {
-              params: params,
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          allLeaveData.push(...(response.data.data || []));
-        }
-
-        return allLeaveData;
-      } catch (error) {
-        console.error("Error fetching leave data:", error);
-        return [];
-      }
-    };
-    const fetchSalaryBreakdowns = async () => {
-      try {
-        const token = authService.getToken();
-        const employeeIds = selectedEmployees.value
-          .filter((e) => e?.employee?.id)
-          .map((e) => e.employee.id);
-
-        const employeeBatchSize = 100;
-        const allBreakdownData = [];
-        const endDate = payrollDate.value.end;
-
-        for (let i = 0; i < employeeIds.length; i += employeeBatchSize) {
-          const employeeIdBatch = employeeIds.slice(i, i + employeeBatchSize);
-
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/breakdown`,
-            {
-              params: {
-                "filter[employee][_in]": employeeIdBatch.join(","),
-                date: endDate,
-              },
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          const batchData = response.data.data || [];
-          allBreakdownData.push(...batchData);
-        }
-        if (allBreakdownData.length) {
-          await patchSalaryBreakdown(allBreakdownData);
-        }
-      } catch (error) {
-        console.error("Error fetching salary breakdown:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = "Error loading salary breakdown data";
-        snackbarColor.value = "error";
-      }
-    };
-    const patchSalaryBreakdown = async (breakdowns) => {
-      const token = authService.getToken();
-      const batchSize = 100;
-
-      const transform = (breakdown) => ({
-        id: breakdown.id,
-        earnings: breakdown.earnings?.reduce((acc, item) => {
-          const [key, value] = item.split(": ");
-          acc[key] = Number(value) || 0;
+  const batchPayload = salaryVerificationList
+    .filter((emp) => emp.payrollId)
+    .map((employeeData) => {
+      return {
+        id: employeeData.payrollId,
+        tenant: tenantId,
+        payableAmount: employeeData.netSalary,
+        ctc: employeeData.monthlyCTC,
+        netSalary: employeeData.netSalary,
+        totalEarnings: employeeData.totalEarnings,
+        totalPenality: employeeData.totalPenalities,
+        totalBenefits: employeeData.totalBenefits,
+        employerContribution: employeeData.complianceDetails,
+        individualDeduction: Object.entries(
+          employeeData.otherDeductions || {},
+        ).reduce((acc, [key, value], index) => {
+          acc[`deduction${index + 1}`] = { [key]: parseFloat(value) || 0 };
           return acc;
         }, {}),
-        employeeDeduction: breakdown.employeeContributions?.reduce(
+        finalizeDate: new Date().toISOString().split("T")[0],
+        tdsAmount: employeeData.deductions["TDS"] || 0,
+        totalOtherDeduction: employeeData.totalDeductions,
+        salaryArrears: Object.entries(
+          employeeData.pendingEarnings || {},
+        ).reduce((acc, [key, value], index) => {
+          acc[`earning${index + 1}`] = { [key]: parseFloat(value) || 0 };
+          return acc;
+        }, {}),
+
+        earnings: parseEntries(employeeData.earnings),
+        penalties: parseEntries(employeeData.penalties),
+        benefits: {
+          Overtime: parseFloat(employeeData.overtimeAmount || 0),
+
+          BonusManual: parseFloat(
+            employeeData.benefitsDetails?.bonusManual || 0,
+          ),
+          IncentiveManual: parseFloat(
+            employeeData.benefitsDetails?.incentiveManual || 0,
+          ),
+          RetentionPayManual: parseFloat(
+            employeeData.benefitsDetails?.retentionPayManual || 0,
+          ),
+        },
+        complienceDeduction: employeeData.deductions["EmployeePF"] || 0,
+        salaryVerification: true,
+        deductions: parseEntries(employeeData.deductions),
+        employerPF: employeeData.earnings["employerPF"] || 0,
+        employerESI: employeeData.earnings["employerESI"] || 0,
+        employerPF: employeeData.deductions["employerPF"] || 0,
+        employerESI: employeeData.deductions["employerESI"] || 0,
+        employeePF: employeeData.deductions["employeePF"] || 0,
+        employeeESI: employeeData.deductions["employeeESI"] || 0,
+        professionalTax: employeeData.deductions["Professional Tax"] || 0,
+        laborWelfareFund: 0,
+        employerLWF: employeeData.deductions["Employer Lwf"] || 0,
+        employeeLWF: employeeData.deductions["Employee Lwf"] || 0,
+        adminCharge: employeeData.earnings["Admin Charge"] || 0,
+        employerBase: employeeData.employerContributionsFull?.reduce(
           (acc, item) => {
-            const [key, value] = item.split(": ");
-            acc[key] = Number(value) || 0;
+            acc[item.name] = item.totalAmount;
             return acc;
           },
           {},
         ),
-        deduction: breakdown.deductionsList?.reduce((acc, item) => {
-          const [key, value] = item.split(": ");
-          acc[key] = Number(value) || 0;
+        employeeBase: employeeData.employeeDeductions?.reduce((acc, item) => {
+          acc[item.name] = item.totalAmount;
           return acc;
         }, {}),
-        employersContribution: Object.entries(
-          breakdown.employerContributions || {},
-        ).reduce((acc, [key, value]) => {
-          acc[key] = {
-            amount: Number(value.amount) || 0,
-            includedInCTC: !!value.includedInCTC,
-          };
-          return acc;
-        }, {}),
-
-        basicSalary: breakdown.monthlyCTC,
-        basicPay: breakdown.basicPayValue,
-        totalEarnings: breakdown.totalEarnings,
-        totalDeductions: breakdown.totalDeductions,
-        netSalary: breakdown.netSalary,
-        employerLwf: breakdown.employerLWF,
-        employeeLwf: breakdown.employeeLWF,
-        employeradmin: breakdown.adminAmount,
-        voluntaryPFAmount: breakdown.voluntaryPFAmount || 0,
-      });
-
-      for (let i = 0; i < breakdowns.length; i += batchSize) {
-        const batch = breakdowns
-          .slice(i, i + batchSize)
-          .filter((b) => b?.id)
-          .map(transform);
-
-        try {
-          await axios.patch(
-            `${import.meta.env.VITE_API_URL}/items/SalaryBreakdown`,
-            batch,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-          console.log(
-            `Patched batch ${i / batchSize + 1} (${batch.length} items)`,
-          );
-        } catch (error) {
-          console.error(`Patch failed for batch ${i / batchSize + 1}:`, error);
-        }
-      }
-    };
-
-    const fetchSalaryVerification = async () => {
-      try {
-        showInitialLoading.value = true;
-        await loadEmployeeData();
-        await fetchSalaryBreakdowns();
-        loadingProgress.value = 0;
-
-        const token = authService.getToken();
-        const employeeIds = selectedEmployees.value
-          .filter((e) => e?.employee?.id)
-          .map((e) => e.employee.id);
-
-        loadingProgress.value = 30;
-
-        const employeeBatchSize = 100;
-        const allData = [];
-
-        for (let i = 0; i < employeeIds.length; i += employeeBatchSize) {
-          const employeeIdBatch = employeeIds.slice(i, i + employeeBatchSize);
-
-          const params = {
-            startDate: payrollDate.value.start,
-            endDate: payrollDate.value.end,
-            totalDays: daysInAttendanceCycle.value,
-            "filter[employeeIds][_in]": employeeIdBatch.join(","),
-          };
-
-          loadingProgress.value = 30 + (i / employeeIds.length) * 50;
-
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/salaryVerification`,
-            {
-              params: params,
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          allData.push(...(response.data.data || []));
-        }
-
-        loadingProgress.value = 80;
-        const leaveData = await fetchLeaveData();
-        salaryVerificationData.value = await calculation(allData);
-        await calculateLeaveBalances(salaryVerificationData.value, leaveData);
-
-        loadingProgress.value = 100;
-      } catch (error) {
-        console.error("Error fetching salary verification:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = "Error loading salary verification data";
-        snackbarColor.value = "error";
-      } finally {
-        showInitialLoading.value = false;
-      }
-    };
-
-    const calculation = async (salaryVerificationArray) => {
-      const dataArray = Array.isArray(salaryVerificationArray)
-        ? salaryVerificationArray
-        : [];
-
-      // const tdsMap = await fetchPayrollVerification(
-      //   dataArray.map((item) => {
-      //     const employeePf =
-      //       (item.employeeDeductions || []).find((d) => d.name === "EmployeePF")
-      //         ?.rupee || 0;
-
-      //     return {
-      //       employeeId: item.id,
-      //       monthlyCTC: item.monthlyCtc || 0,
-      //       employeePF: item.employeePf || 0,
-      //       currentEarnings: item.totalEarnings || 0,
-      //       currentPF: parseFloat(employeePf) || 0,
-      //       currentBenefits: item.totalBenefits || 0,
-      //     };
-      //   }),
-      //   payrollDate.value.end,
-      // );
-
-      return dataArray.map((item) => {
-        const earnings = {};
-        const deductions = {};
-        const complianceDetails = {};
-
-        for (const [key, value] of Object.entries(item.earnings || {})) {
-          earnings[key] = parseFloat(value) || 0;
-        }
-
-        earnings["Weekoff OT"] = item.weekOffOTPay;
-        earnings["Holiday OT"] = item.holidayOTPay;
-        earnings["workingHours OT"] = item.workingHoursOTPay;
-        earnings["Admin Charge"] = item.adminCharge?.rupee || 0;
-        earnings["EmployerLwf"] = item.employerLwf || 0;
-        earnings["Loan Credits"] = Object.values(
-          item.loanCreditAmounts || {},
-        ).reduce((sum, val) => sum + (Number(val) || 0), 0);
-
-        (item.employerContributions || []).forEach(({ name, rupee }) => {
-          const val = parseFloat(rupee) || 0;
-          earnings[name] = val;
-          deductions[name] = val;
-        });
-
-        (item.employerContributionsFull || []).forEach(({ name, rupee }) => {
-          complianceDetails[name] = parseFloat(rupee) || 0;
-        });
-
-        complianceDetails["Admin Charge"] = item.admin?.rupee || 0;
-
-        for (const [key, value] of Object.entries(item.deduction || {})) {
-          deductions[key] = parseFloat(value) || 0;
-        }
-
-        (item.employeeDeductions || []).forEach((ded) => {
-          deductions[ded.name] = parseFloat(ded.rupee) || 0;
-        });
-
-        if (item.pt) {
-          deductions["Professional Tax"] = parseFloat(item.pt) || 0;
-        }
-
-        deductions["Admin Charge"] = item.adminCharge?.rupee || 0;
-        deductions["EmployerLwf"] = item.employerLwf || 0;
-        deductions["employeeLwf"] = item.employeeLwf || 0;
-        // deductions["TDS"] = tdsMap[item.id]?.tdsPerMonth || 0;
-        deductions["VoluntaryPF"] = item.voluntaryPFAmount || 0;
-        deductions["Loan Debits"] = Object.values(
-          item.loanDebitAmounts || {},
-        ).reduce((sum, val) => sum + (Number(val) || 0), 0);
-
-        const monthlyCTC = item.monthlyCtc || 0;
-        const employeePf = item.employeePf || 0;
-
-        const salaryArrearsTotal = Object.values(
-          item.salaryArrears || {},
-        ).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-
-        const otherDeductionsTotal = Object.values(
-          item.otherDeductions || {},
-        ).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-
-        const filteredEarnings = Object.fromEntries(
-          Object.entries(earnings).filter(([, val]) => val !== 0),
-        );
-
-        const filteredDeductions = Object.fromEntries(
-          Object.entries(deductions).filter(([, val]) => val !== 0),
-        );
-
-        const filteredCompliance = Object.fromEntries(
-          Object.entries(complianceDetails).filter(([, val]) => val !== 0),
-        );
-
-        const filteredPendingEarnings = Object.fromEntries(
-          Object.entries(item.salaryArrears || {}).filter(
-            ([, val]) => parseFloat(val) !== 0,
-          ),
-        );
-
-        const filteredOtherDeductions = Object.fromEntries(
-          Object.entries(item.otherDeductions || {}).filter(
-            ([, val]) => parseFloat(val) !== 0,
-          ),
-        );
-
-        const totalEarnings =
-          Object.values(filteredEarnings).reduce(
-            (sum, val) => sum + (parseFloat(val) || 0),
-            0,
-          ) + salaryArrearsTotal;
-
-        const totalDeductions =
-          Object.values(filteredDeductions).reduce(
-            (sum, val) => sum + (parseFloat(val) || 0),
-            0,
-          ) + otherDeductionsTotal;
-
-        const totalPenalities =
-          item.latePenalty + item.earlyLeavingPenalty + item.workingHourPenalty;
-
-        const netSalary =
-          totalEarnings -
-          totalDeductions -
-          totalPenalities +
-          item.totalBenefits;
-        const excessLeaveCount = excessLeaveMap[item.id] || 0;
-
-        return {
-          payrollId: item.payrollId,
-          employee: {
-            id: item.id,
-            employeeId: item.id,
-            assignedUser: {
-              first_name: item.name || `Employee ${item.id}`,
-            },
-          },
-          monthlyCTC,
-          totalEarnings,
-          totalDeductions,
-          totalPenalities,
-          totalBenefits: item.totalBenefits,
-          netSalary,
-          earnings: filteredEarnings,
-          deductions: filteredDeductions,
-          otherDeductions: filteredOtherDeductions,
-          pendingEarnings: filteredPendingEarnings,
-          complianceDetails: filteredCompliance,
-          penalties: {
-            latePenalty: item.latePenalty || 0,
-            earlyLeavingPenalty: item.earlyLeavingPenalty || 0,
-            workingHourPenalty: item.workingHourPenalty || 0,
-          },
-          attendance: {
-            totalPayable: (item.payableDays || 0) - excessLeaveCount,
-          },
-          employerContributions: item.employerContributions || [],
-          employerContributionsFull: item.employerContributionsFull,
-          employeeDeductions: item.employeeDeductions,
-          benefitsDetails: {
-            bonusManual: (item.bonusDetails || []).map((b) => ({
-              reason: b.reason,
-              amount: b.amount,
-            })),
-            incentiveManual: (item.incentiveDetails || []).map((i) => ({
-              reason: i.reason,
-              amount: i.amount,
-            })),
-            retentionPayManual: (item.retentionDetails || []).map((r) => ({
-              reason: r.reason,
-              amount: r.amount,
-            })),
-          },
-
-          penalityLeaveCount: item.lateLeave.count,
-          penalityLeave: item.lateLeave.leave,
-        };
-      });
-    };
-
-    const calculateLeaveBalances = async (
-      salaryVerificationArray,
-      leaveData,
-    ) => {
-      excessLeaveMap = {};
-      const pendingLeaveUpdates = [];
-      for (const item of salaryVerificationArray) {
-        const leaveType = item.penalityLeave;
-        const leaveCount = item.penalityLeaveCount;
-
-        if (!leaveType || !leaveCount) {
-          continue;
-        }
-
-        const leaveRecord = leaveData.find(
-          (leave) => leave.assignedTo === item.employee.id,
-        );
-
-        const matchedLeaveKey = leaveRecord
-          ? Object.keys(leaveRecord.leaveBalance || {}).find(
-              (key) =>
-                key.toLowerCase().replace(/\s+/g, "") ===
-                leaveType.toLowerCase().replace(/\s+/g, ""),
-            )
-          : null;
-
-        if (leaveRecord && matchedLeaveKey) {
-          const currentBalance = leaveRecord.leaveBalance[matchedLeaveKey];
-          if (currentBalance === 0) {
-            console.log("⛔ Leave balance already zero", {
-              employeeId: item.employee.id,
-              leaveType: matchedLeaveKey,
-            });
-            excessLeaveMap[item.employee.id] = leaveCount;
-            continue;
-          }
-
-          const usedLeave = Math.min(currentBalance, leaveCount);
-          const remainingLeave = leaveCount - usedLeave;
-          const newBalance = Math.max(currentBalance - leaveCount, 0);
-
-          const updatedBalance = {
-            ...leaveRecord.leaveBalance,
-            [matchedLeaveKey]: newBalance,
-          };
-
-          const updatedTaken = {
-            ...leaveRecord.leaveTaken,
-            [`t${matchedLeaveKey}`]:
-              (leaveRecord.leaveTaken?.[`t${matchedLeaveKey}`] || 0) +
-              usedLeave,
-          };
-
-          const updatePayload = {
-            id: leaveRecord.id,
-            leaveBalance: updatedBalance,
-            leaveTaken: updatedTaken,
-          };
-
-          excessLeaveMap[item.employee.id] = remainingLeave;
-
-          pendingLeaveUpdates.push(updatePayload);
-        }
-      }
-
-      window.pendingLeaveUpdates = pendingLeaveUpdates;
-
-      return excessLeaveMap;
-    };
-    const employeeSalaryData = computed(() => {
-      return salaryVerificationData.value || [];
+      };
     });
 
-    const patchAllSalaryVerifications = async (salaryVerificationList) => {
-      const token = authService.getToken();
+  const verificationBatchSize = 100;
 
-      const parseEntries = (obj) =>
-        Object.fromEntries(
-          Object.entries(obj || {}).map(([k, v]) => [k, parseFloat(v) || 0]),
-        );
+  if (batchPayload.length > 0) {
+    try {
+      for (let i = 0; i < batchPayload.length; i += verificationBatchSize) {
+        const batch = batchPayload.slice(i, i + verificationBatchSize);
 
-      const batchPayload = salaryVerificationList
-        .filter((emp) => emp.payrollId)
-        .map((employeeData) => {
-          return {
-            id: employeeData.payrollId,
-            tenant: tenantId,
-            payableAmount: employeeData.netSalary,
-            ctc: employeeData.monthlyCTC,
-            netSalary: employeeData.netSalary,
-            totalEarnings: employeeData.totalEarnings,
-            totalPenality: employeeData.totalPenalities,
-            totalBenefits: employeeData.totalBenefits,
-            employerContribution: employeeData.complianceDetails,
-            individualDeduction: Object.entries(
-              employeeData.otherDeductions || {},
-            ).reduce((acc, [key, value], index) => {
-              acc[`deduction${index + 1}`] = { [key]: parseFloat(value) || 0 };
-              return acc;
-            }, {}),
-            finalizeDate: new Date().toISOString().split("T")[0],
-            tdsAmount: employeeData.deductions["TDS"] || 0,
-            totalOtherDeduction: employeeData.totalDeductions,
-            salaryArrears: Object.entries(
-              employeeData.pendingEarnings || {},
-            ).reduce((acc, [key, value], index) => {
-              acc[`earning${index + 1}`] = { [key]: parseFloat(value) || 0 };
-              return acc;
-            }, {}),
-
-            earnings: parseEntries(employeeData.earnings),
-            penalties: parseEntries(employeeData.penalties),
-            benefits: {
-              Overtime: parseFloat(employeeData.overtimeAmount || 0),
-
-              BonusManual: parseFloat(
-                employeeData.benefitsDetails?.bonusManual || 0,
-              ),
-              IncentiveManual: parseFloat(
-                employeeData.benefitsDetails?.incentiveManual || 0,
-              ),
-              RetentionPayManual: parseFloat(
-                employeeData.benefitsDetails?.retentionPayManual || 0,
-              ),
-            },
-            complienceDeduction: employeeData.deductions["EmployeePF"] || 0,
-            salaryVerification: true,
-            deductions: parseEntries(employeeData.deductions),
-            employerPF: employeeData.earnings["employerPF"] || 0,
-            employerESI: employeeData.earnings["employerESI"] || 0,
-            employerPF: employeeData.deductions["employerPF"] || 0,
-            employerESI: employeeData.deductions["employerESI"] || 0,
-            employeePF: employeeData.deductions["employeePF"] || 0,
-            employeeESI: employeeData.deductions["employeeESI"] || 0,
-            professionalTax: employeeData.deductions["Professional Tax"] || 0,
-            laborWelfareFund: 0,
-            employerLWF: employeeData.deductions["Employer Lwf"] || 0,
-            employeeLWF: employeeData.deductions["Employee Lwf"] || 0,
-            adminCharge: employeeData.earnings["Admin Charge"] || 0,
-            employerBase: employeeData.employerContributionsFull?.reduce(
-              (acc, item) => {
-                acc[item.name] = item.totalAmount;
-                return acc;
-              },
-              {},
-            ),
-            employeeBase: employeeData.employeeDeductions?.reduce(
-              (acc, item) => {
-                acc[item.name] = item.totalAmount;
-                return acc;
-              },
-              {},
-            ),
-          };
-        });
-
-      const verificationBatchSize = 100;
-
-      if (batchPayload.length > 0) {
-        try {
-          for (let i = 0; i < batchPayload.length; i += verificationBatchSize) {
-            const batch = batchPayload.slice(i, i + verificationBatchSize);
-
-            await axios.patch(
-              `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
-              batch,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              },
-            );
-
-            console.log(
-              `✅ Batch PATCH successful for records ${i + 1} to ${i + batch.length}`,
-            );
-          }
-        } catch (err) {
-          console.error("❌ Error during batch PATCH:", err);
-        }
-      } else {
-        console.warn("⚠️ No verificationId found, skipping batch PATCH.");
-      }
-    };
-
-    const patchLeaveBalances = async () => {
-      const token = authService.getToken();
-      const updatedLeaveData = window.pendingLeaveUpdates || [];
-
-      if (updatedLeaveData.length > 0) {
         await axios.patch(
-          `${import.meta.env.VITE_API_URL}/items/leave`,
-          updatedLeaveData,
+          `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
+          batch,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           },
         );
+
+        console.log(
+          `✅ Batch PATCH successful for records ${i + 1} to ${i + batch.length}`,
+        );
       }
-    };
-    const SalariesVerification = async () => {
-      try {
-        processing.value = true;
-        showFinalizationLoading.value = true;
-        finalizationStatus.value = "Starting finalization process...";
-        finalizationProgress.value = 10;
-
-        finalizationStatus.value = "Updating leave balances...";
-        finalizationProgress.value = 20;
-        await patchLeaveBalances();
-
-        finalizationStatus.value = "Finalizing salary records...";
-        finalizationProgress.value = 50;
-        await patchAllSalaryVerifications(salaryVerificationData.value);
-
-        finalizationProgress.value = 80;
-        finalizationStatus.value = "Completing payroll process...";
-
-        showSnackbar.value = true;
-        snackbarMessage.value = "All salaries finalized successfully";
-        snackbarColor.value = "success";
-
-        finalizationProgress.value = 100;
-        finalizationStatus.value = "Payroll finalized successfully!";
-
-        setTimeout(() => {
-          router.push({
-            name: "review",
-            query: {
-              start: payrollDate.value.start,
-              end: payrollDate.value.end,
-            },
-          });
-        }, 1500);
-      } catch (error) {
-        console.error("Error finalizing salaries:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = "Error finalizing salaries";
-        snackbarColor.value = "error";
-      } finally {
-        setTimeout(() => {
-          processing.value = false;
-          showFinalizationLoading.value = false;
-        }, 1000);
-      }
-    };
-
-    const viewEmployeeDetails = (employee) => {
-      selectedEmployeeDetail.value = employee;
-      showEmployeeDetails.value = true;
-    };
-
-    onMounted(async () => {
-      await fetchSalaryVerification();
-    });
-
-    return {
-      selectedEmployees,
-      payrollDate,
-      formatDate,
-      processing,
-      showSnackbar,
-      snackbarMessage,
-      snackbarColor,
-      employeeSalaryData,
-      showEmployeeDetails,
-      selectedEmployeeDetail,
-      activeTab,
-      totalMonthlyCTC,
-      totalPayableAmount,
-      totalPaidAmount,
-      totalRemainingAmount,
-      formatAmount,
-      currentMonth,
-      currentYear,
-      formatPayrollDate,
-      goBack,
-      onDateChange,
-      // finalizeAllSalaries,
-      SalariesVerification,
-      viewEmployeeDetails,
-      // finalizationText,
-      showInitialLoading,
-      loadingProgress,
-      showFinalizationLoading,
-      finalizationProgress,
-      onInitialLoadComplete,
-      onFinalizationComplete,
-    };
-  },
+    } catch (err) {
+      console.error("❌ Error during batch PATCH:", err);
+    }
+  } else {
+    console.warn("⚠️ No verificationId found, skipping batch PATCH.");
+  }
 };
+
+const patchLeaveBalances = async () => {
+  const token = authService.getToken();
+  const updatedLeaveData = window.pendingLeaveUpdates || [];
+
+  if (updatedLeaveData.length > 0) {
+    await axios.patch(
+      `${import.meta.env.VITE_API_URL}/items/leave`,
+      updatedLeaveData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+  }
+};
+const SalariesVerification = async () => {
+  try {
+    processing.value = true;
+    showFinalizationLoading.value = true;
+    finalizationStatus.value = "Starting finalization process...";
+    finalizationProgress.value = 10;
+
+    finalizationStatus.value = "Updating leave balances...";
+    finalizationProgress.value = 20;
+    await patchLeaveBalances();
+
+    finalizationStatus.value = "Finalizing salary records...";
+    finalizationProgress.value = 50;
+    await patchAllSalaryVerifications(salaryVerificationData.value);
+
+    finalizationProgress.value = 80;
+    finalizationStatus.value = "Completing payroll process...";
+
+    showSnackbar.value = true;
+    snackbarMessage.value = "All salaries finalized successfully";
+    snackbarColor.value = "success";
+
+    finalizationProgress.value = 100;
+    finalizationStatus.value = "Payroll finalized successfully!";
+
+    setTimeout(() => {
+      router.push({
+        name: "review",
+        query: {
+          start: payrollDate.value.start,
+          end: payrollDate.value.end,
+        },
+      });
+    }, 1500);
+  } catch (error) {
+    console.error("Error finalizing salaries:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = "Error finalizing salaries";
+    snackbarColor.value = "error";
+  } finally {
+    setTimeout(() => {
+      processing.value = false;
+      showFinalizationLoading.value = false;
+    }, 1000);
+  }
+};
+
+const viewEmployeeDetails = (employee) => {
+  selectedEmployeeDetail.value = employee;
+  showEmployeeDetails.value = true;
+};
+
+onMounted(async () => {
+  await fetchSalaryVerification();
+});
 </script>
 
 <style scoped>
@@ -2010,5 +2021,95 @@ export default {
   .cancel-btn {
     width: 100%;
   }
+}
+/* new */
+.expanded-content-wrapper {
+  background-color: #f8f9fa;
+  padding: 0 !important;
+}
+
+.expanded-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 24px;
+  background-color: #f8f9fa;
+}
+
+.details-section {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.success-text {
+  color: #28a745 !important;
+}
+
+.warning-text {
+  color: #ffc107 !important;
+}
+
+.info-text {
+  color: #17a2b8 !important;
+}
+
+.error-text {
+  color: #dc3545 !important;
+}
+
+.purple-text {
+  color: #9c27b0 !important;
+}
+
+.total-row {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.total-label {
+  font-weight: 600;
+  color: #2c3e50 !important;
+}
+
+.total-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c3e50 !important;
 }
 </style>

@@ -37,13 +37,18 @@ const route = useRoute();
 const tabs = [
   {
     value: "workorder",
-    title: "Work Tasks",
+    title: "Work Orders",
     icon: "mdi-clipboard-check-outline",
   },
   {
     value: "fieldtrip",
-    title: "Field Trips",
+    title: "Completed Work Orders",
     icon: "mdi-map-marker-radius-outline",
+  },
+  {
+    value: "workflow",
+    title: "Smart Forms",
+    icon: "mdi-form-textbox",
   },
 ];
 
@@ -53,6 +58,8 @@ const determineActiveTab = () => {
   const currentPath = route.path.toLowerCase();
   if (currentPath.includes("fieldtrip")) {
     return "fieldtrip";
+  } else if (currentPath.includes("workflow")) {
+    return "workflow";
   } else {
     return "workorder";
   }
@@ -64,6 +71,8 @@ const handleTabClick = (tabValue) => {
 
   if (tabValue === "fieldtrip") {
     router.push({ name: "WorkOrderFieldTrip" });
+  } else if (tabValue === "workflow") {
+    router.push({ name: "workflow" }); // Add the appropriate route name for workflow
   } else {
     router.push({ name: "WorkOrderTasks" });
   }

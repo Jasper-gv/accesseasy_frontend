@@ -14,27 +14,6 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <div class="main-content" :class="{ 'full-width': !showFilters }">
       <DataTableWrapper
         v-model:searchQuery="search"
@@ -44,6 +23,27 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
+        <template #before-search>
+          <button
+            v-if="isAdmin"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <template v-slot:actions>
           <div class="header-actions">
             <button
@@ -342,7 +342,6 @@ const filters = reactive({
 });
 
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
@@ -970,8 +969,8 @@ const handleItemsPerPageChange = async (newLimit) => {
 
 // Lifecycle Hooks
 onMounted(async () => {
-  await fetchManagerBranch();
-  await fetchFilterOptions();
+  // await fetchManagerBranch();
+  // await fetchFilterOptions();
   await fetchEmployeeData();
   await currentUserTenant.fetchLoginUserDetails();
   tenantId.value = currentUserTenant.getTenantId();

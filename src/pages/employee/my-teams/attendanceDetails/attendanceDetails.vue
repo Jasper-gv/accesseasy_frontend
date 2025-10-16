@@ -328,7 +328,6 @@ const statuses = ref([
 
 // Filter Schema for FilterComponent
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];

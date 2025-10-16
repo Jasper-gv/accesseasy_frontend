@@ -41,6 +41,7 @@
 
 <script setup>
 import BaseButton from "../buttons/BaseButton.vue";
+import { X } from "lucide-vue-next";
 
 defineProps({
   title: {

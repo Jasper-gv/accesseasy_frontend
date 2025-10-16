@@ -106,13 +106,13 @@
                 color="primary"
                 @click.stop="editCategory(category)"
               ></v-btn>
-              <!-- <v-btn
+              <v-btn
                 icon="mdi-delete"
                 variant="text"
                 size="small"
                 color="error"
                 @click.stop="deleteCategory(category.id)"
-              ></v-btn> -->
+              ></v-btn>
             </div>
           </div>
         </div>
@@ -205,7 +205,6 @@ export default {
   name: "AccessLevelCategory",
   components: {
     AccessLevelConfiguration,
-   
   },
   data() {
     return {
@@ -373,17 +372,17 @@ export default {
           id: item.id,
           name: item.accessLevelName,
           state: item.state || "",
-          // assignedBranches: item.assignedBranches.map((branch) => ({
-          //   id: branch.branch_id?.id,
-          //   branchId: branch.branch_id?.branchId,
-          //   branchName: branch.branch_id?.branchName,
-          //   state: branch.branch_id?.state,
-          // })),
-          // assignedDoors: item.assignedDoors.map((door) => ({
-          //   doorId: door.doors_id?.id,
-          //   doorName: door.doors_id?.doorName,
-          //   doorNumber: door.doors_id?.doorNumber,
-          // })),
+          assignedBranches: item.assignedBranches.map((branch) => ({
+            id: branch.branch_id?.id,
+            branchId: branch.branch_id?.branchId,
+            branchName: branch.branch_id?.branchName,
+            state: branch.branch_id?.state,
+          })),
+          assignedDoors: item.assignedDoors.map((door) => ({
+            doorId: door.doors_id?.id,
+            doorName: door.doors_id?.doorName,
+            doorNumber: door.doors_id?.doorNumber,
+          })),
           configName: item.configName,
           accessType: item.accessType,
           workingHours: item.workingHours,
@@ -532,7 +531,6 @@ export default {
 
         const accessLevelId = await this.generateSequentialAccessLevelId();
         payload.accessLevelNumber = accessLevelId;
-        payload.uniqueId = `${currentUserTenant.getTenantId()}-${accessLevelId}`;
 
         const url = this.editingCategory
           ? `${this.apiUrl}/items/accesslevels/${this.editingCategory.id}`
@@ -652,7 +650,6 @@ export default {
       }
     },
     handleCategoryClick(category) {
-      console.log('category',category)
       if (!category.accessType) {
         this.selectedWarningCategory = category;
         this.showWarningDialog = true;

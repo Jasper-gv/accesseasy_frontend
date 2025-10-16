@@ -4,13 +4,13 @@
       <v-card-title>
         {{ isAssigned ? "Assigned Employees" : "Unassigned Employees" }}
         <v-spacer></v-spacer>
-        <!-- <v-text-field
+        <v-text-field
           v-model="search"
           append-icon="mdi-magnify"
           label="Search"
           single-line
           hide-details
-        ></v-text-field> -->
+        ></v-text-field>
       </v-card-title>
 
       <v-data-table
@@ -27,12 +27,8 @@
         <template v-slot:item.assignedUser.first_name="{ item }">
           {{ item.assignedUser.first_name || "N/A" }}
         </template>
-        <template v-slot:item.department="{ item }">
-          {{ item.department?.departmentName || "N/A" }}
-        </template>
-
-        <template v-slot:item.branch="{ item }">
-          {{ item.branch?.branchName || "N/A" }}
+        <template v-slot:item.assignedDepartment="{ item }">
+          {{ getDepartmentName(item) }}
         </template>
         <template v-slot:item.actions="{ item }">
           <v-switch
@@ -87,13 +83,13 @@ const headers = computed(() => [
   {
     title: "Department",
     align: "start",
-    key: "department",
+    key: "assignedDepartment",
     sortable: true,
   },
   {
     title: "Branch",
     align: "start",
-    key: "branch",
+    key: "assignedBranch",
     sortable: true,
   },
   {
@@ -104,6 +100,19 @@ const headers = computed(() => [
   },
 ]);
 
+const getDepartmentName = (item) => {
+  const department = item.assignedDepartment.find(
+    (dep) => dep.department_id && dep.department_id.departmentName,
+  );
+  return department ? department.department_id.departmentName : "N/A";
+};
+
+const getBranchName = (item) => {
+  return item.assignedBranch && item.assignedBranch.branch_id
+    ? item.assignedBranch.branch_id.branchName
+    : "N/A";
+};
+
 const toggleAccess = (item) => {
   emit("toggle-access", item, props.isAssigned);
 };
@@ -112,10 +121,5 @@ const toggleAccess = (item) => {
 <style scoped>
 .v-data-table {
   width: 100%;
-}
-::v-deep .v-data-table-header,
-::v-deep .v-table__wrapper thead,
-::v-deep .v-data-table thead {
-  background-color: #f5f5f5 !important; /* Light gray background with high priority */
 }
 </style>

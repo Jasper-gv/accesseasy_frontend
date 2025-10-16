@@ -183,7 +183,7 @@ import ErrorState from "@/components/common/states/ErrorState.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import FilterComponent from "@/components/common/filters/payrollfilter.vue";
 import ToastContainer from "@/components/common/notifications/ToastContainer.vue";
-import AdvanceDrawer from "@/pages/payroll/loan/loanAdd.vue";
+import AdvanceDrawer from "@/pages/payroll/advanceLoan/loan/loanAdd.vue";
 
 const loading = ref(false);
 const error = ref(null);

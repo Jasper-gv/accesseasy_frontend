@@ -1,7 +1,7 @@
 <template>
   <div class="salary-container">
     <!-- Filter Panel -->
-    <div class="filter-panel" v-if="showFilters">
+    <div class="filter-panel" v-if="showFilters && !showForm">
       <div class="filter-content">
         <FilterComponent
           :tenantId="tenantId"
@@ -16,6 +16,7 @@
 
     <!-- Filter Toggle Button -->
     <button
+      v-if="!showForm"
       class="filter-toggle-static"
       @click="toggleFilters"
       :class="{ active: hasActiveFilters }"
@@ -35,7 +36,11 @@
       <div v-if="hasActiveFilters" class="filter-indicator"></div>
     </button>
 
-    <div class="main-content" :class="{ 'full-width': !showFilters }">
+    <div
+      v-if="!showForm"
+      class="main-content"
+      :class="{ 'full-width': !showFilters }"
+    >
       <DataTableWrapper
         v-model:searchQuery="search"
         :showSearch="true"
@@ -150,18 +155,39 @@
                 {{ item.employee?.assignedUser?.role?.name || "N/A" }}
               </span>
             </template>
-
-            <!-- Annual CTC Column -->
-            <template #cell-ctc="{ item }">
+            <template #cell-pfAccount="{ item }">
               <span :class="{ 'text-muted': isEmployeeLeft(item) }">
-                {{ formatCurrency(item.ctc) }}
+                {{ item.employee?.assignedUser.PFAccountNumber || "-" }}
               </span>
+            </template>
+
+            <template #cell-esiAccount="{ item }">
+              <span :class="{ 'text-muted': isEmployeeLeft(item) }">
+                {{ item.employee?.assignedUser.ESIAccountNumber || "-" }}
+              </span>
+            </template>
+
+            <!-- Montly CTC Column -->
+            <template #cell-ctc="{ item }">
+              <v-chip
+                :class="{
+                  'text-black': !isEmployeeLeft(item),
+                  'text-muted': isEmployeeLeft(item),
+                }"
+                color="#F7A072"
+                small
+                rounded="0"
+                variant="flat"
+                class="font-weight-medium"
+              >
+                {{ formatCurrency(item.BasicSalary) }}
+              </v-chip>
             </template>
 
             <!-- Basic Salary Column -->
             <template #cell-basicSalary="{ item }">
               <span :class="{ 'text-muted': isEmployeeLeft(item) }">
-                {{ formatCurrency(item.basicSalary) }}
+                {{ formatCurrency(item.basicPay) }}
               </span>
             </template>
 
@@ -239,155 +265,9 @@
           />
         </template>
       </DataTableWrapper>
-
-      <!-- LWF and PT Dialogs -->
-      <v-dialog v-model="lwfDialog.show" max-width="500">
-        <v-card>
-          <v-card-title class="dialog-title">
-            Labor Welfare Fund Details
-            <v-btn
-              icon="mdi-close"
-              variant="text"
-              @click="lwfDialog.show = false"
-              class="close-btn"
-            ></v-btn>
-          </v-card-title>
-          <v-card-text class="pa-4">
-            <v-list>
-              <v-list-item>
-                <v-list-item-title
-                  class="text-subtitle-1 font-weight-medium mb-2"
-                >
-                  State
-                </v-list-item-title>
-                <v-list-item-subtitle class="text-body-1">
-                  {{ lwfDialog.data?.state || "N/A" }}
-                </v-list-item-subtitle>
-              </v-list-item>
-              <v-divider class="my-4"></v-divider>
-              <v-list-item>
-                <v-list-item-title
-                  class="text-subtitle-1 font-weight-medium mb-3"
-                >
-                  State Tax Rules
-                </v-list-item-title>
-                <div
-                  v-if="lwfDialog.data?.stateTaxRules"
-                  class="tax-rules-container"
-                >
-                  <v-card
-                    v-for="(rule, index) in parseTaxRules(
-                      lwfDialog.data.stateTaxRules,
-                    )"
-                    :key="index"
-                    variant="outlined"
-                    class="mb-2 tax-rule-card"
-                  >
-                    <v-card-text class="pa-3">
-                      <div class="d-flex justify-space-between">
-                        <div>
-                          <div class="text-caption text-grey">Salary Range</div>
-                          <div class="text-body-1">₹{{ rule.salaryRange }}</div>
-                        </div>
-                        <div class="text-right">
-                          <div class="text-caption text-grey">Tax Amount</div>
-                          <div class="text-body-1 font-weight-medium">
-                            ₹{{ rule.tax }}
-                          </div>
-                        </div>
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </div>
-                <div v-else class="text-body-1 text-grey">
-                  No tax rules available
-                </div>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
-        </v-card>
-      </v-dialog>
-
-      <v-dialog v-model="ptDialog.show" max-width="500">
-        <v-card>
-          <v-card-title class="dialog-title">
-            Professional Tax Details
-            <v-btn
-              icon="mdi-close"
-              variant="text"
-              @click="ptDialog.show = false"
-              class="close-btn"
-            ></v-btn>
-          </v-card-title>
-          <v-card-text class="pa-4">
-            <v-list>
-              <v-list-item>
-                <v-list-item-title
-                  class="text-subtitle-1 font-weight-medium mb-2"
-                >
-                  State
-                </v-list-item-title>
-                <v-list-item-subtitle class="text-body-1">
-                  {{ ptDialog.data?.state || "N/A" }}
-                </v-list-item-subtitle>
-              </v-list-item>
-              <v-divider class="my-4"></v-divider>
-              <v-list-item>
-                <v-list-item-title
-                  class="text-subtitle-1 font-weight-medium mb-3"
-                >
-                  State Tax Rules
-                </v-list-item-title>
-                <div
-                  v-if="ptDialog.data?.stateTaxRules"
-                  class="tax-rules-container"
-                >
-                  <v-card
-                    v-for="(rule, index) in parseTaxRules(
-                      ptDialog.data.stateTaxRules,
-                    )"
-                    :key="index"
-                    variant="outlined"
-                    class="mb-2 tax-rule-card"
-                  >
-                    <v-card-text class="pa-3">
-                      <div class="d-flex justify-space-between">
-                        <div>
-                          <div class="text-caption text-grey">Salary Range</div>
-                          <div class="text-body-1">₹{{ rule.salaryRange }}</div>
-                        </div>
-                        <div class="text-right">
-                          <div class="text-caption text-grey">
-                            Professional Tax
-                          </div>
-                          <div class="text-body-1 font-weight-medium">
-                            ₹{{ rule.professionalTax }}
-                          </div>
-                        </div>
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </div>
-                <div v-else class="text-body-1 text-grey">
-                  No tax rules available
-                </div>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
-        </v-card>
-      </v-dialog>
-
-      <!-- Salary Form -->
-      <SalaryForm
-        v-if="showForm"
-        :is-editing="isEditing"
-        :employee-data="editedItem"
-        :tenant-id="tenantId"
-        :first-name="editedItem.employee?.assignedUser?.first_name"
-        @save-success="handleSaveSuccess"
-        @cancel="showForm = false"
-      />
     </div>
+
+    <router-view />
   </div>
 </template>
 
@@ -396,16 +276,19 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import debounce from "lodash/debounce";
-import SalaryForm from "./salaryForm.vue";
+
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import EmptyState from "@/components/common/states/EmptyState.vue";
 import FilterComponent from "@/components/common/filters/payrollfilter.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
+import ErrorState from "@/components/common/states/ErrorState.vue";
+import { X } from "lucide-vue-next";
 
 // State
+const route = useRoute();
 const loading = ref(false);
 const error = ref(null);
 const showFilters = ref(true);
@@ -439,7 +322,6 @@ const filters = reactive({
 
 // Filter schema for FilterComponent
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
@@ -450,33 +332,22 @@ const columns = computed(() => [
   { key: "name", label: "Employee Name", sortable: false, width: "150px" },
   { key: "employeeId", label: "Employee ID", sortable: false, width: "120px" },
   { key: "role", label: "Role", sortable: false, width: "120px" },
-  { key: "ctc", label: "Annual CTC", sortable: false, width: "150px" },
-  {
-    key: "basicSalary",
-    label: "Basic Salary",
-    sortable: false,
-    width: "150px",
-  },
+  { key: "ctc", label: "Monthly Ctc", sortable: false, width: "150px" },
+
   {
     key: "totalEarnings",
-    label: "Total Earnings",
+    label: "Earnings",
     sortable: false,
     width: "150px",
   },
   {
     key: "totalDeductions",
-    label: "Total Deductions",
+    label: "Deductions",
     sortable: false,
     width: "200px",
   },
   { key: "pf", label: "PF", sortable: false, width: "120px" },
-  { key: "bonus", label: "Bonus", sortable: false, width: "120px" },
-  {
-    key: "professionalTax",
-    label: "Professional Tax",
-    sortable: false,
-    width: "150px",
-  },
+
   { key: "employerpf", label: "Employer PF", sortable: false, width: "120px" },
   {
     key: "employeresi",
@@ -484,12 +355,8 @@ const columns = computed(() => [
     sortable: false,
     width: "120px",
   },
-  {
-    key: "dateOfLeaving",
-    label: "Date of Leaving",
-    sortable: false,
-    width: "120px",
-  },
+  { key: "pfAccount", label: "PF Account", sortable: false, width: "150px" },
+  { key: "esiAccount", label: "ESI Account", sortable: false, width: "150px" },
 ]);
 
 const initialFilters = computed(() => ({
@@ -503,9 +370,9 @@ const initialFilters = computed(() => ({
 
 const hasActiveFilters = computed(() => {
   return (
-    filters.organization.length > 0 ||
-    filters.branch.length > 0 ||
-    filters.department.length > 0 ||
+    filters.organization ||
+    filters.branch ||
+    filters.department ||
     filters.basicPayFrom ||
     filters.basicPayTo ||
     filters.employeeStatus.length > 0 ||
@@ -585,6 +452,8 @@ const fetchSalaryDetails = async (
         "employee.assignedBranch.branch_id.id",
         "employee.assignedUser.first_name",
         "employee.assignedUser.role.name",
+        "employee.assignedUser.PFAccountNumber",
+        "employee.assignedUser.ESIAccountNumber",
         "employee.assignedUser.dateOfLeaving",
         "employee.assignedDepartment.department_id.departmentName",
         "employee.assignedBranch.branch_id.branchName",
@@ -631,12 +500,12 @@ const fetchSalaryDetails = async (
       );
     }
 
-    if (filters.branch.length) {
+    if (filters.branch) {
       filterParams.push(
         `filter[employee][branchLocation][id][_eq]=${filters.branch}`,
       );
     }
-    if (filters.department.length) {
+    if (filters.department) {
       filterParams.push(
         `filter[employee][department][_eq]=${filters.department}`,
       );
@@ -819,7 +688,11 @@ const handleRowClick = (item) => {
 
   let employeeId = item.employee?.id || item.id || item.employee?.employeeId;
   if (employeeId) {
-    router.push(`/employee-details/employee/${employeeId}/payrollmodule`);
+    showForm.value = true;
+    router.push(
+      `/payroll/employee-salary/salary-details/${employeeId}/salary-detailsedit`,
+    );
+    console.log("Navigating with employeeId:", employeeId);
   } else {
     console.error("Invalid item or employee ID", item);
     alert("Unable to navigate to employee details. Employee ID not found.");
@@ -845,13 +718,6 @@ const handleItemsPerPageChange = (newItemsPerPage) => {
 const debouncedSearch = debounce(() => {
   fetchSalaryDetails(1, itemsPerPage.value, search.value);
 }, 300);
-
-// Lifecycle Hooks
-onMounted(async () => {
-  await fetchFilterOptions();
-  await fetchSalaryDetails();
-});
-
 watch(
   [search, filters, sortBy],
   () => {
@@ -859,6 +725,27 @@ watch(
   },
   { deep: true },
 );
+// watch(
+//   () => route.path,
+//   (newPath) => {
+//     if (newPath === "/payroll/employee-salary/salary-details") {
+//       alert("Called");
+//       onMounted();
+//     }
+//   },
+// );
+
+// Lifecycle Hooks
+// onMounted(async () => {
+//   await fetchFilterOptions();
+//   await fetchSalaryDetails();
+// });
+onMounted(() => {
+  (async () => {
+    await fetchSalaryDetails();
+    await fetchFilterOptions();
+  })();
+});
 </script>
 
 <style scoped>

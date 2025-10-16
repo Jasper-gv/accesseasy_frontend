@@ -943,7 +943,7 @@ function addDeduction() {
 
 const goBack = () => {
   emit("close");
-  router.push("/settings/payrollCatagory");
+  router.push("/configuration");
 };
 
 const fetchSettings = async (categoryData) => {
@@ -1057,6 +1057,7 @@ const fetchSettings = async (categoryData) => {
 
 onMounted(async () => {
   const receivedCategory = route.params.categoryData;
+
   await fetchSettings(receivedCategory);
 });
 </script>

@@ -22,26 +22,6 @@
       </div>
     </div>
 
-    <button
-      v-if="isAdmin && !showForm"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <div
       class="main-content"
       :class="{ 'full-width': !showFilters || showForm }"
@@ -54,6 +34,28 @@
         :hasError="!!error"
         wrapperClass="employee-table-wrapper"
       >
+        <template #before-search>
+          <button
+            v-if="isAdmin"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
+
         <!-- Toolbar Actions Slot -->
         <template #toolbar-actions>
           <div class="header-actions">
@@ -169,7 +171,7 @@
                 item.department?.departmentName || "No department"
               }}</span>
             </template>
-            <template #cell-orgType="{ item }">
+            <!-- <template #cell-orgType="{ item }">
               <span
                 class="org-type-badge"
                 :class="
@@ -190,7 +192,7 @@
                 </svg>
                 {{ formatOrgType(item.assignedUser?.organization?.orgType) }}
               </span>
-            </template>
+            </template> -->
             <template #cell-orgName="{ item }">
               <span class="org-name">{{
                 item.assignedUser?.organization?.orgName || "No organization"
@@ -439,7 +441,6 @@ const filters = reactive({
 });
 
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
@@ -499,22 +500,22 @@ const columns = [
     class: "department-col",
     width: 150,
   },
-  {
-    key: "orgType",
-    label: "Organization Type",
-    sortable: false,
-    sortKey: "assignedUser.organization.orgType",
-    class: "org-col",
-    width: 180,
-  },
-  {
-    key: "orgName",
-    label: "Organization Name",
-    sortable: false,
-    sortKey: "assignedUser.organization.orgName",
-    class: "org-name-col",
-    width: 200,
-  },
+  // {
+  //   key: "orgType",
+  //   label: "Organization Type",
+  //   sortable: false,
+  //   sortKey: "assignedUser.organization.orgType",
+  //   class: "org-col",
+  //   width: 180,
+  // },
+  // {
+  //   key: "orgName",
+  //   label: "Organization Name",
+  //   sortable: false,
+  //   sortKey: "assignedUser.organization.orgName",
+  //   class: "org-name-col",
+  //   width: 200,
+  // },
   {
     key: "role",
     label: "Role",
@@ -604,36 +605,39 @@ const handleSearchUpdate = (value) => {
 const buildFilterParams = async () => {
   const params = {};
 
+  // Common tenant/user-based logic
   if (isAdmin.value) {
     params["filter[assignedUser][tenant][tenantId][_eq]"] = tenantId;
   } else {
     params["filter[_or][0][approver][id][_eq]"] = userId;
     params["filter[_or][1][assignedUser][id][_eq]"] = userId;
-
-    if (filters.organization) {
-      params["filter[assignedUser][organization][id][_eq]"] =
-        filters.organization;
-    }
-    if (filters.department) {
-      params["filter[department][id][_in]"] = filters.department;
-    }
-    if (filters.branch) {
-      params["filter[branchLocation][id][_eq]"] = filters.branch;
-    }
-    if (filters.role) {
-      params["filter[assignedUser][role][name][_in]"] = filters.role;
-    }
-    if (filters.gender) {
-      params["filter[assignedUser][gender][_in]"] = filters.gender;
-    }
-    if (filters.dateFrom) {
-      params["filter[assignedUser][dateOfJoining][_gte]"] = filters.dateFrom;
-    }
-    if (filters.dateTo) {
-      params["filter[assignedUser][dateOfJoining][_lte]"] = filters.dateTo;
-    }
   }
 
+  // ✅ Apply filters regardless of role
+  if (filters.organization) {
+    params["filter[assignedUser][organization][id][_eq]"] =
+      filters.organization;
+  }
+  if (filters.department) {
+    params["filter[department][id][_in]"] = filters.department;
+  }
+  if (filters.branch) {
+    params["filter[branchLocation][id][_eq]"] = filters.branch;
+  }
+  if (filters.role) {
+    params["filter[assignedUser][role][name][_in]"] = filters.role;
+  }
+  if (filters.gender) {
+    params["filter[assignedUser][gender][_in]"] = filters.gender;
+  }
+  if (filters.dateFrom) {
+    params["filter[assignedUser][dateOfJoining][_gte]"] = filters.dateFrom;
+  }
+  if (filters.dateTo) {
+    params["filter[assignedUser][dateOfJoining][_lte]"] = filters.dateTo;
+  }
+
+  // ✅ Search filters
   if (search.value) {
     params["filter[_or][0][employeeId][_eq]"] = search.value;
     params["filter[_or][1][assignedUser][first_name][_icontains]"] =
@@ -650,10 +654,12 @@ const buildFilterParams = async () => {
       search.value;
   }
 
+  // ✅ Sorting
   if (sortBy.value) {
     params.sort = `${sortDirection.value === "desc" ? "-" : ""}${sortBy.value}`;
   }
 
+  console.log("Filter Params:", params);
   return params;
 };
 
@@ -805,6 +811,7 @@ const handleSort = ({ field, direction }) => {
 };
 
 const handleRowClick = (employee) => {
+  console.log(employee);
   if (isAdmin.value) {
     editItem(employee);
   }

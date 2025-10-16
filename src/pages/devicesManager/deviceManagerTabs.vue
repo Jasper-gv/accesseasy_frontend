@@ -43,7 +43,7 @@ const tabs = [
   },
   {
     value: "accessLvl-category",
-    title: "AccessLevel Category",
+    title: "AccessLvl Category",
     icon: "mdi-lock-outline",
   },
 ];
@@ -73,6 +73,10 @@ watch(
 <style scoped>
 .v-container {
   padding: 16px;
+}
+
+.v-tabs {
+  margin-bottom: 20px;
 }
 
 .tab-text {

@@ -13,7 +13,7 @@
       <v-col cols="12" sm="4">
         <v-select
           v-model="selectedBranch"
-          :items="branchesWithAllOption"
+          :items="branches"
           item-title="branchName"
           item-value="id"
           label="Branch"
@@ -24,7 +24,7 @@
       <v-col cols="12" sm="4">
         <v-select
           v-model="selectedDepartment"
-          :items="departmentsWithAllOption"
+          :items="departments"
           item-title="departmentName"
           item-value="id"
           label="Department"
@@ -34,35 +34,70 @@
       </v-col>
     </v-row>
 
-    <!-- Rest of your template remains the same -->
     <v-tabs v-model="activeTab" @update:modelValue="handleTabChange">
-      <v-tab color="primary" value="unassigned" style="text-transform: none">
-        Unassigned Employees
-      </v-tab>
-      <v-tab color="primary" value="assigned" style="text-transform: none">
-        Assigned Employees
-      </v-tab>
+      <v-tab color="primary" value="unassigned" style="text-transform: none"
+        >Unassigned Employees</v-tab
+      >
+      <v-tab color="primary" value="assigned" style="text-transform: none"
+        >Assigned Employees</v-tab
+      >
     </v-tabs>
 
     <v-window v-model="activeTab">
       <v-window-item value="assigned">
-        <EmployeeList
-          :employees="assignedEmployees"
+        <v-data-table
+          :headers="headers"
+          :items="assignedEmployees"
           :loading="loading"
-          :is-assigned="true"
-          @toggle-access="toggleAssignment"
-        />
+          class="elevation-1"
+          height="calc(62vh - 170px)"
+        >
+          <template v-slot:top>
+            <v-toolbar flat>
+              <v-toolbar-title>Assigned Employees</v-toolbar-title>
+            </v-toolbar>
+          </template>
+          <template v-slot:item.actions="{ item }">
+            <v-switch
+              color="success"
+              hide-details
+              inset
+              v-model="item.assigned"
+              @change="toggleAssignment(item)"
+              :label="item.assigned ? 'Assigned' : 'Unassigned'"
+            ></v-switch>
+          </template>
+        </v-data-table>
       </v-window-item>
+
       <v-window-item value="unassigned">
-        <EmployeeList
-          :employees="unassignedEmployees"
+        <v-data-table
+          :headers="headers"
+          :items="unassignedEmployees"
           :loading="loading"
-          :is-assigned="false"
-          @toggle-access="toggleAssignment"
-        />
-        <v-btn color="primary" @click="assignToAllEmployees" class="mt-4">
-          Assign to All Employees
-        </v-btn>
+          class="elevation-1"
+          height="calc(62vh - 170px)"
+        >
+          <template v-slot:top>
+            <v-toolbar flat>
+              <v-toolbar-title>Unassigned Employees</v-toolbar-title>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" @click="assignToAllEmployees">
+                Assign to All Employees
+              </v-btn>
+            </v-toolbar>
+          </template>
+          <template v-slot:item.actions="{ item }">
+            <v-switch
+              color="success"
+              hide-details
+              inset
+              v-model="item.assigned"
+              @change="toggleAssignment(item)"
+              :label="item.assigned ? 'Assigned' : 'Unassigned'"
+            ></v-switch>
+          </template>
+        </v-data-table>
       </v-window-item>
     </v-window>
 
@@ -79,11 +114,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import { authService } from "@/services/authService";
-import { convertToCardAccessHex } from "@/utils/helpers/convertToCardAccessHex"; // Import the helper function
-import EmployeeList from "./EmployeeList.vue";
 
 const props = defineProps({
   accessLevelId: {
@@ -104,27 +137,29 @@ const loading = ref(false);
 const snackbar = ref(false);
 const snackbarMessage = ref("");
 
-const branchesWithAllOption = computed(() => [
-  { id: null, branchName: "All Branches" },
-  ...branches.value,
-]);
-
-const departmentsWithAllOption = computed(() => [
-  { id: null, departmentName: "All Departments" },
-  ...departments.value,
-]);
+const headers = [
+  { title: "Employee ID", key: "employeeId" },
+  { title: "Name", key: "assignedUser.first_name" },
+  {
+    title: "Branch",
+    key: "branch",
+    value: (item) => item.assignedBranch?.branch_id?.branchName || "N/A",
+  },
+  {
+    title: "Department",
+    key: "department",
+    value: (item) =>
+      item.assignedDepartment?.department_id?.departmentName || "N/A",
+  },
+  { title: "Actions", key: "actions" },
+];
 
 onMounted(async () => {
   await fetchBranches();
   await fetchDepartments();
-  if (props.accessLevelId) {
-    await fetchEmployees();
-  } else {
-    console.warn("accessLevelId is undefined, skipping fetchEmployees on mount");
-    snackbarMessage.value = "Access level ID is not available. Waiting for data...";
-    snackbar.value = true;
-  }
+  await fetchEmployees();
 });
+
 const fetchBranches = async () => {
   const token = authService.getToken();
   const tenantId = currentUserTenant.getTenantId();
@@ -139,8 +174,9 @@ const fetchBranches = async () => {
     },
   );
   const data = await response.json();
-  branches.value = data.data || []; // Fallback to empty array
+  branches.value = data.data;
 };
+
 const fetchDepartments = async () => {
   const token = authService.getToken();
   const tenantId = currentUserTenant.getTenantId();
@@ -155,313 +191,191 @@ const fetchDepartments = async () => {
     },
   );
   const data = await response.json();
-  departments.value = data.data || []; // Fallback to empty array
-};
-
-// Helper function to fetch and update cards for an employee
-const updateEmployeeCards = async (employeeId, accessLevelId, accessOn) => {
-  const token = authService.getToken();
-  let accessLevelNumber;
-
-  // Fetch accessLevelNumber using accessLevelId
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/accesslevels/${accessLevelId}?fields=accessLevelNumber`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch access level number");
-    }
-    const data = await response.json();
-    accessLevelNumber = data.data.accessLevelNumber;
-  } catch (error) {
-    console.error("Error fetching access level number:", error);
-    snackbarMessage.value = `Error fetching access level details: ${error.message}`;
-    snackbar.value = true;
-    return; // Exit if we can't fetch the access level number
-  }
-
-  try {
-    // Fetch existing cards for the employee
-    const cardsResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/cardManagement?filter[employeeId][_eq]=${employeeId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    if (!cardsResponse.ok) {
-      throw new Error("Failed to fetch cards for employee");
-    }
-
-    const cardsData = await cardsResponse.json();
-    const cards = (cardsData.data || []).map((card) => ({
-      id: card.id,
-      rfidCard: card.rfidCard,
-      type: card.type,
-      enabled: card.cardAccess,
-      originalId: card.id,
-    }));
-
-    // Update each card
-    for (const card of cards) {
-      const cardPayload = {
-        rfidCard: card.rfidCard,
-        type: card.type.toLowerCase(),
-        enabled: accessOn,
-        cardAccess: accessOn,
-        accessLevelsId: accessLevelNumber,
-        cardAccessLevelArray: `${card.rfidCard}:${accessOn ? 1 : 0}:${accessLevelNumber}`,
-        cardAccessLevelHex: convertToCardAccessHex(
-          card.rfidCard,
-          accessOn,
-          accessLevelNumber,
-        ),
-        employeeId: employeeId,
-      };
-
-      await fetch(
-        `${import.meta.env.VITE_API_URL}/items/cardManagement/${card.originalId}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(cardPayload),
-        },
-      );
-    }
-  } catch (error) {
-    console.error("Error updating cards for employee:", error);
-    snackbarMessage.value = `Error updating cards for employee: ${error.message}`;
-    snackbar.value = true;
-  }
+  departments.value = data.data;
 };
 
 const fetchEmployees = async () => {
-  if (activeTab.value === "assigned" && !props.accessLevelId) {
-    console.warn("accessLevelId is undefined for assigned tab, skipping fetch");
-    assignedEmployees.value = [];
-    snackbarMessage.value = "Cannot fetch assigned employees: Access level ID is missing.";
-    snackbar.value = true;
-    loading.value = false;
-    return;
-  }
-
   loading.value = true;
   const token = authService.getToken();
   const tenantId = currentUserTenant.getTenantId();
 
-  const params = {
-    'fields[]': [
-      "id",
-      "employeeId",
+  let params = new URLSearchParams({
+    fields: [
       "assignedUser.first_name",
       "assignedUser.tenant",
-      "department.id",
-      "department.departmentName",
-      "branch.id",
-      "branch.branchName",
-      "assignedAccessLevel.accessLevelName",
-      "assignedAccessLevel.id",
-      "assignedAccessLevel.accessLevelNumber",
+      "assignedBranch.branch_id.branchName",
+      "assignedBranch.branch_id.id",
+      "assignedDepartment.department_id.id",
+      "assignedDepartment.department_id.departmentName",
+      "assignedDepartment.department_id.departmentId",
+      "assignedAccessLevels.accesslevels_id.accessLevelName",
+      "assignedAccessLevels.accesslevels_id.id",
+      "assignedAccessLevels.accesslevels_id",
+      "assignedAccessLevels.id",
+      "assignedAccessLevels",
       "assignedUser.tenant.tenantId",
       "assignedUser.tenant.tenantName",
       "assignedUser.role.name",
       "assignedUser.role.id",
-      "assignedAccessLevel.accessLevelName"
-    ],
-    'filter[assignedUser][tenant][tenantId][_eq]': tenantId,
-    'sort': 'date_created',
-    
-  };
+      "assignedAccessLevels.accesslevels_id.accessLevelNumber",
+      "employeeId",
+      "id",
+    ].join(","),
+    "filter[assignedUser][tenant][tenantId][_eq]": tenantId,
+  });
 
   if (search.value) {
-    params['filter[_or][0][assignedUser][first_name][_contains]'] = search.value;
-    params['filter[_or][1][employeeId][_contains]'] = search.value;
-  }
-
-  if (selectedBranch.value !== null) {
-    params['filter[branch][id][_eq]'] = selectedBranch.value;
-  }
-
-  if (selectedDepartment.value !== null) {
-    params['filter[department][id][_eq]'] = selectedDepartment.value;
-  }
-
-  if (activeTab.value === "assigned") {
-    params['filter[assignedAccessLevel][id][_eq]'] = props.accessLevelId;
-  } else {
-    params['filter[assignedAccessLevel][id][_null]'] = 'true';
-  }
-
-  const queryString = Object.entries(params)
-    .flatMap(([key, value]) => {
-      if (Array.isArray(value)) {
-        return value.map(v => `${key}=${encodeURIComponent(v)}`);
-      }
-      return `${key}=${encodeURIComponent(value)}`;
-    })
-    .join('&');
-
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/personalModule?${queryString}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
+    params.append(
+      "filter[_or][0][assignedUser][first_name][_contains]",
+      search.value,
     );
-
-    const data = await response.json();
-
-    if (!data.data || !Array.isArray(data.data)) {
-      console.error('Unexpected API response:', data);
-      assignedEmployees.value = [];
-      unassignedEmployees.value = [];
-      snackbarMessage.value = 'Failed to fetch employees. Please try again.';
-      snackbar.value = true;
-      return;
-    }
-
-    if (activeTab.value === 'assigned') {
-      assignedEmployees.value = data.data.map((employee) => ({
-        ...employee,
-        assigned: true,
-      }));
-    } else {
-      unassignedEmployees.value = data.data.map((employee) => ({
-        ...employee,
-        assigned: false,
-      }));
-    }
-  } catch (error) {
-    console.error('Error fetching employees:', error);
-    assignedEmployees.value = [];
-    unassignedEmployees.value = [];
-    snackbarMessage.value = 'Error fetching employees. Please try again.';
-    snackbar.value = true;
-  } finally {
-    loading.value = false;
-  }
-};
-
-const toggleAssignment = async (employee, isAssigned) => {
-  console.log("🔄 toggleAssignment called with:", { employee, isAssigned });
-
-  if (!props.accessLevelId) {
-    console.warn("⚠️ accessLevelId is undefined, cannot toggle assignment");
-    snackbarMessage.value = "Cannot toggle assignment: Access level ID is missing.";
-    snackbar.value = true;
-    return;
+    params.append("filter[_or][1][employeeId][_contains]", search.value);
   }
 
-  const token = authService.getToken();
-  const payload = {
-    assignedAccessLevel: isAssigned ? null : props.accessLevelId,
-    accessOn: isAssigned ? false : true, // Enable access when assigning, disable when unassigning
-  };
+  if (selectedBranch.value) {
+    params.append(
+      "filter[assignedBranch][branch_id][id][_eq]",
+      selectedBranch.value,
+    );
+  }
 
-  console.log("📦 Payload to be sent:", payload);
+  if (selectedDepartment.value) {
+    params.append(
+      "filter[assignedDepartment][department_id][id][_eq]",
+      selectedDepartment.value,
+    );
+  }
 
-  try {
-    const url = `${import.meta.env.VITE_API_URL}/items/personalModule/${employee.id}`;
-    console.log("🌐 Sending PATCH request to:", url);
+  // Add filter based on the active tab
+  if (activeTab.value === "assigned") {
+    params.append(
+      "filter[assignedAccessLevels][accesslevels_id][id][_eq]",
+      props.accessLevelId,
+    );
+  } else {
+    params.append(
+      "filter[assignedAccessLevels][accesslevels_id][id][_null]",
+      "true",
+    );
+  }
 
-    const response = await fetch(url, {
-      method: "PATCH",
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/items/personalModule?${params}`,
+    {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
-    });
+    },
+  );
+  const data = await response.json();
+  if (activeTab.value === "assigned") {
+    assignedEmployees.value = data.data.map((employee) => ({
+      ...employee,
+      assigned: true,
+    }));
+  } else {
+    unassignedEmployees.value = data.data.map((employee) => ({
+      ...employee,
+      assigned: false,
+    }));
+  }
 
-    console.log("📥 Response status:", response.status);
+  loading.value = false;
+};
+
+const toggleAssignment = async (employee) => {
+  const token = authService.getToken();
+  let payload = {
+    assignedAccessLevels: {
+      create: [],
+      update: [],
+      delete: [],
+    },
+  };
+
+  if (employee.assigned) {
+    // Assigning: Create new access level entry
+    payload.assignedAccessLevels.create.push({
+      personalModule_id: "+",
+      accesslevels_id: { id: props.accessLevelId },
+    });
+  } else {
+    const accessLevelEntry = employee.assignedAccessLevels.find(
+      (al) => al.accesslevels_id.id === props.accessLevelId,
+    );
+    if (accessLevelEntry) {
+      payload.assignedAccessLevels.delete.push(accessLevelEntry.id);
+    } else {
+      console.error("No access level entry found for unassignment");
+      return;
+    }
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/personalModule/${employee.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+    );
 
     if (response.ok) {
-      const responseData = await response.json();
-      console.log("📄 Response data:", responseData);
-      
-      const updatedEmployee = responseData.data;
-      const actuallyAssigned = updatedEmployee.assignedAccessLevel !== null;
-
-      // Update cards based on assignment status
-      await updateEmployeeCards(
-        employee.id,
-        props.accessLevelId,
-        !isAssigned // Enable cards when assigning, disable when unassigning
-      );
-
-      if (!isAssigned && actuallyAssigned) {
-        console.log("✅ Successfully assigned access level");
+      // Update the employee lists
+      if (employee.assigned) {
         unassignedEmployees.value = unassignedEmployees.value.filter(
           (emp) => emp.id !== employee.id,
         );
-        assignedEmployees.value.push({ 
-          ...employee, 
-          assigned: true,
-          assignedAccessLevel: updatedEmployee.assignedAccessLevel 
-        });
-        snackbarMessage.value = "Successfully assigned access level to employee and updated cards.";
-      } else if (isAssigned && !actuallyAssigned) {
-        console.log("🚫 Successfully unassigned access level");
+        assignedEmployees.value.push({ ...employee, assigned: true });
+      } else {
         assignedEmployees.value = assignedEmployees.value.filter(
           (emp) => emp.id !== employee.id,
         );
-        unassignedEmployees.value.push({ 
-          ...employee, 
-          assigned: false,
-          assignedAccessLevel: null 
-        });
-        snackbarMessage.value = "Successfully unassigned access level from employee and updated cards.";
-      } else {
-        console.warn("⚠️ API response doesn't match expected assignment state");
-        snackbarMessage.value = "Assignment may not have completed as expected. Please refresh to see current state.";
-        await fetchEmployees();
+        unassignedEmployees.value.push({ ...employee, assigned: false });
       }
 
-      console.log("🔔 Showing snackbar:", snackbarMessage.value);
+      // Show success snackbar
+      snackbarMessage.value = `Successfully ${
+        employee.assigned ? "assigned" : "unassigned"
+      } access level to employee.`;
       snackbar.value = true;
     } else {
-      const errorData = await response.json();
-      console.error("❌ Failed to update access level. Response error:", errorData);
-      snackbarMessage.value = "Failed to update access level. Please try again.";
-      snackbar.value = true;
+      console.error(
+        `Failed to ${
+          employee.assigned ? "assign" : "unassign"
+        } access level to employee`,
+      );
     }
   } catch (error) {
-    console.error("🔥 Exception caught during access level update:", error);
-    snackbarMessage.value = "Error updating access level. Please try again.";
-    snackbar.value = true;
+    console.error(
+      `Error ${
+        employee.assigned ? "assigning" : "unassigning"
+      } access level to employee:`,
+      error,
+    );
   }
 };
 
 const assignToAllEmployees = async () => {
-  if (!props.accessLevelId) {
-    console.warn("accessLevelId is undefined, cannot assign to all employees");
-    snackbarMessage.value = "Cannot assign to all employees: Access level ID is missing.";
-    snackbar.value = true;
-    return;
-  }
-
   const token = authService.getToken();
-  const tenantId = currentUserTenant.getTenantId();
-
   const payload = {
     keys: unassignedEmployees.value.map((emp) => emp.id),
     data: {
-      assignedAccessLevel: props.accessLevelId,
-      accessOn: true, // Enable access for all assigned employees
+      assignedAccessLevels: {
+        create: [
+          {
+            personalModule_id: "+",
+            accesslevels_id: { id: props.accessLevelId },
+          },
+        ],
+        update: [],
+        delete: [],
+      },
     },
   };
 
@@ -479,58 +393,31 @@ const assignToAllEmployees = async () => {
     );
 
     if (response.ok) {
-      // Update cards for each employee
-      for (const employee of unassignedEmployees.value) {
-        await updateEmployeeCards(employee.id, props.accessLevelId, true);
-      }
-
+      // Move all unassigned employees to assigned employees
       assignedEmployees.value = [
         ...assignedEmployees.value,
-        ...unassignedEmployees.value.map((emp) => ({ ...emp, assigned: true, assignedAccessLevel: { id: props.accessLevelId } })),
+        ...unassignedEmployees.value.map((emp) => ({ ...emp, assigned: true })),
       ];
       unassignedEmployees.value = [];
-      snackbarMessage.value = "Successfully assigned access level to all employees and updated cards.";
+
+      // Show success snackbar
+      snackbarMessage.value =
+        "Successfully assigned access level to all employees.";
       snackbar.value = true;
     } else {
-      const errorData = await response.json();
-      console.error("Failed to assign access level to all employees:", errorData);
-      snackbarMessage.value = "Failed to assign access level to all employees. Please try again.";
-      snackbar.value = true;
+      console.error("Failed to assign access level to all employees");
     }
   } catch (error) {
     console.error("Error assigning access level to all employees:", error);
-    snackbarMessage.value = "Error assigning access level to all employees. Please try again.";
-    snackbar.value = true;
   }
 };
 
-watch(
-  () => props.accessLevelId,
-  (newId) => {
-    if (newId) {
-      fetchEmployees();
-    }
-  },
-);
-
-watch(activeTab, () => {
-  if (props.accessLevelId) {
-    fetchEmployees();
-  } else {
-    console.warn("accessLevelId is undefined, skipping fetchEmployees");
-    snackbarMessage.value = "Access level ID is not available. Please try again.";
-    snackbar.value = true;
-  }
+watch(activeTab, (newTab) => {
+  fetchEmployees();
 });
 
 const handleTabChange = () => {
-  if (props.accessLevelId) {
-    fetchEmployees();
-  } else {
-    console.warn("accessLevelId is undefined, skipping fetchEmployees");
-    snackbarMessage.value = "Access level ID is not available. Please try again.";
-    snackbar.value = true;
-  }
+  fetchEmployees();
 };
 </script>
 

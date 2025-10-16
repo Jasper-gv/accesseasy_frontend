@@ -48,7 +48,6 @@
     </v-window>
   </v-container>
 </template>
-
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import LeaveRequest from "./leaveRequest.vue/table.vue";
@@ -57,6 +56,7 @@ import LeavePermission from "./leavePermission.vue/leavePermissionTable.vue";
 import SpecialRequest from "./specialRequest.vue/table.vue";
 import AddSpecialRequest from "./specialRequest.vue/add.vue";
 import { currentUserTenant } from "@/utils/currentUserTenant";
+import LeaveManagement from "../settings/leaves/leaveManagmnet.vue";
 
 const userRole = ref(null);
 const tenantId = ref(null);
@@ -64,33 +64,45 @@ const tenantId = ref(null);
 const tabs = ref([
   {
     value: "leavePermission",
-    title: "ALL Request",
+    title: "Request",
     icon: "mdi-account-check",
     component: LeavePermission,
     addComponent: null,
-    roles: ["Admin", "Manager", "Dealer", "accessManager", "Employee"],
+    roles: ["Admin"],
     showAdd: false,
     showEdit: false,
     editedItem: {},
   },
   {
     value: "leaveRequest",
-    title: " My Leave Request",
+    title: "Request",
     icon: "mdi-calendar-clock",
     component: LeaveRequest,
     addComponent: AddLeaveRequest,
-    roles: ["Manager", "Employee", "Admin"],
+    roles: ["Manager", "Employee"],
     showAdd: false,
     showEdit: false,
     editedItem: {},
   },
+
+  // {
+  //   value: "specialRequest",
+  //   title: "My Special Request",
+  //   icon: "mdi-star-circle",
+  //   component: SpecialRequest,
+  //   addComponent: AddSpecialRequest,
+  //   roles: ["Manager", "Employee", "Admin"],
+  //   showAdd: false,
+  //   showEdit: false,
+  //   editedItem: {},
+  // },
   {
-    value: "specialRequest",
-    title: "My Special Request",
-    icon: "mdi-star-circle",
-    component: SpecialRequest,
-    addComponent: AddSpecialRequest,
+    value: "leavetypes",
+    title: "Leave Config",
+    icon: "mdi-cog",
+    component: LeaveManagement,
     roles: ["Manager", "Employee", "Admin"],
+    addComponent: null,
     showAdd: false,
     showEdit: false,
     editedItem: {},
@@ -104,21 +116,24 @@ const visibleTabs = computed(() => {
 
   return tabs.value.filter((tab) => {
     if (userRole.value === "Employee") {
-      return ["leaveRequest", "specialRequest", "leavePermission"].includes(
+      return ["leaveRequest", "specialRequest", "leavetypes"].includes(
         tab.value,
       );
     } else if (userRole.value === "Manager") {
-      return ["leaveRequest", "leavePermission", "specialRequest"].includes(
-        tab.value,
-      );
+      return [
+        "leaveRequest",
+        "leavePermission",
+        "specialRequest",
+        "leavetypes",
+      ].includes(tab.value);
     } else if (userRole.value === "Dealer") {
       return tab.value === "leavePermission";
     } else if (userRole.value === "Admin") {
-      return ["leavePermission", "leaveRequest", "specialRequest"].includes(
+      return ["leavePermission", "specialRequest", "leavetypes"].includes(
         tab.value,
       );
     } else if (userRole.value === "accessManager") {
-      return ["leavePermission"].includes(tab.value);
+      return ["leaveRequest"].includes(tab.value);
     }
     return false;
   });

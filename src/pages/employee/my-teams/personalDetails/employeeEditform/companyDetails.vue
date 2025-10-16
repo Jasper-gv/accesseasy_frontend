@@ -187,7 +187,7 @@
             <v-divider class="mt-2"></v-divider>
           </template>
         </v-select>
-        <v-col cols="12">
+        <!-- <v-col cols="12">
           <h3>PF and ESI Account</h3>
         </v-col>
         <v-col cols="12" md="6">
@@ -209,7 +209,7 @@
             density="comfortable"
             @input="handleInputChange('assignedUser.PFAccountNumber')"
           ></v-text-field>
-        </v-col>
+        </v-col> -->
       </v-row>
     </v-container>
 

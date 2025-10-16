@@ -27,8 +27,8 @@
                 <v-select
                   v-model="mode"
                   :items="[
-                    { label: 'Internal Task', value: 'internal' },
-                    { label: 'Work Order Task', value: 'workorder' },
+                    { label: 'Internal Work Order', value: 'internal' },
+                    { label: 'Work Order ', value: 'workorder' },
                   ]"
                   item-title="label"
                   item-value="value"
@@ -81,7 +81,7 @@ const mode = ref("internal"); // 'none' | 'internal' | 'workorder'
 const { users, fetchDropdownData } = formApi(); // call alias instead of useFormApi()
 
 const headerTitle = computed(() => {
-  if (mode.value === "internal") return "Create Internal Task";
+  if (mode.value === "internal") return "Create Internal Work Order";
   if (mode.value === "workorder") return "Create Work Order";
   return "Create Work Order";
 });

@@ -60,12 +60,12 @@ const handleSelectAllChange = () => {
   display: flex;
   padding: 0.75rem 0.5rem;
   font-weight: 600;
-  background-color: #e8edff !important;
-  color: #0f3b82;
+  background-color: #ecfdf5 !important;
+  color: black;
   font-size: 0.875rem;
-  border-bottom: 1px solid #e2e8f0;
+  border: 1px solid #059367;
   min-width: max-content;
-  position: sticky;
+  position: sticky !important;
   top: 0;
   z-index: 20;
 }
@@ -82,15 +82,7 @@ const handleSelectAllChange = () => {
   position: sticky;
   left: 0;
   z-index: 30;
-  background: #e8edff;
-  box-shadow: 1px 0 0 #e2e8f0;
-}
-
-.employeeId-sticky {
-  position: sticky;
-  left: 50px;
-  z-index: 25;
-  background: #e8edff;
+  background: #ecfdf5;
   box-shadow: 1px 0 0 #e2e8f0;
 }
 

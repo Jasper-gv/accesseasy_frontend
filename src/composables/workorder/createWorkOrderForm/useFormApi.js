@@ -1,4 +1,4 @@
-// usecreateWorkoder.js
+// /senzrfieldopsfrontend/src/composables/workorder/createWorkOrderForm/useFormApi.js
 import { ref, computed } from "vue";
 import { authService } from "../../../services/authService";
 import { currentUserTenant } from "../../../utils/currentUserTenant";
@@ -7,12 +7,22 @@ export function useFormApi() {
   const formDetails = ref(null);
   const clients = ref([]);
   const users = ref([]);
+  const departments = ref([]);
   const loading = ref(true);
   const error = ref(null);
   const submissionError = ref(null);
 
   const token = ref(authService.getToken());
   const tenantId = computed(() => currentUserTenant.getTenantId());
+
+  // Utility function to get the first present value from a list of keys
+  const getFirstPresent = (obj, keys) => {
+    for (const k of keys) {
+      const v = obj?.[k];
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return undefined;
+  };
 
   const fetchFormDetails = async (formTemplateId) => {
     loading.value = true;
@@ -57,6 +67,7 @@ export function useFormApi() {
       }
 
       const data = await response.json();
+      console.log("API Response for formDetails:", data);
       formDetails.value = data.data;
     } catch (err) {
       console.error("Error fetching form details:", err);
@@ -67,7 +78,7 @@ export function useFormApi() {
     }
   };
 
-  const fetchDropdownData = async () => {
+  const fetchDropdownData = async (limit = 100) => {
     if (!token.value || !tenantId.value) {
       console.warn(
         "Token or Tenant ID not available for fetching dropdown data.",
@@ -76,14 +87,15 @@ export function useFormApi() {
     }
 
     try {
-      // Clients
+      // Clients - limit to 100 initially
       const clientParams = new URLSearchParams([
-        ["limit", "-1"],
+        ["limit", limit.toString()],
         ["fields[]", "orgName"],
         ["fields[]", "id"],
         ["fields[]", "orgId.email"],
         ["filter[_and][0][_and][0][tenant][tenantId][_eq]", tenantId.value],
         ["filter[_and][1][status][_neq]", "archived"],
+        ["sort", "orgName"],
       ]).toString();
 
       const clientsResponse = await fetch(
@@ -100,9 +112,9 @@ export function useFormApi() {
         id: c.id,
       }));
 
-      // Employees (personalModule)
+      // Employees (personalModule) - limit to 100 initially
       const employeeParams = new URLSearchParams([
-        ["limit", "-1"],
+        ["limit", limit.toString()],
         ["fields[]", "employeeId"],
         ["fields[]", "assignedUser.first_name"],
         ["fields[]", "assignedUser.last_name"],
@@ -111,6 +123,7 @@ export function useFormApi() {
           "filter[_and][0][assignedUser][tenant][tenantId][_eq]",
           tenantId.value,
         ],
+        ["sort", "employeeId"],
       ]).toString();
 
       const usersResponse = await fetch(
@@ -187,19 +200,310 @@ export function useFormApi() {
           assignedUser: u.assignedUser,
         };
       });
+
+      const teamEnabled =
+        formDetails.value?.custom_FormTemplate?.shared_properties?.booleans
+          ?.team;
+      if (teamEnabled) {
+        await fetchDepartments(limit);
+      }
     } catch (err) {
       console.error("Error fetching dropdown data:", err);
     }
   };
 
+  const fetchDepartments = async (limit = 100) => {
+    if (!token.value || !tenantId.value) {
+      console.warn(
+        "Token or Tenant ID not available for fetching departments.",
+      );
+      return [];
+    }
+
+    try {
+      const params = new URLSearchParams([
+        ["limit", limit.toString()],
+        ["fields[]", "departmentName"],
+        ["fields[]", "departmentId"],
+        ["fields[]", "id"],
+        ["sort[]", "sort"],
+        ["page", "1"],
+        ["filter[status][_neq]", "archived"],
+        ["filter[_and][0][tenant][tenantId][_eq]", tenantId.value],
+      ]).toString();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/department?${params}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token.value}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch departments");
+
+      const data = await response.json();
+      departments.value = (data?.data || []).map((dept) => ({
+        id: dept.id,
+        departmentName: dept.departmentName,
+        departmentId: dept.departmentId,
+      }));
+
+      console.log("[v0] Fetched departments:", departments.value.length);
+      return departments.value;
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+      departments.value = [];
+      return [];
+    }
+  };
+
+  const searchDepartments = async (searchQuery) => {
+    if (!token.value || !tenantId.value) {
+      console.warn(
+        "Token or Tenant ID not available for searching departments.",
+      );
+      return [];
+    }
+
+    try {
+      const params = [
+        ["limit", "100"],
+        ["fields[]", "departmentName"],
+        ["fields[]", "departmentId"],
+        ["fields[]", "id"],
+        ["sort[]", "sort"],
+        ["filter[status][_neq]", "archived"],
+        ["filter[_and][0][tenant][tenantId][_eq]", tenantId.value],
+      ];
+
+      // Add search filter for department name
+      if (searchQuery && searchQuery.trim()) {
+        params.push([
+          "filter[_and][1][departmentName][_contains]",
+          searchQuery.trim(),
+        ]);
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/department?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token.value}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to search departments");
+
+      const data = await response.json();
+      const results = (data?.data || []).map((dept) => ({
+        id: dept.id,
+        departmentName: dept.departmentName,
+        departmentId: dept.departmentId,
+      }));
+
+      console.log("[v0] Department search results:", results.length);
+      return results;
+    } catch (err) {
+      console.error("Error searching departments:", err);
+      return [];
+    }
+  };
+
+  const searchOrganizations = async (searchQuery, orgType = null) => {
+    if (!token.value || !tenantId.value) {
+      console.warn(
+        "Token or Tenant ID not available for searching organizations.",
+      );
+      return [];
+    }
+
+    try {
+      const params = [
+        ["limit", "100"],
+        ["fields[]", "orgName"],
+        ["fields[]", "id"],
+        ["fields[]", "orgType"],
+        ["filter[_and][0][tenant][tenantId][_eq]", tenantId.value],
+        ["filter[_and][1][status][_neq]", "archived"],
+        ["sort", "orgName"],
+      ];
+
+      // Add search filter for organization name
+      if (searchQuery && searchQuery.trim()) {
+        params.push([
+          "filter[_and][2][orgName][_contains]",
+          searchQuery.trim(),
+        ]);
+      }
+
+      // Add org type filter if specified
+      if (orgType) {
+        const orgTypeFilter = orgType === "Client" ? "clientorg" : "contact";
+        params.push(["filter[_and][3][orgType][_contains]", orgTypeFilter]);
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/organization?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token.value}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to search organizations");
+
+      const data = await response.json();
+      return (data?.data || []).map((org) => ({
+        id: org.id,
+        orgName: org.orgName,
+        orgType: org.orgType,
+      }));
+    } catch (err) {
+      console.error("Error searching organizations:", err);
+      return [];
+    }
+  };
+
+  const searchUsers = async (searchQuery) => {
+    if (!token.value || !tenantId.value) {
+      console.warn("Token or Tenant ID not available for searching users.");
+      return [];
+    }
+
+    try {
+      const params = [
+        ["limit", "100"],
+        ["fields[]", "employeeId"],
+        ["fields[]", "assignedUser.first_name"],
+        ["fields[]", "assignedUser.last_name"],
+        ["fields[]", "id"],
+        [
+          "filter[_and][0][assignedUser][tenant][tenantId][_eq]",
+          tenantId.value,
+        ],
+        ["sort", "employeeId"],
+      ];
+
+      // Add search filters for employee ID or name
+      if (searchQuery && searchQuery.trim()) {
+        const query = searchQuery.trim();
+        // Search by employee ID
+        params.push(["filter[_and][1][_or][0][employeeId][_contains]", query]);
+        // Search by first name
+        params.push([
+          "filter[_and][1][_or][1][assignedUser][first_name][_contains]",
+          query,
+        ]);
+        // Search by last name
+        params.push([
+          "filter[_and][1][_or][2][assignedUser][last_name][_contains]",
+          query,
+        ]);
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/personalModule?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token.value}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to search users");
+
+      const usersJson = await response.json();
+      const pmList = usersJson.data || [];
+      const personalIds = pmList.map((u) => u.id).filter(Boolean);
+
+      // Fetch attendance for search results
+      const today = new Date().toISOString().slice(0, 10);
+      const attendanceMap = new Map();
+      if (personalIds.length > 0) {
+        const attParams = new URLSearchParams([
+          ["limit", "-1"],
+          ["fields[]", "id"],
+          ["fields[]", "status"],
+          ["fields[]", "employeeId.id"],
+          ["fields[]", "employeeId.employeeId"],
+          ["filter[_and][0][date][_eq]", today],
+          ["filter[_and][1][employeeId][id][_in]", personalIds.join(",")],
+        ]).toString();
+
+        const attRes = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/attendance?${attParams}`,
+          {
+            headers: { Authorization: `Bearer ${token.value}` },
+          },
+        );
+
+        if (attRes.ok) {
+          const attJson = await attRes.json();
+          (attJson.data || []).forEach((a) => {
+            attendanceMap.set(a?.employeeId?.id, { status: a?.status || null });
+          });
+        }
+      }
+
+      const statusLabel = (s) =>
+        s === "in"
+          ? "Punched In"
+          : s === "out"
+            ? "Punched Out"
+            : "Not Punched In";
+      const statusColor = (s) =>
+        s === "in" ? "green" : s === "out" ? "red" : "orange";
+
+      return pmList.map((u) => {
+        const first = u.assignedUser?.first_name || "";
+        const last = u.assignedUser?.last_name || "";
+        const empId = u.employeeId || "N/A";
+        const name = `${first} ${last}`.trim();
+        const display = `${name} (${empId})`;
+
+        const att = attendanceMap.get(u.id) || { status: null };
+        return {
+          id: u.id,
+          employeeId: empId,
+          firstName: display,
+          label: display,
+          attendance: {
+            status: att.status,
+            label: statusLabel(att.status),
+            color: statusColor(att.status),
+          },
+          assignedUser: u.assignedUser,
+        };
+      });
+    } catch (err) {
+      console.error("Error searching users:", err);
+      return [];
+    }
+  };
+
   const normalizeDate = (v) => {
-    if (!v) return v;
+    if (!v) return null;
     if (v instanceof Date) return v.toISOString().slice(0, 10);
     if (typeof v === "string") {
       const m = v.match(/^(\d{4}-\d{2}-\d{2})/);
       if (m) return m[1];
     }
-    return v;
+    console.warn(`Invalid date input: ${v}`);
+    return null;
   };
 
   const toIsoMidday = (input, formDataContext = {}) => {
@@ -225,7 +529,8 @@ export function useFormApi() {
     if (input instanceof Date && !isNaN(input)) {
       return input.toISOString().slice(0, 19);
     }
-    return input;
+    console.warn(`Invalid date input: ${input}`);
+    return null;
   };
 
   const getWorkOrdersFolderId = async () => {
@@ -257,7 +562,16 @@ export function useFormApi() {
 
   const uploadImage = async (file) => {
     try {
-      // Validate file type and size
+      // If already a string ID, return it
+      if (typeof file === "string") {
+        return file;
+      }
+
+      // If not a File object, throw error
+      if (!(file instanceof File)) {
+        throw new Error("Invalid file input - must be a File object");
+      }
+
       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
       if (!allowedTypes.includes(file.type)) {
         throw new Error("Only JPG, JPEG, or PNG files are allowed");
@@ -267,9 +581,13 @@ export function useFormApi() {
         throw new Error("Image size must be less than 5MB");
       }
 
-      const formData = new FormData();
       const tenantIdValue = tenantId.value;
+      if (!tenantIdValue) throw new Error("Tenant ID not found");
+
       const workOrdersFolderId = await getWorkOrdersFolderId();
+      const tokenValue = token.value;
+
+      const formData = new FormData();
       if (workOrdersFolderId) {
         formData.append("folder", workOrdersFolderId);
       }
@@ -279,9 +597,7 @@ export function useFormApi() {
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/files`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token.value}`,
-        },
+        headers: { Authorization: `Bearer ${tokenValue}` },
         body: formData,
       });
 
@@ -297,6 +613,15 @@ export function useFormApi() {
     }
   };
 
+  const uploadImages = async (files) => {
+    const uploadedIds = [];
+    for (const file of files) {
+      const id = await uploadImage(file); // Reuse uploadImage but support multiple
+      uploadedIds.push(id);
+    }
+    return uploadedIds;
+  };
+
   const submitForm = async (formData, formDetails, clients) => {
     try {
       const determinedInitialStatus = "pending";
@@ -307,51 +632,106 @@ export function useFormApi() {
 
       const processedPayloads = await Promise.all(
         payloads.map(async (data) => {
-          let uploadedImageId = null;
-          if (data.taskimage && data.taskimage.length > 0) {
-            uploadedImageId = await uploadImage(data.taskimage[0]);
+          const dynamicFields = [];
+
+          // Main task fields (core) - Move directly to top-level payload
+          const coreFields = formDetails?.custom_FormTemplate?.corefields || [];
+          const mainFields = {};
+          for (const f of coreFields) {
+            const key = f.key;
+            if (data[key] !== undefined) {
+              if (key === "user_location") {
+                mainFields[key] = { lat: data.lat, lng: data.lng };
+              } else if (key === "taskimage" && data[key]) {
+                // Check if already uploaded (array of ID strings)
+                if (
+                  Array.isArray(data[key]) &&
+                  typeof data[key][0] === "string"
+                ) {
+                  mainFields[key] = data[key]; // Already uploaded IDs
+                } else if (
+                  Array.isArray(data[key]) &&
+                  data[key][0] instanceof File
+                ) {
+                  mainFields[key] = await uploadImages(data[key]); // Upload File objects
+                }
+              } else {
+                mainFields[key] = data[key];
+              }
+            }
           }
 
-          const getFirstPresent = (obj, keys) => {
-            for (const k of keys) {
-              const v = obj?.[k];
-              if (v !== undefined && v !== null && v !== "") return v;
-            }
-            return undefined;
-          };
+          // Job sheets
+          const jobSheets = formDetails?.custom_FormTemplate?.jobSheet || [];
+          for (const jobSheet of jobSheets) {
+            const jobSheetData = data[jobSheet.job_id] || {};
+            const jobFields = {};
 
+            // Copy all fields from jobSheetData, excluding undefined/null/empty
+            for (const key of Object.keys(jobSheetData)) {
+              if (
+                jobSheetData[key] !== undefined &&
+                jobSheetData[key] !== null &&
+                jobSheetData[key] !== ""
+              ) {
+                if (key === "taskimage" && jobSheetData[key]) {
+                  // Check if already uploaded (array of ID strings)
+                  if (
+                    Array.isArray(jobSheetData[key]) &&
+                    typeof jobSheetData[key][0] === "string"
+                  ) {
+                    jobFields[key] = jobSheetData[key]; // Already uploaded IDs
+                  } else if (
+                    Array.isArray(jobSheetData[key]) &&
+                    jobSheetData[key][0] instanceof File
+                  ) {
+                    jobFields[key] = await uploadImages(jobSheetData[key]); // Upload File objects
+                  }
+                } else {
+                  jobFields[key] = jobSheetData[key];
+                }
+              }
+            }
+
+            // Handle location for job sheets (if requires_location)
+            if (jobSheet.requires_location) {
+              const latKey = jobSheet.location_field_key?.lat || "lat";
+              const lngKey = jobSheet.location_field_key?.lng || "lng";
+              if (jobSheetData[latKey] || jobSheetData[lngKey]) {
+                jobFields["user_location"] = {
+                  lat: jobSheetData[latKey],
+                  lng: jobSheetData[lngKey],
+                };
+              }
+            }
+            jobFields.UsersId = getFirstPresent(data, [
+              "UsersId",
+              "employeeId",
+              "empId",
+              "assignedEmployee",
+              "assignedUserId",
+            ]);
+            dynamicFields.push({
+              taskId: jobSheet.job_id,
+              job_name: jobSheet.job_name || "Unnamed Job Sheet",
+              fields: jobFields,
+            });
+          }
+
+          // Construct payload with core fields at top level and dynamicFields in tasks
           const payload = {
             assignFormId: formDetails?.id,
             status: determinedInitialStatus,
             tenant: tenantId.value,
             taskType: formDetails?.formName,
-            ...(data?.title
-              ? { title: data.title }
-              : formDetails?.formName
-                ? { title: formDetails.formName }
-                : {}),
-            ...(data.description && { description: data.description }),
-            ...(uploadedImageId && { taskimage: uploadedImageId }),
-            ...(data.task_priority && { task_priority: data.task_priority }),
-            ...(data.amountExpected && { amountExpected: data.amountExpected }),
-            ...(data.amountCollected && {
-              amountCollected: data.amountCollected,
-            }),
-            ...(data.demo && { demo: data.demo }),
-            ...(data.eAmountCollected && {
-              eAmountCollected: data.eAmountCollected,
-            }),
-            ...(data.issueReport && { issueReport: data.issueReport }),
-            ...(data.partsReplaced && { partsReplaced: data.partsReplaced }),
-            ...(data.prodName && { prodName: data.prodName }),
-            ...(data.orgId && { orgId: data.orgId }),
-            ...(data.snNumber && { snNumber: data.snNumber }),
-            ...(data.currentLat && { currentLat: data.currentLat }),
-            ...(data.currentLng && { currentLng: data.currentLng }),
-            ...(data.radiusInMeters && { radiusInMeters: data.radiusInMeters }),
-            ...(data.lat && { lat: data.lat }),
-            ...(data.lng && { lng: data.lng }),
-            ...(data.happy_code && { happy_code: data.happy_code }),
+            title: data.title || formDetails?.formName,
+            task_priority: data.task_priority,
+            orgId: data.orgId,
+            orgLocation: data.orgLocation,
+            team: data.team || null,
+            dynamicFields: {
+              tasks: dynamicFields,
+            },
           };
 
           const employeeIdAlt = getFirstPresent(data, [
@@ -434,12 +814,19 @@ export function useFormApi() {
     formDetails,
     clients,
     users,
+    departments,
     loading,
     error,
     submissionError,
     fetchFormDetails,
     fetchDropdownData,
+    searchOrganizations,
+    searchUsers,
+    fetchDepartments,
+    searchDepartments,
     submitForm,
     uploadImage,
+    uploadImages,
+    getFirstPresent,
   };
 }

@@ -1,3 +1,4 @@
+<!-- /senzrGo/senzrfieldopsfrontend/src/pages/taskManagement/taskcomponents/workflow.vue -->
 <template>
   <div class="app-container">
     <!-- Header -->
@@ -57,38 +58,6 @@
                     </p>
                   </div>
                 </div>
-                <!-- Quick Stats Cards -->
-                <div class="form-stats">
-                  <div class="stat-card stat-organization">
-                    <Building class="stat-icon" />
-                    <div class="stat-content">
-                      <div class="stat-label">Organization</div>
-                      <div class="stat-value">
-                        {{ selectedForm.assignedOrgnization?.orgName || "N/A" }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="stat-card stat-fields">
-                    <ListIcon class="stat-icon" />
-                    <div class="stat-content">
-                      <div class="stat-label">Fields</div>
-                      <div class="stat-value">
-                        {{
-                          selectedForm.custom_FormTemplate?.fields?.length || 0
-                        }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="stat-card stat-status">
-                    <CheckCircleIcon class="stat-icon" />
-                    <div class="stat-content">
-                      <div class="stat-label">Status</div>
-                      <div class="stat-value">
-                        {{ selectedForm.enableForm ? "Active" : "Disabled" }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -115,6 +84,7 @@
                     :selected-form="selectedForm"
                     :role-options="roleOptions"
                     @show-field-wizard="showFieldWizard = true"
+                    @show-add-form-modal="showAddFormModal = true"
                     @show-notification="showNotification"
                   />
 
@@ -170,6 +140,17 @@
       @show-notification="showNotification"
     />
 
+    <AddFormModal
+      :show="showAddFormModal"
+      :selected-form="selectedForm"
+      :organizations-options="organizationsOptions"
+      :available-templates="availableTemplates"
+      :loading-templates="loadingTemplates"
+      @close="closeAddFormModal"
+      @add-form="confirmAddForm"
+      @show-notification="showNotification"
+    />
+
     <HelpModal :show="showHelpModal" @close="showHelpModal = false" />
   </div>
 </template>
@@ -178,20 +159,19 @@
 import { ref, onMounted } from "vue";
 import { Sparkles, Building, ListIcon, CheckCircleIcon } from "lucide-vue-next";
 
-// WorkOrdeForm Components Components
+// WorkOrdeForm Components
 import FormHeader from "@/components/WorkOrdeForm_Components/formHeader.vue";
 import FormSidebar from "@/components/WorkOrdeForm_Components/formSidebar.vue";
 import FieldConfiguration from "@/components/WorkOrdeForm_Components/fieldConfiguration.vue";
-import StatusConfiguration from "@/components/WorkOrdeForm_Components//statusConfiguration.vue";
-//ui
+import StatusConfiguration from "@/components/WorkOrdeForm_Components/statusConfiguration.vue";
 import JsonPreview from "@/components/WorkOrdeForm_Components/jsonPreview.vue";
 import EmptyState from "@/components/ui/workOrderUi/emptyState.vue";
 import ToastNotification from "@/components/ui/workOrderUi/toastNotification.vue";
 import LoadingOverlay from "@/components/ui/workOrderUi/loadingOverlay.vue";
-//modals
 import CreateFormModal from "@/components/modals/workOrderForm_Modals/createFormModal.vue";
 import DeleteFormModal from "@/components/modals/workOrderForm_Modals/deleteFormModal.vue";
 import FieldWizardModal from "@/components/modals/workOrderForm_Modals/fieldWizardModal.vue";
+import AddFormModal from "@/components/modals/workOrderForm_Modals/addFormModal.vue";
 import HelpModal from "@/components/modals/workOrderForm_Modals/helpModal.vue";
 
 // Composables
@@ -206,12 +186,8 @@ import { tabs, getTabIcon } from "@/utils/config/constants";
 
 // Auth
 const { userRole } = useAuth();
-
-// Notifications
 const { showToast, toastMessage, toastType, showNotification } =
   useNotifications();
-
-// Form Templates
 const {
   formTemplates,
   selectedForm,
@@ -223,8 +199,6 @@ const {
   selectForm,
   toggleFormEnabled,
 } = useFormTemplates();
-
-// Form Configuration
 const {
   saving,
   creating,
@@ -244,6 +218,9 @@ const {
   deleteForm,
   saveConfiguration,
   copyToClipboard,
+  showAddFormModal,
+  closeAddFormModal,
+  confirmAddForm,
 } = useFormConfiguration(
   selectedForm,
   formTemplates,
@@ -251,17 +228,12 @@ const {
   selectForm,
   fetchFormTemplates,
 );
-
-// Field Wizard
 const { showFieldWizard, closeFieldWizard, saveWizardField } = useFieldWizard(
   selectedForm,
   showNotification,
 );
-
-// Help Modal
 const showHelpModal = ref(false);
 
-// Lifecycle
 onMounted(() => {
   fetchRoles();
   fetchFormTemplates();

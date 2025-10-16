@@ -1,12 +1,16 @@
-<!-- FormStep.vue - Fixed submission handling -->
 <template>
   <v-card class="form-step-card" elevation="8">
     <v-card-text class="form-step-content">
-      <v-form
-        ref="formRef"
-        v-model="internalFormValid"
-        @submit.prevent="handleFormSubmit"
-      >
+      <!-- Added debug info to help troubleshoot -->
+      <div v-if="currentStepFields.length === 0" class="empty-state">
+        <v-alert type="info" variant="tonal">
+          <v-icon class="mr-2">mdi-information</v-icon>
+          No fields available for this step. Please check the form
+          configuration.
+        </v-alert>
+      </div>
+
+      <v-form v-else ref="formRef" @submit.prevent="handleFormSubmit">
         <v-row class="field-grid">
           <v-col
             v-for="field in currentStepFields"
@@ -20,14 +24,17 @@
               :form-data="formData"
               :clients="clients"
               :users="users"
+              :departments="departments"
+              :shared-properties="sharedProperties"
               :user-role="userRole"
               @field-action="$emit('field-action', field, $event)"
               @generate-code="$emit('generate-code', field)"
+              @validation-change="handleValidationChange"
             />
           </v-col>
 
           <!-- Priority -->
-          <v-col cols="12" class="field-column">
+          <v-col cols="12" class="field-column" v-if="showPriorityReschedule">
             <v-label class="field-label">
               <v-icon size="18" color="primary" class="mr-2">mdi-flag</v-icon>
               Task priority
@@ -70,8 +77,8 @@
             </v-select>
           </v-col>
 
-          <!-- Reschedule toggle (fixed condition) -->
-          <v-col cols="12" class="field-column">
+          <!-- Reschedule toggle -->
+          <v-col cols="12" class="field-column" v-if="showPriorityReschedule">
             <v-switch
               :model-value="rescheduleEnabled"
               @update:model-value="$emit('update-reschedule-enabled', $event)"
@@ -89,8 +96,7 @@
           </v-col>
 
           <!-- Reschedule controls -->
-          <template v-if="rescheduleEnabled">
-            <!-- Start date (disabled) -->
+          <template v-if="rescheduleEnabled && showPriorityReschedule">
             <v-col cols="12" class="field-column">
               <v-label class="field-label">
                 <v-icon size="18" color="primary" class="mr-2"
@@ -109,7 +115,6 @@
               />
             </v-col>
 
-            <!-- End date (select) -->
             <v-col cols="12" class="field-column">
               <v-label class="field-label">
                 <v-icon size="18" color="primary" class="mr-2"
@@ -130,7 +135,6 @@
               />
             </v-col>
 
-            <!-- Weekday selection -->
             <v-col cols="12" class="field-column">
               <v-label class="field-label">
                 <v-icon size="18" color="primary" class="mr-2"
@@ -161,11 +165,35 @@
 
         <!-- Form Actions -->
         <v-card-actions class="form-actions">
+          <v-btn
+            v-if="currentStep > 1"
+            color="secondary"
+            variant="outlined"
+            size="large"
+            class="action-btn prev-btn"
+            prepend-icon="mdi-arrow-left"
+            @click="handlePrevious"
+          >
+            Previous
+          </v-btn>
           <v-spacer></v-spacer>
           <v-btn
+            v-if="currentStep < totalSteps"
+            color="primary"
+            :disabled="!canProceed"
+            size="large"
+            class="action-btn primary-btn"
+            append-icon="mdi-arrow-right"
+            @click="handleNext"
+          >
+            Next
+          </v-btn>
+          <!-- Create Task button only enabled when all mandatory fields are valid -->
+          <v-btn
+            v-else
             color="primary"
             type="submit"
-            :disabled="!internalFormValid"
+            :disabled="!canSubmit || loading"
             size="large"
             class="action-btn primary-btn"
             :append-icon="'mdi-check-circle'"
@@ -180,7 +208,8 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, provide } from "vue";
+import { isFieldMandatory } from "@/utils/createWOF/validationRules";
 import FieldRenderer from "./FieldRenderer.vue";
 
 const props = defineProps({
@@ -196,6 +225,8 @@ const props = defineProps({
   formValid: Boolean,
   clients: Array,
   users: Array,
+  departments: Array,
+  sharedProperties: Object,
   userRole: String,
   priority: { type: String, default: null },
   rescheduleEnabled: { type: Boolean, default: false },
@@ -203,6 +234,8 @@ const props = defineProps({
   selectedDays: { type: Array, default: () => [] },
   fromDate: { type: String, default: null },
   dueDate: { type: String, default: null },
+  showPriorityReschedule: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -221,29 +254,105 @@ const emit = defineEmits([
 ]);
 
 const formRef = ref(null);
-const internalFormValid = ref(false);
 
-watch(internalFormValid, (val) => {
-  emit("update:formValid", val);
+const touchedFields = ref({});
+const fieldValidationState = ref({});
+
+provide("touchedFields", touchedFields);
+
+watch(
+  () => props.currentStepFields,
+  (newFields) => {
+    console.log("[v0] FormStep - currentStepFields changed:", newFields);
+    console.log("[v0] FormStep - formData keys:", Object.keys(props.formData));
+    console.log("[v0] FormStep - formData:", props.formData);
+  },
+  { immediate: true, deep: true },
+);
+
+const handleValidationChange = (validationInfo) => {
+  fieldValidationState.value[validationInfo.fieldKey] = validationInfo;
+
+  // Emit form validity
+  const isFormValid = checkFormValidity();
+  emit("update:formValid", isFormValid);
+};
+
+const checkFormValidity = () => {
+  const mandatoryFields = props.currentStepFields.filter((field) =>
+    isFieldMandatory(field, props.userRole),
+  );
+
+  // Check if all mandatory fields have been filled and are valid
+  for (const field of mandatoryFields) {
+    const state = fieldValidationState.value[field.key];
+
+    // If field hasn't been validated yet or is invalid
+    if (!state || !state.isValid || !state.hasValue) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const canSubmit = computed(() => {
+  // Check all mandatory fields across all steps
+  const allFields = props.currentStepFields;
+  const mandatoryFields = allFields.filter((field) =>
+    isFieldMandatory(field, props.userRole),
+  );
+
+  for (const field of mandatoryFields) {
+    const state = fieldValidationState.value[field.key];
+    const value = props.formData[field.key];
+
+    // Field must have a value and be valid
+    if (!value || (state && !state.isValid)) {
+      console.log(`[v0] Field ${field.key} is not valid:`, { value, state });
+      return false;
+    }
+  }
+
+  console.log(
+    `[v0] All mandatory fields are valid, enabling Create Task button`,
+  );
+  return true;
 });
 
-// FIXED: Handle form submission properly
+const canProceed = computed(() => {
+  return checkFormValidity();
+});
+
 const handleFormSubmit = (event) => {
-  console.log("FormStep handleFormSubmit called");
+  console.log("[v0] FormStep handleFormSubmit called");
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
 
-  console.log("About to emit submit-form event");
-  emit("submit-form");
-  console.log("Emitted submit-form event");
+  props.currentStepFields.forEach((field) => {
+    touchedFields.value[field.key] = true;
+  });
 
-  // Fallback - also emit next-step to ensure submission happens
-  setTimeout(() => {
-    console.log("Fallback: emitting next-step");
-    emit("next-step");
-  }, 100);
+  if (!canSubmit.value) {
+    console.log("[v0] Cannot submit - mandatory fields missing or invalid");
+    return;
+  }
+
+  console.log("[v0] About to emit submit-form event");
+  emit("submit-form");
+  console.log("[v0] Emitted submit-form event");
+};
+
+const handlePrevious = () => {
+  console.log("[v0] Previous button clicked, current step:", props.currentStep);
+  emit("prev-step");
+};
+
+const handleNext = () => {
+  console.log("[v0] Next button clicked, current step:", props.currentStep);
+  emit("next-step");
 };
 
 const getFieldColSize = (type) => {
@@ -266,25 +375,18 @@ const weekdays = [
   { label: "S", value: "Sun", js: 0 },
 ];
 
-// Fixed date normalization function
 const normalizeDateString = (v) => {
   if (!v) return null;
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   if (typeof v === "string") {
-    // Handle datetime-local format (YYYY-MM-DDTHH:MM)
-    if (v.includes("T")) {
-      return v.split("T")[0];
-    }
-    // Handle date format (YYYY-MM-DD)
+    if (v.includes("T")) return v.split("T")[0];
     const m = v.match(/^(\d{4}-\d{2}-\d{2})/);
     if (m) return m[1];
   }
   return null;
 };
 
-// Fixed computed properties to get dates from form data
 const normalizedFromDate = computed(() => {
-  // Check multiple possible field names for date fields
   const dateFields = [
     "from",
     "fromDate",
@@ -293,12 +395,10 @@ const normalizedFromDate = computed(() => {
     "start_date",
   ];
 
-  // First check props
   if (props.fromDate) {
     return normalizeDateString(props.fromDate);
   }
 
-  // Then check formData for date fields
   for (const field of dateFields) {
     if (props.formData[field]) {
       return normalizeDateString(props.formData[field]);
@@ -309,7 +409,6 @@ const normalizedFromDate = computed(() => {
 });
 
 const normalizedDueDate = computed(() => {
-  // Check multiple possible field names for due date fields
   const dueDateFields = [
     "dueTime",
     "due_time",
@@ -321,12 +420,10 @@ const normalizedDueDate = computed(() => {
     "to_date",
   ];
 
-  // First check props
   if (props.dueDate) {
     return normalizeDateString(props.dueDate);
   }
 
-  // Then check formData for due date fields
   for (const field of dueDateFields) {
     if (props.formData[field]) {
       return normalizeDateString(props.formData[field]);
@@ -336,12 +433,11 @@ const normalizedDueDate = computed(() => {
   return null;
 });
 
-// Fixed condition - both dates must exist and be the same
 const canEnableReschedule = computed(() => {
   const fromDate = normalizedFromDate.value;
   const dueDate = normalizedDueDate.value;
 
-  console.log("FormStep - Reschedule check:", {
+  console.log("[v0] FormStep - Reschedule check:", {
     fromDate,
     dueDate,
     canEnable: !!fromDate && !!dueDate && fromDate === dueDate,
@@ -388,13 +484,37 @@ const canEnableReschedule = computed(() => {
   box-shadow: 0 4px 16px rgba(25, 118, 210, 0.3) !important;
 }
 
-.primary-btn:hover {
+.primary-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4) !important;
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Enhanced Previous button styling for better visibility */
+.prev-btn {
+  border: 2px solid #757575 !important;
+  color: #424242 !important;
+  font-weight: 600 !important;
+  background: #ffffff !important;
+}
+
+.prev-btn:hover:not(:disabled) {
+  background: #f5f5f5 !important;
+  border-color: #424242 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.prev-btn .v-icon {
+  color: #424242 !important;
 }
 
 .field-label {
@@ -418,6 +538,11 @@ const canEnableReschedule = computed(() => {
 
 .text-success {
   color: #10b981;
+}
+
+.empty-state {
+  padding: 24px;
+  text-align: center;
 }
 
 @media (max-width: 768px) {

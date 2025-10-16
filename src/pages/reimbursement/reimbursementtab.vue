@@ -59,7 +59,7 @@ export default {
           path: "/reimbursement/reimbursementtab/addreimbursement",
           name: "addreimbursement",
           label: "Create Expense",
-          meta: { roles: ["Admin", "Employee"] },
+          meta: { roles: ["Employee"] },
           icon: "mdi-cash-multiple",
         },
       ],

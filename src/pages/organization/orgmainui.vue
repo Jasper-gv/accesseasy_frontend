@@ -4,8 +4,6 @@
       :search-query="searchQuery"
       @update:searchQuery="debouncedSearch"
       search-placeholder="Search organizations..."
-      :is-empty="filteredOrganizations.length === 0 && !loading && !error"
-      :has-error="!!error"
     >
       <!-- Toolbar Actions -->
       <template #toolbar-actions>
@@ -17,7 +15,6 @@
             width="100px"
             @click="showAddOrganizationModal"
           />
-          <!-- Stats -->
           <div class="stats-container">
             <div
               class="stat-item"
@@ -52,6 +49,7 @@
           </div>
         </div>
       </template>
+
       <SkeletonLoading
         v-if="loading"
         variant="data-table"
@@ -61,39 +59,7 @@
       />
 
       <template v-else>
-        <ErrorState
-          v-if="error"
-          title="Unable to load organizations"
-          :message="error"
-        />
-
-        <EmptyState
-          v-else-if="filteredOrganizations.length === 0"
-          :title="
-            searchQuery
-              ? 'No organizations found'
-              : 'No organizations available'
-          "
-          :message="
-            searchQuery
-              ? 'Try a different search term'
-              : 'No organizations have been added yet'
-          "
-          :show-default-actions="false"
-        >
-          <template #actions>
-            <BaseButton
-              v-if="searchQuery"
-              variant="secondary"
-              text="Clear Search"
-              width="120px"
-              @click="clearSearch"
-            />
-          </template>
-        </EmptyState>
-
         <DataTable
-          v-else
           :items="filteredOrganizations"
           :columns="columns"
           :sort-by="sortBy"
@@ -104,6 +70,14 @@
           @update:sort-direction="sortDirection = $event"
           @sort="fetchOrganizations"
         >
+          <template #error-state>
+            <ErrorState
+              v-if="error"
+              title="Unable to load organizations"
+              :message="error"
+            />
+          </template>
+
           <template #empty-state>
             <EmptyState
               :title="
@@ -126,11 +100,15 @@
                   width="120px"
                   @click="clearSearch"
                 />
+                <BaseButton
+                  variant="primary"
+                  text="Add your first Organization"
+                  width="160px"
+                  @click="showAddOrganizationModal"
+                />
               </template>
             </EmptyState>
           </template>
-
-          <ErrorState title="Unable to load organizations" :message="error" />
 
           <template #cell-organization="{ item }">
             <div class="organization-info">

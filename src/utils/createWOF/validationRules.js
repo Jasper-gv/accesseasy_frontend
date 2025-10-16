@@ -1,67 +1,76 @@
-// Check if field is mandatory
+// /senzrGo/senzrfieldopsfrontend/src/utils/createWOF/validationRules.js
 export const isFieldMandatory = (field, userRole) => {
+  // Check roleBasedMandatory first (highest priority)
   const mandatory = field.roleBasedMandatory;
+  if (mandatory && typeof mandatory === "object") {
+    if (mandatory[userRole] !== undefined) {
+      return mandatory[userRole] === true;
+    }
+  }
+
+  // Check roleBasedRequired second
   const required = field.roleBasedRequired;
+  if (required && typeof required === "object") {
+    if (required[userRole] !== undefined) {
+      return required[userRole] === true;
+    }
+  }
+
+  // Check validations.required last
   const validationRequired = field.validations?.required;
-
-  if (
-    mandatory &&
-    typeof mandatory === "object" &&
-    mandatory[userRole] !== undefined
-  ) {
-    return mandatory[userRole];
-  }
-
-  if (
-    required &&
-    typeof required === "object" &&
-    required[userRole] !== undefined
-  ) {
-    return required[userRole];
-  }
-
-  return validationRequired || false;
+  return validationRequired === true;
 };
 
-// Check if field is start date
-const isStartDateField = (field) => {
-  return field.key === "from" || field.label.toLowerCase().includes("start");
-};
-
-// Check if field is end date
-const isEndDateField = (field) => {
-  return (
-    field.key === "dueTime" ||
-    field.label.toLowerCase().includes("end") ||
-    field.label.toLowerCase().includes("due")
-  );
-};
-
-// Get field type as string
-const getFieldTypeString = (fieldType) => {
-  if (typeof fieldType === "object" && fieldType.date === true) {
+// Declare getFieldTypeString function
+const getFieldTypeString = (type) => {
+  if (!type) return "text"; // Default to text if type is undefined
+  if (typeof type === "object" && type.date === true) {
     return "date";
   }
-  return fieldType;
+  if (typeof type === "string") {
+    return type.toLowerCase();
+  }
+  return "text"; // Fallback
 };
 
-// Get validation rules for a field
+// Declare isEndDateField function
+const isEndDateField = (field) => {
+  if (!field) return false;
+  const key = field.key || "";
+  const label = (field.label || "").toLowerCase();
+  return key === "dueTime" || label.includes("end") || label.includes("due");
+};
+
 export const getValidationRules = (field, userRole, formData) => {
+  if (!field) {
+    console.warn("[v0] getValidationRules called with undefined field");
+    return [];
+  }
+
   const rules = [];
-  const validations = field.validations;
+  const validations = field.validations || {}; // Default to empty object
   const mandatory = isFieldMandatory(field, userRole);
   const fieldType = getFieldTypeString(field.type);
 
-  // Required validation
   if (mandatory || validations?.required) {
-    rules.push((v) =>
-      !v && v !== 0
-        ? validations?.message || `${field.label} is required.`
-        : true,
-    );
+    rules.push((v) => {
+      // Check for empty values
+      if (v === null || v === undefined || v === "") {
+        return (
+          validations?.message || `${field.label || "This field"} is required.`
+        );
+      }
+      // For arrays (like multi-select), check if empty
+      if (Array.isArray(v) && v.length === 0) {
+        return (
+          validations?.message || `${field.label || "This field"} is required.`
+        );
+      }
+      return true;
+    });
   }
 
-  if (validations) {
+  if (validations && typeof validations === "object") {
     // Text/BigText validations
     if (fieldType === "text" || fieldType === "bigtext") {
       if (validations.minLength) {
@@ -116,7 +125,6 @@ export const getValidationRules = (field, userRole, formData) => {
         });
       }
 
-      // Optional: exact integer range helper if provided by schema
       if (
         validations.range &&
         Array.isArray(validations.range) &&
@@ -135,14 +143,13 @@ export const getValidationRules = (field, userRole, formData) => {
       }
     }
 
-    // Date validations (simplified: keep format + enforce end/due > start)
+    // Date validations
     if (fieldType === "date") {
       if (validations.format) {
         rules.push((v) => {
           if (!v) return true;
-          // If a custom format is specified, do a light check; otherwise skip strict regex
           if (validations.format === "YYYY-MM-DD") {
-            return /^\d{4}-\d{2}-\d{2}$/.test(v)
+            return /^\d{4}-\d{2}-\d{2}/.test(v)
               ? true
               : validations.message ||
                   `Date format must be ${validations.format}.`;
@@ -211,12 +218,21 @@ export const getValidationRules = (field, userRole, formData) => {
       ) {
         rules.push((v) => {
           if (v) {
-            const fileExtension = v.name.split(".").pop().toLowerCase();
-            if (!validations.fileTypeAllowed.includes(fileExtension)) {
-              return (
-                validations.message ||
-                `Allowed types: ${validations.fileTypeAllowed.join(", ")}.`
-              );
+            if (
+              typeof v === "string" ||
+              (Array.isArray(v) && typeof v[0] === "string")
+            ) {
+              return true;
+            }
+
+            if (v.name) {
+              const fileExtension = v.name.split(".").pop().toLowerCase();
+              if (!validations.fileTypeAllowed.includes(fileExtension)) {
+                return (
+                  validations.message ||
+                  `Allowed types: ${validations.fileTypeAllowed.join(", ")}.`
+                );
+              }
             }
           }
           return true;
@@ -227,7 +243,7 @@ export const getValidationRules = (field, userRole, formData) => {
     // OTP/Happy Code validations
     if (
       (fieldType === "otp" || fieldType === "happy-code") &&
-      validations.length
+      validations.length !== undefined
     ) {
       rules.push((v) => {
         if (v && String(v).length !== validations.length) {

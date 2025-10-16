@@ -39,7 +39,15 @@ import { useRouter, useRoute } from "vue-router";
 const router = useRouter();
 const route = useRoute();
 
+/**
+ * 🧭 Tabs order updated — Organization first, then Branch, then Department
+ */
 const tabs = [
+  {
+    value: "organization-settings",
+    title: "Organization Settings",
+    icon: "mdi-office-building-cog",
+  },
   {
     value: "branch-configuration",
     title: "Branch Configuration",
@@ -52,12 +60,20 @@ const tabs = [
   },
 ];
 
-const activeTab = ref("branch-configuration");
+const activeTab = ref("organization-settings");
 
+/**
+ * Ensure the correct tab highlights when page loads
+ */
 onMounted(() => {
-  activeTab.value = route.name;
+  if (route.name) {
+    activeTab.value = route.name;
+  }
 });
 
+/**
+ * Sync tab selection when user changes tabs
+ */
 watch(activeTab, (newValue) => {
   if (newValue && newValue !== route.name) {
     router.push({ name: newValue });

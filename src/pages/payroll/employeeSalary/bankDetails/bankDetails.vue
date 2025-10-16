@@ -1,7 +1,7 @@
 <template>
   <div class="bank-details-container">
     <!-- Filter Panel -->
-    <div class="filter-panel" v-if="showFilters">
+    <div class="filter-panel" v-if="showFilters && !showForm">
       <div class="filter-content">
         <FilterComponent
           :tenantId="tenantId"
@@ -16,6 +16,7 @@
 
     <!-- Filter Toggle Button -->
     <button
+      v-if="!showForm"
       class="filter-toggle-static"
       @click="toggleFilters"
       :class="{ active: hasActiveFilters }"
@@ -35,7 +36,11 @@
       <div v-if="hasActiveFilters" class="filter-indicator"></div>
     </button>
 
-    <div class="main-content" :class="{ 'full-width': !showFilters }">
+    <div
+      v-if="!showForm"
+      class="main-content"
+      :class="{ 'full-width': !showFilters }"
+    >
       <DataTableWrapper
         v-model:searchQuery="search"
         :showSearch="true"
@@ -199,6 +204,7 @@
         @cancel="showForm = false"
       />
     </div>
+    <router-view />
   </div>
 </template>
 
@@ -207,7 +213,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import debounce from "lodash/debounce";
-import BankForm from "@/pages/employee/my-teams/bankDetails/bankDetails.vue";
+// import BankForm from "@/pages/employee/my-teams/bankDetails/bankDetails.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
@@ -245,7 +251,6 @@ const filters = reactive({
 
 // Filter schema for FilterComponent
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
@@ -597,7 +602,10 @@ const handleSort = ({ field, direction }) => {
 
 const handleRowClick = (item) => {
   if (item && item.id) {
-    router.push(`/employee-details/employee/${item.id}/bankmodule`);
+    showForm.value = true;
+    router.push(
+      `/payroll/employee-salary/bank-details/${item.id}/bank-detailsedit`,
+    );
   } else {
     console.error("Invalid item or item ID");
   }

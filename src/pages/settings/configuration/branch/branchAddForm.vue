@@ -786,7 +786,7 @@ watch(searchQuery, (newQuery) => {
 
 // ==================== FORM HANDLERS ====================
 const handleClose = () => {
-  router.push({ name: "org_location" });
+  router.push({ name: "branch-configuration" });
 };
 
 // Fetch organizations

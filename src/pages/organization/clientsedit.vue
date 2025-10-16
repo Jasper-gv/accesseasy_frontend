@@ -92,6 +92,10 @@
                   ? 'Enter Contact number'
                   : 'Enter Client number'
               "
+              maxlength="10"
+              pattern="[0-9]{10}"
+              title="Please enter exactly 10 digits"
+              @input="validatePhoneNumber"
               required
             />
           </div>
@@ -168,6 +172,21 @@ export default {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     const tenantId = currentUserTenant.getTenantId();
     const token = authService.getToken();
+    const validatePhoneNumber = () => {
+      // Remove any non-digit characters
+      client.orgNumber = client.orgNumber.replace(/\D/g, "");
+
+      // Validate length and format
+      if (client.orgNumber.length > 10) {
+        client.orgNumber = client.orgNumber.slice(0, 10);
+      }
+
+      if (client.orgNumber && client.orgNumber.length !== 10) {
+        phoneError.value = "Phone number must be exactly 10 digits";
+      } else {
+        phoneError.value = "";
+      }
+    };
     const client = reactive({
       orgName: "",
       email: "",
@@ -320,6 +339,7 @@ export default {
       updateMap,
       searchLocation,
       handleSubmit,
+      validatePhoneNumber,
       isSubmitting,
       goBack,
     };

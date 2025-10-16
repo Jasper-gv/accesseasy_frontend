@@ -23,14 +23,25 @@
       :title="showFilters ? 'Hide filters' : 'Show filters'"
       aria-label="Toggle filters"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
       </svg>
       <div v-if="hasActiveFilters" class="filter-indicator"></div>
     </button>
 
     <!-- Main Content -->
-    <div class="main-content" :class="{ 'full-width': !showFilters }" v-if="tenantId">
+    <div
+      class="main-content"
+      :class="{ 'full-width': !showFilters }"
+      v-if="tenantId"
+    >
       <DataTableWrapper
         v-model:searchQuery="searchQuery"
         :showSearch="true"
@@ -42,7 +53,12 @@
         <!-- Header Slot for Stats -->
         <template v-slot:toolbar-actions>
           <div class="stats-container">
-            <div v-for="stat in stats" :key="stat.title" class="stat-item" :class="`${stat.color}--text`">
+            <div
+              v-for="stat in stats"
+              :key="stat.title"
+              class="stat-item"
+              :class="`${stat.color}--text`"
+            >
               <span class="stat-value">{{ stat.value }}</span>
               <span class="stat-title">{{ stat.title }}</span>
             </div>
@@ -93,28 +109,66 @@
             <!-- Employee Column -->
             <template #cell-employee="{ item }">
               <div class="employee-info">
-                <div class="employee-avatar" :style="{ backgroundColor: getAvatarColor(item) }">
+                <div
+                  class="employee-avatar"
+                  :style="{ backgroundColor: getAvatarColor(item) }"
+                >
                   {{ getInitials(item) }}
                 </div>
                 <div class="employee-details">
                   <h3 class="employee-name">{{ formatEmployeeName(item) }}</h3>
-                  <p class="employee-id">ID: {{ item.employeeId || 'N/A' }}</p>
-                  <p class="employee-department">{{ getDepartmentName(item) }}</p>
+                  <p class="employee-id">ID: {{ item.employeeId || "N/A" }}</p>
+                  <p class="employee-department">
+                    {{ getDepartmentName(item) }}
+                  </p>
                 </div>
               </div>
             </template>
 
             <!-- Status Column -->
             <template #cell-status="{ item }">
-              <span class="status-badge" :class="`status-${getStatusColor(item.status)}`">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path v-if="getStatusIcon(item.status) === 'mdi-check-circle'" d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <path v-if="getStatusIcon(item.status) === 'mdi-check-circle'" d="m9 11 3 3L22 4" />
-                  <circle v-if="getStatusIcon(item.status) === 'mdi-account-off'" cx="12" cy="12" r="10" />
-                  <path v-if="getStatusIcon(item.status) === 'mdi-account-off'" d="M4.93 4.93l14.14 14.14" />
-                  <path v-if="getStatusIcon(item.status) === 'mdi-home-circle'" d="M12 2L2 9v13h20V9L12 2z" />
-                  <path v-if="getStatusIcon(item.status) === 'mdi-briefcase-clock'" d="M21 6h-3V5a3 3 0 0 0-3-3H9a3 3 0 0 0-3 3v1H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1zM8 5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1H8V5zm4 8l3 2" />
-                  <path v-if="getStatusIcon(item.status) === 'mdi-clock-time-six'" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-8l3-3" />
+              <span
+                class="status-badge"
+                :class="`status-${getStatusColor(item.status)}`"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    v-if="getStatusIcon(item.status) === 'mdi-check-circle'"
+                    d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                  />
+                  <path
+                    v-if="getStatusIcon(item.status) === 'mdi-check-circle'"
+                    d="m9 11 3 3L22 4"
+                  />
+                  <circle
+                    v-if="getStatusIcon(item.status) === 'mdi-account-off'"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                  <path
+                    v-if="getStatusIcon(item.status) === 'mdi-account-off'"
+                    d="M4.93 4.93l14.14 14.14"
+                  />
+                  <path
+                    v-if="getStatusIcon(item.status) === 'mdi-home-circle'"
+                    d="M12 2L2 9v13h20V9L12 2z"
+                  />
+                  <path
+                    v-if="getStatusIcon(item.status) === 'mdi-briefcase-clock'"
+                    d="M21 6h-3V5a3 3 0 0 0-3-3H9a3 3 0 0 0-3 3v1H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1zM8 5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1H8V5zm4 8l3 2"
+                  />
+                  <path
+                    v-if="getStatusIcon(item.status) === 'mdi-clock-time-six'"
+                    d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-8l3-3"
+                  />
                 </svg>
                 {{ formatStatus(item.status) }}
               </span>
@@ -123,13 +177,28 @@
             <!-- First Punch Column -->
             <template #cell-inTime="{ item }">
               <div class="time-info">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="item.lateBy && item.lateBy !== '00:00:00' ? 'text-error' : 'text-success'">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  :class="
+                    item.lateBy && item.lateBy !== '00:00:00'
+                      ? 'text-error'
+                      : 'text-success'
+                  "
+                >
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
                 <div>
                   <div class="time-value">{{ formatTime(item.inTime) }}</div>
-                  <div v-if="item.lateBy && item.lateBy !== '00:00:00'" class="time-late">
+                  <div
+                    v-if="item.lateBy && item.lateBy !== '00:00:00'"
+                    class="time-late"
+                  >
                     Late by {{ item.lateBy }}
                   </div>
                 </div>
@@ -139,13 +208,30 @@
             <!-- Last Punch Column -->
             <template #cell-outTime="{ item }">
               <div class="time-info">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="item.earlyDeparture && item.earlyDeparture !== '00:00:00' ? 'text-warning' : 'text-success'">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  :class="
+                    item.earlyDeparture && item.earlyDeparture !== '00:00:00'
+                      ? 'text-warning'
+                      : 'text-success'
+                  "
+                >
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
                 <div>
                   <div class="time-value">{{ formatTime(item.outTime) }}</div>
-                  <div v-if="item.earlyDeparture && item.earlyDeparture !== '00:00:00'" class="time-early">
+                  <div
+                    v-if="
+                      item.earlyDeparture && item.earlyDeparture !== '00:00:00'
+                    "
+                    class="time-early"
+                  >
                     Early by {{ item.earlyDeparture }}
                   </div>
                 </div>
@@ -208,7 +294,6 @@ const filters = reactive({
   monthYear: new Date().toISOString().slice(0, 7),
 });
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
@@ -267,20 +352,25 @@ const isEmployeeLeft = (employee) => {
 
 // Computed Properties
 const activeUsers = computed(() =>
-  totalUsers.value.filter((user) => !isEmployeeLeft(user))
+  totalUsers.value.filter((user) => !isEmployeeLeft(user)),
 );
 
 const hasActiveFilters = computed(() =>
-  Boolean(filters.organization || filters.branch || filters.department || searchQuery.value)
+  Boolean(
+    filters.organization ||
+      filters.branch ||
+      filters.department ||
+      searchQuery.value,
+  ),
 );
 
 const stats = computed(() => {
   const data = mergedAttendanceData.value;
   const presentCount = data.filter((item) =>
-    ["present", "onDuty", "workFromHome", "halfDay"].includes(item.attendance)
+    ["present", "onDuty", "workFromHome", "halfDay"].includes(item.attendance),
   ).length;
   const absentCount = data.filter((item) =>
-    ["absent", "holiday"].includes(item.attendance)
+    ["absent", "holiday"].includes(item.attendance),
   ).length;
 
   return [
@@ -294,7 +384,7 @@ const mergedAttendanceData = computed(() => {
   const attendanceMap = new Map(
     attendanceData.value
       .map((record) => [record.employeeId?.id?.toString(), record])
-      .filter(([key]) => key)
+      .filter(([key]) => key),
   );
 
   return activeUsers.value.map((user) => {
@@ -304,7 +394,8 @@ const mergedAttendanceData = computed(() => {
       employeeId: user.employeeId,
       firstName: user.assignedUser?.first_name || "",
       lastName: user.assignedUser?.last_name || "",
-      departmentName: user.assignedDepartment?.[0]?.department_id?.departmentName || "N/A",
+      departmentName:
+        user.assignedDepartment?.[0]?.department_id?.departmentName || "N/A",
       orgType: user.assignedUser?.organization?.orgType || "N/A",
       status: attendanceRecord?.status || "out",
       attendance: attendanceRecord?.attendance || "absent",
@@ -326,7 +417,7 @@ const filteredAttendance = computed(() => {
       (item) =>
         formatEmployeeName(item).toLowerCase().includes(query) ||
         item.employeeId?.toLowerCase().includes(query) ||
-        item.departmentName.toLowerCase().includes(query)
+        item.departmentName.toLowerCase().includes(query),
     );
   }
 
@@ -467,7 +558,10 @@ const fetchAttendanceData = async () => {
     if (!personalModuleUrl) {
       throw new Error("Invalid personal module URL due to missing tenantId");
     }
-    const usersData = await fetchData(personalModuleUrl, "Failed to fetch users");
+    const usersData = await fetchData(
+      personalModuleUrl,
+      "Failed to fetch users",
+    );
     totalUsers.value = usersData.data || [];
 
     // Get active user IDs
@@ -484,7 +578,10 @@ const fetchAttendanceData = async () => {
     if (!attendanceUrl) {
       throw new Error("Invalid attendance URL due to missing tenantId");
     }
-    const attendanceResponseData = await fetchData(attendanceUrl, "Failed to fetch attendance");
+    const attendanceResponseData = await fetchData(
+      attendanceUrl,
+      "Failed to fetch attendance",
+    );
     attendanceData.value = attendanceResponseData.data || [];
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -635,7 +732,7 @@ watch(
   () => {
     fetchAttendanceData();
   },
-  { deep: true }
+  { deep: true },
 );
 
 watch(tenantId, (newValue) => {
@@ -658,10 +755,12 @@ onMounted(async () => {
   display: flex;
   height: 100vh;
   position: relative;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
-
-
 
 /* Filter Panel */
 .filter-panel {
@@ -776,7 +875,6 @@ onMounted(async () => {
 .stat-title {
   color: #6b7280;
 }
-
 
 /* Table Cell Styles */
 .employee-info {

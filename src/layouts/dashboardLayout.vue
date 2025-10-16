@@ -23,21 +23,18 @@
       elevation="0"
     >
       <!-- Header Section - Logo with Image -->
-      <div class="sidebar-header" v-if="!isSettingsPage">
+      <div class="sidebar-header">
         <div class="header-content" @click="toggleSidebarState">
           <div class="logo-section">
-            <!-- <div class="logo-container">
+            <div class="logo-container">
               <v-img
-                src="/images/sa.png"
+                src="/images/SEO.png"
                 alt="Logo"
-                width="28"
-                height="28"
+                width="1000"
+                height="1000"
                 class="logo-image"
               />
-            </div> -->
-            <span v-if="!computedRail && !isSettingsPage" class="app-name"
-              >Fieldseasy</span
-            >
+            </div>
           </div>
         </div>
       </div>
@@ -45,174 +42,55 @@
       <!-- Navigation Menu -->
       <div class="nav-content">
         <v-list class="nav-list" density="compact">
-          <!-- Settings Page Menu -->
-          <template v-if="isSettingsPage">
-            <!-- HOME BUTTON IN SETTINGS -->
+          <template
+            v-for="(item, index) in filteredMenuItems"
+            :key="item.title"
+          >
+            <!-- Simple Menu Item (No Sub Items) -->
             <v-list-item
-              @click="goToDashboard"
-              class="nav-item main-item home-item"
-            >
-              <template v-slot:prepend>
-                <v-tooltip :disabled="!computedRail" location="right">
-                  <template v-slot:activator="{ props }">
-                    <div class="icon-wrapper">
-                      <v-icon class="nav-icon" v-bind="props" size="24">
-                        mdi-home-outline
-                      </v-icon>
-                    </div>
-                  </template>
-                  <span>Home</span>
-                </v-tooltip>
-              </template>
-              <v-list-item-title v-if="!computedRail" class="nav-title">
-                Home
-              </v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              :to="'/settings'"
+              v-if="!item.subItems || item.subItems.length === 0"
+              :to="item.to"
               class="nav-item main-item"
-              :class="{ active: $route.path === '/settings' }"
-              @click="handleItemClick('/settings')"
+              :class="{ active: $route.path === item.to }"
+              @click="handleItemClick(item.to)"
+              exact
             >
               <template v-slot:prepend>
-                <v-tooltip :disabled="!computedRail" location="right">
+                <v-tooltip
+                  :disabled="!computedRail"
+                  location="right"
+                  open-delay="500"
+                >
                   <template v-slot:activator="{ props }">
                     <div class="icon-wrapper">
                       <v-icon
                         class="nav-icon"
                         v-bind="props"
                         size="24"
-                        @click.stop="handleIconClick('/settings')"
+                        @click.stop="
+                          handleIconClick(item.to, item, null, index)
+                        "
                       >
-                        mdi-cog-outline
+                        {{ item.icon }}
                       </v-icon>
                     </div>
                   </template>
-                  <span>Settings</span>
+                  <span>{{ item.title }}</span>
                 </v-tooltip>
               </template>
               <v-list-item-title v-if="!computedRail" class="nav-title">
-                Settings
+                {{ item.title }}
               </v-list-item-title>
             </v-list-item>
 
-            <!-- Settings Sub Items -->
-            <div class="sub-menu-section" v-if="!computedRail">
-              <template
-                v-for="item in filteredSettingsMenuItems"
-                :key="item.title"
-              >
-                <!-- Settings items without nested sub-items -->
-                <v-list-item
-                  v-if="!item.subItems || item.subItems.length === 0"
-                  :to="item.to"
-                  class="nav-item main-item"
-                  :class="{ active: $route.path === item.to }"
-                  @click="handleItemClick(item.to)"
-                  exact
-                >
-                  <template v-slot:prepend>
-                    <v-tooltip
-                      :disabled="!computedRail"
-                      location="right"
-                      open-delay="500"
-                    >
-                      <template v-slot:activator="{ props }">
-                        <div class="icon-wrapper">
-                          <v-icon
-                            class="nav-icon"
-                            v-bind="props"
-                            size="24"
-                            @click.stop="handleIconClick(item.to)"
-                          >
-                            {{ item.icon }}
-                          </v-icon>
-                          <!-- Add lock icon for premium features -->
-                          <v-icon
-                            v-if="
-                              item.requiredFeature &&
-                              !availableFeatures.includes(item.requiredFeature)
-                            "
-                            class="lock-icon"
-                            size="16"
-                            color="grey"
-                          >
-                            mdi-lock
-                          </v-icon>
-                        </div>
-                      </template>
-                      <span>{{ item.title }}</span>
-                    </v-tooltip>
-                  </template>
-                  <v-list-item-title v-if="!computedRail" class="nav-title">
-                    {{ item.title }}
-                  </v-list-item-title>
-                </v-list-item>
-
-                <!-- Settings items with nested sub-items -->
-                <div v-else class="nested-menu-group">
-                  <v-list-item
-                    class="nav-item sub-item expandable"
-                    :class="{
-                      active: isSubMenuActive(item),
-                      expanded: expandedMenus[item.title] && !computedRail,
-                    }"
-                    @click="toggleSubMenu(item.title)"
-                  >
-                    <v-list-item-title class="sub-title">
-                      {{ item.title }}
-                    </v-list-item-title>
-                    <template v-slot:append>
-                      <v-icon
-                        class="expand-icon"
-                        :class="{ rotated: expandedMenus[item.title] }"
-                        size="20"
-                      >
-                        mdi-chevron-right-thick
-                      </v-icon>
-                    </template>
-                  </v-list-item>
-
-                  <!-- Nested Sub Menu Items -->
-                  <v-expand-transition>
-                    <div
-                      v-if="expandedMenus[item.title]"
-                      class="nested-sub-menu-section"
-                    >
-                      <v-list-item
-                        v-for="nestedItem in item.subItems"
-                        :key="nestedItem.title"
-                        :to="nestedItem.to"
-                        class="nav-item nested-sub-item"
-                        :class="{ active: $route.path === nestedItem.to }"
-                        @click="handleSubItemClick(nestedItem)"
-                      >
-                        <v-list-item-title class="nested-title">
-                          {{ nestedItem.title }}
-                        </v-list-item-title>
-                      </v-list-item>
-                    </div>
-                  </v-expand-transition>
-                </div>
-              </template>
-            </div>
-          </template>
-
-          <!-- Main Menu -->
-          <template v-else>
-            <template
-              v-for="(item, index) in filteredMenuItems"
-              :key="item.title"
-            >
-              <!-- Simple Menu Item (No Sub Items) -->
+            <!-- Menu Item with Sub Items -->
+            <div v-else class="menu-group">
               <v-list-item
-                v-if="!item.subItems || item.subItems.length === 0"
-                :to="item.to"
-                class="nav-item main-item"
-                :class="{ active: $route.path === item.to }"
-                @click="handleItemClick(item.to)"
-                exact
+                class="nav-item main-item expandable"
+                :class="{
+                  expanded: expandedMenus[item.title] && !computedRail,
+                }"
+                @click="handleMainMenuClick(item.title)"
               >
                 <template v-slot:prepend>
                   <v-tooltip
@@ -226,9 +104,7 @@
                           class="nav-icon"
                           v-bind="props"
                           size="24"
-                          @click.stop="
-                            handleIconClick(item.to, item, null, index)
-                          "
+                          @click.stop="handleIconClick(null, item, null, index)"
                         >
                           {{ item.icon }}
                         </v-icon>
@@ -240,192 +116,44 @@
                 <v-list-item-title v-if="!computedRail" class="nav-title">
                   {{ item.title }}
                 </v-list-item-title>
+                <template v-slot:append v-if="!computedRail">
+                  <v-icon
+                    class="expand-icon"
+                    :class="{ rotated: expandedMenus[item.title] }"
+                    size="16"
+                  >
+                    mdi-chevron-right
+                  </v-icon>
+                </template>
               </v-list-item>
 
-              <!-- Menu Item with Sub Items -->
-              <div v-else class="menu-group">
-                <v-list-item
-                  class="nav-item main-item expandable"
-                  :class="{
-                    expanded: expandedMenus[item.title] && !computedRail,
-                  }"
-                  @click="handleMainMenuClick(item.title)"
+              <!-- Sub Menu Items -->
+              <v-expand-transition>
+                <div
+                  v-if="expandedMenus[item.title] && !computedRail"
+                  class="sub-menu-section"
                 >
-                  <template v-slot:prepend>
-                    <v-tooltip
-                      :disabled="!computedRail"
-                      location="right"
-                      open-delay="500"
-                    >
-                      <template v-slot:activator="{ props }">
-                        <div class="icon-wrapper">
-                          <v-icon
-                            class="nav-icon"
-                            v-bind="props"
-                            size="24"
-                            @click.stop="
-                              handleIconClick(null, item, null, index)
-                            "
-                          >
-                            {{ item.icon }}
-                          </v-icon>
-                        </div>
-                      </template>
-                      <span>{{ item.title }}</span>
-                    </v-tooltip>
-                  </template>
-                  <v-list-item-title v-if="!computedRail" class="nav-title">
-                    {{ item.title }}
-                  </v-list-item-title>
-                  <template v-slot:append v-if="!computedRail">
-                    <v-icon
-                      class="expand-icon"
-                      :class="{ rotated: expandedMenus[item.title] }"
-                      size="16"
-                    >
-                      mdi-chevron-right
-                    </v-icon>
-                  </template>
-                </v-list-item>
-
-                <!-- Sub Menu Items -->
-                <v-expand-transition>
-                  <div
-                    v-if="expandedMenus[item.title] && !computedRail"
-                    class="sub-menu-section"
+                  <v-list-item
+                    v-for="subItem in item.subItems"
+                    :key="subItem.title"
+                    :to="subItem.to"
+                    class="nav-item sub-item"
+                    :class="{ active: $route.path === subItem.to }"
+                    @click="handleSubItemClick(subItem)"
                   >
-                    <v-list-item
-                      v-for="subItem in item.subItems"
-                      :key="subItem.title"
-                      :to="subItem.to"
-                      class="nav-item sub-item"
-                      :class="{ active: $route.path === subItem.to }"
-                      @click="handleSubItemClick(subItem)"
-                    >
-                      <v-list-item-title class="sub-title">
-                        {{ subItem.title }}
-                      </v-list-item-title>
-                    </v-list-item>
-                  </div>
-                </v-expand-transition>
-              </div>
-            </template>
-          </template>
-        </v-list>
-      </div>
-
-      <!-- Bottom Section -->
-      <div class="sidebar-bottom">
-        <!-- User Profile Section (when expanded) -->
-        <div class="user-profile" v-if="!computedRail">
-          <div class="profile-content">
-            <v-avatar size="40" class="profile-avatar">
-              <v-img
-                v-if="profileImage"
-                :src="profileImage"
-                :loading="isLoadingImage"
-                alt="Profile"
-              />
-              <v-icon v-else size="46" color="primary"
-                >mdi-account-circle</v-icon
-              >
-            </v-avatar>
-            <div class="profile-info">
-              <div class="profile-name">{{ userFullName }}</div>
-              <div class="profile-email">
-                {{ tenantName || "No organization" }}
-              </div>
+                    <v-list-item-title class="sub-title">
+                      {{ subItem.title }}
+                    </v-list-item-title>
+                  </v-list-item>
+                </div>
+              </v-expand-transition>
             </div>
-            <v-menu v-model="profileMenu" offset-y>
-              <template v-slot:activator="{ props }">
-                <v-btn variant="text" size="small" icon v-bind="props">
-                  <v-icon size="16">mdi-dots-horizontal</v-icon>
-                </v-btn>
-              </template>
-              <v-card min-width="160" class="profile-menu">
-                <v-list density="compact">
-                  <v-list-item
-                    prepend-icon="mdi-account-outline"
-                    title="Profile"
-                    @click="$router.push('/profile')"
-                  />
-                  <v-divider />
-                  <v-list-item
-                    prepend-icon="mdi-logout"
-                    title="Logout"
-                    @click="handleLogout"
-                    class="logout-menu-item"
-                  />
-                </v-list>
-              </v-card>
-            </v-menu>
-          </div>
-        </div>
-
-        <!-- Settings and Logout - ONLY SHOW FOR ADMIN ROLE -->
-        <v-list
-          density="compact"
-          class="bottom-nav"
-          v-if="!isSettingsPage && showSettingsForRole"
-        >
-          <v-list-item class="nav-item bottom-item" @click="goToSettings">
-            <template v-slot:prepend>
-              <v-tooltip
-                :disabled="!computedRail"
-                location="right"
-                open-delay="500"
-              >
-                <template v-slot:activator="{ props }">
-                  <div class="icon-wrapper">
-                    <v-icon class="nav-icon" v-bind="props" size="24">
-                      mdi-cog-outline
-                    </v-icon>
-                  </div>
-                </template>
-                <span>Settings</span>
-              </v-tooltip>
-            </template>
-            <v-list-item-title v-if="!computedRail" class="nav-title">
-              Settings
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
-
-        <!-- Logout Button - Always show -->
-        <v-list density="compact" class="bottom-nav" v-if="!isSettingsPage">
-          <v-list-item
-            class="nav-item bottom-item logout-item"
-            @click="handleLogout"
-          >
-            <template v-slot:prepend>
-              <v-tooltip
-                :disabled="!computedRail"
-                location="right"
-                open-delay="500"
-              >
-                <template v-slot:activator="{ props }">
-                  <div class="icon-wrapper">
-                    <v-icon
-                      class="nav-icon logout-icon"
-                      v-bind="props"
-                      size="24"
-                    >
-                      mdi-logout
-                    </v-icon>
-                  </div>
-                </template>
-                <span>Logout</span>
-              </v-tooltip>
-            </template>
-            <v-list-item-title v-if="!computedRail" class="nav-title">
-              Logout
-            </v-list-item-title>
-          </v-list-item>
+          </template>
         </v-list>
       </div>
     </v-navigation-drawer>
 
-    <!-- Rail Mode Submenu Overlay - HIGHEST Z-INDEX -->
+    <!-- Rail Mode Submenu Overlay -->
     <v-card
       v-if="computedRail && railSubmenuOpen && currentRailSubmenu"
       class="rail-submenu-overlay"
@@ -452,23 +180,10 @@
 
     <!-- Main Content -->
     <v-main class="main-content">
-      <!-- Plan Reminder/Expiration Alert -->
-
-      <!-- Top App Bar - Simplified -->
       <v-app-bar color="white" elevation="0" class="top-bar" height="64">
-        <!-- Back or Menu Button -->
+        <!-- Mobile Menu Button -->
         <v-btn
-          v-if="isSettingsPage"
-          icon
-          variant="text"
-          @click="goToDashboard"
-          class="back-btn"
-          size="small"
-        >
-          <v-icon size="20">mdi-arrow-left</v-icon>
-        </v-btn>
-        <v-btn
-          v-if="isMobile && !isSettingsPage"
+          v-if="isMobile"
           icon
           variant="text"
           @click="toggleSidebarState"
@@ -479,14 +194,56 @@
         </v-btn>
 
         <!-- Page Title -->
-        <v-toolbar-title class="page-title">
+        <v-toolbar-title>
           {{ getCurrentPageTitle }}
         </v-toolbar-title>
 
         <!-- Spacer -->
         <v-spacer />
 
-        <!-- Only Tenant Name Chip -->
+        <!-- Profile Section -->
+        <div class="header-profile">
+          <v-avatar size="32" class="header-profile-avatar">
+            <v-img
+              v-if="profileImage"
+              :src="profileImage"
+              :loading="isLoadingImage"
+              alt="Profile"
+            />
+            <v-icon v-else size="32" color="primary">mdi-account-circle</v-icon>
+          </v-avatar>
+          <v-menu v-model="profileMenu" offset-y>
+            <template v-slot:activator="{ props }">
+              <v-btn
+                variant="text"
+                size="small"
+                v-bind="props"
+                class="header-profile-btn"
+              >
+                <span class="header-profile-name">{{ userFullName }}</span>
+                <v-icon size="16">mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-card min-width="160" class="profile-menu">
+              <v-list density="compact">
+                <v-list-item
+                  prepend-icon="mdi-account-outline"
+                  title="Profile"
+                  @click="$router.push('/profile')"
+                />
+                <v-divider />
+                <v-list-item
+                  prepend-icon="mdi-logout"
+                  title="Logout"
+                  @click="handleLogout"
+                  class="logout-menu-item"
+                />
+              </v-list>
+            </v-card>
+          </v-menu>
+        </div>
+
+        <!-- Tenant Name Chip -->
         <v-chip
           class="tenant-chip"
           variant="outlined"
@@ -521,7 +278,6 @@ import { ref, computed, onMounted, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { authService } from "@/services/authService";
-import { currentUserTenant } from "@/utils/currentUserTenant";
 import PremiumOverlay from "@/components/common/upgrade/PremiumUpgrade.vue";
 
 export default {
@@ -542,9 +298,7 @@ export default {
     const userStatus = ref({ color: "grey", text: "Unknown" });
     const expandedMenus = ref({});
     const tenantName = ref("");
-    const tenantplan = ref(null); // Changed to ref to store API data
-
-    // Rail submenu state
+    const tenantplan = ref(null);
     const railSubmenuOpen = ref(false);
     const currentRailSubmenu = ref(null);
     const railSubmenuStyle = ref({});
@@ -558,66 +312,7 @@ export default {
       }
     };
 
-    // Settings menu items - ONLY FOR ADMIN AND DEALER
-    const settingsMenuItems = [
-      {
-        title: "Organization Settings",
-        icon: "mdi-domain",
-        to: "/settings/organization",
-        roles: ["Admin", "Administrator", "Dealer"],
-      },
-      {
-        title: " Configuration",
-        icon: "mdi-domain",
-        to: "/settings/configuration",
-        roles: ["Admin", "Dealer", "Manager"],
-      },
-      {
-        title: "Attendance Policy",
-        icon: "mdi-clock-outline",
-        to: "/settings/attendancepolicy",
-        roles: ["Admin", "Administrator", "Dealer", "Manager"],
-      },
-      {
-        title: "Leave Types",
-        icon: "mdi-account-clock",
-        to: "/settings/leave-types",
-        roles: ["Admin", "Dealer", "Manager"],
-      },
-      {
-        title: "Shifts",
-        icon: "mdi-clock-outline",
-        to: "/settings/shifts",
-        roles: ["Admin", "Dealer", "Manager"],
-      },
-      {
-        title: "Holidays",
-        icon: "mdi-calendar-star",
-        to: "/settings/holidays",
-        roles: ["Admin", "Dealer", "Manager"],
-      },
-
-      {
-        title: "Payroll Category",
-        icon: "mdi-cash-multiple",
-        to: "/settings/payrollCatagory",
-        roles: ["Admin", "Dealer"],
-      },
-      {
-        title: "Role Configuration",
-        icon: "mdi-account-cog",
-        to: "/settings/roleConfigurator/roleconfig",
-        roles: ["Admin", "Dealer"],
-      },
-      {
-        title: "Subscription & Plans",
-        icon: "mdi-credit-card-outline",
-        to: "/settings/plans/plans",
-        roles: ["Admin"],
-      },
-    ];
-
-    // Updated menu items - REMOVED Dashboard as main tab, Overview is first
+    // Combined menu items (merged settingsMenuItems into menuItems)
     const menuItems = [
       {
         title: "Overview",
@@ -627,12 +322,23 @@ export default {
         subItems: [],
       },
       {
-        title: "Users",
+        title: "Employees",
         icon: "mdi-account-group-outline",
         to: "/employee-details/employee",
         roles: ["Admin", "Employee", "Manager", "esslAdmin"],
       },
-
+      {
+        title: "Organization Settings",
+        icon: "mdi-domain",
+        to: "/settings/organization",
+        roles: ["Admin", "Administrator", "Dealer"],
+      },
+      {
+        title: "Attendance Configuration",
+        icon: "mdi-calendar-clock",
+        roles: ["Admin", "Dealer", "Manager", "Employee"],
+        to: "/settings/attendanceconfigtab",
+      },
       {
         title: "Attendance",
         icon: "mdi-calendar-clock-outline",
@@ -647,39 +353,26 @@ export default {
           {
             title: "Daily Attendance",
             to: "/attendanceDeatils/daily",
-            roles: ["Admin", "Dealer", "Employee", "Manager", "accessManager"],
+            roles: ["Admin", "Employee"],
           },
-
           {
             title: "Monthly Attendance",
             to: "/attendanceDeatils/dashboard",
             roles: ["Admin", "Dealer", "Manager", "Employee"],
           },
+          // {
+          //   title: "Regularisation",
+          //   icon: "mdi-calendar-check",
+          //   to: "/regularisation",
+          //   roles: ["Admin", "Employee", "Manager"],
+          //   requiredFeature: "pro",
+          // },
           {
-            title: "Regularisation",
-            icon: "mdi-calendar-check",
-            to: "/regularisation",
-            roles: ["Admin", "Employee", "Manager"],
-            requiredFeature: "pro",
-          },
-          {
-            title: "All Check In-Outs",
+            title: "All In-Outs",
             icon: "mdi-book-open-page-variant-outline",
             to: "/attendanceLog",
             roles: ["Admin", "Employee", "Manager", "Employee"],
           },
-        ],
-      },
-      {
-        title: "Device Manager",
-        icon: "mdi-devices",
-        to: "/deviceManager",
-        roles: [
-          "Admin",
-          "Administrator",
-          "Dealer",
-          "esslAdmin",
-          "accessManager",
         ],
       },
       {
@@ -690,34 +383,34 @@ export default {
         requiredFeature: "fieldpro",
       },
       {
-        title: "Locate",
-        icon: "mdi-file-table-box-outline",
-        to: "/locate",
-        roles: ["Admin", "Manager"],
-      },
-      {
-        title: "Smart Forms",
-        icon: "mdi-form-textbox",
-        to: "/taskManagement/taskcomponents/workflow",
-        roles: ["Admin"],
-      },
-      {
-        title: "Clients&Orgs",
-        icon: "mdi-office-building-outline",
-        to: "/organization/locationtab",
-        roles: ["Admin"],
-      },
-      {
-        title: "Leaves",
+        title: "Requests",
         icon: "mdi-calendar-remove",
         to: "/leave",
         roles: ["Admin", "Employee", "Manager"],
       },
       {
         title: "Expenses",
-        icon: "mdi-cash-multiple",
+        icon: "mdi-cash",
         to: "/reimbursement/reimbursementtab",
         roles: ["Admin", "Employee", "Manager"],
+      },
+      {
+        title: "Locate",
+        icon: "mdi-file-table-box-outline",
+        to: "/locate",
+        roles: ["Admin", "Manager"],
+      },
+      // {
+      //   title: "Smart Forms",
+      //   icon: "mdi-form-textbox",
+      //   to: "/taskManagement/taskcomponents/workflow",
+      //   roles: ["Admin"],
+      // },
+      {
+        title: "Clients & Sites",
+        icon: "mdi-office-building-outline",
+        to: "/organization/locationtab",
+        roles: ["Admin"],
       },
 
       {
@@ -727,6 +420,12 @@ export default {
         roles: ["Admin", "Dealer"],
         requiredFeature: "payrollpro",
         subItems: [
+          {
+            title: "Employee Salaries",
+            to: "/payroll/employee-salary",
+            roles: ["Admin", "Dealer"],
+          },
+
           {
             title: "Run Payroll",
             to: "/payroll/management",
@@ -738,15 +437,16 @@ export default {
             roles: ["Admin", "Dealer"],
           },
           {
-            title: "Advance ",
-            to: "/payroll/advance",
+            title: "Advance and Loans",
+            to: "/payroll/advance-Loans",
             roles: ["Admin", "Dealer"],
           },
-          {
-            title: "Loan",
-            to: "/payroll/loan",
-            roles: ["Admin", "Dealer"],
-          },
+
+          // {
+          //   title: "Policies",
+          //   to: "/payroll/policy",
+          //   roles: ["Admin", "Dealer"],
+          // },
           // {
           //   title: "TDS",
           //   to: "/payroll/tds",
@@ -754,14 +454,18 @@ export default {
           // },
         ],
       },
-
+      {
+        title: "Configurators",
+        icon: "mdi-domain",
+        to: "/configuration",
+        roles: ["Admin", "Dealer", "Manager"],
+      },
       {
         title: "Reports",
         icon: "mdi-file-table-box-outline",
         to: "/reports",
         roles: ["Admin", "Manager"],
       },
-
       {
         title: "Import",
         icon: "mdi-file-table-box-outline",
@@ -770,11 +474,10 @@ export default {
       },
 
       {
-        title: "Connectors",
-        icon: "mdi-source-branch",
-        to: "/connectors/connector",
-        roles: ["Admin", "Manager"],
-        requiredFeature: "crm",
+        title: "Subscription & Plans",
+        icon: "mdi-credit-card-outline",
+        to: "/settings/plans/plans",
+        roles: ["Admin"],
       },
     ];
 
@@ -782,50 +485,25 @@ export default {
       const role = userRole.value || "Employee";
       return menuItems
         .map((item) => {
-          // Skip items that don't match the user's role
           if (!item.roles.includes(role)) {
             return null;
           }
-
-          // If the item has subItems, filter them based on role
           if (item.subItems && item.subItems.length > 0) {
             const filteredSubItems = item.subItems.filter((subItem) =>
-              subItem.roles.includes(role)
+              subItem.roles.includes(role),
             );
-            // Return the item with filtered sub-items (even if empty)
             return {
               ...item,
               subItems: filteredSubItems,
             };
           }
-
-          // Return the item as is (no feature filtering)
           return item;
         })
         .filter(Boolean);
     });
 
-    // Filter settings menu items based on role
-    const filteredSettingsMenuItems = computed(() => {
-      const role = userRole.value || "Employee";
-      return settingsMenuItems.filter((item) => item.roles.includes(role));
-    });
+    const computedRail = computed(() => rail.value);
 
-    // Check if settings should be shown for current role
-    const showSettingsForRole = computed(() => {
-      const role = userRole.value || "Employee";
-      return ["Admin", "Administrator", "Dealer", "Manager"].includes(role);
-    });
-
-    const isSettingsPage = computed(() => {
-      return router.currentRoute.value.path.startsWith("/settings");
-    });
-
-    const computedRail = computed(() => {
-      return isSettingsPage.value ? false : rail.value;
-    });
-
-    // Updated to use tenantplan from API response
     const availableFeatures = computed(() => {
       return tenantplan.value?.features?.map((f) => f.key.toLowerCase()) || [];
     });
@@ -834,19 +512,19 @@ export default {
 
     const requiresFeature = (path) => {
       const premiumRoutes = {
-        // payrollpro: [
-        //   "/payroll",
-        //   "/payroll/management",
-        //   "/payroll/adhoc-payments",
-        //   "/payroll/advance",
-        //   "/payroll/tds",
-        // ],
         fieldpro: [
           "/taskManagement/taskcomponents/workorder",
           "/taskManagement/taskcomponents/workflow",
         ],
         crm: ["/connectors/connector"],
-        // pro: ["/regularisation"],
+        pro: ["/regularisation"],
+        payrollpro: [
+          "/payroll",
+          "/payroll/management",
+          "/payroll/adhoc-payments",
+          "/payroll/advance",
+          "/payroll/loan",
+        ],
       };
       for (const [feature, paths] of Object.entries(premiumRoutes)) {
         if (paths.some((p) => path.startsWith(p))) {
@@ -887,7 +565,7 @@ export default {
 
     const isLocked = computed(() => {
       if (daysLeft.value < 0) return true;
-      if (!tenantplan.value?.features) return false; // don't lock until features are loaded
+      if (!tenantplan.value?.features) return false;
       const req = requiresFeature(currentRoute.value);
       return req && !availableFeatures.value.includes(req);
     });
@@ -905,16 +583,6 @@ export default {
       return false;
     };
 
-    const isSubMenuActive = (item) => {
-      const currentPath = router.currentRoute.value.path;
-      if (item.to && currentPath === item.to) return true;
-      if (item.subItems) {
-        return item.subItems.some((subItem) => currentPath === subItem.to);
-      }
-      return false;
-    };
-
-    // Enhanced icon click handler for rail mode
     const handleIconClick = (route, item, action, index) => {
       if (computedRail.value) {
         if (action === "logout") {
@@ -922,43 +590,34 @@ export default {
         } else if (route) {
           router.push(route);
         } else if (item && item.subItems && item.subItems.length > 0) {
-          // Show submenu overlay for rail mode
           showRailSubmenu(item, index);
         }
       }
     };
 
-    // Show rail submenu with proper positioning
     const showRailSubmenu = (item, index) => {
       currentRailSubmenu.value = item;
       railSubmenuOpen.value = true;
-
-      // Calculate position based on item index
-      const itemHeight = 56; // Height of each nav item in rail mode
-      const headerHeight = 80; // Approximate header height
+      const itemHeight = 56;
+      const headerHeight = 80;
       const topPosition = headerHeight + index * itemHeight + 8;
-
-      // Position the submenu next to the sidebar
       railSubmenuStyle.value = {
         position: "fixed",
         left: "72px",
         top: `${topPosition}px`,
-        zIndex: 9999, // MAXIMUM Z-INDEX
+        zIndex: 9999,
         minWidth: "200px",
       };
     };
 
-    // Handle rail submenu click - NAVIGATE WITHOUT OPENING SIDEBAR
     const handleRailSubmenuClick = (subItem) => {
       if (subItem.to) {
-        // Close the submenu first
         railSubmenuOpen.value = false;
         currentRailSubmenu.value = null;
         router.push(subItem.to);
       }
     };
 
-    // Close rail submenu when clicking outside
     const closeRailSubmenu = () => {
       railSubmenuOpen.value = false;
       currentRailSubmenu.value = null;
@@ -978,15 +637,12 @@ export default {
       closeRailSubmenu();
     };
 
-    // MODIFIED: Only toggle sidebar when clicking logo, not menu items
     const handleMainMenuClick = (menuTitle) => {
       if (!computedRail.value) {
-        // Normal expanded mode - toggle submenu
         const wasOpen = expandedMenus.value[menuTitle];
         expandedMenus.value = {};
         expandedMenus.value[menuTitle] = !wasOpen;
       }
-      // DON'T open sidebar in rail mode - only show popup
     };
 
     const getCurrentPageTitle = computed(() => {
@@ -995,16 +651,14 @@ export default {
 
       const routeTitleMap = {
         "/taskManagement/taskcomponents": "Dashboard",
-        "/settings": "Settings",
-        "/settings/organization": "Settings",
-        "/settings/attendancepolicy": "Settings",
-        "/settings/payrollCatagory": "Settings",
-
-        "/settings/configuration": "Settings",
-        "/settings/holidays": "Settings",
-        "/settings/shifts": "Settings",
-        "/settings/leave-types": "Settings",
-        "/settings/roleConfigurator/roleconfig": "Settings",
+        "/settings/organization": "Organization Settings",
+        "/settings/attendancepolicy": "Attendance Policy",
+        "/settings/payrollCatagory": "Payroll Category",
+        "/settings/configuration": "Configuration",
+        "/settings/holidays": "Holidays",
+        "/settings/shifts": "Shifts",
+        "/settings/leave-types": "Leave Types",
+        "/settings/plans/plans": "Subscription & Plans",
         "/taskManagement/taskcomponents/workOrder": "Work Orders",
         "/taskManagement/taskcomponents/workflow": "Workflow",
         "/taskManagement/Map/livetracking": "Live Tracking",
@@ -1015,7 +669,7 @@ export default {
         "/employee-details/employee": "Employee Details",
         "/leave": "Leave Management",
         "/taskManagement/kpi": "KPI View",
-        "taskManagement-overviewtab/livetracking": "Live Tracking",
+        "/taskManagement-overviewtab/livetracking": "Live Tracking",
         "/attendanceDeatils/live": "Live Attendance",
         "/attendanceLog/attendance": "Logs",
         "/attendanceDeatils/daily": "Daily Attendance",
@@ -1027,27 +681,12 @@ export default {
         "/attendanceLog/general": "Attendance Logs",
         "/profile": "Profile",
         "/reports/workordergenerate": "Reports",
-        "/deviceManager": "Device Management",
       };
-      if (path.startsWith("/deviceManager")) {
-        switch (name) {
-          case "unapproved-devices":
-            return "Devices";
-          case "accessLvl-category":
-            return "AccessLevel Category";
-          case "door-management":
-            return "Door Management";
-          default:
-            return "Device Management";
-        }
-      }
+
       if (routeTitleMap[path]) {
         return routeTitleMap[path];
       }
 
-      if (path.startsWith("/settings/")) {
-        return "Settings";
-      }
       if (path.startsWith("/taskManagement/")) {
         return "Work order";
       }
@@ -1056,6 +695,24 @@ export default {
       }
       if (path.startsWith("/employee-details/")) {
         return "Users Details";
+      }
+      if (path.includes("/payroll/employee-salary/salary-details")) {
+        return "Salary Details";
+      }
+      if (path.includes("/payroll/employee-salary/bank-details")) {
+        return "Bank Details";
+      }
+      if (path.includes("/payroll/policy/payroll-policy")) {
+        return "Payroll Policies";
+      }
+      if (path.includes("/payroll/policy/penalty-policy")) {
+        return "Penality Policies";
+      }
+      if (path.includes("/payroll/advance-Loans/Advance")) {
+        return "Advance";
+      }
+      if (path.includes("/payroll/advance-Loans/Loan")) {
+        return "Loan";
       }
       if (path.startsWith("/attendanceDeatils/")) {
         return "Attendance";
@@ -1077,52 +734,19 @@ export default {
         return null;
       };
 
-      const menuTitle = findTitleInMenuItems([
-        ...menuItems,
-        ...settingsMenuItems,
-      ]);
-
-      if (menuTitle) {
-        return menuTitle;
-      }
-
-      return "Dashboard";
+      const menuTitle = findTitleInMenuItems(menuItems);
+      return menuTitle || "Dashboard";
     });
 
-    // MODIFIED: Only toggle sidebar when clicking logo
     const toggleSidebarState = () => {
       if (isMobile.value) {
         drawer.value = !drawer.value;
       } else {
-        if (!isSettingsPage.value) {
-          rail.value = !rail.value;
-          // Close rail submenu when toggling sidebar
-          closeRailSubmenu();
-        }
-        if (!rail.value) {
-          drawer.value = true;
-        }
+        rail.value = !rail.value;
+        closeRailSubmenu();
       }
-    };
-
-    const toggleMainMenu = (menuTitle) => {
-      if (!computedRail.value) {
-        const wasOpen = expandedMenus.value[menuTitle];
-        expandedMenus.value = {};
-        expandedMenus.value[menuTitle] = !wasOpen;
-      } else if (isMobile.value) {
+      if (!rail.value) {
         drawer.value = true;
-        expandedMenus.value = {};
-        expandedMenus.value[menuTitle] = true;
-      }
-    };
-
-    const toggleSubMenu = (menuTitle) => {
-      if (!computedRail.value) {
-        expandedMenus.value[menuTitle] = !expandedMenus.value[menuTitle];
-      } else if (isMobile.value) {
-        drawer.value = true;
-        expandedMenus.value[menuTitle] = true;
       }
     };
 
@@ -1130,75 +754,63 @@ export default {
       router.push("/taskManagement/taskcomponents");
     };
 
-    const goToSettings = () => {
-      router.push("/settings");
-    };
-
     const fetchUserProfile = async () => {
       try {
         const api = axios.create({
           baseURL: import.meta.env.VITE_API_URL,
           headers: {
-            Authorization: `Bearer ${authService.getToken()}`,
+            Authorization: `Bearer ${authService.getToken()}`, // Fixed template literal
             "Content-Type": "application/json",
           },
         });
 
-        const phone = localStorage.getItem("userPhone");
-        const formattedPhone = phone?.startsWith("+91") ? phone : `+91${phone}`;
+        const token = localStorage.getItem("userToken");
 
-        const response = await api.get("/items/personalModule", {
+        if (!token) {
+          throw new Error("No user token found");
+        }
+
+        const response = await api.get("/users/me", {
           params: {
             fields: [
-              "assignedUser.first_name",
-              "assignedUser.last_name",
-              "assignedUser.avatar.id",
-              "assignedUser.role.name",
-              "assignedUser.tenant.tenantName",
-              "assignedUser.tenant.plan", // This is the plan data we need
-              "status",
+              "first_name",
+              "last_name",
+              "avatar.id",
+              "role.name",
+              "tenant.tenantName",
+              "tenant.plan",
             ],
-            filter: {
-              assignedUser: {
-                _and: [
-                  { phone: { _contains: formattedPhone } },
-                  { userApp: { _eq: "fieldeasy" } },
-                ],
-              },
-            },
           },
         });
 
-        if (response.data.data?.length) {
-          const userData = response.data.data[0];
-          userFullName.value = `${userData.assignedUser.first_name} ${
-            userData.assignedUser.last_name || ""
+        if (response.data?.data) {
+          console.log("response", response.data);
+          const userData = response.data.data;
+          userFullName.value = `${userData.first_name} ${
+            userData.last_name || ""
           }`;
-          userRole.value = userData.assignedUser.role?.name || "";
-          userStatus.value = getUserStatus(userData.status);
+          userRole.value = userData.role?.name || "";
+          userStatus.value = getUserStatus("unknown"); // Default to unknown since status is removed
           tenantName.value =
-            userData.assignedUser.tenant?.tenantName ||
-            "No organization assigned";
+            userData.tenant?.tenantName || "No organization assigned";
+          tenantplan.value = userData.tenant?.plan || null;
 
-          // Store the tenant plan data from API response
-          tenantplan.value = userData.assignedUser.tenant?.plan || null;
-
-          if (userData.assignedUser.avatar?.id) {
+          if (userData.avatar?.id) {
             await fetchAuthorizedImage(
-              `${import.meta.env.VITE_API_URL}/assets/${userData.assignedUser.avatar.id}`
+              `${import.meta.env.VITE_API_URL}/assets/${userData.avatar.id}`, // Fixed template literal
             );
           }
         } else {
           userFullName.value = "Guest";
           userRole.value = "Employee";
-          userStatus.value = getUserStatus("inactive");
+          userStatus.value = getUserStatus("unknown");
           tenantplan.value = null;
         }
       } catch (error) {
         console.error("Error fetching profile data:", error);
         userFullName.value = "Guest";
         userRole.value = "Employee";
-        userStatus.value = getUserStatus("inactive");
+        userStatus.value = getUserStatus("unknown");
         tenantplan.value = null;
       }
     };
@@ -1233,34 +845,15 @@ export default {
       }
     };
 
-    // const handleLogout = () => {
-    //   authService.logout();
-    //   const phone = localStorage.getItem("userPhone");
-    //   if (phone) {
-    //     router.push(`/login`);
-    //   } else {
-    //     router.push("/pin-verification");
-    //   }
-    // };
-
     const handleLogout = () => {
       authService.logout();
       router.push("/login");
-    };
-    const contactAdmin = () => {
-      console.log("Contacting admin for role assignment");
-    };
-
-    const askLater = () => {
-      // Placeholder for ask later functionality
     };
 
     onMounted(() => {
       fetchUserProfile();
       checkMobile();
       window.addEventListener("resize", checkMobile);
-
-      // Close rail submenu when clicking outside
       document.addEventListener("click", (e) => {
         if (
           railSubmenuOpen.value &&
@@ -1286,7 +879,7 @@ export default {
         }
         closeRailSubmenu();
       },
-      { immediate: true }
+      { immediate: true },
     );
 
     return {
@@ -1299,21 +892,12 @@ export default {
       isLoadingImage,
       userStatus,
       filteredMenuItems,
-      filteredSettingsMenuItems,
-      showSettingsForRole,
       getCurrentPageTitle,
       handleLogout,
       expandedMenus,
-      toggleSubMenu,
-      toggleMainMenu,
       toggleSidebarState,
-      isSettingsPage,
       isMenuActive,
-      isSubMenuActive,
       goToDashboard,
-      goToSettings,
-      contactAdmin,
-      askLater,
       tenantName,
       handleSubItemClick,
       handleIconClick,
@@ -1336,7 +920,7 @@ export default {
 <style scoped>
 .modern-sidebar {
   border-right: 1px solid #e5e7eb !important;
-  background: #10192e !important;
+  background: #1e3fa9 !important;
   box-shadow:
     0 1px 3px 0 rgba(0, 0, 0, 0.1),
     0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
@@ -1348,10 +932,9 @@ export default {
   height: 100%;
 }
 
-/* Header Section */
 .sidebar-header {
   padding: 16px;
-  background: #10192e;
+  background: #1e3fa9;
   border-bottom: 1px solid #35486d;
 }
 
@@ -1361,14 +944,14 @@ export default {
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
-  background: rgb(16, 25, 46);
+  background: #1e3fa9;
   color: white;
   transition: background-color 0.2s;
   justify-content: flex-start;
 }
 
 .header-content:hover {
-  background: rgb(16, 25, 46);
+  background: #1e3fa9;
 }
 
 .logo-section {
@@ -1391,14 +974,6 @@ export default {
   border-radius: 4px;
 }
 
-.app-name {
-  font-size: 30px;
-  font-weight: 600;
-  color: #6b85ba;
-  letter-spacing: -0.025em;
-  font-style: italic;
-}
-
 /* Navigation Content */
 .nav-content {
   flex: 1;
@@ -1410,7 +985,6 @@ export default {
   padding: 0;
 }
 
-/* Navigation Items - BIGGER ICONS AND BETTER SPACING */
 .modern-sidebar :deep(.v-list-item) {
   margin: 3px 0 !important;
   border-radius: 8px !important;
@@ -1420,7 +994,6 @@ export default {
   padding: 0 12px !important;
 }
 
-/* Icon Wrapper - BIGGER AND BETTER CENTERED */
 .icon-wrapper {
   width: 32px;
   height: 32px;
@@ -1440,7 +1013,7 @@ export default {
 }
 
 .modern-sidebar.v-navigation-drawer--rail .icon-wrapper:hover {
-  background-color: #dbeafe;
+  background-color: #77c3ab;
 }
 
 .modern-sidebar.v-navigation-drawer--rail :deep(.v-list-item) {
@@ -1457,52 +1030,34 @@ export default {
   margin: 0 !important;
 }
 
-/* Main Item Styles - NO BLUE FOR MAIN TABS */
 .modern-sidebar :deep(.main-item) {
   font-weight: 500 !important;
   color: rgb(255, 255, 255) !important;
 }
 
 .modern-sidebar :deep(.main-item:hover) {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
+  background-color: #77c3ab !important;
+  color: #000000 !important;
 }
 
-/* REMOVED: No blue color for main items */
 .modern-sidebar :deep(.main-item.active) {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
+  background-color: #77c3ab !important;
+  color: #000000 !important;
 }
 
 .modern-sidebar :deep(.main-item.active .nav-icon) {
-  color: #f0f2f6 !important;
+  color: #000000 !important;
 }
 
-/* HOME ITEM STYLING */
-.modern-sidebar :deep(.home-item) {
-  color: #68ade1 !important;
-}
-
-.modern-sidebar :deep(.home-item:hover) {
-  background-color: #dbeafe !important;
-  color: #68ade1 !important;
-}
-
-.modern-sidebar :deep(.home-item .nav-icon) {
-  color: #68ade1 !important;
-}
-
-/* Icon Styles - BLUE ICONS ALWAYS */
 .modern-sidebar :deep(.nav-icon) {
   color: #fafbfc;
   transition: all 0.2s ease !important;
 }
 
 .modern-sidebar :deep(.main-item:hover .nav-icon) {
-  color: #68ade1 !important;
+  color: #000000 !important;
 }
 
-/* Title Styles */
 .modern-sidebar :deep(.nav-title) {
   font-size: 14px !important;
   line-height: 1.4 !important;
@@ -1512,7 +1067,6 @@ export default {
   font-weight: 500 !important;
 }
 
-/* Sub Menu Styles - BLUE COLORS ONLY FOR SUB ITEMS */
 .sub-menu-section {
   margin-left: 32px !important;
   border-left: 1px solid #e5e7eb !important;
@@ -1530,13 +1084,13 @@ export default {
 }
 
 .modern-sidebar :deep(.sub-item:hover) {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
+  background-color: #c6e4dc !important;
+  color: #000000 !important;
 }
 
-/* BLUE COLORS ONLY FOR SUB ITEMS WHEN ACTIVE */
 .modern-sidebar :deep(.sub-item.active) {
-  color: rgb(76, 162, 211) !important;
+  color: #000000 !important;
+  background-color: #77c3ab;
 }
 
 .modern-sidebar :deep(.sub-title) {
@@ -1544,38 +1098,6 @@ export default {
   font-weight: 400 !important;
 }
 
-/* Nested Sub Menu Styles - BLUE COLORS ONLY */
-.nested-sub-menu-section {
-  margin-left: 16px !important;
-  border-left: 1px solid #f3f4f6 !important;
-  padding-left: 8px !important;
-  margin-top: 2px !important;
-}
-
-.modern-sidebar :deep(.nested-sub-item) {
-  min-height: 36px !important;
-  font-weight: 400 !important;
-  color: #9ca3af !important;
-  margin: 1px 0 !important;
-  padding-left: 4px !important;
-}
-
-.modern-sidebar :deep(.nested-sub-item:hover) {
-  background-color: #f3f4f6 !important;
-  color: #6b7280 !important;
-}
-
-.modern-sidebar :deep(.nested-sub-item.active) {
-  background-color: #dbeafe !important;
-  color: #237abd !important;
-}
-
-.modern-sidebar :deep(.nested-title) {
-  font-size: 12px !important;
-  font-weight: 400 !important;
-}
-
-/* Expandable Items */
 .modern-sidebar :deep(.expandable) {
   cursor: pointer !important;
 }
@@ -1583,7 +1105,7 @@ export default {
 .modern-sidebar :deep(.expand-icon) {
   color: white !important;
   font-weight: bold !important;
-  transform: scale(1.1); /* Slightly larger appearance */
+  transform: scale(1.1);
   text-shadow:
     0 0 1px white,
     0 0 1px white;
@@ -1594,7 +1116,6 @@ export default {
   transform: rotate(90deg) !important;
 }
 
-/* Rail Submenu Overlay - MAXIMUM Z-INDEX */
 .rail-submenu-overlay {
   position: fixed;
   background: white;
@@ -1627,13 +1148,13 @@ export default {
 }
 
 .rail-submenu-item:hover {
-  background-color: #f3f4f6;
+  background-color: #77c3ab;
   color: #374151;
 }
 
 .rail-submenu-item.active {
-  background-color: #dbeafe;
-  color: #1d4ed8 !important;
+  background-color: #77c3ab;
+  color: #c6e4dc !important;
 }
 
 .rail-submenu-title {
@@ -1641,118 +1162,18 @@ export default {
   font-weight: 400;
 }
 
-/* Bottom Section */
-.sidebar-bottom {
-  padding: 16px;
-  background: #10192e;
-  border-top: 1px solid #35486d;
-}
-
-/* User Profile Section - BIGGER AVATAR */
-.user-profile {
-  background: #10192e;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.profile-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.profile-avatar {
-  flex-shrink: 0;
-  border: 2px solid #e5e7eb;
-}
-
-.profile-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.profile-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: rgb(255, 255, 255);
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-email {
-  font-size: 12px;
-  color: rgb(255, 255, 255);
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bottom-nav {
-  padding: 0;
-}
-
-.modern-sidebar :deep(.bottom-item) {
-  color: rgb(255, 255, 255) !important;
-  border-radius: 8px !important;
-  min-height: 48px !important;
-  margin: 2px 0 !important;
-}
-
-.modern-sidebar :deep(.bottom-item:hover) {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
-}
-
-.modern-sidebar :deep(.logout-item) {
-  color: #dc2626 !important;
-}
-
-.modern-sidebar :deep(.logout-item:hover) {
-  background-color: #fef2f2 !important;
-  color: #dc2626 !important;
-}
-
-.modern-sidebar :deep(.logout-icon) {
-  color: #dc2626 !important;
-}
-
-/* Rail Mode Adjustments */
-.modern-sidebar.v-navigation-drawer--rail :deep(.nav-item) {
-  justify-content: center !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-.modern-sidebar.v-navigation-drawer--rail :deep(.sub-menu-section),
-.modern-sidebar.v-navigation-drawer--rail :deep(.nested-sub-menu-section) {
-  display: none !important;
-}
-
-.modern-sidebar.v-navigation-drawer--rail .sidebar-bottom {
-  padding: 8px;
-}
-
-.modern-sidebar.v-navigation-drawer--rail .user-profile {
-  display: none;
-}
-
-/* Main Content Styles */
 .main-content {
   background-color: #f9fafb;
 }
 
 .top-bar {
-  padding: 0 24px !important;
   display: flex;
   align-items: center;
   border-bottom: 1px solid #e5e7eb !important;
+  background-color: #059367 !important; /* Black background */
+  color: #fff !important;
 }
 
-.back-btn,
 .mobile-menu-btn {
   margin-right: 12px;
 }
@@ -1768,7 +1189,35 @@ export default {
   white-space: nowrap;
 }
 
-/* Header Elements - SIMPLIFIED */
+/* Header Profile Styles */
+.header-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+.header-profile-avatar {
+  flex-shrink: 0;
+  border: 2px solid #c6e4dc;
+}
+
+.header-profile-btn {
+  text-transform: none !important;
+  color: #111827 !important;
+  padding: 0 8px !important;
+}
+
+.header-profile-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tenant-chip {
   font-size: 12px !important;
   height: 32px !important;
@@ -1786,18 +1235,19 @@ export default {
   overflow: hidden;
 }
 
-/* Mobile Responsive */
 @media (max-width: 960px) {
   .page-title {
     font-size: 16px !important;
-    max-width: 120px;
+    max-width: 100px;
   }
   .page-container {
     padding: 16px !important;
   }
+  .header-profile-name {
+    max-width: 80px;
+  }
 }
 
-/* Scrollbar Styling */
 .nav-content::-webkit-scrollbar {
   width: 4px;
 }
@@ -1807,17 +1257,16 @@ export default {
 }
 
 .nav-content::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
+  background: #77c3ab;
   border-radius: 2px;
 }
 
 .nav-content::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
+  background: #77c3ab;
 }
 
-/* Tooltip Styling - SLOWER TOOLTIP */
 :deep(.v-tooltip .v-overlay__content) {
-  background-color: rgba(0, 0, 0, 0.9) !important;
+  background-color: rgba(250, 250, 250, 0.9) !important;
   color: white !important;
   padding: 6px 8px !important;
   border-radius: 6px !important;
@@ -1829,7 +1278,8 @@ export default {
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid #77c3ab !important;
+  background-color: #c6e4dc;
 }
 
 .logout-menu-item {

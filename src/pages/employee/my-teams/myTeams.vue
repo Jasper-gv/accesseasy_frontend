@@ -71,8 +71,7 @@ const fetchrole = async () => {
       title: "Attendance Details",
       icon: "mdi-calendar-clock",
     },
-    { value: "salary", title: "Salary Details", icon: "mdi-cash" },
-    { value: "bank", title: "Bank Details", icon: "mdi-bank" },
+
     {
       value: "otherDetails",
       title: "Employee Other Details",

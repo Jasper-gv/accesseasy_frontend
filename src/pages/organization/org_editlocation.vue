@@ -51,7 +51,7 @@
                 type="tel"
                 :rules="contactNumberRules"
                 required
-                max-length="10"
+                maxlength="10"
               ></v-text-field>
 
               <!-- Organization Selection -->
@@ -92,17 +92,6 @@
                 </template>
               </v-select>
 
-              <!-- State -->
-              <!-- <v-select
-                v-model="formData.state"
-                :items="stateOptions"
-                label="State *"
-                variant="outlined"
-                density="comfortable"
-                :rules="[(v) => !!v || 'State is required']"
-                @change="updateState"
-              ></v-select> -->
-
               <!-- Radius -->
               <v-card class="pa-4 mt-3" elevation="1">
                 <v-card-title class="text-subtitle-1 pa-0 mb-3">
@@ -112,8 +101,8 @@
                   Radius
                 </v-card-title>
                 <v-slider
-                  v-model="formData.radiusMm"
-                  label="Radius (MM)"
+                  v-model="formData.radiusM"
+                  label="Radius (M)"
                   min="10"
                   max="5000"
                   step="10"
@@ -124,12 +113,12 @@
                 >
                   <template v-slot:append>
                     <v-text-field
-                      v-model="formData.radiusMm"
+                      v-model="formData.radiusM"
                       style="width: 100px"
                       density="compact"
                       hide-details
                       variant="outlined"
-                      suffix="MM"
+                      suffix="M"
                       :min="10"
                       :max="5000"
                       type="number"
@@ -143,14 +132,12 @@
                   class="mb-2"
                 >
                   <div class="d-flex align-center">
-                    <div>
-                      <strong>Radius:</strong> {{ formData.radiusMm }} MM
-                    </div>
+                    <div><strong>Radius:</strong> {{ formData.radiusM }} M</div>
                   </div>
                 </v-alert>
                 <div class="text-caption text-grey-darken-1">
                   <v-icon size="small" class="mr-1">mdi-information</v-icon>
-                  Set the radius for area coverage (10-5000 MM)
+                  Set the radius for area coverage (10-5000 M)
                 </div>
               </v-card>
             </v-col>
@@ -434,7 +421,7 @@ const formData = ref({
   contactNumber: "",
   orgLocation: "",
   pincodes: [],
-  radiusMm: 200,
+  radiusM: 200,
   lat: null,
   lng: null,
   address: "",
@@ -443,9 +430,9 @@ const formData = ref({
   tenant: tenantId,
 });
 
-// Computed property for radius in millimeters
-const radiusInMillimeters = computed(() => {
-  return formData.value.radiusMm;
+// Computed property for radius in meters
+const radiusInMeters = computed(() => {
+  return formData.value.radiusM;
 });
 
 // Computed property for data preview with proper JSON format
@@ -455,11 +442,10 @@ const previewPayload = computed(() => {
   return {
     locdetail: {
       locationName: formData.value.locationName,
-
       pincodes: formData.value.pincodes,
       address: formData.value.address,
     },
-    locSize: `${formData.value.radiusMm}`,
+    locSize: `${formData.value.radiusM}`,
     locmark: {
       type: "Point",
       coordinates: [
@@ -468,7 +454,6 @@ const previewPayload = computed(() => {
       ],
     },
     orgLocation: formData.value.orgLocation,
-
     status: formData.value.status,
     tenant: formData.value.tenant,
     qrDetails: `${tenantId}|${formData.value.lng}|${formData.value.lat}`,
@@ -518,7 +503,7 @@ const contactNumberRules = [
 ];
 
 const radiusRules = [
-  (v) => (v >= 10 && v <= 5000) || "Radius must be between 10-5000 MM",
+  (v) => (v >= 10 && v <= 5000) || "Radius must be between 10-5000 M",
 ];
 
 const pincodeRules = computed(() => {
@@ -586,6 +571,7 @@ const extractPincodeFromAddress = (address) => {
 // MAP FUNCTIONALITY
 let map = null;
 let marker = null;
+let circle = null; // Add circle variable
 let autocompleteService = null;
 let placesService = null;
 let geocoder = null;
@@ -619,6 +605,33 @@ const initMap = () => {
         lng: parseFloat(formData.value.lng),
       },
       map,
+    });
+    // Initialize circle if location exists
+    updateCircle();
+  }
+};
+
+const updateCircle = () => {
+  // Remove existing circle if it exists
+  if (circle) {
+    circle.setMap(null);
+    circle = null;
+  }
+
+  // Only create a circle if a location is selected
+  if (formData.value.lat && formData.value.lng) {
+    circle = new google.maps.Circle({
+      map: map,
+      center: {
+        lat: parseFloat(formData.value.lat),
+        lng: parseFloat(formData.value.lng),
+      },
+      radius: parseFloat(formData.value.radiusM), // Radius in meters
+      strokeColor: "#1976D2",
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: "#1976D2",
+      fillOpacity: 0.35,
     });
   }
 };
@@ -655,6 +668,9 @@ async function updateMapAndAddress(lat, lng, address = null) {
 
   map.setCenter({ lat, lng });
   map.setZoom(13);
+
+  // Update circle when location changes
+  updateCircle();
 
   if (address) {
     formData.value.address = address;
@@ -750,6 +766,14 @@ watch(searchQuery, (newQuery) => {
     searchResults.value = [];
   }
 });
+
+// Watch radiusM to update circle when it changes
+watch(
+  () => formData.value.radiusM,
+  () => {
+    updateCircle();
+  },
+);
 
 // FORM HANDLERS
 const handleClose = () => {
@@ -861,7 +885,7 @@ const loadLocationData = async () => {
       contactNumber: locationData.contactDetails?.contactNumber || "",
       orgLocation: locationData.orgLocation || "",
       pincodes: locationData.locdetail?.pincodes || [],
-      radiusMm: parseInt(locationData.locSize) || 200,
+      radiusM: parseInt(locationData.locSize) || 200,
       lat: locationData.locmark?.coordinates
         ? locationData.locmark.coordinates[1]
         : null,
@@ -869,7 +893,6 @@ const loadLocationData = async () => {
         ? locationData.locmark.coordinates[0]
         : null,
       address: locationData.locdetail?.address || "",
-
       status: locationData.status || "active",
       tenant: locationData.tenant || tenantId,
     };
@@ -930,12 +953,10 @@ const handleSave = async () => {
       id: formData.value.id,
       locdetail: {
         locationName: formData.value.locationName,
-
         pincodes: [...new Set(formData.value.pincodes)],
         address: formData.value.address,
       },
-
-      locSize: formData.value.radiusMm.toString(),
+      locSize: formData.value.radiusM.toString(),
       locmark: {
         type: "Point",
         coordinates: [
@@ -993,6 +1014,10 @@ onMounted(() => {
 onUnmounted(() => {
   if (map) {
     map = null;
+  }
+  if (circle) {
+    circle.setMap(null);
+    circle = null;
   }
   if (searchDebounceTimeout.value) {
     clearTimeout(searchDebounceTimeout.value);

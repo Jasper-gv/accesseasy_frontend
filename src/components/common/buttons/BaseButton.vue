@@ -130,7 +130,7 @@ function handleClick(event) {
 }
 
 .btn-primary {
-  background: #122f68;
+  background: #059367;
   color: white;
   border-color: #3b82f6;
 }

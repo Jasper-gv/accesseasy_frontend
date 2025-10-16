@@ -1,5 +1,6 @@
 <template>
   <div class="add-form-container">
+    <!-- Snackbars -->
     <v-snackbar
       v-model="showSuccessSnackbar"
       color="success"
@@ -25,217 +26,482 @@
       </div>
     </v-snackbar>
 
-    <v-form ref="form">
-      <v-toolbar
-        density="compact"
-        color="white"
-        elevation="1"
-        class="form-header"
+    <v-container fluid>
+      <!-- Tabs -->
+      <v-tabs
+        v-model="activeTab"
+        show-arrows
+        background-color="transparent"
+        class="custom-tabs"
+        @update:modelValue="handleTabChange"
       >
-        <v-btn class="back-btn" icon @click="$emit('closeAddPage')">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-        <v-toolbar-title class="ml-4 form-title"
-          >Add Leave Request</v-toolbar-title
+        <v-tab
+          v-for="tab in tabs"
+          :key="tab.value"
+          :value="tab.value"
+          class="custom-tab"
         >
-        <v-spacer></v-spacer>
-      </v-toolbar>
+          <v-icon :icon="tab.icon" class="mr-2"></v-icon>
+          {{ tab.title }}
+        </v-tab>
+      </v-tabs>
 
-      <div class="form-content">
-        <v-card class="form-card" elevation="0">
-          <v-card-text class="form-fields">
-            <!-- Start Date Field - Full Width -->
-            <v-row class="mb-2">
-              <v-col cols="12">
-                <div class="field-wrapper">
-                  <label class="field-label">Start Date *</label>
-                  <v-text-field
-                    v-model="formData.from"
-                    type="date"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[(v) => !!v || 'Start date is required']"
-                    required
-                    :hint="
-                      typeof currentCycleDates === 'string'
-                        ? currentCycleDates
-                        : currentCycleDates.formatted
-                    "
-                    persistent-hint
-                    class="custom-field"
-                  />
-                </div>
-              </v-col>
-            </v-row>
-
-            <!-- End Date Field - Full Width -->
-            <v-row class="mb-2">
-              <v-col cols="12">
-                <div class="field-wrapper">
-                  <label class="field-label">End Date *</label>
-                  <v-text-field
-                    v-model="formData.to"
-                    type="date"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[(v) => !!v || 'End date is required']"
-                    required
-                    class="custom-field"
-                  />
-                </div>
-              </v-col>
-            </v-row>
-
-            <v-row class="mb-2">
-              <v-col cols="12">
-                <div class="field-wrapper">
-                  <label class="field-label">Leave Type *</label>
-                  <v-select
-                    v-model="formData.leaveType"
-                    :items="availableLeaveTypes"
-                    item-title="text"
-                    item-value="value"
-                    variant="outlined"
-                    :rules="[(v) => !!v || 'Leave type is required']"
-                    required
-                    class="custom-field"
+      <!-- Dynamic Content -->
+      <v-window v-model="activeTab">
+        <v-window-item v-for="tab in tabs" :key="tab.value" :value="tab.value">
+          <v-card flat class="tab-content-wrapper">
+            <v-card-text>
+              <!-- Request Tab Content -->
+              <template v-if="tab.value === 'request'">
+                <v-form ref="form">
+                  <v-toolbar
+                    density="compact"
+                    color="white"
+                    elevation="1"
+                    class="form-header"
                   >
-                    <template v-slot:item="{ item, props }">
-                      <v-list-item v-bind="props">
-                        <template v-slot:title>
-                          {{ item.raw.text }}
-                        </template>
-                      </v-list-item>
-                    </template>
-                  </v-select>
-                </div>
-              </v-col>
-            </v-row>
+                    <v-btn class="back-btn" icon @click="$emit('closeAddPage')">
+                      <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                    <v-toolbar-title class="ml-4 form-title"
+                      >Add Request</v-toolbar-title
+                    >
+                    <v-spacer></v-spacer>
+                  </v-toolbar>
 
-            <v-row class="mb-2">
-              <v-col cols="12">
-                <div class="field-wrapper switch-wrapper">
-                  <label class="field-label">Half Day Leave</label>
-                  <v-switch
-                    v-model="formData.halfDay"
-                    color="primary"
-                    hide-details
-                    inset
-                    :disabled="dateDifference > 1"
-                    class="custom-switch"
+                  <div class="form-content">
+                    <v-card class="form-card" elevation="0">
+                      <v-card-text class="form-fields">
+                        <!-- Start Date Field -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">Start Date *</label>
+                              <v-text-field
+                                v-model="formData.from"
+                                type="date"
+                                variant="outlined"
+                                density="comfortable"
+                                :rules="[
+                                  (v) => !!v || 'Start date is required',
+                                ]"
+                                required
+                                :hint="
+                                  typeof currentCycleDates === 'string'
+                                    ? currentCycleDates
+                                    : currentCycleDates.formatted
+                                "
+                                persistent-hint
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- End Date Field -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">End Date *</label>
+                              <v-text-field
+                                v-model="formData.to"
+                                type="date"
+                                variant="outlined"
+                                density="comfortable"
+                                :rules="[(v) => !!v || 'End date is required']"
+                                required
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Request Type -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">Request Type *</label>
+                              <v-select
+                                v-model="formData.leaveType"
+                                :items="availableLeaveTypes"
+                                item-title="text"
+                                item-value="value"
+                                variant="outlined"
+                                :rules="[
+                                  (v) => !!v || 'Leave type is required',
+                                ]"
+                                required
+                                class="custom-field"
+                                @update:modelValue="resetHalfDayAndTimeFields"
+                              >
+                                <template v-slot:item="{ item, props }">
+                                  <v-list-item v-bind="props">
+                                    <template v-slot:title>
+                                      {{ item.raw.text }}
+                                    </template>
+                                  </v-list-item>
+                                </template>
+                              </v-select>
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Half Day Switch -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper switch-wrapper">
+                              <label class="field-label">Half Day Leave</label>
+                              <v-switch
+                                v-model="formData.halfDay"
+                                color="primary"
+                                hide-details
+                                inset
+                                :disabled="
+                                  dateDifference > 1 ||
+                                  formData.leaveType === 'workFromHome'
+                                "
+                                class="custom-switch"
+                              >
+                                <template v-slot:label>
+                                  <span class="switch-label">{{
+                                    formData.halfDay ? "Yes" : "No"
+                                  }}</span>
+                                  <v-tooltip
+                                    v-if="
+                                      dateDifference > 1 ||
+                                      formData.leaveType === 'workFromHome'
+                                    "
+                                    location="top"
+                                  >
+                                    <template v-slot:activator="{ props }">
+                                      <v-icon
+                                        v-bind="props"
+                                        color="grey"
+                                        size="small"
+                                        class="ms-1"
+                                      >
+                                        mdi-information
+                                      </v-icon>
+                                    </template>
+                                    <span>
+                                      {{
+                                        formData.leaveType === "workFromHome"
+                                          ? "Half-day option is not available for Work From Home"
+                                          : "Half-day option is only available for single-day leaves"
+                                      }}
+                                    </span>
+                                  </v-tooltip>
+                                </template>
+                              </v-switch>
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Time From and Time To Fields (Conditional) -->
+                        <v-row v-if="formData.halfDay" class="mb-2">
+                          <v-col cols="6">
+                            <div class="field-wrapper">
+                              <label class="field-label">Time From *</label>
+                              <v-text-field
+                                v-model="formData.timefrom"
+                                type="time"
+                                variant="outlined"
+                                density="comfortable"
+                                :rules="[
+                                  (v) =>
+                                    !formData.halfDay ||
+                                    !!v ||
+                                    'Time From is required for half-day leave',
+                                ]"
+                                required
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                          <v-col cols="6">
+                            <div class="field-wrapper">
+                              <label class="field-label">Time To *</label>
+                              <v-text-field
+                                v-model="formData.timeTo"
+                                type="time"
+                                variant="outlined"
+                                density="comfortable"
+                                :rules="[
+                                  (v) =>
+                                    !formData.halfDay ||
+                                    !!v ||
+                                    'Time To is required for half-day leave',
+                                  (v) =>
+                                    !formData.halfDay ||
+                                    !v ||
+                                    !formData.timefrom ||
+                                    v > formData.timefrom ||
+                                    'Time To must be after Time From',
+                                ]"
+                                required
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Reason -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">Reason *</label>
+                              <v-textarea
+                                v-model="formData.reason"
+                                variant="outlined"
+                                :rules="[(v) => !!v || 'Reason is required']"
+                                required
+                                rows="3"
+                                placeholder="Please provide a reason for your leave request..."
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Attachments -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper attachment-wrapper">
+                              <label class="field-label"
+                                >Attachments (Optional)</label
+                              >
+                              <v-file-input
+                                v-model="formData.attachments"
+                                variant="outlined"
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.csv"
+                                :show-size="true"
+                                prepend-icon="mdi-paperclip"
+                                counter
+                                multiple
+                                hint="Upload supporting documents (PDF, images, Word docs, or CSV)"
+                                persistent-hint
+                                :loading="uploadingFiles"
+                                @change="handleFileChange"
+                                class="custom-field attachment-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+                      </v-card-text>
+                    </v-card>
+                  </div>
+
+                  <v-toolbar
+                    density="compact"
+                    color="white"
+                    elevation="1"
+                    class="form-footer"
                   >
-                    <template v-slot:label>
-                      <span class="switch-label">{{
-                        formData.halfDay ? "Yes" : "No"
-                      }}</span>
-                      <v-tooltip v-if="dateDifference > 1" location="top">
-                        <template v-slot:activator="{ props }">
-                          <v-icon
-                            v-bind="props"
-                            color="grey"
-                            size="small"
-                            class="ms-1"
-                          >
-                            mdi-information
-                          </v-icon>
-                        </template>
-                        <span
-                          >Half-day option is only available for single-day
-                          leaves</span
-                        >
-                      </v-tooltip>
-                    </template>
-                  </v-switch>
-                </div>
-              </v-col>
-            </v-row>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      class="cancel-btn"
+                      variant="outlined"
+                      color="error"
+                      @click="$emit('closeAddPage')"
+                    >
+                      CANCEL
+                    </v-btn>
+                    <v-btn
+                      class="save-btn ml-3"
+                      color="primary"
+                      :loading="isSaving"
+                      :disabled="isSaving"
+                      @click="handleSave"
+                    >
+                      <template v-slot:loader>
+                        <v-progress-circular
+                          indeterminate
+                          size="20"
+                          width="2"
+                        ></v-progress-circular>
+                        <span class="ml-2">Saving...</span>
+                      </template>
+                      SAVE
+                    </v-btn>
+                  </v-toolbar>
+                </v-form>
+              </template>
 
-            <v-row class="mb-2">
-              <v-col cols="12">
-                <div class="field-wrapper">
-                  <label class="field-label">Reason *</label>
-                  <v-textarea
-                    v-model="formData.reason"
-                    variant="outlined"
-                    :rules="[(v) => !!v || 'Reason is required']"
-                    required
-                    rows="3"
-                    placeholder="Please provide a reason for your leave request..."
-                    class="custom-field"
-                  />
-                </div>
-              </v-col>
-            </v-row>
+              <!-- Out Request Tab Content -->
+              <template v-if="tab.value === 'outRequest'">
+                <v-form ref="outForm">
+                  <v-toolbar
+                    density="compact"
+                    color="white"
+                    elevation="1"
+                    class="form-header"
+                  >
+                    <v-btn class="back-btn" icon @click="$emit('closeAddPage')">
+                      <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                    <v-toolbar-title class="ml-4 form-title"
+                      >Add Out Request</v-toolbar-title
+                    >
+                    <v-spacer></v-spacer>
+                  </v-toolbar>
 
-            <v-row class="mb-2">
-              <v-col cols="12">
-                <div class="field-wrapper attachment-wrapper">
-                  <label class="field-label">Attachments (Optional)</label>
-                  <v-file-input
-                    v-model="formData.attachments"
-                    variant="outlined"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.csv"
-                    :show-size="true"
-                    prepend-icon="mdi-paperclip"
-                    counter
-                    multiple
-                    hint="Upload supporting documents (PDF, images, Word docs, or CSV)"
-                    persistent-hint
-                    :loading="uploadingFiles"
-                    @change="handleFileChange"
-                    class="custom-field attachment-field"
-                  />
-                </div>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </div>
+                  <div class="form-content">
+                    <v-card class="form-card" elevation="0">
+                      <v-card-text class="form-fields">
+                        <!-- Dropdown for Attendance Records -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label"
+                                >Select In Record *</label
+                              >
+                              <v-select
+                                v-model="outFormData.selectedAttendance"
+                                :items="attendanceOptions"
+                                item-title="title"
+                                item-value="value"
+                                variant="outlined"
+                                :rules="[(v) => !!v || 'Selection is required']"
+                                required
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
 
-      <v-toolbar
-        density="compact"
-        color="white"
-        elevation="1"
-        class="form-footer"
-      >
-        <v-spacer></v-spacer>
-        <v-btn
-          class="cancel-btn"
-          variant="outlined"
-          color="error"
-          @click="$emit('closeAddPage')"
-        >
-          CANCEL
-        </v-btn>
-        <v-btn
-          class="save-btn ml-3"
-          color="primary"
-          :loading="isSaving"
-          :disabled="isSaving"
-          @click="handleSave"
-        >
-          <template v-slot:loader>
-            <v-progress-circular
-              indeterminate
-              size="20"
-              width="2"
-            ></v-progress-circular>
-            <span class="ml-2">Saving...</span>
-          </template>
-          SAVE
-        </v-btn>
-      </v-toolbar>
-    </v-form>
+                        <!-- Date Field (Disabled) -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">Date</label>
+                              <v-text-field
+                                v-model="outFormData.date"
+                                type="date"
+                                variant="outlined"
+                                density="comfortable"
+                                disabled
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- In Time Field (Disabled) -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">In Time</label>
+                              <v-text-field
+                                v-model="outFormData.inTime"
+                                type="time"
+                                variant="outlined"
+                                density="comfortable"
+                                disabled
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Out Time Field -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">Out Time *</label>
+                              <v-text-field
+                                v-model="outFormData.outTime"
+                                type="time"
+                                variant="outlined"
+                                density="comfortable"
+                                :disabled="!outFormData.selectedAttendance"
+                                :rules="[
+                                  (v) => !!v || 'Out time is required',
+                                  (v) =>
+                                    !v ||
+                                    !outFormData.inTime ||
+                                    v > outFormData.inTime ||
+                                    'Out time must be after in time',
+                                ]"
+                                required
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Reason -->
+                        <v-row class="mb-2">
+                          <v-col cols="12">
+                            <div class="field-wrapper">
+                              <label class="field-label">Reason *</label>
+                              <v-textarea
+                                v-model="outFormData.reason"
+                                variant="outlined"
+                                :disabled="!outFormData.selectedAttendance"
+                                :rules="[(v) => !!v || 'Reason is required']"
+                                required
+                                rows="3"
+                                placeholder="Please provide a reason for your out request..."
+                                class="custom-field"
+                              />
+                            </div>
+                          </v-col>
+                        </v-row>
+                      </v-card-text>
+                    </v-card>
+                  </div>
+
+                  <v-toolbar
+                    density="compact"
+                    color="white"
+                    elevation="1"
+                    class="form-footer"
+                  >
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      class="cancel-btn"
+                      variant="outlined"
+                      color="error"
+                      @click="$emit('closeAddPage')"
+                    >
+                      CANCEL
+                    </v-btn>
+                    <v-btn
+                      class="save-btn ml-3"
+                      color="primary"
+                      :loading="isSaving"
+                      :disabled="isSaving || !outFormData.selectedAttendance"
+                      @click="handleOutSave"
+                    >
+                      <template v-slot:loader>
+                        <v-progress-circular
+                          indeterminate
+                          size="20"
+                          width="2"
+                        ></v-progress-circular>
+                        <span class="ml-2">Saving...</span>
+                      </template>
+                      SAVE
+                    </v-btn>
+                  </v-toolbar>
+                </v-form>
+              </template>
+            </v-card-text>
+          </v-card>
+        </v-window-item>
+      </v-window>
+    </v-container>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineEmits } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 
 const emit = defineEmits(["closeAddPage", "leaveApplied"]);
 
 const form = ref(null);
+const outForm = ref(null);
 const showSuccessSnackbar = ref(false);
 const showErrorSnackbar = ref(false);
 const successMessage = ref("");
@@ -247,15 +513,50 @@ const attendanceCycle = ref(null);
 const userDetails = ref(null);
 const personalModuleData = ref(null);
 const isSaving = ref(false);
+const userRole = currentUserTenant.getRole();
+const activeTab = ref("request");
+const isAdmin = computed(() => userRole === "Admin");
+const tabs = ref([]);
+const setTabsBasedOnRole = () => {
+  const baseTabs = [
+    {
+      value: "request",
+      title: "Request",
+      icon: "mdi-calendar-clock",
+    },
+  ];
 
+  // Only add Out Request tab if user is not Admin
+  if (userRole !== "Admin") {
+    baseTabs.push({
+      value: "outRequest",
+      title: "Out Reqest",
+      icon: "mdi-exit-to-app",
+    });
+  }
+
+  tabs.value = baseTabs;
+};
 const formData = ref({
   from: null,
   to: null,
   leaveType: null,
   halfDay: false,
+  timefrom: null,
+  timeTo: null,
   reason: null,
   attachments: [],
 });
+
+const outFormData = ref({
+  selectedAttendance: null,
+  date: null,
+  inTime: null,
+  outTime: null,
+  reason: null,
+});
+
+const attendanceOptions = ref([]);
 
 const leaveConfig = ref({
   enabledLeaveTypes: [],
@@ -269,8 +570,14 @@ const cumulativeLimits = ref({});
 const availableLeaveTypes = computed(() => {
   const leaveTypes = [
     {
-      text: "Unpaid Leave",
-      value: "UnpaidLeave",
+      text: "On Duty",
+      value: "onDuty",
+      color: "primary",
+      disabled: false,
+    },
+    {
+      text: "Work From Home",
+      value: "workFromHome",
       color: "primary",
       disabled: false,
     },
@@ -334,10 +641,9 @@ const currentCycleDates = computed(() => {
 
   let startDate, endDate;
 
-  // For "end of the month", confine the cycle to the current month
   if (endLiteral === "end of the month") {
     startDate = new Date(y, m, startDay);
-    endDate = new Date(y, m + 1, 0); // Last day of the current month
+    endDate = new Date(y, m + 1, 0);
   } else {
     let startYear = y;
     let startMonth = m - 1;
@@ -665,13 +971,11 @@ const calculateCumulativeLimits = async (
     }
     console.log("🟢 STEP 3: Valid joining date:", joinDate.toISOString());
 
-    // Prepare leave filter
     const leaveNamesFilter = assignedLeaves
       .map((leave) => encodeURIComponent(leave))
       .join(",");
     console.log("🟢 STEP 4: Leave names filter prepared:", leaveNamesFilter);
 
-    // Fetch leave settings
     const leaveSettingUrl =
       `${import.meta.env.VITE_API_URL}/items/leaveSetting?` +
       `fields[]=leaveName,date_created&` +
@@ -704,7 +1008,6 @@ const calculateCumulativeLimits = async (
     );
     console.log("🟢 STEP 7: Leave settings map created:", leaveSettingsMap);
 
-    // Loop over each leave type
     for (const leaveName of assignedLeaves) {
       console.log("🔵 STEP 8: Processing leave type:", leaveName);
 
@@ -864,12 +1167,62 @@ const calculateDays = (fromDate, toDate, isHalfDay) => {
   return isHalfDay ? diffDays * 0.5 : diffDays;
 };
 
+const resetHalfDayAndTimeFields = () => {
+  if (formData.value.leaveType === "workFromHome") {
+    formData.value.halfDay = false;
+    formData.value.timefrom = null;
+    formData.value.timeTo = null;
+  }
+};
+
+const fetchAttendanceRecords = async () => {
+  const cycleDates = currentCycleDates.value;
+  if (typeof cycleDates === "string") {
+    showErrorMessage(cycleDates);
+    return;
+  }
+
+  const start = cycleDates.startDate.toISOString().split("T")[0];
+  const end = cycleDates.endDate.toISOString().split("T")[0];
+  const tenantId = currentUserTenant.getTenantId();
+  const employeeId = personalModuleData.value.id;
+
+  const url =
+    `${import.meta.env.VITE_API_URL}/items/attendance?` +
+    `filter[_and][0][date][_between][0]=${start}&` +
+    `filter[_and][0][date][_between][1]=${end}&` +
+    `filter[_and][1][status][_eq]=in&` +
+    `filter[_and][3][employeeId][id][_eq]=${employeeId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch attendance records");
+    }
+    const data = await response.json();
+    attendanceOptions.value = data.data.map((item) => ({
+      title: `${item.date} - In: ${item.inTime}`,
+      value: item.id,
+      date: item.date,
+      inTime: item.inTime,
+    }));
+  } catch (error) {
+    console.error("Error fetching attendance records:", error);
+    showErrorMessage("Failed to fetch attendance records.");
+  }
+};
+
 const transformPayload = async (data) => {
   const tenantId = currentUserTenant.getTenantId();
   if (!userDetails.value || !personalModuleData.value) {
     await fetchUserAndLeaveData();
   }
-  return {
+
+  const payload = {
     tenant: { tenantId },
     fromDate: data.from,
     toDate: data.to,
@@ -880,12 +1233,22 @@ const transformPayload = async (data) => {
     requestedBy: personalModuleData.value.id,
     attachments: uploadedFileIds.value,
   };
+
+  if (data.halfDay) {
+    // Combine date and time into full datetime strings
+    const fromDateTime = `${data.from}T${data.timefrom}:00`;
+    const toDateTime = `${data.to}T${data.timeTo}:00`;
+
+    payload.timefrom = fromDateTime;
+    payload.timeTo = toDateTime;
+  }
+
+  return payload;
 };
 
 const checkMonthlyLeaveLimit = async (payload) => {
   console.log("🟢 STEP 1: Function called with payload:", payload);
 
-  // Skip unpaid leave
   if (payload.leaveType === "UnpaidLeave") {
     console.log(
       "🟢 STEP 2: Leave type is 'UnpaidLeave' — skipping limit check.",
@@ -893,7 +1256,6 @@ const checkMonthlyLeaveLimit = async (payload) => {
     return true;
   }
 
-  // Normalize leave type key
   const normalizedType = payload.leaveType.toLowerCase().replace(/\s+/g, "");
   const monthLimit = monthLimits.value[normalizedType] || 0;
 
@@ -910,7 +1272,6 @@ const checkMonthlyLeaveLimit = async (payload) => {
     return true;
   }
 
-  // Calculate requested leave days
   const requestDays = calculateDays(
     payload.fromDate,
     payload.toDate,
@@ -919,7 +1280,6 @@ const checkMonthlyLeaveLimit = async (payload) => {
   console.log("🟢 STEP 5: Calculated requested leave days:", requestDays);
 
   try {
-    // Current month start
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const formattedFirstDay = firstDayOfMonth.toISOString().split("T")[0];
@@ -929,7 +1289,6 @@ const checkMonthlyLeaveLimit = async (payload) => {
       firstDayOfMonth: formattedFirstDay,
     });
 
-    // Prepare API URL
     const url =
       `${import.meta.env.VITE_API_URL}/items/leaveRequest?` +
       `filter[_and][0][requestedBy][id][_eq]=${payload.requestedBy}&` +
@@ -957,7 +1316,6 @@ const checkMonthlyLeaveLimit = async (payload) => {
     const currentMonthLeaves = data.data || [];
     console.log("🟢 STEP 9: Leave requests fetched:", currentMonthLeaves);
 
-    // Calculate total used days this month
     let totalDaysUsed = 0;
     currentMonthLeaves.forEach((leave) => {
       if (leave.id !== payload.id) {
@@ -983,21 +1341,18 @@ const checkMonthlyLeaveLimit = async (payload) => {
       totalDaysUsed,
     );
 
-    // Calculate total limit (monthly + cumulative)
     const totalMonthLimit = monthLimit;
     console.log(
       "🟢 STEP 12: Total limit (monthly + cumulative):",
       totalMonthLimit,
     );
 
-    // Total days if this leave is included
     const totalRequestedIncludingThis = totalDaysUsed + requestDays;
     console.log(
       "🟢 STEP 13: Total requested days (including this):",
       totalRequestedIncludingThis,
     );
 
-    // Check if limit exceeded
     if (totalRequestedIncludingThis > totalMonthLimit) {
       const remainingDays = totalMonthLimit - totalDaysUsed;
       console.warn("⚠️ STEP 14: Leave limit exceeded!", {
@@ -1221,17 +1576,49 @@ const handleSave = async () => {
   try {
     isSaving.value = true;
     const tenantId = currentUserTenant.getTenantId();
-    if (!form.value) {
-      showErrorMessage("Form reference is missing");
-      return;
+    console.log("🔍 DEBUG FORM VALIDATION:");
+    console.log("form.value:", form.value);
+    console.log("form.value.validate:", form.value?.validate);
+    console.log("Form data:", JSON.parse(JSON.stringify(formData.value)));
+
+    let isValid = false;
+
+    // Try form validation first, fallback to manual validation
+    if (form.value && typeof form.value.validate === "function") {
+      console.log("🟢 Using form validation");
+      const { valid } = await form.value.validate();
+      isValid = valid;
+      console.log("Form validation result:", valid);
+    } else {
+      console.log("🟡 Using manual validation");
+      // Manual validation as fallback
+      isValid =
+        formData.value.from &&
+        formData.value.to &&
+        formData.value.leaveType &&
+        formData.value.reason &&
+        (!formData.value.halfDay ||
+          (formData.value.timefrom && formData.value.timeTo));
+      console.log("Manual validation result:", isValid);
+      console.log("Individual fields:", {
+        from: !!formData.value.from,
+        to: !!formData.value.to,
+        leaveType: !!formData.value.leaveType,
+        reason: !!formData.value.reason,
+        timefrom: !formData.value.halfDay || !!formData.value.timefrom,
+        timeTo: !formData.value.halfDay || !!formData.value.timeTo,
+      });
     }
 
-    const { valid } = await form.value.validate();
-    if (!valid) {
+    console.log("Final isValid:", isValid);
+
+    if (!isValid) {
+      console.log("❌ Validation failed - showing error");
       showErrorMessage("Please fill all required fields");
       return;
+    } else {
+      console.log("✅ Validation passed - continuing with save");
     }
-
     if (!validateDates(formData.value.from, formData.value.to)) {
       return;
     }
@@ -1260,7 +1647,8 @@ const handleSave = async () => {
       .replace(/\s+/g, "");
 
     if (
-      leaveTypeKey !== "unpaidleave" &&
+      leaveTypeKey !== "workfromhome" &&
+      leaveTypeKey !== "onduty" &&
       !leaveConfig.value.enabledLeaveTypes.includes(leaveTypeKey)
     ) {
       showErrorMessage("This leave type is not available for you");
@@ -1280,7 +1668,7 @@ const handleSave = async () => {
       formData.value.halfDay,
     );
 
-    if (leaveTypeKey !== "unpaidleave") {
+    if (leaveTypeKey !== "workfromhome" && leaveTypeKey !== "onduty") {
       const currentBalance = getLeaveBalance(formData.value.leaveType);
       if (numberOfDays > currentBalance) {
         showErrorMessage(
@@ -1309,7 +1697,11 @@ const handleSave = async () => {
         setting.leaveName.toLowerCase().replace(/\s+/g, "") === leaveTypeKey,
     );
 
-    if (leaveTypeKey !== "unpaidleave" && !leaveSetting) {
+    if (
+      leaveTypeKey !== "workfromhome" &&
+      leaveTypeKey !== "onduty" &&
+      !leaveSetting
+    ) {
       showErrorMessage("Leave settings not found for this leave type");
       return;
     }
@@ -1425,19 +1817,199 @@ const handleSave = async () => {
   }
 };
 
+const handleOutSave = async () => {
+  try {
+    isSaving.value = true;
+
+    if (outForm.value && typeof outForm.value.validate === "function") {
+      const { valid } = await outForm.value.validate();
+      if (!valid) {
+        showErrorMessage("Please fill all required fields");
+        return;
+      }
+    } else {
+      // Manual validation
+      if (
+        !outFormData.value.selectedAttendance ||
+        !outFormData.value.outTime ||
+        !outFormData.value.reason
+      ) {
+        showErrorMessage("Please fill all required fields");
+        return;
+      }
+      if (outFormData.value.outTime <= outFormData.value.inTime) {
+        showErrorMessage("Out time must be after in time");
+        return;
+      }
+    }
+
+    const payload = {
+      tenant: { tenantId: currentUserTenant.getTenantId() },
+      fromDate: outFormData.value.date,
+      toDate: outFormData.value.date,
+      leaveType: "abnormal",
+      halfDay: true,
+      timefrom: `${outFormData.value.date}T${outFormData.value.inTime}`,
+      timeTo: `${outFormData.value.date}T${outFormData.value.outTime}`,
+      reason: outFormData.value.reason,
+      status: "pending",
+      requestedBy: personalModuleData.value.id,
+      attendance: outFormData.value.selectedAttendance,
+      attachments: [],
+    };
+
+    // Additional checks if needed, similar to handleSave
+    const noConflicts = await checkConflictingLeaveRequests(payload);
+    if (!noConflicts) return;
+
+    const isPayrollVerified = await checkPayrollVerification();
+    if (!isPayrollVerified) return;
+
+    if (!validateDatesAgainstCycle(payload.fromDate, payload.toDate)) return;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/leaveRequest`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `Failed to save out request: ${errorData.message || response.status}`,
+      );
+    }
+
+    showSuccessMessage("Out request applied successfully");
+
+    setTimeout(() => {
+      emit("closeAddPage");
+      emit("leaveApplied");
+    }, 2000);
+  } catch (error) {
+    console.error("ERROR in handleOutSave:", error);
+    showErrorMessage(`Failed to apply out request: ${error.message}`);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const handleTabChange = () => {
+  formData.value = {
+    from: null,
+    to: null,
+    leaveType: null,
+    halfDay: false,
+    timefrom: null,
+    timeTo: null,
+    reason: null,
+    attachments: [],
+  };
+  outFormData.value = {
+    selectedAttendance: null,
+    date: null,
+    inTime: null,
+    outTime: null,
+    reason: null,
+  };
+  if (form.value) {
+    form.value.resetValidation();
+  }
+  if (outForm.value) {
+    outForm.value.resetValidation();
+  }
+};
+
+watch(
+  () => outFormData.value.selectedAttendance,
+  (newVal) => {
+    if (newVal) {
+      const selected = attendanceOptions.value.find(
+        (opt) => opt.value === newVal,
+      );
+      if (selected) {
+        outFormData.value.date = selected.date;
+        outFormData.value.inTime = selected.inTime;
+      }
+    } else {
+      outFormData.value.date = null;
+      outFormData.value.inTime = null;
+      outFormData.value.outTime = null;
+      outFormData.value.reason = null;
+    }
+  },
+);
+
 onMounted(async () => {
   await fetchUserAndLeaveData();
   await fetchAttendanceCycle();
+
+  await fetchAttendanceRecords();
+
   leaveDocumentsFolderId.value = await getLeaveDocumentsFolderId();
+  setTabsBasedOnRole();
 });
 </script>
-
 <style scoped>
 .add-form-container {
-  height: 100%;
+  height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: auto;
+}
+
+.custom-tabs {
+  background-color: #e8edff;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding: 8px 10px 0;
+}
+
+.custom-tab {
+  background-color: white;
+  color: #122f68 !important;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  margin-right: 8px;
+  min-height: 48px;
+  transition: background-color 0.3s ease;
+  text-transform: capitalize;
+  font-weight: 550;
+  font-size: 16px;
+  font-family: Lato, sans-serif, Arial;
+}
+
+.v-tab--selected.custom-tab {
+  background-color: #122f68 !important;
+  color: whitesmoke !important;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.custom-tab .v-icon {
+  color: #122f68 !important;
+  opacity: 0.8;
+}
+
+.v-tab--selected .v-icon {
+  color: white !important;
+  opacity: 1;
+}
+
+.tab-content-wrapper {
+  border-radius: 0 0 12px 12px;
+  background: white;
+}
+
+.out-request-content {
+  padding: 16px;
+  color: #424242;
+  font-size: 1rem;
 }
 
 .form-header {
@@ -1529,6 +2101,7 @@ onMounted(async () => {
   --v-field-border-opacity: 1;
   color: #1976d2;
 }
+
 .save-btn :deep(.v-btn__loader) {
   color: white;
 }
@@ -1536,6 +2109,7 @@ onMounted(async () => {
 .save-btn :deep(.v-progress-circular) {
   margin: 0;
 }
+
 .switch-wrapper {
   display: flex;
   flex-direction: column;
@@ -1572,16 +2146,19 @@ onMounted(async () => {
   color: rgb(236, 236, 236) !important;
   font-weight: 500;
 }
+
 :deep(.v-navigation-drawer__content) {
   flex: 0 1 auto;
-  height: 90%;
+  height: 80vh;
   max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
 }
+
 .add-form-container .v-col {
   padding: 0 !important;
 }
+
 :deep(.v-navigation-drawer__scrim) {
   background: rgba(0, 0, 0, 0.5) !important;
   opacity: 1;

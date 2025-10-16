@@ -1,5 +1,3 @@
-"use client";
-
 import { ref } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
@@ -13,7 +11,6 @@ export function useFormTemplates() {
   const loading = ref(false);
   const currentTenant = ref("");
 
-  // Get auth data
   const getAuthData = async () => {
     await currentUserTenant.initialize();
     return {
@@ -64,7 +61,6 @@ export function useFormTemplates() {
       console.error("Error fetching form templates:", error);
       formTemplates.value = [];
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -106,7 +102,6 @@ export function useFormTemplates() {
       console.error("Error fetching roles:", error);
       roleOptions.value = [];
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -155,24 +150,36 @@ export function useFormTemplates() {
         selectedForm.value = { ...data.data[0] };
         if (!selectedForm.value.custom_FormTemplate) {
           selectedForm.value.custom_FormTemplate = {
-            fields: [],
-            status_transitions: {},
+            forms: [],
+            shared_properties: {
+              booleans: {
+                signature: false,
+                rating: false,
+                supervisor: false,
+                timeSheet: false,
+                team: false,
+              },
+              form_visibility_to: { roles: [] },
+              status_transitions: JSON.parse(
+                JSON.stringify(defaultFormTemplate.status_transitions),
+              ),
+            },
           };
         }
 
-        // Initialize status transitions
         if (
-          Object.keys(selectedForm.value.custom_FormTemplate.status_transitions)
-            .length === 0
+          Object.keys(
+            selectedForm.value.custom_FormTemplate.shared_properties
+              .status_transitions,
+          ).length === 0
         ) {
-          selectedForm.value.custom_FormTemplate.status_transitions =
+          selectedForm.value.custom_FormTemplate.shared_properties.status_transitions =
             JSON.parse(JSON.stringify(defaultFormTemplate.status_transitions));
           for (const statusKey in selectedForm.value.custom_FormTemplate
-            .status_transitions) {
+            .shared_properties.status_transitions) {
             const transition =
-              selectedForm.value.custom_FormTemplate.status_transitions[
-                statusKey
-              ];
+              selectedForm.value.custom_FormTemplate.shared_properties
+                .status_transitions[statusKey];
             if (!transition.required_fields) {
               transition.required_fields = {};
             }
@@ -184,10 +191,13 @@ export function useFormTemplates() {
           }
         }
 
-        // Initialize field validations
-        if (selectedForm.value.custom_FormTemplate.fields) {
-          selectedForm.value.custom_FormTemplate.fields.forEach((field) => {
-            initializeValidations(field);
+        if (selectedForm.value.custom_FormTemplate.forms) {
+          selectedForm.value.custom_FormTemplate.forms.forEach((form) => {
+            if (form.fields) {
+              form.fields.forEach((field) => {
+                initializeValidations(field);
+              });
+            }
           });
         }
       } else {
@@ -197,7 +207,6 @@ export function useFormTemplates() {
       console.error("Error fetching full form details:", error);
       selectedForm.value = null;
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -240,7 +249,6 @@ export function useFormTemplates() {
     } catch (error) {
       console.error("Error updating form status:", error);
 
-      // Handle auth errors
       if (
         error.message.includes("401") ||
         error.message.includes("Authentication")
@@ -250,6 +258,91 @@ export function useFormTemplates() {
     } finally {
       if (!isEnabled && selectedForm.value?.id === form.id) {
         selectedForm.value = null;
+      }
+    }
+  };
+
+  const createForm = async (formData) => {
+    try {
+      const { token, tenantId } = await getAuthData();
+
+      if (!token || !tenantId) {
+        throw new Error("Authentication data not available");
+      }
+
+      const newForm = {
+        form_name: formData.form_name,
+        requires_location: formData.requires_location,
+        location_field_key: formData.requires_location
+          ? { lat: "", lng: "" }
+          : null,
+        fields: [],
+      };
+
+      if (formData.templateId) {
+        const params = new URLSearchParams();
+        params.append("fields[]", "custom_FormTemplate");
+        params.append("filter[_and][0][id][_eq]", formData.templateId);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/tenant_template?${params.toString()}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const templateData = await response.json();
+        if (templateData.data?.[0]?.custom_FormTemplate?.forms) {
+          newForm.fields = JSON.parse(
+            JSON.stringify(
+              templateData.data[0].custom_FormTemplate.forms[0]?.fields || [],
+            ),
+          );
+        }
+      }
+
+      const updatedCustomFormTemplate = selectedForm.value
+        ?.custom_FormTemplate || {
+        forms: [],
+      };
+
+      updatedCustomFormTemplate.forms.push(newForm);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/tenant_template/${selectedForm.value?.id || ""}`,
+        {
+          method: selectedForm.value ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            formName: selectedForm.value?.formName || formData.form_name,
+            enableForm: formData.enabled,
+            assignedOrgnization: formData.orgId,
+            tenant: tenantId,
+            custom_FormTemplate: updatedCustomFormTemplate,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await fetchFormTemplates();
+    } catch (error) {
+      console.error("Error creating form:", error);
+
+      if (
+        error.message.includes("401") ||
+        error.message.includes("Authentication")
+      ) {
+        authService.logout();
       }
     }
   };
@@ -264,5 +357,6 @@ export function useFormTemplates() {
     fetchRoles,
     selectForm,
     toggleFormEnabled,
+    createForm,
   };
 }

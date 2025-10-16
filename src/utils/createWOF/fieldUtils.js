@@ -1,3 +1,4 @@
+// /senzrGo/senzrfieldopsfrontend/src/utils/createWOF/fieldUtils.js
 // Field type support mapping
 const SUPPORTED_FIELD_TYPES = {
   text: true,

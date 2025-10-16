@@ -27,9 +27,6 @@
             <v-card-text class="pa-8">
               <div class="d-flex align-center justify-space-between mb-2">
                 <div class="text-h5 font-weight-black heading-text">Login</div>
-                <!-- <v-chip size="small" :style="demoChipStyle" variant="flat">
-                  Demo only
-                </v-chip> -->
               </div>
               <div class="text-body-2 help-text">
                 Enter phone number or email for different account
@@ -49,92 +46,176 @@
                 Session timed out
               </v-alert>
 
-              <!-- Tabs for Phone/Email -->
-              <v-tabs v-model="activeTab" :style="tabsStyle" class="mt-6">
-                <v-tab value="phone">Phone</v-tab>
-                <v-tab value="email">Email</v-tab>
-              </v-tabs>
-
-              <v-window v-model="activeTab">
-                <!-- Phone Login -->
-                <v-window-item value="phone">
-                  <v-form @submit.prevent="handleSubmit" class="mt-6">
-                    <div class="text-body-1 label-text mb-2">Phone Number</div>
-                    <v-row>
-                      <v-col cols="4">
-                        <v-select
-                          v-model="countryCode"
-                          :items="countryCodes"
-                          item-title="code"
-                          item-value="code"
-                          variant="outlined"
-                          density="default"
-                          :style="loginInputStyle"
-                        ></v-select>
-                      </v-col>
-                      <v-col>
-                        <v-text-field
-                          v-model="phoneNumber"
-                          label="Enter phone number"
-                          variant="outlined"
-                          density="default"
-                          type="tel"
-                          :rules="phoneRules"
-                          :error-messages="phoneError"
-                          :style="loginInputStyle"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    <v-btn
-                      block
-                      size="large"
-                      type="submit"
-                      :loading="loading"
-                      :style="primaryBtnStyle"
-                      class="mt-6"
-                    >
-                      Get Verification Code
-                    </v-btn>
-                  </v-form>
-                </v-window-item>
-
-                <!-- Email Login -->
-                <v-window-item value="email">
-                  <v-form @submit.prevent="handleEmailSubmit" class="mt-6">
-                    <div class="text-body-1 label-text mb-2">Email Address</div>
-                    <v-text-field
-                      v-model="email"
-                      label="Enter email address"
-                      variant="outlined"
-                      density="default"
-                      type="email"
-                      :rules="emailRules"
-                      :error-messages="emailError"
-                      :style="loginInputStyle"
-                    ></v-text-field>
-                    <v-btn
-                      block
-                      size="large"
-                      type="submit"
-                      :loading="emailLoading"
-                      :style="primaryBtnStyle"
-                      class="mt-6"
-                    >
-                      Get Verification Code
-                    </v-btn>
-                  </v-form>
-                </v-window-item>
-              </v-window>
-
-              <!-- Sign-up Link -->
-              <div class="text-center mt-6">
+              <!-- Toggle -->
+              <div class="d-flex ga-3 mt-6">
                 <v-btn
-                  variant="text"
-                  :style="{ color: colors.brand }"
-                  :to="{ path: '/register' }"
+                  :style="[
+                    pillStyle,
+                    activeTab === 'phone' ? pillActiveStyle : {},
+                  ]"
+                  @click="setMode('phone')"
+                  size="large"
                 >
-                  Don't have an account? Sign-up
+                  Phone
                 </v-btn>
+                <v-btn
+                  :style="[
+                    pillStyle,
+                    activeTab === 'email' ? pillActiveStyle : {},
+                  ]"
+                  @click="setMode('email')"
+                  size="large"
+                >
+                  Email
+                </v-btn>
+              </div>
+
+              <!-- Phone mode -->
+              <div v-if="activeTab === 'phone'" class="mt-6">
+                <div class="text-body-1 label-text mb-2">Mobile number</div>
+                <div class="d-flex ga-3">
+                  <v-select
+                    v-model="countryCode"
+                    :items="countryItems"
+                    density="default"
+                    hide-details
+                    variant="outlined"
+                    :style="[inputStyle, { maxWidth: '100px', height: '10px' }]"
+                  />
+                  <v-text-field
+                    v-model.trim="phoneNumber"
+                    density="default"
+                    variant="outlined"
+                    placeholder="Enter your Phone Number"
+                    type="tel"
+                    :error-messages="phoneError"
+                    :style="phoneInputStyle"
+                    @input="sanitizePhone"
+                    @keyup.enter="handleSubmit"
+                  />
+                </div>
+                <div class="text-body-2 help-text mt-2">
+                  Digits only. You’ll receive an OTP on the next screen.
+                </div>
+
+                <v-btn
+                  class="mt-6"
+                  block
+                  color="primary"
+                  :style="primaryBtnStyle"
+                  :loading="loading"
+                  @click="handleSubmit"
+                >
+                  Get Code
+                </v-btn>
+
+                <!-- Sign-up Link -->
+                <div class="text-center mt-4">
+                  <v-btn
+                    variant="text"
+                    :style="{ color: colors.brand }"
+                    :to="{ path: '/register' }"
+                  >
+                    Don't have an account? Sign-up
+                  </v-btn>
+                </div>
+
+                <v-alert
+                  v-if="phoneError"
+                  type="error"
+                  variant="tonal"
+                  class="mt-4"
+                  :style="alertStyle"
+                  density="default"
+                  closable
+                  @click:close="phoneError = ''"
+                >
+                  {{ phoneError }}
+                </v-alert>
+
+                <div
+                  class="d-grid mt-6"
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
+                  "
+                >
+                  <v-chip
+                    :style="chipGhostStyle"
+                    size="default"
+                    variant="outlined"
+                    >GPS tracking</v-chip
+                  >
+                  <v-chip
+                    :style="chipGhostStyle"
+                    size="default"
+                    variant="outlined"
+                    >Digital timesheets</v-chip
+                  >
+                  <v-chip
+                    :style="chipGhostStyle"
+                    size="default"
+                    variant="outlined"
+                    >Auto reports</v-chip
+                  >
+                </div>
+              </div>
+
+              <!-- Email mode -->
+              <div v-else class="mt-6">
+                <div class="text-body-1 label-text mb-2">Email address</div>
+                <v-text-field
+                  v-model.trim="email"
+                  placeholder="your@example.com"
+                  density="default"
+                  hide-details
+                  variant="outlined"
+                  type="email"
+                  :style="inputStyle"
+                  :error-messages="emailError"
+                  @keyup.enter="handleEmailSubmit"
+                />
+
+                <div class="text-body-2 help-text mt-2">
+                  We’ll initiate a secure session and take you to PIN
+                  verification.
+                </div>
+
+                <v-btn
+                  class="mt-6"
+                  block
+                  color="primary"
+                  :loading="emailLoading"
+                  :style="primaryBtnStyle"
+                  @click="handleEmailSubmit"
+                >
+                  Continue with Email
+                </v-btn>
+
+                <!-- Sign-up Link -->
+                <div class="text-center mt-4">
+                  <v-btn
+                    variant="text"
+                    :style="{ color: colors.brand }"
+                    :to="{ path: '/register' }"
+                  >
+                    Don't have an account? Sign-up
+                  </v-btn>
+                </div>
+
+                <v-alert
+                  v-if="emailError"
+                  type="error"
+                  variant="tonal"
+                  class="mt-4"
+                  :style="alertStyle"
+                  density="default"
+                  closable
+                  @click:close="emailError = ''"
+                >
+                  {{ emailError }}
+                </v-alert>
               </div>
 
               <div class="text-body-2 help-text mt-8">
@@ -149,34 +230,44 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { authService } from "@/services/authService";
 
 const router = useRouter();
 const route = useRoute();
 
+const activeTab = ref("phone");
 const countryCode = ref("+91");
 const phoneNumber = ref("");
 const email = ref("");
-const loading = ref(false);
-const emailLoading = ref(false);
 const phoneError = ref("");
 const emailError = ref("");
-const countryCodes = ref([{ code: "+91", flag: "🇮🇳" }]);
+const loading = ref(false);
+const emailLoading = ref(false);
 const showTimeoutMessage = ref(false);
-const activeTab = ref("phone");
 const year = ref(new Date().getFullYear());
 
-const phoneRules = [
-  (v) => !!v || "Phone number is required",
-  (v) => /^\d{10}$/.test(v) || "Phone number must be 10 digits",
-];
+const countryItems = [{ title: "🇮🇳 +91", value: "+91" }];
 
-const emailRules = [
-  (v) => !!v || "Email is required",
-  (v) => /.+@.+\..+/.test(v) || "Email must be valid",
-];
+function setMode(mode) {
+  activeTab.value = mode;
+  phoneError.value = "";
+  emailError.value = "";
+}
+
+function sanitizePhone() {
+  phoneNumber.value = (phoneNumber.value || "").replace(/\D/g, "").slice(0, 10);
+  if (phoneError.value) phoneError.value = "";
+}
+
+function validPhone(num) {
+  return /^\d{10}$/.test(num);
+}
+
+function validEmail(e) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
 
 function clearPreviousSession() {
   localStorage.removeItem("pinVerifiedInSession");
@@ -184,6 +275,8 @@ function clearPreviousSession() {
   localStorage.removeItem("sessionUuid");
   localStorage.removeItem("userPhone");
   localStorage.removeItem("fullPhoneNumber");
+  localStorage.removeItem("email");
+  localStorage.removeItem("emailSessionUuid");
   localStorage.removeItem("userData");
   localStorage.removeItem("tenantData");
 }
@@ -194,14 +287,9 @@ function dismissTimeoutMessage() {
 
 async function handleSubmit() {
   phoneError.value = "";
-
-  if (!phoneNumber.value) {
-    phoneError.value = "Phone number is required";
-    return;
-  }
-
-  if (!/^\d{10}$/.test(phoneNumber.value)) {
-    phoneError.value = "Phone number must be 10 digits";
+  const digits = (phoneNumber.value || "").replace(/\D/g, "");
+  if (!validPhone(digits)) {
+    phoneError.value = "Please enter a valid 10-digit mobile number.";
     return;
   }
 
@@ -210,9 +298,9 @@ async function handleSubmit() {
   try {
     clearPreviousSession();
 
-    const fullPhoneNumber = countryCode.value + phoneNumber.value;
+    const fullPhoneNumber = countryCode.value + digits;
 
-    // Step 1: Check if user exists first
+    // Check if phone exists
     const phoneExists = await authService.checkPhoneExists(fullPhoneNumber);
     if (!phoneExists) {
       phoneError.value =
@@ -220,7 +308,7 @@ async function handleSubmit() {
       return;
     }
 
-    // Step 2: Check resignation status (without triggering OTP)
+    // Check if user is resigned
     const isResigned = await authService.checkUserResigned(fullPhoneNumber);
     if (isResigned) {
       phoneError.value =
@@ -228,10 +316,26 @@ async function handleSubmit() {
       return;
     }
 
-    // Proceed to OTP verification
-    await proceedToOtpVerification();
+    // Check user PIN and token status
+    const user = await authService.getUserByPhone(fullPhoneNumber);
+    const hasPin = user && user.userPin;
+    const token = authService.getToken();
+    const isTokenValid = token && authService.isAuthenticated();
+
+    localStorage.setItem("userPhone", digits);
+    localStorage.setItem("fullPhoneNumber", fullPhoneNumber);
+    localStorage.setItem("fromAlternateLogin", "true");
+
+    if (!hasPin || (hasPin && !isTokenValid)) {
+      await proceedToOtpVerification(fullPhoneNumber);
+    } else if (hasPin && isTokenValid) {
+      router.push({
+        name: "PinVerification",
+        params: { phoneNumber: digits },
+      });
+    }
   } catch (error) {
-    console.error("Error during alternate login:", error);
+    console.error("Error during phone login:", error);
     phoneError.value =
       "An error occurred. Please try again or check the internet connection";
   } finally {
@@ -239,25 +343,31 @@ async function handleSubmit() {
   }
 }
 
-async function proceedToOtpVerification() {
+async function proceedToOtpVerification(fullPhoneNumber) {
   try {
-    // Trigger OTP for alternate login
-    const response = await authService.generateOtp(phoneNumber.value);
+    let response = await authService.generateOtp(fullPhoneNumber);
+
+    if (typeof response === "string") {
+      try {
+        response = JSON.parse(response);
+      } catch (e) {
+        console.error("Failed to parse response JSON:", e);
+      }
+    }
+
+    console.log("OTP Generation Response:", response);
+
     if (response && response.otp_session_uuid) {
+      console.log("✅ Valid OTP response:", response);
       localStorage.setItem("sessionUuid", response.otp_session_uuid);
       localStorage.setItem("fromOtp", "true");
-      localStorage.setItem("userPhone", phoneNumber.value);
-      localStorage.setItem(
-        "fullPhoneNumber",
-        countryCode.value + phoneNumber.value,
-      );
-      localStorage.setItem("fromAlternateLogin", "true");
 
       router.push({
         name: "Verification",
-        params: { phoneNumber: phoneNumber.value },
+        params: { phoneNumber: fullPhoneNumber.replace(countryCode.value, "") },
       });
     } else {
+      console.warn("Invalid OTP response structure:", response);
       phoneError.value = "Failed to generate OTP. Please try again.";
     }
   } catch (error) {
@@ -273,14 +383,8 @@ async function proceedToOtpVerification() {
 
 async function handleEmailSubmit() {
   emailError.value = "";
-
-  if (!email.value) {
-    emailError.value = "Email is required";
-    return;
-  }
-
-  if (!/.+@.+\..+/.test(email.value)) {
-    emailError.value = "Email must be valid";
+  if (!validEmail(email.value)) {
+    emailError.value = "Enter a valid email address.";
     return;
   }
 
@@ -289,45 +393,46 @@ async function handleEmailSubmit() {
   try {
     clearPreviousSession();
 
-    // Step 1: Check if email exists
+    // Check if email exists
     const emailExists = await authService.checkEmailExists(email.value);
     if (!emailExists) {
       emailError.value = "This email is not registered. Please sign up first.";
       return;
     }
 
-    // Step 2: Check resignation status
-    const isResigned = await authService.checkUserResigned(email.value);
+    // Check if user is resigned
+    const isResigned = await authService.checkUserResignedByEmail(email.value);
     if (isResigned) {
       emailError.value =
         "Resigned Employee has No access. Please contact your Company Admin.";
       return;
     }
 
-    // Trigger OTP for email
-    const response = await authService.generateEmailOtp(email.value);
-    if (response && response.otp_session_uuid) {
-      localStorage.setItem("sessionUuid", response.otp_session_uuid);
-      localStorage.setItem("fromOtp", "true");
-      localStorage.setItem("userEmail", email.value);
-      localStorage.setItem("fromAlternateLogin", "true");
-
-      router.push({
-        name: "Verification",
-        params: { email: email.value },
-      });
-    } else {
-      emailError.value = "Failed to generate OTP. Please try again.";
+    // Generate OTP session for email
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/emailLogin/generate-session`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.value, userApp: "fieldeasy" }),
+      },
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.otp_session_uuid) {
+      throw new Error(
+        data?.message || "Could not start email session. Try again.",
+      );
     }
+
+    localStorage.setItem("email", email.value);
+    localStorage.setItem("emailSessionUuid", data.otp_session_uuid);
+    localStorage.setItem("fromAlternateLogin", "true");
+
+    router.push({ name: "EmailVerification", params: { email: email.value } });
   } catch (error) {
     console.error("Error during email login:", error);
-    if (error.message === "RESIGNED_USER") {
-      emailError.value =
-        "Resigned Employee has No access. Please contact your Company Admin.";
-    } else {
-      emailError.value =
-        "An error occurred. Please try again or check the internet connection";
-    }
+    emailError.value =
+      error?.message || "Something went wrong. Please try again.";
   } finally {
     emailLoading.value = false;
   }
@@ -340,7 +445,7 @@ onMounted(() => {
   }
 });
 
-/* Inline palette + styles to match the login page */
+/* Inline palette + styles */
 const colors = {
   background: "#122f68",
   surface: "#0f2a57",
@@ -367,8 +472,9 @@ const inputStyle = {
   borderColor: colors.border,
 };
 
-const loginInputStyle = {
+const phoneInputStyle = {
   color: colors.text,
+  borderColor: colors.border,
 };
 
 const primaryBtnStyle = {
@@ -376,9 +482,23 @@ const primaryBtnStyle = {
   color: "#ffffff",
 };
 
-const tabsStyle = {
-  backgroundColor: colors.surface,
+const pillStyle = {
+  backgroundColor: "#103063",
   color: colors.text,
+  border: `1px solid ${colors.border}`,
+  textTransform: "none",
+};
+
+const pillActiveStyle = {
+  boxShadow: `inset 0 0 0 1px ${colors.brand}`,
+  background:
+    "linear-gradient(180deg, rgba(91,127,255,0.28), rgba(91,127,255,0.14))",
+};
+
+const chipGhostStyle = {
+  backgroundColor: "#103063",
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
 };
 
 const alertStyle = {
@@ -386,12 +506,6 @@ const alertStyle = {
     "linear-gradient(135deg, rgba(254,202,202,0.9), rgba(248,113,113,0.95))",
   color: "#7f1d1d",
   border: "1px solid rgba(239,68,68,0.4)",
-};
-
-const demoChipStyle = {
-  backgroundColor: "rgba(251,191,36,0.25)",
-  border: "1px solid rgba(251,191,36,0.35)",
-  color: "#fde68a",
 };
 
 const logoStyle = {

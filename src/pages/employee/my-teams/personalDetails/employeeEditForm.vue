@@ -106,11 +106,11 @@ import PersonalDetails from "@/pages/employee/my-teams/personalDetails/employeeE
 import CompanyDetails from "@/pages/employee/my-teams/personalDetails/employeeEditform/companyDetails.vue";
 import GovernmentIds from "@/pages/employee/my-teams/personalDetails/employeeEditform/governmentIDs.vue";
 import AttendancePolicy from "@/pages/employee/my-teams/personalDetails/employeeEditform/attendance/attendancePolicy.vue";
-import PayrollCategory from "@/pages/employee/my-teams/personalDetails/employeeEditform/payrollCategory.vue";
+//import PayrollCategory from "@/pages/employee/my-teams/personalDetails/employeeEditform/payrollCategory.vue";
 import AccessManagement from "@/pages/employee/my-teams/personalDetails/employeeEditform/accessManagement.vue";
 import PastExperience from "@/pages/employee/my-teams/personalDetails/employeeEditform/pastExperience.vue";
 import BackgroundVerification from "@/pages/employee/my-teams/personalDetails/employeeEditform/backgroundVerification.vue";
-import BankDetails from "@/pages/employee/my-teams/personalDetails/employeeEditform/bankForm.vue";
+//import BankDetails from "@/pages/employee/my-teams/personalDetails/employeeEditform/bankForm.vue";
 // import EmployeeAddress from "@/pages/employee/my-teams/personalDetails/employeeEditform/employeeAddress.vue";
 import EmergencyContact from "@/pages/employee/my-teams/personalDetails/employeeEditform/emergencyContact.vue";
 import LeavePolicy from "@/pages/employee/my-teams/personalDetails/employeeEditform/leavePolicy.vue";
@@ -181,14 +181,7 @@ const tabs = [
     component: LeavePolicy,
     roles: ["Admin", "Manager", "accessManager", "Dealers"],
   },
-  {
-    id: "payroll",
-    title: "Salary Details",
-    icon: "mdi-cash",
-    path: "payrollmodule",
-    component: PayrollCategory,
-    roles: ["Admin", "Dealer"],
-  },
+
   // {
   //   id: "access",
   //   title: "Access Management",
@@ -206,14 +199,6 @@ const tabs = [
     roles: ["Admin", "Manager", "accessManager", "Dealer"],
   },
 
-  {
-    id: "bank",
-    title: "Bank Details",
-    icon: "mdi-bank",
-    path: "bankmodule",
-    component: BankDetails,
-    roles: ["Admin", "Manager", "accessManager", "Employee", "Dealer"],
-  },
   {
     id: "Emergency Contact Details",
     title: "Emergency Contact Details",

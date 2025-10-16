@@ -42,11 +42,6 @@ const tabs = [
     title: "Organization Settings",
     icon: "mdi-calendar-clock",
   },
-  {
-    value: "attendance-cycle",
-    title: "Attendance Cycle",
-    icon: "mdi-account-details",
-  },
 ];
 
 const activeTab = ref(null);

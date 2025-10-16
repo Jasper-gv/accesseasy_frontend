@@ -60,155 +60,236 @@
       </div>
     </div>
 
-    <div class="main-content">
-      <div class="attendance-view">
-        <div class="content-wrapper">
-          <div class="content-section">
-            <div class="section-header">
-              <v-icon color="primary" class="mr-2">mdi-account-group</v-icon>
-              <h2>Employee Status</h2>
-            </div>
+    <div class="content-section">
+      <div class="section-header">
+        <v-icon color="primary" class="mr-2">mdi-account-group</v-icon>
+        <h2>Employee Status</h2>
+      </div>
 
-            <div v-if="isLoadingEmployees" class="loading-container">
-              <v-progress-circular
-                indeterminate
-                color="primary"
-                size="64"
-              ></v-progress-circular>
-              <div class="loading-text">Loading employee data...</div>
-            </div>
+      <!-- Loading (Skeleton Table Loader) -->
+      <template v-if="isLoadingEmployees">
+        <SkeletonLoader
+          variant="table-body-only"
+          :rows="itemsPerPage || 10"
+          :columns="7"
+        />
+      </template>
 
-            <div v-else class="employee-grid">
-              <div
-                v-for="(employee, index) in paginatedEmployees"
-                :key="index"
-                class="employee-card"
-                :class="{
-                  'verified-attendance': employee.attendanceVerified,
-                  'unverified-attendance': !employee.attendanceVerified,
-                }"
-              >
-                <div class="employee-card-header">
-                  <div class="employee-name">
-                    {{ employee.employee.assignedUser.first_name }}
-                  </div>
-                  <div class="employee-id">
-                    {{ employee.employee.employeeId }}
-                  </div>
-                </div>
-                <div class="employee-card-body">
-                  <div class="employee-detail">
-                    <span class="detail-label">Role:</span>
-                    <span class="detail-value">{{
-                      employee.employee.assignedUser.role.name
-                    }}</span>
-                  </div>
-                  <div class="employee-detail">
-                    <span class="detail-label">Annual CTC:</span>
-                    <span class="detail-value"
-                      >₹{{ formatAmount(employee.monthlyCTC) }}</span
-                    >
-                  </div>
-                  <div class="employee-detail">
-                    <span class="detail-label">Payable Days:</span>
-                    <span class="detail-value">
-                      {{ employee.payableDays || 0 }}
-                    </span>
-                  </div>
-                </div>
-                <div class="employee-card-footer">
+      <!-- Table Wrapper -->
+      <template v-else>
+        <data-table-wrapper
+          :show-search="true"
+          v-model:searchQuery="searchEmployee"
+          :search-placeholder="'Search employees...'"
+          :is-empty="attendanceSummaryData.length === 0"
+        >
+          <!-- Table -->
+          <template v-if="attendanceSummaryData.length > 0">
+            <DataTable
+              :items="paginatedEmployees"
+              :columns="columns"
+              :expandable="true"
+              item-key="employee.employeeId"
+              wrapper-class="employee-status-table compact-table"
+              style="height: calc(80vh - 160px); overflow-y: auto"
+            >
+              <template #expanded-content="{ item }">
+                <tr>
+                  <td class="expanded-content-wrapper">
+                    <div class="expanded-details">
+                      <!-- Attendance Details Section -->
+                      <div class="details-section">
+                        <h3 class="section-title">Attendance Details</h3>
+                        <div class="details-grid">
+                          <div class="detail-row">
+                            <span class="detail-label">Full Present</span>
+                            <span class="detail-value success-text">0</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Half Day (P+0.5)</span>
+                            <span class="detail-value warning-text">0</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Unpaid Leave</span>
+                            <span class="detail-value info-text">0</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Absent</span>
+                            <span class="detail-value error-text">8</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Leave Details Section -->
+                      <div class="details-section">
+                        <h3 class="section-title">Leave Details</h3>
+                        <div class="details-grid">
+                          <div class="detail-row">
+                            <span class="detail-label">Privileged Leave</span>
+                            <span class="detail-value purple-text">0</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Maternity Leave</span>
+                            <span class="detail-value purple-text">0</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Casual Leave</span>
+                            <span class="detail-value purple-text">0</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Sick Leave</span>
+                            <span class="detail-value purple-text">0</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Work Metrics Section -->
+                      <div class="details-section">
+                        <h3 class="section-title">Work Metrics</h3>
+                        <div class="details-grid">
+                          <div class="detail-row">
+                            <span class="detail-label">Late By</span>
+                            <span class="detail-value">0 hrs</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Early Leave</span>
+                            <span class="detail-value">0 hrs</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Work Hours</span>
+                            <span class="detail-value">0 hrs</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Days Off Section -->
+                      <div class="details-section">
+                        <h3 class="section-title">Days Off</h3>
+                        <div class="details-grid">
+                          <div class="detail-row">
+                            <span class="detail-label">Week Off</span>
+                            <span class="detail-value">19</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Holiday</span>
+                            <span class="detail-value">3</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <!-- Employee Name -->
+              <template #cell-name="{ item }">
+                <div class="employee-info">
                   <div
-                    class="status-badge attendance"
-                    :class="
-                      employee.attendanceVerified ? 'verified' : 'unverified'
-                    "
+                    class="employee-avatar"
+                    :style="{ backgroundColor: 'grey' }"
                   >
-                    <v-icon size="16" class="mr-1">
-                      {{
-                        employee.attendanceVerified
-                          ? "mdi-check-circle"
-                          : "mdi-alert-circle"
-                      }}
-                    </v-icon>
-                    Attendance
                     {{
-                      employee.attendanceVerified ? "Verified" : "Unverified"
+                      getInitials(
+                        item?.employee?.assignedUser?.first_name || "N/A",
+                      )
                     }}
                   </div>
-
-                  <v-btn
-                    small
-                    color="primary"
-                    text
-                    class="view-details-btn"
-                    @click.stop="viewEmployeeDetails(employee)"
-                  >
-                    view
-                  </v-btn>
-                </div>
-              </div>
-            </div>
-
-            <div class="pagination-container">
-              <v-pagination
-                v-model="currentPage"
-                :length="totalPages"
-                :total-visible="7"
-              ></v-pagination>
-              <div class="items-per-page">
-                <span>Items per page:</span>
-                <v-select
-                  v-model="itemsPerPage"
-                  :items="[10, 25, 50, 100]"
-                  dense
-                  outlined
-                  hide-details
-                  class="items-per-page-select"
-                ></v-select>
-              </div>
-            </div>
-          </div>
-
-          <div class="content-section">
-            <div class="section-header">
-              <v-icon color="primary" class="mr-2">mdi-cog</v-icon>
-              <h2>Attendance Settings</h2>
-            </div>
-
-            <div class="settings-grid">
-              <div class="setting-toggle" :class="{ active: includeWeekoff }">
-                <div
-                  class="switch-appearance"
-                  :class="{ 'switch-on': includeWeekoff }"
-                >
-                  <div class="switch-thumb"></div>
-                </div>
-                <div class="setting-label">
-                  <div class="setting-title">Include Weekoff</div>
-                  <div class="setting-description">
-                    Count weekoffs as working days
+                  <div class="employee-details">
+                    <h3 class="employee-name">
+                      {{ item?.employee?.assignedUser?.first_name || "N/A" }}
+                    </h3>
                   </div>
                 </div>
-              </div>
+              </template>
 
-              <div class="setting-toggle" :class="{ active: includeHoliday }">
-                <div
-                  class="switch-appearance"
-                  :class="{ 'switch-on': includeHoliday }"
+              <!-- Employee ID -->
+              <template #cell-id="{ item }">
+                <span class="employee-code">
+                  {{ item?.employee?.id || "N/A" }}
+                </span>
+              </template>
+
+              <!-- Annual CTC -->
+              <template #cell-ctc="{ item }">
+                ₹{{ item?.monthlyCTC ? formatAmount(item.monthlyCTC) : "N/A" }}
+              </template>
+
+              <!-- Payable Days -->
+              <template #cell-payableDays="{ item }">
+                {{ item?.totalPayableDays ?? "N/A" }}
+              </template>
+              <template #cell-present="{ item }">
+                {{ item?.present ?? "N/A" }}
+              </template>
+
+              <template #cell-absent="{ item }">
+                {{ item?.absent ?? "N/A" }}
+              </template>
+
+              <!-- Unpaid Leave -->
+              <template #cell-unpaidLeave="{ item }">
+                {{ item?.unpaidLeave ?? "N/A" }}
+              </template>
+
+              <template #cell-weekOff="{ item }">
+                {{ item?.weekOff ?? "N/A" }}
+              </template>
+
+              <template #cell-holiday="{ item }">
+                {{ item?.holiday ?? "N/A" }}
+              </template>
+              <template #cell-actions="{ item }">
+                <v-btn
+                  small
+                  color="primary"
+                  text
+                  class="view-details-btn"
+                  @click.stop="viewEmployeeDetails(item)"
                 >
-                  <div class="switch-thumb"></div>
-                </div>
-                <div class="setting-label">
-                  <div class="setting-title">Include Holiday</div>
-                  <div class="setting-description">
-                    Count holidays as working days
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                  view
+                </v-btn>
+              </template>
+
+              <!-- Attendance Status -->
+              <template #cell-attendance="{ item }">
+                <v-chip
+                  :color="item?.attendanceVerified ? 'success' : 'error'"
+                  size="small"
+                  class="text-none"
+                >
+                  <v-icon start size="16">
+                    {{
+                      item?.attendanceVerified
+                        ? "mdi-check-circle"
+                        : "mdi-alert-circle"
+                    }}
+                  </v-icon>
+                  {{ item?.attendanceVerified ? "Verified" : "Unverified" }}
+                </v-chip>
+              </template>
+            </DataTable>
+          </template>
+
+          <!-- Empty State -->
+          <template v-else>
+            <EmptyState
+              title="No employee data found"
+              message="Try refreshing or check your filters"
+              :primary-action="{ text: 'Reload', icon: 'mdi-reload' }"
+              @primaryAction="fetchEmployees"
+            />
+          </template>
+
+          <!-- Pagination -->
+        </data-table-wrapper>
+
+        <CustomPagination
+          v-model:page="currentPage"
+          v-model:itemsPerPage="itemsPerPage"
+          :total-items="totalEmployees"
+          @update:page="handlePageChange"
+          @update:itemsPerPage="handleItemsPerPageChange"
+        />
+      </template>
     </div>
 
     <div class="action-footer">
@@ -245,7 +326,6 @@
         Next
       </BaseButton>
     </div>
-
     <v-dialog
       v-model="showEmployeeDetails"
       max-width="800"
@@ -735,7 +815,6 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-
     <v-snackbar v-model="showSnackbar" :color="snackbarColor" :timeout="3000">
       {{ snackbarMessage }}
       <template v-slot:action="{ attrs }">
@@ -745,319 +824,437 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
+import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
+import CustomPagination from "@/utils/pagination/CustomPagination.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
+import EmptyState from "@/components/common/states/EmptyState.vue";
 
-export default {
-  components: {
-    BaseButton,
-  },
-  setup() {
-    const router = useRouter();
-    const userRole = currentUserTenant.getRole();
-    const selectedEmployees = ref([]);
-    const fixedCycle = ref(false);
-    const includeWeekoff = ref(false);
-    const includeHoliday = ref(false);
-    const processing = ref(false);
-    const showSnackbar = ref(false);
-    const snackbarMessage = ref("");
-    const snackbarColor = ref("success");
-    const isLoading = ref(false);
-    const isLoadingEmployees = ref(false);
-    const showVerifyAllDialog = ref(false);
-    const cycleStartDate = ref("");
-    const cycleEndDate = ref("");
-    const showEmployeeDetails = ref(false);
-    const selectedEmployeeDetail = ref(null);
-    const activeTab = ref("attendance");
-    const employeeAttendanceData = ref({});
-    const attendanceSummaryData = ref([]);
-    const tenantId = ref("");
-    const currentPage = ref(1);
-    const itemsPerPage = ref(25);
-    const totalItems = ref(0);
+const router = useRouter();
+const userRole = currentUserTenant.getRole();
+const selectedEmployees = ref([]);
+const fixedCycle = ref(false);
+const includeWeekoff = ref(false);
+const includeHoliday = ref(false);
+const processing = ref(false);
+const showSnackbar = ref(false);
+const snackbarMessage = ref("");
+const snackbarColor = ref("success");
+const isLoading = ref(false);
+const isLoadingEmployees = ref(false);
+const showVerifyAllDialog = ref(false);
+const cycleStartDate = ref("");
+const cycleEndDate = ref("");
+const showEmployeeDetails = ref(false);
+const selectedEmployeeDetail = ref(null);
+// const activeTab = ref("attendance");
+const employeeAttendanceData = ref({});
+const attendanceSummaryData = ref([]);
+const tenantId = ref("");
+const currentPage = ref(1);
+const itemsPerPage = ref(25);
+const totalItems = ref(0);
 
-    const showWaveOffDetails = ref(false);
-    const showLeaveDetails = ref(false);
-    const showLopDetails = ref(false);
-    const showWorkingLeaveDetails = ref(false);
-    const showWorkingLopDetails = ref(false);
-    const showEarlyLeaveDetails = ref(false);
-    const showEarlyLopDetails = ref(false);
+const showWaveOffDetails = ref(false);
+const showLeaveDetails = ref(false);
+const showLopDetails = ref(false);
+const showWorkingLeaveDetails = ref(false);
+const showWorkingLopDetails = ref(false);
+const showEarlyLeaveDetails = ref(false);
+const showEarlyLopDetails = ref(false);
 
-    const totalPages = computed(() => {
-      return Math.ceil(selectedEmployees.value.length / itemsPerPage.value);
-    });
+const columns = [
+  { key: "id", label: "Employee ID", width: "150px" },
+  { key: "name", label: "Employee Name", width: "150px" },
 
-    const paginatedEmployees = computed(() => {
-      const startIndex = (currentPage.value - 1) * itemsPerPage.value;
-      const endIndex = startIndex + itemsPerPage.value;
-      return selectedEmployees.value.slice(startIndex, endIndex);
-    });
+  { key: "ctc", label: "Monthly CTC", width: "150px" },
+  { key: "totalPayableDays", label: "Payable Days", width: "150px" },
+  { key: "present", label: "Present", width: "150px" },
+  { key: "absent", label: "Absent", width: "150px" },
+  { key: "unpaidLeave", label: "UnPaidLeave", width: "150px" },
+  { key: "weekOff", label: "WeekOff", width: "150px" },
+  { key: "holiday", label: "Holiday", width: "150px" },
+  { key: "attendance", label: "Attendance Status", width: "150px" },
+  { key: "actions", label: "Actions", width: "150px" },
+];
 
-    const formatDate = (dateString) => {
-      if (!dateString) return "";
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    };
+// Pagination event handlers
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  fetchAttendanceSummary();
+};
 
-    const formatAmount = (value) => {
-      if (!value) return "0.00";
-      return parseFloat(value)
-        .toFixed(2)
-        .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    };
+const handleItemsPerPageChange = (newItemsPerPage) => {
+  itemsPerPage.value = newItemsPerPage;
+  currentPage.value = 1;
+  fetchAttendanceSummary();
+};
+const totalPages = computed(() => {
+  return Math.ceil(selectedEmployees.value.length / itemsPerPage.value);
+});
 
-    const goBack = () => {
+const paginatedEmployees = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage.value;
+  const endIndex = startIndex + itemsPerPage.value;
+  return selectedEmployees.value.slice(startIndex, endIndex);
+});
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+const getInitials = (item) => {
+  if (!item?.employeeId?.assignedUser?.first_name) return "";
+  return item.employeeId.assignedUser.first_name
+    .split(" ")
+    .map((word) => word.charAt(0))
+    .join("")
+    .toUpperCase()
+    .substring(0, 2);
+};
+const formatAmount = (value) => {
+  if (!value) return "0.00";
+  return parseFloat(value)
+    .toFixed(2)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const goBack = () => {
+  router.push("/payroll");
+};
+
+const hasUnverifiedEmployees = computed(() => {
+  return selectedEmployees.value.some(
+    (employee) => !employee.attendanceVerified,
+  );
+});
+
+const loadSelectedEmployees = () => {
+  const storedEmployees = localStorage.getItem("selectedEmployees");
+  if (storedEmployees) {
+    selectedEmployees.value = JSON.parse(storedEmployees);
+  } else {
+    const storedEmployee = localStorage.getItem("selectedEmployee");
+    if (storedEmployee) {
+      selectedEmployees.value = [JSON.parse(storedEmployee)];
+    } else {
       router.push("/payroll");
-    };
+    }
+  }
+};
 
-    const hasUnverifiedEmployees = computed(() => {
-      return selectedEmployees.value.some(
-        (employee) => !employee.attendanceVerified,
+const loadDateRangeFromStorage = async () => {
+  const storedDateRange = localStorage.getItem("attendanceDateRange");
+  if (storedDateRange) {
+    const dateRange = JSON.parse(storedDateRange);
+    cycleStartDate.value = dateRange.startDate;
+    cycleEndDate.value = dateRange.endDate;
+    tenantId.value = dateRange.tenantId;
+
+    if (dateRange.fixedCycle !== undefined) {
+      fixedCycle.value = dateRange.fixedCycle;
+    }
+    try {
+      const token = authService.getToken();
+      const tenantID = tenantId.value;
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/items/attendanceCycle?filter[_and][0][tenant][tenantId][_eq]=${tenantID}`,
+        {
+          params: {
+            fields: ["id", "fixedCycle", "includeWeekoffs", "includeHolidays"],
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-    });
 
-    const loadSelectedEmployees = () => {
-      const storedEmployees = localStorage.getItem("selectedEmployees");
-      if (storedEmployees) {
-        selectedEmployees.value = JSON.parse(storedEmployees);
+      if (
+        response.data &&
+        response.data.data &&
+        response.data.data.length > 0
+      ) {
+        const cycleData = response.data.data[0];
+        fixedCycle.value = cycleData.fixedCycle || false;
+        includeWeekoff.value = cycleData.includeWeekoffs || false;
+        includeHoliday.value = cycleData.includeHolidays || false;
+      }
+    } catch (error) {
+      console.error("Error fetching attendance cycle settings:", error);
+    }
+  }
+};
+
+const fetchAttendanceSummary = async () => {
+  isLoadingEmployees.value = true;
+
+  try {
+    const token = authService.getToken();
+    const employeeIds = selectedEmployees.value
+      .map((emp) => emp.employee.id)
+      .join(",");
+
+    if (!employeeIds) {
+      isLoadingEmployees.value = false;
+      return;
+    }
+
+    const params = {
+      "filter[_and][0][date][_between][0]": cycleStartDate.value,
+      "filter[_and][0][date][_between][1]": cycleEndDate.value,
+      "filter[_and][1][employeeId][_in]": employeeIds,
+      "filter[_and][2][tenant][tenantId][_eq]": tenantId.value,
+    };
+
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/attendance/attendance-verification`,
+      {
+        params: params,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    attendanceSummaryData.value = response.data.data || [];
+    totalItems.value = selectedEmployees.value.length;
+
+    selectedEmployees.value.forEach((employee) => {
+      const attendanceData = attendanceSummaryData.value.find(
+        (data) =>
+          data.employeeId.toString() === employee.employee.id.toString(),
+      );
+
+      if (attendanceData) {
+        employee.payableDays = attendanceData.totalPayableDays || 0;
+        employee.attendanceData = attendanceData;
       } else {
-        const storedEmployee = localStorage.getItem("selectedEmployee");
-        if (storedEmployee) {
-          selectedEmployees.value = [JSON.parse(storedEmployee)];
-        } else {
-          router.push("/payroll");
-        }
+        employee.payableDays = 0;
+        employee.attendanceData = null;
       }
-    };
+    });
+  } catch (error) {
+    console.error("Error fetching attendance summary:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = "Error loading attendance data";
+    snackbarColor.value = "error";
+  } finally {
+    isLoadingEmployees.value = false;
+  }
+};
 
-    const loadDateRangeFromStorage = async () => {
-      const storedDateRange = localStorage.getItem("attendanceDateRange");
-      if (storedDateRange) {
-        const dateRange = JSON.parse(storedDateRange);
-        cycleStartDate.value = dateRange.startDate;
-        cycleEndDate.value = dateRange.endDate;
-        tenantId.value = dateRange.tenantId;
+const viewEmployeeDetails = async (employee) => {
+  selectedEmployeeDetail.value = employee;
+  showEmployeeDetails.value = true;
+  isLoading.value = true;
 
-        if (dateRange.fixedCycle !== undefined) {
-          fixedCycle.value = dateRange.fixedCycle;
-        }
-        try {
-          const token = authService.getToken();
-          const tenantID = tenantId.value;
+  try {
+    console.log("employee", employee);
+    await fetchEmployeeAttendanceData(employee);
+  } catch (error) {
+    console.error("Error fetching employee data:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = "Error loading employee data";
+    snackbarColor.value = "error";
+  } finally {
+    isLoading.value = false;
+  }
+};
 
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/items/attendanceCycle?filter[_and][0][tenant][tenantId][_eq]=${tenantID}`,
-            {
-              params: {
-                fields: [
-                  "id",
-                  "fixedCycle",
-                  "includeWeekoffs",
-                  "includeHolidays",
-                ],
-              },
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
+const fetchEmployeeAttendanceData = async (employee) => {
+  try {
+    const token = authService.getToken();
+    const employeeId = employee.employee.id;
 
-          if (
-            response.data &&
-            response.data.data &&
-            response.data.data.length > 0
-          ) {
-            const cycleData = response.data.data[0];
-            fixedCycle.value = cycleData.fixedCycle || false;
-            includeWeekoff.value = cycleData.includeWeekoffs || false;
-            includeHoliday.value = cycleData.includeHolidays || false;
-          }
-        } catch (error) {
-          console.error("Error fetching attendance cycle settings:", error);
-        }
-      }
-    };
+    const attendanceData = attendanceSummaryData.value.find(
+      (data) => data.employeeId === employeeId,
+    );
 
-    const fetchAttendanceSummary = async () => {
-      isLoadingEmployees.value = true;
+    if (attendanceData) {
+      employeeAttendanceData.value = {
+        present: attendanceData.present || 0,
+        absent: attendanceData.absent || 0,
+        weekOff: attendanceData.weekOff || 0,
+        holiday: attendanceData.holiday || 0,
+        onDuty: attendanceData.onDuty || 0,
+        workFromHome: attendanceData.workFromHome || 0,
+        halfDay: attendanceData.halfDay || 0,
+        paidLeave: attendanceData.paidLeave || 0,
+        unpaidLeave: attendanceData.unpaidLeave || 0,
+        holidayPresent: attendanceData.holidayPresent || 0,
+        weekoffPresent: attendanceData.weekoffPresent || 0,
+        earlyLeaving: attendanceData.earlyLeaving || 0,
+        earlyLeavingCount: attendanceData.earlyLeavingCount || 0,
+        earlyLeavingAllowed: attendanceData.earlyLeavingAllowed || 0,
+        earlyLeavingData: attendanceData.earlyLeavingData || {},
+        totalEarlyDuration: attendanceData.totalEarlyDuration || 0,
+        deductedEarlyDuration: attendanceData.deductedEarlyDuration || 0,
 
-      try {
-        const token = authService.getToken();
-        const employeeIds = selectedEmployees.value
-          .map((emp) => emp.employee.id)
-          .join(",");
+        lateComing: attendanceData.lateComing || 0,
+        lateEntryCount: attendanceData.lateEntryCount || 0,
+        lateComingAllowed: attendanceData.lateComingAllowed || 0,
+        lateData: attendanceData.lateData || {},
+        totalLateDuration: attendanceData.totalLateDuration,
+        deductedLateDuration: attendanceData.deductedLateDuration || 0,
 
-        if (!employeeIds) {
-          isLoadingEmployees.value = false;
-          return;
-        }
+        workingHours: attendanceData.workingHours || 0,
+        workingHoursCount: attendanceData.workingHoursCount || 0,
+        workingHoursAllowed: attendanceData.workingHoursAllowed || 0,
+        workingHoursData: attendanceData.workingHoursData || {},
 
-        const params = {
+        workingDayOT: attendanceData.workingDayOT || 0,
+        weekOffOT: attendanceData.weekOffOT || 0,
+        holidayOT: attendanceData.holidayOT || 0,
+        workFromHomeOT: attendanceData.workFromHomeOT || 0,
+        totalPayableDays: attendanceData.totalPayableDays || 0,
+      };
+    } else {
+      employeeAttendanceData.value = {
+        present: 0,
+        absent: 0,
+        weekOff: 0,
+        holiday: 0,
+        onDuty: 0,
+        workFromHome: 0,
+        halfDay: 0,
+        paidLeave: 0,
+        unpaidLeave: 0,
+        holidayPresent: 0,
+        weekoffPresent: 0,
+        earlyLeaving: 0,
+        totalEarlyDuration: 0,
+        deductedEarlyDuration: 0,
+        earlyLeavingCount: 0,
+        earlyLeavingAllowed: 0,
+        earlyLeavingData: {},
+
+        lateComing: 0,
+        totalLateDuration: 0,
+        deductedLateDuration: 0,
+        lateEntryCount: 0,
+        lateComingAllowed: 0,
+        lateData: {},
+
+        workingHours: 0,
+        workingHoursCount: 0,
+        workingHoursAllowed: 0,
+        workingHoursData: {},
+
+        workingDayOT: 0,
+        weekOffOT: 0,
+        holidayOT: 0,
+        workFromHomeOT: 0,
+        totalPayableDays: 0,
+      };
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/attendanceSummary`;
+
+      const response = await axios.get(apiUrl, {
+        params: {
           "filter[_and][0][date][_between][0]": cycleStartDate.value,
           "filter[_and][0][date][_between][1]": cycleEndDate.value,
-          "filter[_and][1][employeeId][_in]": employeeIds,
+          "filter[_and][1][employeeId][_eq]": employeeId,
           "filter[_and][2][tenant][tenantId][_eq]": tenantId.value,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (
+        response.data &&
+        response.data.data &&
+        response.data.data.length > 0
+      ) {
+        const data = response.data.data[0];
+        employeeAttendanceData.value = {
+          present: data.present || 0,
+          absent: data.absent || 0,
+          weekOff: data.weekOff || 0,
+          holiday: data.holiday || 0,
+          onDuty: data.onDuty || 0,
+          workFromHome: data.workFromHome || 0,
+          halfDay: data.halfDay || 0,
+          paidLeave: data.paidLeave || 0,
+          unpaidLeave: data.unpaidLeave || 0,
+          holidayPresent: data.holidayPresent || 0,
+          weekoffPresent: data.weekoffPresent || 0,
+          earlyLeaving: data.earlyLeaving || 0,
+          earlyLeavingCount: data.earlyLeavingCount || 0,
+          earlyLeavingAllowed: data.earlyLeavingAllowed || 0,
+          earlyLeavingData: data.earlyLeavingData || {},
+          totalEarlyDuration: data.totalEarlyDuration || 0,
+          deductedEarlyDuration: data.deductedEarlyDuration || 0,
+
+          lateComing: data.lateComing || 0,
+          lateEntryCount: data.lateEntryCount || 0,
+          lateComingAllowed: data.lateComingAllowed || 0,
+          lateData: data.lateData || {},
+          totalLateDuration: data.totalLateDuration,
+          deductedLateDuration: data.deductedLateDuration || 0,
+
+          workingHours: data.workingHours || 0,
+          workingHoursCount: data.workingHoursCount || 0,
+          workingHoursAllowed: data.workingHoursAllowed || 0,
+          workingHoursData: data.workingHoursData || {},
+
+          workingDayOT: data.workingDayOT || 0,
+          workingDayOTHours: data.workingDayOTHours,
+          weekOffOT: data.weekOffOT || 0,
+          weekOffOTHours: data.weekOffOTHours,
+          holidayOT: data.holidayOT || 0,
+          holidayOTHours: data.holidayOTHours,
+          workFromHomeOT: data.workFromHomeOT || 0,
+          workFromHomeOTHours: data.workFromHomeOTHours,
+          totalPayableDays: data.totalPayableDays || 0,
         };
-
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/attendance/attendance-verification`,
-          {
-            params: params,
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        attendanceSummaryData.value = response.data.data || [];
-        totalItems.value = selectedEmployees.value.length;
-
-        selectedEmployees.value.forEach((employee) => {
-          const attendanceData = attendanceSummaryData.value.find(
-            (data) =>
-              data.employeeId.toString() === employee.employee.id.toString(),
-          );
-
-          if (attendanceData) {
-            employee.payableDays = attendanceData.totalPayableDays || 0;
-            employee.attendanceData = attendanceData;
-          } else {
-            employee.payableDays = 0;
-            employee.attendanceData = null;
-          }
-        });
-      } catch (error) {
-        console.error("Error fetching attendance summary:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = "Error loading attendance data";
-        snackbarColor.value = "error";
-      } finally {
-        isLoadingEmployees.value = false;
       }
-    };
+    }
+  } catch (error) {
+    console.error(`Error fetching attendance data for employee :`, error);
+    throw error;
+  }
+};
 
-    const viewEmployeeDetails = async (employee) => {
-      selectedEmployeeDetail.value = employee;
-      showEmployeeDetails.value = true;
-      isLoading.value = true;
+const verifyAllAttendance = async () => {
+  processing.value = true;
 
-      try {
-        await fetchEmployeeAttendanceData(employee);
-      } catch (error) {
-        console.error("Error fetching employee data:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = "Error loading employee data";
-        snackbarColor.value = "error";
-      } finally {
-        isLoading.value = false;
+  try {
+    const token = authService.getToken();
+    const bulkPayload = [];
+    const employeeIds = [];
+
+    for (const employee of selectedEmployees.value) {
+      if (employee.attendanceVerified) {
+        continue;
       }
-    };
+      const empId = employee.employee.id.toString();
 
-    const fetchEmployeeAttendanceData = async (employee) => {
-      try {
-        const token = authService.getToken();
-        const employeeId = employee.employee.id;
+      let attendanceData = attendanceSummaryData.value.find(
+        (data) => data.employeeId.toString() === empId,
+      );
 
-        const attendanceData = attendanceSummaryData.value.find(
-          (data) => data.employeeId === employeeId,
-        );
-
-        if (attendanceData) {
-          employeeAttendanceData.value = {
-            present: attendanceData.present || 0,
-            absent: attendanceData.absent || 0,
-            weekOff: attendanceData.weekOff || 0,
-            holiday: attendanceData.holiday || 0,
-            onDuty: attendanceData.onDuty || 0,
-            workFromHome: attendanceData.workFromHome || 0,
-            halfDay: attendanceData.halfDay || 0,
-            paidLeave: attendanceData.paidLeave || 0,
-            unpaidLeave: attendanceData.unpaidLeave || 0,
-            holidayPresent: attendanceData.holidayPresent || 0,
-            weekoffPresent: attendanceData.weekoffPresent || 0,
-            earlyLeaving: attendanceData.earlyLeaving || 0,
-            earlyLeavingCount: attendanceData.earlyLeavingCount || 0,
-            earlyLeavingAllowed: attendanceData.earlyLeavingAllowed || 0,
-            earlyLeavingData: attendanceData.earlyLeavingData || {},
-            totalEarlyDuration: attendanceData.totalEarlyDuration || 0,
-            deductedEarlyDuration: attendanceData.deductedEarlyDuration || 0,
-
-            lateComing: attendanceData.lateComing || 0,
-            lateEntryCount: attendanceData.lateEntryCount || 0,
-            lateComingAllowed: attendanceData.lateComingAllowed || 0,
-            lateData: attendanceData.lateData || {},
-            totalLateDuration: attendanceData.totalLateDuration,
-            deductedLateDuration: attendanceData.deductedLateDuration || 0,
-
-            workingHours: attendanceData.workingHours || 0,
-            workingHoursCount: attendanceData.workingHoursCount || 0,
-            workingHoursAllowed: attendanceData.workingHoursAllowed || 0,
-            workingHoursData: attendanceData.workingHoursData || {},
-
-            workingDayOT: attendanceData.workingDayOT || 0,
-            weekOffOT: attendanceData.weekOffOT || 0,
-            holidayOT: attendanceData.holidayOT || 0,
-            workFromHomeOT: attendanceData.workFromHomeOT || 0,
-            totalPayableDays: attendanceData.totalPayableDays || 0,
-          };
-        } else {
-          employeeAttendanceData.value = {
-            present: 0,
-            absent: 0,
-            weekOff: 0,
-            holiday: 0,
-            onDuty: 0,
-            workFromHome: 0,
-            halfDay: 0,
-            paidLeave: 0,
-            unpaidLeave: 0,
-            holidayPresent: 0,
-            weekoffPresent: 0,
-            earlyLeaving: 0,
-            totalEarlyDuration: 0,
-            deductedEarlyDuration: 0,
-            earlyLeavingCount: 0,
-            earlyLeavingAllowed: 0,
-            earlyLeavingData: {},
-
-            lateComing: 0,
-            totalLateDuration: 0,
-            deductedLateDuration: 0,
-            lateEntryCount: 0,
-            lateComingAllowed: 0,
-            lateData: {},
-
-            workingHours: 0,
-            workingHoursCount: 0,
-            workingHoursAllowed: 0,
-            workingHoursData: {},
-
-            workingDayOT: 0,
-            weekOffOT: 0,
-            holidayOT: 0,
-            workFromHomeOT: 0,
-            totalPayableDays: 0,
-          };
-
+      if (!attendanceData) {
+        try {
           const apiUrl = `${import.meta.env.VITE_API_URL}/attendanceSummary`;
-
           const response = await axios.get(apiUrl, {
             params: {
               "filter[_and][0][date][_between][0]": cycleStartDate.value,
               "filter[_and][0][date][_between][1]": cycleEndDate.value,
-              "filter[_and][1][employeeId][_eq]": employeeId,
+              "filter[_and][1][employeeId][_eq]": empId,
               "filter[_and][2][tenant][tenantId][_eq]": tenantId.value,
             },
             headers: {
@@ -1065,235 +1262,176 @@ export default {
             },
           });
 
-          if (
-            response.data &&
-            response.data.data &&
-            response.data.data.length > 0
-          ) {
-            const data = response.data.data[0];
-            employeeAttendanceData.value = {
-              present: data.present || 0,
-              absent: data.absent || 0,
-              weekOff: data.weekOff || 0,
-              holiday: data.holiday || 0,
-              onDuty: data.onDuty || 0,
-              workFromHome: data.workFromHome || 0,
-              halfDay: data.halfDay || 0,
-              paidLeave: data.paidLeave || 0,
-              unpaidLeave: data.unpaidLeave || 0,
-              holidayPresent: data.holidayPresent || 0,
-              weekoffPresent: data.weekoffPresent || 0,
-              earlyLeaving: data.earlyLeaving || 0,
-              earlyLeavingCount: data.earlyLeavingCount || 0,
-              earlyLeavingAllowed: data.earlyLeavingAllowed || 0,
-              earlyLeavingData: data.earlyLeavingData || {},
-              totalEarlyDuration: data.totalEarlyDuration || 0,
-              deductedEarlyDuration: data.deductedEarlyDuration || 0,
-
-              lateComing: data.lateComing || 0,
-              lateEntryCount: data.lateEntryCount || 0,
-              lateComingAllowed: data.lateComingAllowed || 0,
-              lateData: data.lateData || {},
-              totalLateDuration: data.totalLateDuration,
-              deductedLateDuration: data.deductedLateDuration || 0,
-
-              workingHours: data.workingHours || 0,
-              workingHoursCount: data.workingHoursCount || 0,
-              workingHoursAllowed: data.workingHoursAllowed || 0,
-              workingHoursData: data.workingHoursData || {},
-
-              workingDayOT: data.workingDayOT || 0,
-              workingDayOTHours: data.workingDayOTHours,
-              weekOffOT: data.weekOffOT || 0,
-              weekOffOTHours: data.weekOffOTHours,
-              holidayOT: data.holidayOT || 0,
-              holidayOTHours: data.holidayOTHours,
-              workFromHomeOT: data.workFromHomeOT || 0,
-              workFromHomeOTHours: data.workFromHomeOTHours,
-              totalPayableDays: data.totalPayableDays || 0,
-            };
-          }
+          attendanceData = response.data?.data?.[0] || {
+            employeeId: empId,
+            present: 0,
+            absent: 0,
+            totalPayableDays: 0,
+          };
+        } catch (error) {
+          console.error(
+            `Error fetching attendance for employee ${empId}:`,
+            error,
+          );
+          attendanceData = {
+            employeeId: empId,
+            present: 0,
+            absent: 0,
+            totalPayableDays: 0,
+          };
         }
-      } catch (error) {
-        console.error(
-          `Error fetching attendance data for employee ${employee.employee.id}:`,
-          error,
-        );
-        throw error;
       }
-    };
 
-    const verifyAllAttendance = async () => {
-      processing.value = true;
+      const payableDays = attendanceData.totalPayableDays || 0;
+      employeeIds.push(empId);
 
-      try {
-        const token = authService.getToken();
-        const bulkPayload = [];
-        const employeeIds = [];
+      const month = new Date(cycleEndDate.value).toISOString().slice(0, 7);
+      const uniqueId = `${tenantId.value}-${empId}-${month}`;
 
-        for (const employee of selectedEmployees.value) {
-          if (employee.attendanceVerified) {
-            continue;
-          }
-          const empId = employee.employee.id.toString();
-
-          let attendanceData = attendanceSummaryData.value.find(
-            (data) => data.employeeId.toString() === empId,
-          );
-
-          if (!attendanceData) {
-            try {
-              const apiUrl = `${import.meta.env.VITE_API_URL}/attendanceSummary`;
-              const response = await axios.get(apiUrl, {
-                params: {
-                  "filter[_and][0][date][_between][0]": cycleStartDate.value,
-                  "filter[_and][0][date][_between][1]": cycleEndDate.value,
-                  "filter[_and][1][employeeId][_eq]": empId,
-                  "filter[_and][2][tenant][tenantId][_eq]": tenantId.value,
-                },
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-
-              attendanceData = response.data?.data?.[0] || {
-                employeeId: empId,
-                present: 0,
-                absent: 0,
-                totalPayableDays: 0,
-              };
-            } catch (error) {
-              console.error(
-                `Error fetching attendance for employee ${empId}:`,
-                error,
-              );
-              attendanceData = {
-                employeeId: empId,
-                present: 0,
-                absent: 0,
-                totalPayableDays: 0,
-              };
-            }
-          }
-
-          const payableDays = attendanceData.totalPayableDays || 0;
-          employeeIds.push(empId);
-
-          const month = new Date(cycleEndDate.value).toISOString().slice(0, 7);
-          const uniqueId = `${tenantId.value}-${empId}-${month}`;
-
-          if (
-            !uniqueId ||
-            !empId ||
-            !tenantId.value ||
-            !cycleStartDate.value ||
-            !cycleEndDate.value
-          ) {
-            console.error(
-              `Skipping employee ${empId} due to missing required fields`,
-            );
-            continue;
-          }
-
-          bulkPayload.push({
-            attendaceVerification: true,
-            payableDays,
-            startDate: cycleStartDate.value,
-            endDate: cycleEndDate.value,
-            employee: empId,
-            tenant: tenantId.value,
-            totalAttendanceCount: attendanceData || {},
-            uniqueId,
-          });
-        }
-
-        if (bulkPayload.length === 0) {
-          showSnackbar.value = true;
-          snackbarMessage.value = "No valid employees to verify";
-          snackbarColor.value = "info";
-          processing.value = false;
-          return;
-        }
-
-        const existingRecords = [];
-        const uniqueIds = bulkPayload.map((p) => p.uniqueId);
-
-        // ✅ BATCHED GET by employee.id + uniqueId
-        for (let i = 0; i < bulkPayload.length; i += 100) {
-          const batchPayload = bulkPayload.slice(i, i + 100);
-          const batchUniqueIds = batchPayload.map((p) => p.uniqueId);
-          const batchEmployeeIds = batchPayload.map((p) => p.employee);
-
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
-            {
-              params: {
-                "filter[_and][0][uniqueId][_in]": batchUniqueIds.join(","),
-                "filter[_and][1][employee][id][_in]":
-                  batchEmployeeIds.join(","),
-                fields: "id,employee.id,uniqueId",
-                limit: -1,
-              },
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          existingRecords.push(...(response.data.data || []));
-        }
-
-        console.log(
-          `Found ${existingRecords.length} existing verification records`,
+      if (
+        !uniqueId ||
+        !empId ||
+        !tenantId.value ||
+        !cycleStartDate.value ||
+        !cycleEndDate.value
+      ) {
+        console.error(
+          `Skipping employee ${empId} due to missing required fields`,
         );
+        continue;
+      }
 
-        const updatePayloads = [];
-        const createPayloads = [];
-        const skippedEmployees = new Set();
+      bulkPayload.push({
+        attendaceVerification: true,
+        payableDays,
+        startDate: cycleStartDate.value,
+        endDate: cycleEndDate.value,
+        employee: empId,
+        tenant: tenantId.value,
+        totalAttendanceCount: attendanceData || {},
+        uniqueId,
+      });
+    }
 
-        for (const payload of bulkPayload) {
-          // Double-check all required fields are present
-          if (
-            !payload.uniqueId ||
-            !payload.employee ||
-            !payload.tenant ||
-            !payload.startDate ||
-            !payload.endDate
-          ) {
-            console.error(
-              `Skipping employee ${payload.employee} due to missing required fields`,
-            );
-            skippedEmployees.add(payload.employee);
-            continue;
-          }
+    if (bulkPayload.length === 0) {
+      showSnackbar.value = true;
+      snackbarMessage.value = "No valid employees to verify";
+      snackbarColor.value = "info";
+      processing.value = false;
+      return;
+    }
 
-          const existingRecord = existingRecords.find(
-            (record) =>
-              record.uniqueId === payload.uniqueId &&
-              record.employee?.id?.toString() === payload.employee.toString(),
-          );
+    const existingRecords = [];
+    const uniqueIds = bulkPayload.map((p) => p.uniqueId);
 
-          if (existingRecord) {
-            if (!existingRecord.id) {
-              console.error(
-                `Skipping update for employee ${payload.employee} - missing record ID`,
-              );
-              skippedEmployees.add(payload.employee);
-              continue;
-            }
-            updatePayloads.push({ id: existingRecord.id, ...payload });
-          } else {
-            createPayloads.push(payload);
-          }
-        }
+    // ✅ BATCHED GET by employee.id + uniqueId
+    for (let i = 0; i < bulkPayload.length; i += 100) {
+      const batchPayload = bulkPayload.slice(i, i + 100);
+      const batchUniqueIds = batchPayload.map((p) => p.uniqueId);
+      const batchEmployeeIds = batchPayload.map((p) => p.employee);
 
-        // ✅ Extra defensive filter against missed uniqueId collisions
-        const existingUniqueIds = new Set(
-          existingRecords.map((r) => r.uniqueId),
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
+        {
+          params: {
+            "filter[_and][0][uniqueId][_in]": batchUniqueIds.join(","),
+            "filter[_and][1][employee][id][_in]": batchEmployeeIds.join(","),
+            fields: "id,employee.id,uniqueId",
+            limit: -1,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      existingRecords.push(...(response.data.data || []));
+    }
+
+    console.log(
+      `Found ${existingRecords.length} existing verification records`,
+    );
+
+    const updatePayloads = [];
+    const createPayloads = [];
+    const skippedEmployees = new Set();
+
+    for (const payload of bulkPayload) {
+      // Double-check all required fields are present
+      if (
+        !payload.uniqueId ||
+        !payload.employee ||
+        !payload.tenant ||
+        !payload.startDate ||
+        !payload.endDate
+      ) {
+        console.error(
+          `Skipping employee ${payload.employee} due to missing required fields`,
         );
-        const finalCreatePayloads = createPayloads.filter(
+        skippedEmployees.add(payload.employee);
+        continue;
+      }
+
+      const existingRecord = existingRecords.find(
+        (record) =>
+          record.uniqueId === payload.uniqueId &&
+          record.employee?.id?.toString() === payload.employee.toString(),
+      );
+
+      if (existingRecord) {
+        if (!existingRecord.id) {
+          console.error(
+            `Skipping update for employee ${payload.employee} - missing record ID`,
+          );
+          skippedEmployees.add(payload.employee);
+          continue;
+        }
+        updatePayloads.push({ id: existingRecord.id, ...payload });
+      } else {
+        createPayloads.push(payload);
+      }
+    }
+
+    // ✅ Extra defensive filter against missed uniqueId collisions
+    const existingUniqueIds = new Set(existingRecords.map((r) => r.uniqueId));
+    const finalCreatePayloads = createPayloads.filter(
+      (p) =>
+        !existingUniqueIds.has(p.uniqueId) &&
+        p.uniqueId &&
+        p.employee &&
+        p.tenant &&
+        p.startDate &&
+        p.endDate,
+    );
+
+    // Track skipped duplicates
+    const skippedDuplicates = createPayloads.filter(
+      (p) =>
+        existingUniqueIds.has(p.uniqueId) ||
+        !p.uniqueId ||
+        !p.employee ||
+        !p.tenant ||
+        !p.startDate ||
+        !p.endDate,
+    );
+    skippedDuplicates.forEach((p) => skippedEmployees.add(p.employee));
+    console.log("⚠️ Skipped employees:", Array.from(skippedEmployees));
+
+    console.log(
+      `Will update ${updatePayloads.length} records and create ${finalCreatePayloads.length} new records`,
+    );
+
+    // Track successful operations
+    let successfullyProcessed = 0;
+    const failedEmployees = new Set();
+
+    // 🔁 PATCH (update)
+    for (let i = 0; i < updatePayloads.length; i += 100) {
+      const batch = updatePayloads
+        .slice(i, i + 100)
+        .filter(
           (p) =>
-            !existingUniqueIds.has(p.uniqueId) &&
+            p.id &&
             p.uniqueId &&
             p.employee &&
             p.tenant &&
@@ -1301,158 +1439,93 @@ export default {
             p.endDate,
         );
 
-        // Track skipped duplicates
-        const skippedDuplicates = createPayloads.filter(
-          (p) =>
-            existingUniqueIds.has(p.uniqueId) ||
-            !p.uniqueId ||
-            !p.employee ||
-            !p.tenant ||
-            !p.startDate ||
-            !p.endDate,
-        );
-        skippedDuplicates.forEach((p) => skippedEmployees.add(p.employee));
-        console.log("⚠️ Skipped employees:", Array.from(skippedEmployees));
+      if (batch.length === 0) continue;
 
-        console.log(
-          `Will update ${updatePayloads.length} records and create ${finalCreatePayloads.length} new records`,
-        );
-
-        // Track successful operations
-        let successfullyProcessed = 0;
-        const failedEmployees = new Set();
-
-        // 🔁 PATCH (update)
-        for (let i = 0; i < updatePayloads.length; i += 100) {
-          const batch = updatePayloads
-            .slice(i, i + 100)
-            .filter(
-              (p) =>
-                p.id &&
-                p.uniqueId &&
-                p.employee &&
-                p.tenant &&
-                p.startDate &&
-                p.endDate,
-            );
-
-          if (batch.length === 0) continue;
-
-          try {
-            await axios.patch(
-              `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
-              batch,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              },
-            );
-            console.log(`Updated ${batch.length} records`);
-            successfullyProcessed += batch.length;
-          } catch (error) {
-            console.error(
-              `Error updating batch starting at index ${i}:`,
-              error,
-            );
-            batch.forEach((p) => failedEmployees.add(p.employee));
-          }
-        }
-
-        // ➕ POST (create)
-        for (let i = 0; i < finalCreatePayloads.length; i += 100) {
-          const batch = finalCreatePayloads
-            .slice(i, i + 100)
-            .filter(
-              (p) =>
-                p.uniqueId &&
-                p.employee &&
-                p.tenant &&
-                p.startDate &&
-                p.endDate,
-            );
-
-          if (batch.length === 0) continue;
-
-          try {
-            await axios.post(
-              `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
-              batch,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              },
-            );
-            console.log(`Created ${batch.length} new records`);
-            successfullyProcessed += batch.length;
-          } catch (error) {
-            console.error(
-              `Error creating batch starting at index ${i}:`,
-              error,
-            );
-            batch.forEach((p) => failedEmployees.add(p.employee));
-          }
-        }
-
-        // ✅ Update local state only for successfully processed employees
-        for (const empId of employeeIds) {
-          // Skip if this employee was in failed or skipped lists
-          if (failedEmployees.has(empId) || skippedEmployees.has(empId))
-            continue;
-
-          const index = selectedEmployees.value.findIndex(
-            (emp) => emp.employee.id.toString() === empId,
-          );
-
-          if (index !== -1) {
-            const attendanceData = attendanceSummaryData.value.find(
-              (data) => data.employeeId.toString() === empId,
-            );
-            selectedEmployees.value[index].attendanceVerified = true;
-            selectedEmployees.value[index].payableDays =
-              attendanceData?.totalPayableDays || 0;
-          }
-        }
-
-        // Prepare success message with details
-        let successMessage = `Successfully processed ${successfullyProcessed} of ${bulkPayload.length} employees.`;
-
-        if (skippedEmployees.size > 0) {
-          successMessage += ` ${skippedEmployees.size} were skipped (invalid data or duplicates).`;
-        }
-
-        if (failedEmployees.size > 0) {
-          successMessage += ` ${failedEmployees.size} failed to process.`;
-        }
-
-        showSnackbar.value = true;
-        snackbarMessage.value = successMessage;
-        snackbarColor.value = successfullyProcessed > 0 ? "success" : "warning";
-
-        setTimeout(() => {
-          showVerifyAllDialog.value = false;
-          router.push({
-            name: "salary-verification",
-            query: {
-              start: cycleStartDate.value,
-              end: cycleEndDate.value,
+      try {
+        await axios.patch(
+          `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
+          batch,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
-          });
-        }, 2000);
+          },
+        );
+        console.log(`Updated ${batch.length} records`);
+        successfullyProcessed += batch.length;
       } catch (error) {
-        console.error("Error verifying attendance:", error);
-        showSnackbar.value = true;
-        snackbarMessage.value = `Error: ${error.message}`;
-        snackbarColor.value = "error";
-      } finally {
-        processing.value = false;
+        console.error(`Error updating batch starting at index ${i}:`, error);
+        batch.forEach((p) => failedEmployees.add(p.employee));
       }
-    };
+    }
 
-    const handleNext = () => {
+    // ➕ POST (create)
+    for (let i = 0; i < finalCreatePayloads.length; i += 100) {
+      const batch = finalCreatePayloads
+        .slice(i, i + 100)
+        .filter(
+          (p) =>
+            p.uniqueId && p.employee && p.tenant && p.startDate && p.endDate,
+        );
+
+      if (batch.length === 0) continue;
+
+      try {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/items/payrollVerification`,
+          batch,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+        console.log(`Created ${batch.length} new records`);
+        successfullyProcessed += batch.length;
+      } catch (error) {
+        console.error(`Error creating batch starting at index ${i}:`, error);
+        batch.forEach((p) => failedEmployees.add(p.employee));
+      }
+    }
+
+    // ✅ Update local state only for successfully processed employees
+    for (const empId of employeeIds) {
+      // Skip if this employee was in failed or skipped lists
+      if (failedEmployees.has(empId) || skippedEmployees.has(empId)) continue;
+
+      const index = selectedEmployees.value.findIndex(
+        (emp) => emp.employee.id.toString() === empId,
+      );
+
+      if (index !== -1) {
+        const attendanceData = attendanceSummaryData.value.find(
+          (data) => data.employeeId.toString() === empId,
+        );
+        selectedEmployees.value[index].attendanceVerified = true;
+        selectedEmployees.value[index].payableDays =
+          attendanceData?.totalPayableDays || 0;
+      }
+    }
+
+    // Prepare success message with details
+    let successMessage = `Successfully processed ${successfullyProcessed} of ${bulkPayload.length} employees.`;
+
+    if (skippedEmployees.size > 0) {
+      successMessage += ` ${skippedEmployees.size} were skipped (invalid data or duplicates).`;
+    }
+
+    if (failedEmployees.size > 0) {
+      successMessage += ` ${failedEmployees.size} failed to process.`;
+    }
+
+    showSnackbar.value = true;
+    snackbarMessage.value = successMessage;
+    snackbarColor.value = successfullyProcessed > 0 ? "success" : "warning";
+
+    setTimeout(() => {
+      showVerifyAllDialog.value = false;
       router.push({
         name: "salary-verification",
         query: {
@@ -1460,58 +1533,40 @@ export default {
           end: cycleEndDate.value,
         },
       });
-    };
-
-    onMounted(() => {
-      loadSelectedEmployees();
-      loadDateRangeFromStorage();
-      fetchAttendanceSummary();
-    });
-
-    return {
-      userRole,
-      selectedEmployees,
-      paginatedEmployees,
-      includeWeekoff,
-      includeHoliday,
-      processing,
-      showSnackbar,
-      snackbarMessage,
-      snackbarColor,
-      formatAmount,
-      formatDate,
-      goBack,
-      handleNext,
-      verifyAllAttendance,
-      hasUnverifiedEmployees,
-      showVerifyAllDialog,
-      cycleStartDate,
-      cycleEndDate,
-      showEmployeeDetails,
-      selectedEmployeeDetail,
-      activeTab,
-
-      viewEmployeeDetails,
-      isLoading,
-      isLoadingEmployees,
-      currentPage,
-      itemsPerPage,
-      totalPages,
-      fixedCycle,
-      employeeAttendanceData,
-      showLopDetails,
-      showLeaveDetails,
-      showWaveOffDetails,
-      showEarlyLeaveDetails,
-      showEarlyLopDetails,
-      showWorkingLeaveDetails,
-      showWorkingLopDetails,
-    };
-  },
+    }, 2000);
+  } catch (error) {
+    console.error("Error verifying attendance:", error);
+    showSnackbar.value = true;
+    snackbarMessage.value = `Error: ${error.message}`;
+    snackbarColor.value = "error";
+  } finally {
+    processing.value = false;
+  }
 };
+
+const handleNext = () => {
+  router.push({
+    name: "salary-verification",
+    query: {
+      start: cycleStartDate.value,
+      end: cycleEndDate.value,
+    },
+  });
+};
+
+onMounted(() => {
+  loadSelectedEmployees();
+  loadDateRangeFromStorage();
+  fetchAttendanceSummary();
+});
 </script>
 
 <style scoped>
+:deep(.custom-employee-table .employee-status-table) {
+  max-height: 45px; /* your desired reduced height */
+  overflow-y: auto;
+}
+
 .penalties-container {
   background: white;
   border-radius: 8px;
@@ -1827,7 +1882,7 @@ export default {
   border-radius: 12px;
   margin-bottom: 2rem;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  overflow: overlay;
 }
 
 .section-header {
@@ -2264,5 +2319,95 @@ export default {
     flex-direction: column;
     gap: 1rem;
   }
+}
+/* new */
+.expanded-content-wrapper {
+  background-color: #f8f9fa;
+  padding: 0 !important;
+}
+
+.expanded-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 24px;
+  background-color: #f8f9fa;
+}
+
+.details-section {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.success-text {
+  color: #28a745 !important;
+}
+
+.warning-text {
+  color: #ffc107 !important;
+}
+
+.info-text {
+  color: #17a2b8 !important;
+}
+
+.error-text {
+  color: #dc3545 !important;
+}
+
+.purple-text {
+  color: #9c27b0 !important;
+}
+
+.total-row {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.total-label {
+  font-weight: 600;
+  color: #2c3e50 !important;
+}
+
+.total-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c3e50 !important;
 }
 </style>

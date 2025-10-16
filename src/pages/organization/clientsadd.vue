@@ -93,8 +93,13 @@
                   ? 'Enter Contact number'
                   : 'Enter Client number'
               "
+              maxlength="10"
+              pattern="[0-9]{10}"
+              title="Please enter exactly 10 digits"
+              @input="validatePhoneNumber"
               required
             />
+            <div v-if="phoneError" class="error-message">{{ phoneError }}</div>
           </div>
 
           <div class="form-group">
@@ -179,6 +184,7 @@ export default {
       category: "clientorg", // Default to clientorg
     });
     const isSubmitting = ref(false);
+    const phoneError = ref("");
     let map;
     let geocoder;
     let marker;
@@ -194,6 +200,22 @@ export default {
         center: { lat: 20.5937, lng: 78.9629 },
         zoom: 5,
       });
+    };
+
+    const validatePhoneNumber = () => {
+      // Remove any non-digit characters
+      client.orgNumber = client.orgNumber.replace(/\D/g, "");
+
+      // Validate length and format
+      if (client.orgNumber.length > 10) {
+        client.orgNumber = client.orgNumber.slice(0, 10);
+      }
+
+      if (client.orgNumber && client.orgNumber.length !== 10) {
+        phoneError.value = "Phone number must be exactly 10 digits";
+      } else {
+        phoneError.value = "";
+      }
     };
 
     const updateMap = () => {
@@ -234,6 +256,19 @@ export default {
     };
 
     const handleSubmit = async () => {
+      // Validate phone number before submission
+      validatePhoneNumber();
+
+      if (phoneError.value) {
+        alert("Please fix the phone number error before submitting.");
+        return;
+      }
+
+      if (client.orgNumber.length !== 10) {
+        alert("Phone number must be exactly 10 digits.");
+        return;
+      }
+
       isSubmitting.value = true;
       try {
         const response = await axios.post(
@@ -275,6 +310,7 @@ export default {
           longitude: "",
           category: "clientorg",
         });
+        phoneError.value = "";
         if (marker) marker.setMap(null);
         map.setCenter({ lat: 20.5937, lng: 78.9629 });
         map.setZoom(5);
@@ -303,6 +339,8 @@ export default {
       searchLocation,
       handleSubmit,
       isSubmitting,
+      phoneError,
+      validatePhoneNumber,
       goBack,
     };
   },

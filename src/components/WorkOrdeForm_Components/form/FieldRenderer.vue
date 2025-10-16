@@ -1,4 +1,4 @@
-<!-- create file render woek orde.vue  -->
+<!-- /senzrGo/senzrfieldopsfrontend/src/components/WorkOrdeForm_Components/form/FieldRenderer.vue -->
 <template>
   <div class="field-wrapper">
     <v-label class="field-label">
@@ -6,15 +6,16 @@
         :icon="getFieldIcon(field)"
         size="18"
         class="mr-2"
-        :color="isFieldMandatory(field) ? 'primary' : 'primary'"
+        :color="isFieldMandatory(field, userRole) ? 'error' : 'primary'"
       ></v-icon>
       {{ field.label }}
-      <span v-if="isFieldMandatory(field)" class="required-indicator">*</span>
+      <span v-if="isFieldMandatory(field, userRole)" class="required-indicator"
+        >*</span
+      >
     </v-label>
 
     <!-- Special handling for orgId field type -->
     <div v-if="isOrgIdField">
-      <!-- Step 1: Choose Client or Contact -->
       <v-select
         v-if="!selectedOrgType"
         :items="orgTypeOptions"
@@ -23,8 +24,9 @@
         label="Choose Organization Type"
         variant="outlined"
         density="comfortable"
-        hide-details="auto"
+        :error-messages="touchedFields[field.key] ? fieldErrors : []"
         @update:model-value="onOrgTypeChange"
+        @blur="markFieldTouched(field.key)"
         class="field-input mb-3"
       >
         <template #prepend-inner>
@@ -32,9 +34,8 @@
         </template>
       </v-select>
 
-      <!-- Step 2: Choose specific organization -->
       <div v-else>
-        <v-select
+        <v-autocomplete
           v-model="formData[field.key]"
           :items="filteredOrganizations"
           :loading="loadingOrganizations"
@@ -43,20 +44,22 @@
           :label="`Select ${selectedOrgType}`"
           variant="outlined"
           density="comfortable"
-          hide-details="auto"
+          :error-messages="touchedFields[field.key] ? fieldErrors : []"
           clearable
           class="field-input"
-          :rules="activeRules"
-          validate-on="input"
+          placeholder="Search by organization name..."
+          :search-input.sync="orgSearchQuery"
+          @update:model-value="markFieldTouched(field.key)"
+          @blur="markFieldTouched(field.key)"
         >
           <template #prepend-inner>
-            <v-icon>{{
-              selectedOrgType === "Client" ? "mdi-domain" : "mdi-account"
-            }}</v-icon>
+            <v-icon :icon="orgTypeIcon"></v-icon>
           </template>
-        </v-select>
+          <template #append-inner>
+            <v-icon size="20" color="grey">mdi-magnify</v-icon>
+          </template>
+        </v-autocomplete>
 
-        <!-- Change organization type button -->
         <v-btn
           size="small"
           variant="text"
@@ -71,9 +74,10 @@
     </div>
 
     <!-- UsersId special select -->
-    <v-select
+    <v-autocomplete
       v-else-if="isUsersField"
-      :items="users || []"
+      :items="searchedUsers"
+      :loading="loadingUsers"
       item-title="label"
       item-value="id"
       v-model="formData.UsersId"
@@ -84,13 +88,20 @@
       variant="outlined"
       density="comfortable"
       class="field-input"
-      :rules="activeRules"
-      validate-on="input"
+      placeholder="Search by name or employee ID..."
+      :search-input.sync="userSearchQuery"
+      :error-messages="touchedFields[field.key] ? fieldErrors : []"
+      @update:model-value="markFieldTouched(field.key)"
+      @blur="markFieldTouched(field.key)"
     >
+      <template #prepend-inner>
+        <v-icon>mdi-account-search</v-icon>
+      </template>
+      <template #append-inner>
+        <v-icon size="20" color="grey">mdi-magnify</v-icon>
+      </template>
       <template #item="{ props: itemProps, item }">
         <v-list-item v-bind="itemProps">
-          <v-list-item-subtitle v-if="item?.raw?.employeeId">
-          </v-list-item-subtitle>
           <template #append>
             <v-chip
               size="x-small"
@@ -103,7 +114,39 @@
           </template>
         </v-list-item>
       </template>
-    </v-select>
+    </v-autocomplete>
+
+    <!-- Team/Department field -->
+    <v-autocomplete
+      v-else-if="isTeamField && teamEnabled"
+      :items="searchedDepartments"
+      :loading="loadingDepartments"
+      item-title="departmentName"
+      item-value="id"
+      v-model="formData.team"
+      label="Department"
+      hint="Select department"
+      persistent-hint
+      clearable
+      variant="outlined"
+      density="comfortable"
+      class="field-input"
+      placeholder="Search by department name..."
+      :search-input.sync="departmentSearchQuery"
+      :error-messages="touchedFields[field.key] ? fieldErrors : []"
+      @update:model-value="markFieldTouched(field.key)"
+      @blur="markFieldTouched(field.key)"
+    >
+      <template #prepend-inner>
+        <v-icon>mdi-account-group</v-icon>
+      </template>
+      <template #append-inner>
+        <v-icon size="20" color="grey">mdi-magnify</v-icon>
+      </template>
+      <template #item="{ props: itemProps, item }">
+        <v-list-item v-bind="itemProps"> </v-list-item>
+      </template>
+    </v-autocomplete>
 
     <!-- gps-currentLocation -->
     <div v-else-if="field.type === 'gps-currentLocation'">
@@ -115,7 +158,9 @@
         readonly
         :class="{ 'captured-location': !!formData[field.key] }"
         append-inner-icon="mdi-crosshairs-gps"
+        :error-messages="touchedFields[field.key] ? fieldErrors : []"
         @click:append-inner="() => captureCurrentLocation(field)"
+        @blur="markFieldTouched(field.key)"
       />
       <v-alert
         v-if="locationError"
@@ -131,11 +176,11 @@
       </v-alert>
     </div>
 
-    <!-- Client Location (disabled until client selected) -->
+    <!-- Client Location -->
     <div v-else-if="isClientLocationField">
       <v-select
         :disabled="disableClientLocation"
-        v-model="formData.clientLocationId"
+        v-model="formData[field.key]"
         :items="clientLocations"
         item-title="name"
         item-value="id"
@@ -145,7 +190,9 @@
         :hint="disableClientLocation ? 'Select a Client first' : ''"
         persistent-hint
         class="field-input"
+        :error-messages="touchedFields[field.key] ? fieldErrors : []"
         @update:model-value="onLocationSelect"
+        @blur="markFieldTouched(field.key)"
       />
     </div>
 
@@ -156,23 +203,62 @@
       type="datetime-local"
       variant="outlined"
       density="comfortable"
-      hide-details="auto"
       class="field-input"
       :min="getDateMin(field)"
-      :rules="activeRules"
-      validate-on="input"
+      :error-messages="touchedFields[field.key] ? fieldErrors : []"
+      @update:model-value="markFieldTouched(field.key)"
+      @blur="markFieldTouched(field.key)"
     />
 
-    <!-- Generic dynamic field (all other fields) -->
+    <!-- Image field -->
+    <div v-else-if="getFieldTypeString(field.type) === 'image'">
+      <v-file-input
+        v-model="selectedFiles"
+        :label="field.label || 'Upload Images'"
+        variant="outlined"
+        density="comfortable"
+        multiple
+        accept="image/jpeg, image/jpg, image/png"
+        prepend-icon="mdi-camera"
+        class="field-input"
+        :error-messages="touchedFields[field.key] ? fieldErrors : []"
+        @update:model-value="handleMultipleImageSelect"
+        @blur="markFieldTouched(field.key)"
+      />
+      <div v-if="imagePreviews.length > 0" class="preview-container mt-4">
+        <div
+          v-for="(preview, index) in imagePreviews"
+          :key="index"
+          class="preview-item"
+        >
+          <img :src="preview.url" alt="Preview" class="preview-image" />
+          <v-btn
+            icon
+            size="small"
+            color="red"
+            class="delete-btn"
+            @click="deleteImage(index)"
+          >
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
+          <span v-if="preview.id" class="file-id">ID: {{ preview.id }}</span>
+        </div>
+      </div>
+      <v-alert v-if="uploadError" type="error" variant="tonal" class="mt-2">{{
+        uploadError
+      }}</v-alert>
+    </div>
+
+    <!-- Generic dynamic field -->
     <component
       v-else
       :is="getFieldComponent(field)"
       v-bind="resolvedProps"
       v-model="formData[field.key]"
-      :rules="activeRules"
+      :error-messages="touchedFields[field.key] ? fieldErrors : []"
       @click:append-inner="handleFieldAction"
-      @update:model-value="onChange"
-      @blur="onBlur"
+      @update:model-value="markFieldTouched(field.key)"
+      @blur="markFieldTouched(field.key)"
       class="field-input"
     />
 
@@ -210,7 +296,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, inject } from "vue";
 import {
   getValidationRules,
   isFieldMandatory,
@@ -225,69 +311,235 @@ import {
 } from "@/utils/createWOF/fieldUtils";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
+import { useFormApi } from "@/composables/workorder/createWorkOrderForm/useFormApi";
 
 const props = defineProps({
   field: Object,
   formData: Object,
   clients: Array,
   users: Array,
+  departments: Array,
   userRole: String,
   options: Object,
+  sharedProperties: Object,
 });
 
-const emit = defineEmits(["field-action", "generate-code"]);
+const emit = defineEmits([
+  "field-action",
+  "generate-code",
+  "validation-change",
+]);
 
-const handleFieldAction = (event) => {
-  emit("field-action", props.field, event);
-};
+const touchedFields = inject("touchedFields", ref({}));
 
-const touched = ref(false);
-const onBlur = () => {
-  touched.value = true;
-};
-const onChange = () => {
-  touched.value = true;
-};
-
-// Only provide rules after a field is interacted with, or when it already has a value
-const activeRules = computed(() => {
-  const hasValue =
-    props.formData && props.field && props.formData[props.field.key];
-  return touched.value || !!hasValue
-    ? getValidationRules(props.field, props.userRole, props.formData)
-    : [];
-});
-
-// Organization selection logic
+// Organization selection state
 const selectedOrgType = ref(null);
 const filteredOrganizations = ref([]);
 const loadingOrganizations = ref(false);
+const orgSearchQuery = ref("");
 
+// Location state
+const locationError = ref(null);
+const clientLocations = ref([]);
+const loadingClientLocations = ref(false);
+
+// Image upload state
+const selectedFiles = ref([]);
+const imagePreviews = ref([]);
+const uploadError = ref(null);
+
+// User search state
+const searchedUsers = ref([]);
+const loadingUsers = ref(false);
+const userSearchQuery = ref("");
+
+// Department search state
+const searchedDepartments = ref([]);
+const loadingDepartments = ref(false);
+const departmentSearchQuery = ref("");
+
+// Get composable functions
+const { searchOrganizations, searchUsers, searchDepartments } = useFormApi();
+
+// Static data
 const orgTypeOptions = [
   { label: "Client", value: "Client" },
   { label: "Contact", value: "Contact" },
 ];
 
-// Check if field is orgId type
+const fieldErrors = computed(() => {
+  if (!touchedFields.value[props.field?.key]) {
+    return [];
+  }
+
+  if (!props.field || !props.field.key) {
+    console.warn("[v0] fieldErrors computed with invalid field");
+    return [];
+  }
+
+  const value = props.formData[props.field.key];
+
+  try {
+    const rules = getValidationRules(
+      props.field,
+      props.userRole,
+      props.formData,
+    );
+
+    const errors = [];
+    for (const rule of rules) {
+      if (typeof rule === "function") {
+        const result = rule(value);
+        if (result !== true) {
+          errors.push(result);
+        }
+      }
+    }
+
+    return errors;
+  } catch (error) {
+    console.error("[v0] Error in fieldErrors computed:", error);
+    return [];
+  }
+});
+
 const isOrgIdField = computed(() => {
   const key = props.field?.key || "";
   return key === "orgId" || getFieldTypeString(props.field?.type) === "orgId";
 });
 
-// Organization type selection handler
+const orgTypeIcon = computed(() => {
+  return selectedOrgType.value === "Client" ? "mdi-domain" : "mdi-account";
+});
+
+const isUsersField = computed(() => {
+  const key = props.field?.key || props.field?.name || "";
+  return key === "UsersId";
+});
+
+const usersLabel = computed(() => props.field?.label || "Assign to (Employee)");
+
+const isClientLocationField = computed(() => {
+  const key = (
+    props.field?.key ||
+    props.field?.field ||
+    props.field?.name ||
+    ""
+  )
+    .toString()
+    .toLowerCase();
+  return [
+    "clientlocation",
+    "client_location",
+    "client_location_id",
+    "client_locationid",
+    "orglocation",
+  ].includes(key);
+});
+
+const hasClientSelected = computed(() => {
+  const m = props.formData || {};
+  return Boolean(
+    m.clientId || m.clientID || m.client || m.client_id || m.orgId,
+  );
+});
+
+const disableClientLocation = computed(
+  () => isClientLocationField.value && !hasClientSelected.value,
+);
+
+const teamEnabled = computed(() => {
+  return props.sharedProperties?.booleans?.team === true;
+});
+
+const isTeamField = computed(() => {
+  const key = props.field?.key || "";
+  return key === "team";
+});
+
+const resolvedProps = computed(() => {
+  const base = getFieldProps(props.field);
+  const typeString = getFieldTypeString(props.field?.type);
+  const key = props.field?.key;
+
+  const defaults = {
+    hideDetails: "auto",
+  };
+
+  if (typeString === "clientSelector" || key === "orgId") {
+    return {
+      ...base,
+      ...defaults,
+      items: props.clients || [],
+      itemTitle: "orgName",
+      itemValue: "id",
+      returnObject: false,
+      variant: base?.variant || "outlined",
+      density: base?.density || "comfortable",
+      clearable: true,
+    };
+  }
+
+  if (
+    typeString === "gps" ||
+    (props.field?.label || "").toLowerCase().includes("location")
+  ) {
+    return {
+      ...base,
+      ...defaults,
+      clearable: true,
+    };
+  }
+
+  return {
+    ...base,
+    ...defaults,
+  };
+});
+
+const markFieldTouched = (fieldKey) => {
+  if (!fieldKey) {
+    console.warn("[v0] markFieldTouched called with undefined fieldKey");
+    return;
+  }
+
+  touchedFields.value[fieldKey] = true;
+  validateField();
+};
+
+const validateField = () => {
+  if (!props.field || !props.field.key) {
+    console.warn("[v0] validateField called with invalid field");
+    return;
+  }
+
+  const isValid = fieldErrors.value.length === 0;
+  const isMandatory = isFieldMandatory(props.field, props.userRole);
+  const value = props.formData[props.field.key];
+  const hasValue = value !== null && value !== undefined && value !== "";
+
+  emit("validation-change", {
+    fieldKey: props.field.key,
+    isValid,
+    isMandatory,
+    hasValue,
+    errors: fieldErrors.value,
+  });
+};
+
 const onOrgTypeChange = async (type) => {
   selectedOrgType.value = type;
   await fetchFilteredOrganizations(type);
+  markFieldTouched(props.field.key);
 };
 
-// Reset organization selection
 const resetOrgSelection = () => {
   selectedOrgType.value = null;
   filteredOrganizations.value = [];
   props.formData[props.field.key] = null;
+  markFieldTouched(props.field.key);
 };
 
-// Fetch organizations based on type
 const fetchFilteredOrganizations = async (orgType) => {
   const token = authService.getToken();
   const tenantId = currentUserTenant.getTenantId();
@@ -344,9 +596,6 @@ const fetchFilteredOrganizations = async (orgType) => {
   }
 };
 
-// Handle geolocation capture
-const locationError = ref(null);
-
 const captureCurrentLocation = (field) => {
   if (!navigator.geolocation) {
     locationError.value = "Geolocation is not supported by your browser.";
@@ -358,24 +607,12 @@ const captureCurrentLocation = (field) => {
       const lat = position.coords.latitude.toFixed(6);
       const lng = position.coords.longitude.toFixed(6);
 
-      // Clear any previous error
       locationError.value = null;
-
-      // Show in textbox
       props.formData[field.key] = `${lat}, ${lng}`;
-
-      // Set lat and lng directly in formData for payload
       props.formData.lat = lat;
       props.formData.lng = lng;
 
-      // Push lat/lng to formData.fields for backward compatibility (if needed)
-      if (Array.isArray(props.formData.fields)) {
-        props.formData.fields = props.formData.fields.filter(
-          (f) => f.key !== "lat" && f.key !== "lng",
-        );
-        props.formData.fields.push({ key: "lat", value: lat });
-        props.formData.fields.push({ key: "lng", value: lng });
-      }
+      markFieldTouched(field.key);
     },
     (error) => {
       console.error("Location error:", error);
@@ -385,9 +622,61 @@ const captureCurrentLocation = (field) => {
   );
 };
 
-// Handle taskimage upload
-const uploadError = ref(null);
-const uploadStatus = ref(null);
+const handleMultipleImageSelect = async (files) => {
+  uploadError.value = null;
+  const newPreviews = [];
+  for (const file of files) {
+    try {
+      const id = await uploadImage(file);
+      const previewUrl = URL.createObjectURL(file);
+      newPreviews.push({ url: previewUrl, id, file });
+    } catch (err) {
+      uploadError.value = err.message;
+    }
+  }
+  imagePreviews.value = [...imagePreviews.value, ...newPreviews];
+  props.formData[props.field.key] = imagePreviews.value.map((p) => p.id);
+  markFieldTouched(props.field.key);
+};
+
+const deleteImage = (index) => {
+  const preview = imagePreviews.value[index];
+  const fileId = preview?.id;
+  const previewUrl = preview?.url;
+
+  const updatedPreviews = imagePreviews.value.filter((_, i) => i !== index);
+  imagePreviews.value = updatedPreviews;
+
+  const updatedIds = updatedPreviews.map((p) => p.id);
+  props.formData[props.field.key] = updatedIds;
+
+  markFieldTouched(props.field.key);
+
+  if (previewUrl) {
+    URL.revokeObjectURL(previewUrl);
+  }
+
+  if (fileId) {
+    deleteFileFromServer(fileId);
+  }
+};
+
+const deleteFileFromServer = async (fileId) => {
+  try {
+    const token = authService.getToken();
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/files/${fileId}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (!response.ok) throw new Error("Failed to delete file");
+  } catch (err) {
+    console.error("Error deleting file:", err);
+    uploadError.value = "Failed to delete file from server.";
+  }
+};
 
 const getWorkOrdersFolderId = async () => {
   try {
@@ -416,208 +705,48 @@ const getWorkOrdersFolderId = async () => {
   }
 };
 
-const handleImageUpload = async (field) => {
-  const file = props.formData[field.key]?.[0];
-  if (!file) {
-    props.formData.taskimage = null;
-    uploadError.value = null;
-    uploadStatus.value = null;
-    return;
-  }
-
+const uploadImage = async (file) => {
   try {
-    // Validate file
-    if (!file.type.startsWith("image/")) {
-      throw new Error("Please select an image file only");
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error("Only JPG, JPEG, or PNG files are allowed");
     }
-
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      throw new Error("Image size must be less than 10MB");
+      throw new Error("Image size must be less than 5MB");
     }
 
-    // Get tenant ID and folder ID
-    const tenantId = currentUserTenant.getTenantId();
-    if (!tenantId) throw new Error("Tenant ID not found");
+    const tenantIdValue = currentUserTenant.getTenantId();
+    if (!tenantIdValue) throw new Error("Tenant ID not found");
 
     const workOrdersFolderId = await getWorkOrdersFolderId();
-    const token = authService.getToken();
+    const tokenValue = authService.getToken();
 
-    // Prepare form data
     const formData = new FormData();
     if (workOrdersFolderId) {
       formData.append("folder", workOrdersFolderId);
     }
-
     const fileExtension = file.name.split(".").pop();
-    const customFileName = `task-${tenantId}-${Date.now()}.${fileExtension}`;
+    const customFileName = `task-${tenantIdValue}-${Date.now()}.${fileExtension}`;
     formData.append("file", file, customFileName);
 
-    // Upload file
     const response = await fetch(`${import.meta.env.VITE_API_URL}/files`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${tokenValue}` },
       body: formData,
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error("Unauthorized access. Token might be expired.");
-      }
       throw new Error(`Failed to upload image: ${response.status}`);
     }
 
     const result = await response.json();
-    props.formData.taskimage = result.data.id; // Store file ID
-    uploadError.value = null;
-    uploadStatus.value = `Uploaded: ${file.name}`;
-  } catch (err) {
-    console.error("Error uploading image:", err);
-    uploadError.value = err.message || "Failed to upload image";
-    uploadStatus.value = null;
-    props.formData.taskimage = null;
+    return result.data.id;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
   }
 };
-
-watch(
-  () => props.formData[props.field?.key],
-  (newValue) => {
-    if (!newValue && selectedOrgType.value) {
-      resetOrgSelection();
-    }
-  },
-);
-
-const resolvedProps = computed(() => {
-  const base = getFieldProps(props.field);
-  const typeString = getFieldTypeString(props.field?.type);
-  const key = props.field?.key;
-
-  const defaults = {
-    validateOn: "blur",
-    hideDetails: "auto",
-  };
-
-  if (typeString === "clientSelector" || key === "orgId") {
-    return {
-      ...base,
-      ...defaults,
-      validateOn: "input",
-      items: props.clients || [],
-      itemTitle: "orgName",
-      itemValue: "id",
-      returnObject: false,
-      variant: base?.variant || "outlined",
-      density: base?.density || "comfortable",
-      clearable: true,
-    };
-  }
-
-  if (
-    typeString === "gps" ||
-    (props.field?.label || "").toLowerCase().includes("location")
-  ) {
-    return {
-      ...base,
-      ...defaults,
-      validateOn: "input",
-      clearable: true,
-    };
-  }
-
-  return {
-    ...base,
-    ...defaults,
-  };
-});
-
-/* ----------------- Date helpers ----------------- */
-const getDateMin = (field) => {
-  const now = new Date();
-  // Adjust to IST (UTC+5:30)
-  const offset = 5.5 * 60 * 60 * 1000;
-  const nowIST = new Date(now.getTime() + offset);
-  const minDate = nowIST.toISOString().slice(0, 16);
-
-  if (isDueDate(field)) {
-    // Use fromDate if available, otherwise current IST time
-    return props.formData?.fromDate || minDate;
-  }
-  // Prevent past dates for fromDate
-  return minDate;
-};
-
-const isDueDate = (field) => {
-  const key = (field?.key || "").toLowerCase();
-  return key.includes("due") || key.includes("end"); // Handles "dueDate", "endDate"
-};
-/* -------------------------------------------------- */
-
-const isClientLocationField = computed(() => {
-  const key = (
-    props.field?.key ||
-    props.field?.field ||
-    props.field?.name ||
-    ""
-  )
-    .toString()
-    .toLowerCase();
-  return [
-    "clientlocation",
-    "client_location",
-    "client_location_id",
-    "client_locationid",
-  ].includes(key);
-});
-
-const hasClientSelected = computed(() => {
-  const m = props.formData || {};
-  return Boolean(
-    m.clientId || m.clientID || m.client || m.client_id || m.orgId,
-  );
-});
-
-const disableClientLocation = computed(
-  () => isClientLocationField.value && !hasClientSelected.value,
-);
-
-const isUsersField = computed(() => {
-  const key = props.field?.key || props.field?.name || "";
-  return key === "UsersId";
-});
-
-const usersLabel = computed(() => props.field?.label || "Assign to (Employee)");
-
-const statusLabel = (s) =>
-  s === "in" ? "Punched In" : s === "out" ? "Punched Out" : "Not Punched In";
-const statusColor = (s) =>
-  s === "in" ? "green" : s === "out" ? "red" : "orange";
-const statusIcon = (s) =>
-  s === "in"
-    ? "mdi-login-variant"
-    : s === "out"
-      ? "mdi-logout-variant"
-      : "mdi-clock-outline";
-
-// Client locations logic
-const clientLocations = ref([]);
-const loadingClientLocations = ref(false);
-
-watch(
-  () => props.formData.orgId,
-  async (newOrgId) => {
-    if (isClientLocationField.value && newOrgId) {
-      await fetchClientLocations(newOrgId);
-    } else if (!newOrgId) {
-      clientLocations.value = [];
-      props.formData.clientLocationId = null;
-      props.formData.currentLat = null;
-      props.formData.currentLng = null;
-      props.formData.radiusInMeters = null;
-    }
-  },
-  { immediate: true },
-);
 
 async function fetchClientLocations(orgId) {
   const token = authService.getToken();
@@ -682,15 +811,169 @@ const onLocationSelect = (locId) => {
   const selectedLoc = clientLocations.value.find((l) => l.id === locId);
   if (selectedLoc) {
     const coords = selectedLoc.locmark?.coordinates || [];
-    props.formData.currentLat = coords[1] || null; // lat
-    props.formData.currentLng = coords[0] || null; // lng
+    props.formData.currentLat = coords[1] || null;
+    props.formData.currentLng = coords[0] || null;
     props.formData.radiusInMeters = selectedLoc.locSize || null;
   } else {
     props.formData.currentLat = null;
     props.formData.currentLng = null;
     props.formData.radiusInMeters = null;
   }
+  markFieldTouched(props.field.key);
 };
+
+const handleFieldAction = () => {
+  emit("field-action", props.field);
+};
+
+const getDateMin = (field) => {
+  const now = new Date();
+  const offset = 5.5 * 60 * 60 * 1000;
+  const nowIST = new Date(now.getTime() + offset);
+  const minDate = nowIST.toISOString().slice(0, 16);
+
+  if (isDueDate(field)) {
+    return props.formData?.fromDate || minDate;
+  }
+  return minDate;
+};
+
+const isDueDate = (field) => {
+  const key = (field?.key || "").toLowerCase();
+  return key.includes("due") || key.includes("end");
+};
+
+const statusLabel = (s) =>
+  s === "in" ? "Punched In" : s === "out" ? "Punched Out" : "Not Punched In";
+const statusColor = (s) =>
+  s === "in" ? "green" : s === "out" ? "red" : "orange";
+const statusIcon = (s) =>
+  s === "in"
+    ? "mdi-login-variant"
+    : s === "out"
+      ? "mdi-logout-variant"
+      : "mdi-clock-outline";
+
+watch(
+  () => props.formData[props.field?.key],
+  (newValue) => {
+    if (!newValue && selectedOrgType.value) {
+      resetOrgSelection();
+    }
+  },
+);
+
+watch(
+  () => props.formData.orgId,
+  async (newOrgId) => {
+    if (isClientLocationField.value && newOrgId) {
+      await fetchClientLocations(newOrgId);
+    } else if (!newOrgId) {
+      clientLocations.value = [];
+      props.formData.clientLocationId = null;
+      props.formData.currentLat = null;
+      props.formData.currentLng = null;
+      props.formData.radiusInMeters = null;
+    }
+  },
+  { immediate: true },
+);
+
+let orgSearchTimeout = null;
+watch(orgSearchQuery, (newQuery) => {
+  if (orgSearchTimeout) clearTimeout(orgSearchTimeout);
+
+  orgSearchTimeout = setTimeout(async () => {
+    if (newQuery && newQuery.trim()) {
+      console.log("[v0] Searching organizations:", newQuery);
+      loadingOrganizations.value = true;
+      try {
+        const results = await searchOrganizations(
+          newQuery,
+          selectedOrgType.value,
+        );
+        filteredOrganizations.value = results;
+        console.log("[v0] Organization search results:", results.length);
+      } catch (error) {
+        console.error("[v0] Error searching organizations:", error);
+      } finally {
+        loadingOrganizations.value = false;
+      }
+    } else if (selectedOrgType.value) {
+      await fetchFilteredOrganizations(selectedOrgType.value);
+    }
+  }, 500);
+});
+
+watch(
+  () => props.users,
+  (newUsers) => {
+    if (newUsers && newUsers.length > 0 && searchedUsers.value.length === 0) {
+      searchedUsers.value = newUsers;
+    }
+  },
+  { immediate: true },
+);
+
+let userSearchTimeout = null;
+watch(userSearchQuery, (newQuery) => {
+  if (userSearchTimeout) clearTimeout(userSearchTimeout);
+
+  userSearchTimeout = setTimeout(async () => {
+    if (newQuery && newQuery.trim()) {
+      console.log("[v0] Searching users:", newQuery);
+      loadingUsers.value = true;
+      try {
+        const results = await searchUsers(newQuery);
+        searchedUsers.value = results;
+        console.log("[v0] User search results:", results.length);
+      } catch (error) {
+        console.error("[v0] Error searching users:", error);
+      } finally {
+        loadingUsers.value = false;
+      }
+    } else {
+      searchedUsers.value = props.users || [];
+    }
+  }, 500);
+});
+
+watch(
+  () => props.departments,
+  (newDepartments) => {
+    if (
+      newDepartments &&
+      newDepartments.length > 0 &&
+      searchedDepartments.value.length === 0
+    ) {
+      searchedDepartments.value = newDepartments;
+    }
+  },
+  { immediate: true },
+);
+
+let departmentSearchTimeout = null;
+watch(departmentSearchQuery, (newQuery) => {
+  if (departmentSearchTimeout) clearTimeout(departmentSearchTimeout);
+
+  departmentSearchTimeout = setTimeout(async () => {
+    if (newQuery && newQuery.trim()) {
+      console.log("[v0] Searching departments:", newQuery);
+      loadingDepartments.value = true;
+      try {
+        const results = await searchDepartments(newQuery);
+        searchedDepartments.value = results;
+        console.log("[v0] Department search results:", results.length);
+      } catch (error) {
+        console.error("[v0] Error searching departments:", error);
+      } finally {
+        loadingDepartments.value = false;
+      }
+    } else {
+      searchedDepartments.value = props.departments || [];
+    }
+  }, 500);
+});
 </script>
 
 <style scoped>
@@ -732,7 +1015,6 @@ const onLocationSelect = (locId) => {
   transform: translateY(-2px);
 }
 
-/* Custom field styling */
 :deep(.v-text-field .v-field) {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
@@ -762,10 +1044,74 @@ const onLocationSelect = (locId) => {
   color: #1976d2;
 }
 
-/* Ensure datetime-local input displays correctly */
 :deep(.v-text-field input[type="datetime-local"]) {
   font-size: 0.95rem;
   padding: 8px 12px;
   width: 100%;
+}
+
+.preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.preview-item {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: white;
+}
+
+.file-id {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 0.75rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* Added styles for autocomplete search functionality */
+:deep(.v-autocomplete .v-field) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+:deep(.v-autocomplete .v-field:hover) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+:deep(.v-autocomplete .v-field--focused) {
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.2);
+}
+
+:deep(.v-autocomplete input::placeholder) {
+  color: #9e9e9e;
+  font-size: 0.9rem;
+}
+:deep(.v-input__details) {
+  min-height: unset !important;
+  padding-top: unset !important;
+}
+.v-messages {
+  min-height: unset !important;
 }
 </style>
