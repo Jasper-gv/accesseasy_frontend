@@ -66,9 +66,21 @@
                     </v-row>
                     <v-row dense>
                       <v-col cols="12" sm="6">
+                        <v-text-field
+                          v-model="formData.location"
+                          label="Location"
+                          placeholder="Enter location details"
+                          variant="outlined"
+                          dense
+                          class="small-field"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                    <v-row dense>
+                      <v-col cols="12" sm="6">
                         <v-select
                           v-model="formData.branchLocation"
-                          label="Branch Location *"
+                          label="Branch*"
                           :items="branchOptions"
                           item-title="branchName"
                           item-value="id"
@@ -85,18 +97,49 @@
                       <v-col cols="12" sm="6">
                         <v-select
                           v-model="formData.assignedDepts"
-                          label="Department"
-                          :items="departmentOptions"
-                          item-title="deptName"
-                          item-value="id"
-                          placeholder="Select department"
+                          label="Departments"
+                          :items="departmentItems"
+                          item-title="title"
+                          item-value="value"
+                          placeholder="Select departments"
                           variant="outlined"
                           dense
                           class="small-select"
                           multiple
                           chips
                           closable-chips
-                        ></v-select>
+                          :menu-props="{ maxHeight: 200 }"
+                        >
+                          <template v-slot:prepend-item>
+                            <v-list-item>
+                              <v-list-item-title>
+                                <span class="text-caption">
+                                  Selected:
+                                  {{
+                                    formData.assignedDepts
+                                      ? formData.assignedDepts.length
+                                      : 0
+                                  }}
+                                </span>
+                              </v-list-item-title>
+                              <template v-slot:append>
+                                <v-btn
+                                  v-if="
+                                    formData.assignedDepts &&
+                                    formData.assignedDepts.length > 0
+                                  "
+                                  variant="text"
+                                  size="small"
+                                  @click.stop="clearAllDepts"
+                                  class="text-caption"
+                                >
+                                  Clear All
+                                </v-btn>
+                              </template>
+                            </v-list-item>
+                            <v-divider class="mt-2"></v-divider>
+                          </template>
+                        </v-select>
                       </v-col>
                     </v-row>
                   </v-form>
@@ -139,6 +182,7 @@ import {
   defineProps,
   defineEmits,
   nextTick,
+  computed,
 } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import { authService } from "@/services/authService";
@@ -156,7 +200,7 @@ const currentTab = ref("basic");
 const isSaving = ref(false);
 const formRef = ref(null);
 const snackbar = ref({ show: false, message: "", type: "success" });
-
+const ALL_DEPARTMENTS_ID = "ALL_DEPARTMENTS";
 const doorTypes = ref(["Main Door", "Sub Door"]);
 const statusOptions = ref(["Active", "Inactive"]);
 const departmentOptions = ref([]);
@@ -166,15 +210,28 @@ const formData = reactive({
   doorName: "",
   doorType: "",
   branchLocation: null,
+  location: "",
   assignedDepts: [],
   status: "Active",
 });
+const departmentItems = computed(() => {
+  const items = departmentOptions.value.map((d) => ({
+    title: d.deptName,
+    value: d.id,
+  }));
+  items.unshift({ title: "All Departments", value: ALL_DEPARTMENTS_ID });
+  return items;
+});
 
+const clearAllDepts = () => {
+  formData.assignedDepts = [];
+};
 // Initialize form data
 const initializeForm = () => {
   formData.doorName = "";
   formData.doorType = "";
   formData.branchLocation = null;
+  formData.location = "";
   formData.assignedDepts = [];
   formData.status = "Active";
 };
@@ -189,6 +246,7 @@ const populateForm = async () => {
 
     formData.doorName = props.doorData.doorName || "";
     formData.doorType = props.doorData.doorType || "";
+    formData.location = props.doorData.location || "";
 
     // Handle branch location - check if it's an object or ID
     if (props.doorData.branchLocation) {
@@ -201,19 +259,32 @@ const populateForm = async () => {
       formData.branchLocation = null;
     }
 
-    // Handle assigned departments - ensure it's always an array of IDs
-    if (
-      props.doorData.assignedDepts &&
-      Array.isArray(props.doorData.assignedDepts)
-    ) {
-      formData.assignedDepts = props.doorData.assignedDepts
-        .map((dept) => {
-          // Try multiple possible ID field names
-          return dept.departmentId || dept.id || dept;
-        })
-        .filter((id) => id);
-
-      console.log("Assigned departments:", formData.assignedDepts);
+    // Handle assigned departments
+    if (props.doorData.departmentIds) {
+      try {
+        if (typeof props.doorData.departmentIds === "string") {
+          formData.assignedDepts = JSON.parse(props.doorData.departmentIds);
+        } else if (Array.isArray(props.doorData.departmentIds)) {
+          formData.assignedDepts = [...props.doorData.departmentIds];
+        } else if (props.doorData.assignedDepts) {
+          if (typeof props.doorData.assignedDepts === "object") {
+            formData.assignedDepts = [props.doorData.assignedDepts.id];
+          } else {
+            formData.assignedDepts = [props.doorData.assignedDepts];
+          }
+        } else {
+          formData.assignedDepts = [];
+        }
+      } catch (error) {
+        console.error("Error parsing departmentIds:", error);
+        formData.assignedDepts = [];
+      }
+    } else if (props.doorData.assignedDepts) {
+      if (typeof props.doorData.assignedDepts === "object") {
+        formData.assignedDepts = [props.doorData.assignedDepts.id];
+      } else {
+        formData.assignedDepts = [props.doorData.assignedDepts];
+      }
     } else {
       formData.assignedDepts = [];
     }
@@ -242,7 +313,6 @@ const checkDoorName = async (doorName) => {
     );
     const data = await response.json();
 
-    // If editing, exclude current door from duplicate check
     if (props.isEditing && props.doorData) {
       return data.data.some((door) => door.id !== props.doorData.id);
     }
@@ -304,12 +374,21 @@ const createDoor = async () => {
     doorName: formData.doorName,
     doorNumber,
     doorType: formData.doorType,
+    location: formData.location || null,
     status: formData.status,
     tenant: props.tenantId,
-    assignedDepts: formData.assignedDepts.map((id) => ({ id })),
+    departmentIds: formData.assignedDepts.includes(ALL_DEPARTMENTS_ID)
+      ? JSON.stringify(departmentOptions.value.map((d) => d.id))
+      : formData.assignedDepts.length > 0
+        ? JSON.stringify(
+            formData.assignedDepts.filter((id) => id !== ALL_DEPARTMENTS_ID)
+          )
+        : null,
     branchLocation: formData.branchLocation,
     uniqueId: `${props.tenantId}-${doorNumber}`,
   };
+
+  console.log("Creating door with payload:", JSON.stringify(payload, null, 2));
 
   const url = `${import.meta.env.VITE_API_URL}/items/doors`;
 
@@ -324,8 +403,13 @@ const createDoor = async () => {
     });
 
     if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API error response:", errorData);
       throw new Error(`Failed to create door: ${response.statusText}`);
     }
+
+    const responseData = await response.json();
+    console.log("API response:", responseData);
 
     emit("save-success");
     initializeForm();
@@ -345,7 +429,6 @@ const createDoor = async () => {
 
 // Update an existing door
 const editDoor = async () => {
-  // Check for duplicate door name, excluding the current door
   if (
     formData.doorName !== props.doorData.doorName &&
     (await checkDoorName(formData.doorName))
@@ -358,12 +441,21 @@ const editDoor = async () => {
     doorName: formData.doorName,
     doorNumber: props.doorData.doorNumber,
     doorType: formData.doorType,
+    location: formData.location || null, // NEW LOCATION FIELD IN PAYLOAD
     status: formData.status,
     tenant: props.tenantId,
-    assignedDepts: formData.assignedDepts.map((id) => ({ id })),
+    departmentIds: formData.assignedDepts.includes(ALL_DEPARTMENTS_ID)
+      ? JSON.stringify(departmentOptions.value.map((d) => d.id))
+      : formData.assignedDepts.length > 0
+        ? JSON.stringify(
+            formData.assignedDepts.filter((id) => id !== ALL_DEPARTMENTS_ID)
+          )
+        : null,
     branchLocation: formData.branchLocation,
     uniqueId: props.doorData.uniqueId,
   };
+
+  console.log("Updating door with payload:", JSON.stringify(payload, null, 2));
 
   const url = `${import.meta.env.VITE_API_URL}/items/doors/${props.doorData.id}`;
 
@@ -378,8 +470,13 @@ const editDoor = async () => {
     });
 
     if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API error response:", errorData);
       throw new Error(`Failed to update door: ${response.statusText}`);
     }
+
+    const responseData = await response.json();
+    console.log("API response:", responseData);
 
     emit("save-success");
     showToast("Door updated successfully!", "success");
@@ -462,7 +559,6 @@ async function fetchBranches() {
       `${import.meta.env.VITE_API_URL}/items/locationManagement`
     );
 
-    // Add query parameters
     const params = {
       "fields[]": ["locdetail", "locType", "id"],
       "filter[_and][0][_and][0][tenant][tenantId][_eq]": props.tenantId,
@@ -491,7 +587,6 @@ async function fetchBranches() {
 
     const data = await response.json();
 
-    // Transform the data to match our expected format
     branchOptions.value = data.data.map((location) => ({
       id: location.id,
       branchName: location.locdetail?.locationName || `Branch ${location.id}`,
@@ -512,7 +607,7 @@ const showToast = (message, type = "success") => {
   snackbar.value = { show: true, message, type };
 };
 
-// Watch for changes in doorData and isEditing - with deep watching
+// Watch for changes in doorData and isEditing
 watch(
   () => [props.doorData, props.isEditing],
   async ([newDoorData, newIsEditing]) => {
@@ -524,7 +619,6 @@ watch(
     );
 
     if (newIsEditing && newDoorData) {
-      // Ensure options are loaded before populating
       if (
         branchOptions.value.length === 0 ||
         departmentOptions.value.length === 0
@@ -538,13 +632,26 @@ watch(
   },
   { immediate: true, deep: true }
 );
-
+watch(
+  () => formData.assignedDepts,
+  (newVal) => {
+    if (newVal.includes(ALL_DEPARTMENTS_ID)) {
+      const realIds = departmentOptions.value.map((d) => d.id);
+      formData.assignedDepts = [ALL_DEPARTMENTS_ID, ...realIds];
+    } else if (
+      newVal.length === departmentOptions.value.length &&
+      departmentOptions.value.length > 0
+    ) {
+      formData.assignedDepts = [ALL_DEPARTMENTS_ID, ...newVal];
+    }
+  },
+  { deep: true }
+);
 // Load initial data
 onMounted(async () => {
   console.log("Component mounted");
   await Promise.all([fetchDepartments(), fetchBranches()]);
 
-  // Populate form if editing
   if (props.isEditing && props.doorData) {
     await populateForm();
   }

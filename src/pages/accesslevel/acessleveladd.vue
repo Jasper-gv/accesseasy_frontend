@@ -1,11 +1,24 @@
 <template>
   <v-card>
-    <v-card-title>
-      <span class="text-h5">Add Access Level</span>
+    <v-card-title class="d-flex align-center">
+      <span class="text-h5">{{ isEditing ? "Edit" : "Add" }} Access Level</span>
+      <v-spacer></v-spacer>
+      <!-- Access Type Toggle in Header -->
+      <div class="d-flex align-center">
+        <span class="mr-2">Access Type:</span>
+        <v-switch
+          v-model="accessType"
+          :label="accessType ? 'Active' : 'Inactive'"
+          color="primary"
+          hide-details
+          inset
+          density="compact"
+        ></v-switch>
+      </div>
     </v-card-title>
 
     <v-card-text>
-      <!-- Access Level Name Field (Always Visible) -->
+      <!-- Access Level Name Field  -->
       <v-row dense class="mb-4">
         <v-col cols="12" sm="6">
           <v-text-field
@@ -13,6 +26,8 @@
             placeholder="e.g. 'Staff Access'"
             variant="outlined"
             dense
+            v-model="accessLevelName"
+            :rules="[requiredRule]"
           ></v-text-field>
         </v-col>
       </v-row>
@@ -60,6 +75,10 @@
                               accessTiming || maxWorkHours || holidayAccess
                             "
                             hide-details
+                            color="primary"
+                            inset
+                            density="compact"
+                            @change="handle24HoursToggle"
                           ></v-switch>
                         </v-col>
                       </v-row>
@@ -75,6 +94,10 @@
                           <v-switch
                             v-model="accessTiming"
                             hide-details
+                            color="primary"
+                            inset
+                            density="compact"
+                            @change="handleAccessTimingToggle"
                           ></v-switch>
                         </v-col>
                       </v-row>
@@ -83,9 +106,12 @@
                       <v-select
                         label="Select Time Range"
                         :items="timeOptions"
+                        :loading="loadingTimeSchedules"
                         variant="outlined"
                         dense
+                        v-model="selectedTimeSchedule"
                         class="small-select"
+                        :rules="accessTiming ? [requiredRule] : []"
                       ></v-select>
                     </v-col>
                   </v-row>
@@ -100,6 +126,10 @@
                             v-model="maxWorkHours"
                             :disabled="accessTiming"
                             hide-details
+                            color="primary"
+                            inset
+                            density="compact"
+                            @change="handleMaxWorkHoursToggle"
                           ></v-switch>
                         </v-col>
                       </v-row>
@@ -110,7 +140,11 @@
                         placeholder="hh:mm"
                         variant="outlined"
                         dense
+                        v-model="maxWorkHoursValue"
                         class="small-field"
+                        :rules="
+                          maxWorkHours ? [requiredRule, timeFormatRule] : []
+                        "
                       ></v-text-field>
                     </v-col>
                   </v-row>
@@ -125,6 +159,10 @@
                             v-model="holidayAccess"
                             :disabled="accessTiming"
                             hide-details
+                            color="primary"
+                            inset
+                            density="compact"
+                            @change="handleHolidayAccessToggle"
                           ></v-switch>
                         </v-col>
                       </v-row>
@@ -144,11 +182,14 @@
                         v-model="selectedDoors"
                         label="Door List"
                         :items="filteredDoorOptions"
+                        item-title="doorName"
+                        item-value="id"
                         variant="outlined"
                         multiple
                         chips
                         dense
                         return-object
+                        :loading="loadingDoors"
                       >
                         <!-- Custom search input slot -->
                         <template v-slot:prepend-item>
@@ -170,7 +211,7 @@
                             small
                             class="ma-1"
                           >
-                            {{ item }}
+                            {{ item.title || item.doorName }}
                           </v-chip>
                           <span
                             v-if="index === 3"
@@ -195,7 +236,7 @@
       <BaseButton
         variant="ghost"
         text="Cancel"
-        @click="$emit('close')"
+        @click="$emit('cancel')"
       ></BaseButton>
       <BaseButton
         variant="primary"
@@ -208,10 +249,30 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { authService } from "@/services/authService";
+
+const props = defineProps({
+  tenantId: {
+    type: String,
+    required: true,
+  },
+  isEditing: {
+    type: Boolean,
+    default: false,
+  },
+  accessLevelData: {
+    type: Object,
+    default: null,
+  },
+});
+
+const emit = defineEmits(["cancel", "saved"]);
 
 const currentTab = ref("timing");
+const accessLevelName = ref("");
+const accessType = ref(true); // Default value is true
 const access24Hours = ref(false);
 const accessTiming = ref(false);
 const maxWorkHours = ref(false);
@@ -219,41 +280,369 @@ const holidayAccess = ref(false);
 const selectedDoors = ref([]);
 const doorSearch = ref("");
 const isSaving = ref(false);
+const loadingTimeSchedules = ref(false);
+const timeSchedules = ref([]);
+const selectedTimeSchedule = ref(null);
+const maxWorkHoursValue = ref("");
+const accessLevelNumber = ref("");
 
 // Door options
-const doorOptions = ref([
-  "Main Entrance",
-  "Back Door",
-  "Server Room",
-  "Office Area",
-  "Parking Gate",
-]);
+const doorOptions = ref([]);
+const loadingDoors = ref(false);
 
-// Time options
-const timeOptions = ref(["09:00 - 17:00", "08:00 - 16:00", "10:00 - 18:00"]);
+// Validation rules
+const requiredRule = (value) => !!value || "This field is required";
+const timeFormatRule = (value) => {
+  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  return timeRegex.test(value) || "Please use hh:mm format";
+};
+
+// Time options (will be populated from API)
+const timeOptions = computed(() => {
+  return timeSchedules.value.map((schedule) => ({
+    title: schedule.displayText,
+    value: schedule.id,
+    raw: schedule,
+  }));
+});
 
 // Filtered door options based on search
 const filteredDoorOptions = computed(() => {
   if (!doorSearch.value) return doorOptions.value;
   return doorOptions.value.filter((door) =>
-    door.toLowerCase().includes(doorSearch.value.toLowerCase())
+    door.doorName.toLowerCase().includes(doorSearch.value.toLowerCase())
   );
 });
 
-// Filter doors based on search input
-const filterDoors = () => {
-  // The computed property handles the filtering
+// Watch for accessTiming changes to fetch time schedules
+watch(accessTiming, (newVal) => {
+  if (newVal && timeSchedules.value.length === 0) {
+    fetchTimeSchedules();
+  }
+});
+
+onMounted(async () => {
+  await fetchDoors();
+
+  if (!props.isEditing) {
+    accessLevelNumber.value = await generateSequentialAccessLevelId();
+  }
+
+  if (props.isEditing && props.accessLevelData) {
+    setTimeout(() => {
+      initializeFormData();
+    }, 100);
+  }
+});
+
+const fetchDoors = async () => {
+  if (!props.tenantId) {
+    console.warn("No tenant ID available for loading doors");
+    return;
+  }
+
+  loadingDoors.value = true;
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/doors?fields[]=id&fields[]=doorNumber&fields[]=tenant&fields[]=tenant.tenantName&fields[]=doorName&fields[]=doorType&filter[_and][0][_and][0][tenant][tenantId][_eq]=${props.tenantId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to load doors: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    doorOptions.value = data.data.map((door) => ({
+      id: door.id,
+      doorName: door.doorName,
+      doorNumber: door.doorNumber,
+      doorType: door.doorType,
+      tenantName: door.tenant?.tenantName || "Unknown",
+    }));
+
+    console.log("Loaded doors:", doorOptions.value);
+  } catch (error) {
+    console.error("Error loading doors:", error);
+  } finally {
+    loadingDoors.value = false;
+  }
 };
 
-// Handle Save button click
-const handleSave = () => {
-  isSaving.value = true;
-  // Simulate async save operation
-  setTimeout(() => {
-    isSaving.value = false;
-    // Perform save logic here
-  }, 1500);
+const initializeFormData = () => {
+  const data = props.accessLevelData;
+  console.log("Editing access level data:", data);
+  console.log("Available doors:", doorOptions.value);
+
+  accessLevelName.value = data.accessLevelName || "";
+  accessType.value = data.accessType !== undefined ? data.accessType : true; // Set accessType from data or default to true
+  accessLevelNumber.value = data.accessLevelNumber || "";
+  // Initialize selected doors - handle both doors array and assignDoorsGroup
+  if (data.assignDoorsGroup && Array.isArray(data.assignDoorsGroup)) {
+    // If assignDoorsGroup exists, use it
+    selectedDoors.value = doorOptions.value.filter((door) =>
+      data.assignDoorsGroup.includes(door.id)
+    );
+  } else if (data.doors && Array.isArray(data.doors)) {
+    // Fallback to doors field if assignDoorsGroup doesn't exist
+    selectedDoors.value = doorOptions.value.filter((door) =>
+      data.doors.includes(door.id)
+    );
+  }
+
+  console.log("Selected doors after initialization:", selectedDoors.value);
+
+  // Initialize timing options based on available fields
+  if (data._24hrs) {
+    access24Hours.value = true;
+  } else if (data.timerZone) {
+    accessTiming.value = true;
+    selectedTimeSchedule.value = data.timerZone;
+
+    // Fetch time schedules if needed for timing tab
+    if (timeSchedules.value.length === 0) {
+      fetchTimeSchedules();
+    }
+  } else if (data.maxWorkHours) {
+    maxWorkHours.value = true;
+    maxWorkHoursValue.value = data.maxWorkHours;
+  } else if (data.holidays) {
+    holidayAccess.value = true;
+  }
+
+  console.log("Form initialized:", {
+    accessLevelName: accessLevelName.value,
+    accessType: accessType.value,
+    selectedDoors: selectedDoors.value,
+    access24Hours: access24Hours.value,
+    accessTiming: accessTiming.value,
+    maxWorkHours: maxWorkHours.value,
+    holidayAccess: holidayAccess.value,
+  });
 };
+
+// Toggle handlers to ensure only one option is active
+const handle24HoursToggle = (value) => {
+  if (value) {
+    accessTiming.value = false;
+    maxWorkHours.value = false;
+    holidayAccess.value = false;
+    selectedTimeSchedule.value = null;
+    maxWorkHoursValue.value = "";
+  }
+};
+
+const handleAccessTimingToggle = (value) => {
+  if (value) {
+    access24Hours.value = false;
+    maxWorkHours.value = false;
+    holidayAccess.value = false;
+    maxWorkHoursValue.value = "";
+  }
+};
+
+const handleMaxWorkHoursToggle = (value) => {
+  if (value) {
+    access24Hours.value = false;
+    accessTiming.value = false;
+    holidayAccess.value = false;
+    selectedTimeSchedule.value = null;
+  }
+};
+
+const handleHolidayAccessToggle = (value) => {
+  if (value) {
+    access24Hours.value = false;
+    accessTiming.value = false;
+    maxWorkHours.value = false;
+    selectedTimeSchedule.value = null;
+    maxWorkHoursValue.value = "";
+  }
+};
+
+// Fetch time schedules from API
+const fetchTimeSchedules = async () => {
+  if (!props.tenantId) {
+    console.warn("No tenant ID available for loading time schedules");
+    return;
+  }
+
+  loadingTimeSchedules.value = true;
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/time?filter[_and][0][_and][0][tenant][tenantId][_eq]=${props.tenantId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to load time schedules: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    timeSchedules.value = data.data.map((slot) => ({
+      id: slot.id,
+      displayText: `${slot.entryTime} - ${slot.exitTime}`,
+      entryTime: slot.entryTime,
+      exitTime: slot.exitTime,
+      tenantName: slot.tenant?.tenantName || "Unknown",
+    }));
+
+    console.log("Loaded time schedules:", timeSchedules.value);
+  } catch (error) {
+    console.error("Error loading time schedules:", error);
+  } finally {
+    loadingTimeSchedules.value = false;
+  }
+};
+
+const filterDoors = () => {
+  // This is handled by the computed property filteredDoorOptions
+};
+
+const handleSave = async () => {
+  if (!accessLevelName.value.trim()) {
+    alert("Please enter an access level name");
+    return;
+  }
+
+  // For new records, ensure we have a generated access level number
+  if (!props.isEditing && !accessLevelNumber.value) {
+    alert("Error: Could not generate access level number");
+    return;
+  }
+
+  // Validate timing options
+  if (accessTiming.value && !selectedTimeSchedule.value) {
+    alert("Please select a time schedule when 'Limit Access Time' is enabled");
+    return;
+  }
+
+  if (maxWorkHours.value && !maxWorkHoursValue.value) {
+    alert("Please enter max work hours when 'Max Work Hours' is enabled");
+    return;
+  }
+
+  isSaving.value = true;
+  try {
+    const payload = buildPayload();
+
+    console.log("Saving payload:", payload); // Debug log
+
+    const url = props.isEditing
+      ? `${import.meta.env.VITE_API_URL}/items/accesslevels/${props.accessLevelData.id}`
+      : `${import.meta.env.VITE_API_URL}/items/accesslevels`;
+
+    const method = props.isEditing ? "PATCH" : "POST";
+
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Failed to ${props.isEditing ? "update" : "create"} access level: ${response.statusText}. ${errorText}`
+      );
+    }
+
+    const result = await response.json();
+    console.log(
+      `${props.isEditing ? "Updated" : "Created"} access level:`,
+      result
+    );
+
+    emit("saved", result.data);
+  } catch (error) {
+    console.error("Error saving access level:", error);
+    alert(`Failed to save access level: ${error.message}`);
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+async function generateSequentialAccessLevelId() {
+  try {
+    const tenantId = props.tenantId;
+    const url =
+      `${import.meta.env.VITE_API_URL}/items/accesslevels` +
+      `?filter[tenant][tenantId][_eq]=${tenantId}` +
+      `&sort[]=-accessLevelNumber&limit=1`;
+
+    const resp = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!resp.ok) throw new Error(resp.statusText);
+
+    const { data } = await resp.json();
+
+    if (!data?.length) return "1";
+
+    const last = parseInt(data[0].accessLevelNumber, 10);
+    return (isNaN(last) ? 1 : last + 1).toString();
+  } catch (e) {
+    console.error("Error generating access level ID:", e);
+    return "1";
+  }
+}
+const buildPayload = () => {
+  const payload = {
+    accessLevelName: accessLevelName.value.trim(),
+    accessType: accessType.value,
+    tenant: props.tenantId,
+  };
+
+  // Include accessLevelNumber for NEW records only
+  if (!props.isEditing) {
+    payload.accessLevelNumber = accessLevelNumber.value;
+  }
+
+  // Doors
+  if (selectedDoors.value.length) {
+    payload.assignDoorsGroup = selectedDoors.value.map((d) => d.id);
+  }
+
+  // Timing (only one active)
+  if (access24Hours.value) {
+    payload._24hrs = true;
+  } else if (accessTiming.value && selectedTimeSchedule.value) {
+    payload.timerZone = selectedTimeSchedule.value;
+  } else if (maxWorkHours.value && maxWorkHoursValue.value) {
+    payload.maxWorkHours = maxWorkHoursValue.value;
+  } else if (holidayAccess.value) {
+    payload.holidays = true;
+  }
+
+  return payload;
+};
+
+watch(
+  () => props.isEditing,
+  async (isEdit) => {
+    if (!isEdit) {
+      accessLevelNumber.value = await generateSequentialAccessLevelId();
+    }
+  },
+  { immediate: true } // run on mount
+);
 </script>
 
 <style scoped>

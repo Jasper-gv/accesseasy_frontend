@@ -182,14 +182,14 @@ const tabs = [
     roles: ["Admin", "Manager", "accessManager", "Dealers"],
   },
 
-  // {
-  //   id: "access",
-  //   title: "Access Management",
-  //   icon: "mdi-key",
-  //   path: "accessmodule",
-  //   component: AccessManagement,
-  //   roles: ["Admin", "Dealer", "Manager",'accessManager'],
-  // },
+  {
+    id: "access",
+    title: "Access Management",
+    icon: "mdi-key",
+    path: "accessmodule",
+    component: AccessManagement,
+    roles: ["Admin", "Dealer", "Manager", "accessManager"],
+  },
   {
     id: "experience",
     title: "Past Experience",
@@ -228,7 +228,7 @@ const tabs = [
 // Filter tabs based on user role
 const filteredTabs = computed(() => {
   const filtered = tabs.filter((tab) =>
-    tab.roles.includes(userRole.value || "Employee"),
+    tab.roles.includes(userRole.value || "Employee")
   );
   return filtered;
 });
@@ -349,7 +349,7 @@ const fetchUserProfile = async () => {
             _and: [{ assignedUser: { phone: { _contains: formattedPhone } } }],
           },
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -383,7 +383,7 @@ const validateAndRedirectIfNeeded = () => {
 
   const currentModuleValue = currentModule.value;
   const isValidModule = filteredTabs.value.some(
-    (tab) => tab.path === currentModuleValue,
+    (tab) => tab.path === currentModuleValue
   );
 
   if (
@@ -439,7 +439,7 @@ watch(
     if (isInitialized.value) {
       validateAndRedirectIfNeeded();
     }
-  },
+  }
 );
 
 // Watch for role changes
@@ -449,7 +449,7 @@ watch(
     if (isInitialized.value) {
       validateAndRedirectIfNeeded();
     }
-  },
+  }
 );
 </script>
 

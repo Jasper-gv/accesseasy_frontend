@@ -62,6 +62,8 @@ import AccessLevelComponent from "@/pages/accesslevel/accessleveldetails.vue";
 import DoorDetailsComponent from "@/pages/door/doordetails.vue";
 import DeviceDetailsComponent from "@/pages/device/devicedetails.vue";
 import TimerZoneComponent from "@/pages/accesslevel/timerzone.vue";
+import AntipassbackModeComponent from "@/pages/globalConfigurator/antipassbackMode.vue";
+import InterlockModeComponent from "@/pages/globalConfigurator/interlockMode.vue";
 
 // --- Reactive state ---
 const activeTab = ref("doors"); // default active tab
@@ -120,6 +122,14 @@ const configurators = [
     ],
   },
   {
+    id: "access-control",
+    label: "Global Configurator",
+    subsections: [
+      { id: "antipassback-mode", label: "Antipassback Mode" },
+      { id: "interlock-mode", label: "Interlock Mode" },
+    ],
+  },
+  {
     id: "device",
     label: "Device Configurator",
     subsections: [{ id: "devices", label: "Devices" }],
@@ -146,6 +156,8 @@ const componentMap = {
   "timer-zone": TimerZoneComponent,
   doors: DoorDetailsComponent,
   devices: DeviceDetailsComponent,
+  "antipassback-mode": AntipassbackModeComponent,
+  "interlock-mode": InterlockModeComponent,
 };
 
 // --- Tab switch method ---

@@ -1380,7 +1380,7 @@
                   density="comfortable"
                   @input="
                     capitalizeFirstLetterEachWord(
-                      'emergencyContactRelationship',
+                      'emergencyContactRelationship'
                     )
                   "
                 ></v-text-field>
@@ -1544,7 +1544,7 @@ const validatePhone = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1600,7 +1600,7 @@ const validateEmail = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1725,12 +1725,12 @@ const tabs = [
   //   icon: "mdi-cash",
   //   roles: ["Admin", "Dealer"],
   // },
-  // {
-  //   id: "access",
-  //   title: "Access Management",
-  //   icon: "mdi-key",
-  //   roles: ["Admin", "Dealer", "Manager"],
-  // },
+  {
+    id: "access",
+    title: "Access Management",
+    icon: "mdi-key",
+    roles: ["Admin", "Dealer", "Manager"],
+  },
   {
     id: "previousRecord",
     title: "Past Experience",
@@ -1881,7 +1881,7 @@ const handleLeaveToggle = (leave) => {
 const updateLeaveBalance = (leave) => {
   if (leave.isAssigned && leave.leaveConfig?.days !== undefined) {
     console.log(
-      `Updating ${leave.leaveName} balance to ${leave.leaveConfig.days} days`,
+      `Updating ${leave.leaveName} balance to ${leave.leaveConfig.days} days`
     );
     leave.leaveBalance = leave.leaveConfig.days;
     leave.isEditing = false;
@@ -1940,7 +1940,7 @@ const tabHasError = (tabId) => {
   return tabRequiredFields[tabId].some(
     (field) =>
       touchedFields.value[field] &&
-      (!formData[field] || formErrors.value[field]),
+      (!formData[field] || formErrors.value[field])
   );
 };
 
@@ -1949,7 +1949,7 @@ const tabHasErrorComputed = computed(() => (tabId) => {
   return tabRequiredFields[tabId].some(
     (field) =>
       touchedFields.value[field] &&
-      (!formData[field] || formErrors.value[field]),
+      (!formData[field] || formErrors.value[field])
   );
 });
 
@@ -1989,7 +1989,7 @@ async function fetchDepartments(orgId = null) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     departmentOptions.value = data.data.map((dept) => ({
@@ -2011,7 +2011,7 @@ async function fetchOrganizations() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -2045,7 +2045,7 @@ async function fetchLocations(orgId = null) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     locationOptions.value = data.data.map((loc) => ({
@@ -2069,7 +2069,7 @@ async function fetchAccessLevels() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     accessLevelOptions.value = data.data.map((level) => ({
@@ -2093,7 +2093,7 @@ async function fetchCycleTypes() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -2156,7 +2156,7 @@ async function fetchSalarySettings() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) throw new Error("Failed to fetch salary settings");
@@ -2182,7 +2182,7 @@ const onSalarySettingChange = async (value) => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) throw new Error("Failed to fetch salary setting details");
@@ -2387,21 +2387,21 @@ const calculateMonthlyCTC = () => {
       basicPayValue.value +
         (hraEntry ? hraEntry.amount : 0) +
         (daEntry ? daEntry.amount : 0) +
-        fixedEarningsTotal,
+        fixedEarningsTotal
     );
 
     // Find Employer Contributions
     const employerPF = employerContributions.value.find(
-      (item) => item.name === "EmployerPF",
+      (item) => item.name === "EmployerPF"
     );
     const employerESI = employerContributions.value.find(
-      (item) => item.name === "EmployerESI",
+      (item) => item.name === "EmployerESI"
     );
 
     if (employerPF) {
       pfCalculation = employerPF.calculations.reduce((sum, calc) => {
         const earningName = earnings.value.find(
-          (earn) => earn.name === calc.name,
+          (earn) => earn.name === calc.name
         );
         const earningAmount = earningName ? earningAmount : 0;
         return sum + earningAmount;
@@ -2410,7 +2410,7 @@ const calculateMonthlyCTC = () => {
     if (employerESI) {
       esiCalculation = employerESI.calculations.reduce((sum, calc) => {
         const earningName = earnings.value.find(
-          (earn) => earn.name === calc.name,
+          (earn) => earn.name === calc.name
         );
         const earningAmount = earningName ? earningAmount : 0;
         return sum + earningAmount;
@@ -2440,7 +2440,7 @@ const calculateMonthlyCTC = () => {
 
     const epfAdmin = Math.min(
       Math.round(adminCharges.value?.enable ? 0.01 * pfBaseAmount : 0),
-      150,
+      150
     );
 
     const employerContributionsTotal =
@@ -2459,7 +2459,7 @@ const calculateMonthlyCTC = () => {
         1 +
           (monthlyCTC.value <= ESI_THRESHOLD ? EMPLOYER_ESI_RATE : 0) +
           EMPLOYER_PF_RATE +
-          (adminCharges.value?.enable ? EPF_ADMIN_RATE : 0),
+          (adminCharges.value?.enable ? EPF_ADMIN_RATE : 0)
       );
       const daImpact = hraImpact;
       const basicImpact = hraImpact;
@@ -2478,7 +2478,7 @@ const calculateMonthlyCTC = () => {
       if (daEntry && daEntry.amount > 0 && remainingExcess > 0) {
         const daReduction = Math.min(
           daEntry.amount,
-          remainingExcess / daImpact,
+          remainingExcess / daImpact
         );
 
         daEntry.amount -= daReduction;
@@ -2488,7 +2488,7 @@ const calculateMonthlyCTC = () => {
       if (basicPayValue.value > 0 && remainingExcess > 0) {
         const basicReduction = Math.min(
           basicPayValue.value,
-          Math.round(remainingExcess / basicImpact),
+          Math.round(remainingExcess / basicImpact)
         );
 
         basicPayValue.value -= basicReduction;
@@ -2506,7 +2506,7 @@ const calculateMonthlyCTC = () => {
 
         const basicIncrease = Math.min(
           Math.round(shortage / basicImpact),
-          basicSalaryTarget - basicPayValue.value,
+          basicSalaryTarget - basicPayValue.value
         );
 
         basicPayValue.value += basicIncrease;
@@ -2525,7 +2525,7 @@ const calculateMonthlyCTC = () => {
 
           daIncrease = Math.min(
             Math.round(remainingShortageToCover / basicImpact),
-            daTarget - daEntry.amount,
+            daTarget - daEntry.amount
           );
 
           if (daIncrease > 0) {
@@ -2544,7 +2544,7 @@ const calculateMonthlyCTC = () => {
           if (hraEntry && hraEntry.amount < hraTarget) {
             hraIncrease = Math.min(
               Math.round(remainingShortageToCover / basicImpact),
-              hraTarget - hraEntry.amount,
+              hraTarget - hraEntry.amount
             );
 
             if (hraIncrease > 0) {
@@ -2592,7 +2592,7 @@ const calculateMonthlyCTC = () => {
     let filteredData = lwf.value.PT;
     if (hasGender) {
       filteredData = lwf.value.PT.filter(
-        (entry) => entry.gender === formData.gender,
+        (entry) => entry.gender === formData.gender
       );
     }
     const taxEntry = filteredData.find((entry) => {
@@ -2621,7 +2621,7 @@ const calculateMonthlyCTC = () => {
     }
     const totalAmount = calculations.reduce((sum, calc) => {
       const earningName = earnings.value.find(
-        (earn) => earn.name === calc.name,
+        (earn) => earn.name === calc.name
       );
       const earningAmount = earningName ? earningAmount : 0;
       return sum + earningAmount;
@@ -2632,7 +2632,7 @@ const calculateMonthlyCTC = () => {
       if (Number(item.amount) === 1800) {
         finalValue = Math.min(
           (totalAmount + basicPayValue.value) * (12 / 100),
-          1800,
+          1800
         );
       } else {
         finalValue = (totalAmount + basicPayValue.value) * (item.amount / 100);
@@ -2651,7 +2651,7 @@ const calculateMonthlyCTC = () => {
   if (adminCharges.value?.enable === true) {
     adminAmount.value = Math.min(
       Math.round((pfCalculation + basicPayValue.value) * 0.01),
-      150,
+      150
     );
   } else {
     adminAmount.value = 0;
@@ -2665,7 +2665,7 @@ const calculateMonthlyCTC = () => {
     }
     const totalAmount = calculations.reduce((sum, calc) => {
       const earningName = earnings.value.find(
-        (earn) => earn.name === calc.name,
+        (earn) => earn.name === calc.name
       );
       const earningAmount = earningName ? earningAmount : 0;
       return sum + earningAmount;
@@ -2673,12 +2673,12 @@ const calculateMonthlyCTC = () => {
     let finalValue;
     if (Number(item.amount) === 1800) {
       const percentageOption = item.options?.find(
-        (opt) => opt.label === "percentage",
+        (opt) => opt.label === "percentage"
       );
       if (percentageOption) {
         finalValue = Math.min(
           (totalAmount + basicPayValue.value) * (percentageOption.value / 100),
-          1800,
+          1800
         );
       } else {
         finalValue = Math.min((totalAmount + basicPayValue.value) * 0.12, 1800);
@@ -2698,18 +2698,18 @@ const calculateMonthlyCTC = () => {
   totalEmployer.value =
     employerContributions.value.reduce(
       (sum, item) => sum + (Number(item.rupee) || 0),
-      0,
+      0
     ) + adminAmount.value;
 
   totalEmployee.value =
     employeeContributions.value.reduce(
       (sum, item) => sum + (Number(item.rupee) || 0),
-      0,
+      0
     ) + professionalTaxAmount.value;
 
   totalDeductions.value = deductions.value.reduce(
     (sum, item) => sum + (Number(item.amount) || 0),
-    0,
+    0
   );
 
   netSalary.value =
@@ -2759,7 +2759,7 @@ async function fetchRoles() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     roleOptions.value = data.data.map((role) => ({
@@ -2780,7 +2780,7 @@ async function fetchAttendanceCategories() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     attendanceCategoryOptions.value = data.data.map((config) => ({
@@ -2819,11 +2819,11 @@ async function filterReportingManagers() {
       // Add branch filter only if a specific branch is selected (not "all")
       if (selectedBranchFilter.value && selectedBranchFilter.value !== "all") {
         const selectedBranch = branchOptions.value.find(
-          (branch) => branch.id === selectedBranchFilter.value,
+          (branch) => branch.id === selectedBranchFilter.value
         );
         if (selectedBranch) {
           filters.push(
-            `filter[_and][0][branch][branchName][_icontains]=${encodeURIComponent(selectedBranch.name)}`,
+            `filter[_and][0][branch][branchName][_icontains]=${encodeURIComponent(selectedBranch.name)}`
           );
         }
       }
@@ -2834,11 +2834,11 @@ async function filterReportingManagers() {
         selectedDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedDepartmentFilter.value,
+          (dept) => dept.id === selectedDepartmentFilter.value
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][1][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`,
+            `filter[_and][1][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`
           );
         }
       }
@@ -2846,7 +2846,7 @@ async function filterReportingManagers() {
       // Add search filter if text entered
       if (searchReportingManager.value) {
         filters.push(
-          `filter[_and][2][assignedUser][first_name][_icontains]=${encodeURIComponent(searchReportingManager.value)}`,
+          `filter[_and][2][assignedUser][first_name][_icontains]=${encodeURIComponent(searchReportingManager.value)}`
         );
       }
 
@@ -2887,7 +2887,7 @@ async function filterReportingManagers() {
 
       if (!response.ok) {
         throw new Error(
-          `Failed to fetch reporting managers: ${response.statusText}`,
+          `Failed to fetch reporting managers: ${response.statusText}`
         );
       }
 
@@ -2945,11 +2945,11 @@ async function filterManagesEmployee() {
         selectedManagesEmployeeBranchFilter.value !== "all"
       ) {
         const selectedEmployeesBranch = branchOptions.value.find(
-          (branch) => branch.id === selectedManagesEmployeeBranchFilter.value,
+          (branch) => branch.id === selectedManagesEmployeeBranchFilter.value
         );
         if (selectedEmployeesBranch) {
           filters.push(
-            `filter[_and][0][branch][branchName][_icontains]=${selectedEmployeesBranch.name}`,
+            `filter[_and][0][branch][branchName][_icontains]=${selectedEmployeesBranch.name}`
           );
         }
       }
@@ -2959,18 +2959,18 @@ async function filterManagesEmployee() {
         selectedManagesEmployeeDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value,
+          (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][1][department][departmentName][_icontains]=${selectedDept.name}`,
+            `filter[_and][1][department][departmentName][_icontains]=${selectedDept.name}`
           );
         }
       }
 
       if (searchManagesEmployee.value) {
         filters.push(
-          `filter[_and][2][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`,
+          `filter[_and][2][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`
         );
       }
 
@@ -3057,7 +3057,7 @@ async function filterApprovers() {
         selectedApproverDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedApproverDepartmentFilter.value,
+          (dept) => dept.id === selectedApproverDepartmentFilter.value
         );
         if (selectedDept) {
           const deptFilter = `filter[_and][0][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`;
@@ -3324,7 +3324,7 @@ async function fetchLeavePolicies() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -3358,16 +3358,16 @@ async function createNewEmployee() {
     const resolvedTenantId = await resolveTenantId();
     const cycleTypeToSave = formData.cycleType || 1;
     const selectedDepartment = departmentOptions.value.find(
-      (dept) => dept.id === formData.department,
+      (dept) => dept.id === formData.department
     );
     const selectedBranchLocation = locationOptions.value.find(
-      (loc) => loc.id === formData.branchLocation,
+      (loc) => loc.id === formData.branchLocation
     );
     const selectedRole = roleOptions.value.find(
-      (role) => role.name === formData.role,
+      (role) => role.name === formData.role
     ) || { id: "f667b169-c66c-4ec1-bef9-1831c1647c0d" };
     const selectedAccessLevel = accessLevelOptions.value.find(
-      (level) => level.name === formData.accessLevel,
+      (level) => level.name === formData.accessLevel
     );
     const accessLevelNumber = selectedAccessLevel?.accessLevelNumber || 0;
     const assignedCardsFromComponent =
@@ -3429,7 +3429,7 @@ async function createNewEmployee() {
       managesEmployees: Array.isArray(formData.managesEmployees)
         ? formData.managesEmployees
             .map((employee) =>
-              typeof employee === "object" ? employee.id : employee,
+              typeof employee === "object" ? employee.id : employee
             )
             .filter((id) => id)
         : [],
@@ -3525,13 +3525,13 @@ async function createNewEmployee() {
           Authorization: `Bearer ${authService.getToken()}`,
         },
         body: JSON.stringify(payload),
-      },
+      }
     );
     console.log(payload);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
-        errorData.errors?.[0]?.message || "Failed to save employee data",
+        errorData.errors?.[0]?.message || "Failed to save employee data"
       );
     }
     const responseData = await response.json();
@@ -3546,7 +3546,7 @@ async function createNewEmployee() {
               headers: {
                 Authorization: `Bearer ${authService.getToken()}`,
               },
-            },
+            }
           );
           if (!personalModuleResponse.ok) {
             throw new Error("Failed to fetch personal module data");
@@ -3565,7 +3565,7 @@ async function createNewEmployee() {
                 Authorization: `Bearer ${authService.getToken()}`,
               },
               body: JSON.stringify({ avatar: avatarId }),
-            },
+            }
           );
           if (!avatarUpdateResponse.ok) {
             throw new Error("Failed to update user with avatar ID");
@@ -3574,7 +3574,7 @@ async function createNewEmployee() {
       } catch (error) {
         console.error("Error handling avatar upload:", error);
         showErrorMessage(
-          `Avatar upload completed, but couldn't update profile picture: ${error.message}`,
+          `Avatar upload completed, but couldn't update profile picture: ${error.message}`
         );
       }
     }
@@ -3591,7 +3591,7 @@ async function createNewEmployee() {
           cardAccessLevelHex: convertToCardAccessHex(
             card.rfidCard,
             card.enabled,
-            accessLevelNumber,
+            accessLevelNumber
           ),
           employeeId: createdEmployeeId,
         };
@@ -3604,7 +3604,7 @@ async function createNewEmployee() {
               Authorization: `Bearer ${authService.getToken()}`,
             },
             body: JSON.stringify(cardPayload),
-          },
+          }
         );
         if (!cardResponse.ok) {
           console.error("Failed to create card:", await cardResponse.json());
@@ -3635,7 +3635,7 @@ async function createNewEmployee() {
           totalEarnings: totalEarnings.value,
           uniqueId: `${resolvedTenantId}-${formData.employeeId}`,
         }),
-      },
+      }
     );
     if (annualCTC.value) {
       if (totalAmount.value > monthlyCTC.value) {
@@ -3646,7 +3646,7 @@ async function createNewEmployee() {
     if (!salaryBreakdownResponse.ok) {
       const errorData = await salaryBreakdownResponse.json();
       throw new Error(
-        errorData.errors?.[0]?.message || "Failed to create salary breakdown",
+        errorData.errors?.[0]?.message || "Failed to create salary breakdown"
       );
     }
     showSuccessMessage("Employee added successfully!");
@@ -3656,7 +3656,7 @@ async function createNewEmployee() {
   } catch (error) {
     console.error("Error saving employee data:", error);
     showErrorMessage(
-      `An error occurred while saving the employee data: ${error.message}`,
+      `An error occurred while saving the employee data: ${error.message}`
     );
   }
 }
@@ -3730,7 +3730,7 @@ async function getProfileFolderId(tenantId) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -3741,7 +3741,7 @@ async function getProfileFolderId(tenantId) {
     if (data.data && data.data.length > 0 && data.data[0].foldersId) {
       // Find the Profiles folder
       const profilesFolder = data.data[0].foldersId.find(
-        (folder) => folder.name === "Profiles",
+        (folder) => folder.name === "Profiles"
       );
 
       if (profilesFolder) {
@@ -3792,7 +3792,7 @@ watch(
       departmentOptions.value = [];
       locationOptions.value = [];
     }
-  },
+  }
 );
 watch(
   () => formData.accessOn,
@@ -3803,7 +3803,7 @@ watch(
       formData.status = "true";
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -3815,7 +3815,7 @@ watch(
       }
     });
   },
-  { deep: true },
+  { deep: true }
 );
 watch(
   () => formData.role,
@@ -3824,7 +3824,7 @@ watch(
       formData.approver = null; // Reset approver when role changes
       filterApprovers(); // Refresh the approver list
     }
-  },
+  }
 );
 watch(currentTab, (newTab, oldTab) => {
   if (oldTab && tabRequiredFields[oldTab]) {

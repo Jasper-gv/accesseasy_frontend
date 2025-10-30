@@ -22,7 +22,7 @@
             variant="primary"
             size="md"
             text="Add New Door"
-            :leftIcon="PlusIcon"
+            :leftIcon="Plus"
             @click="openAddDoorPanel"
           />
         </template>
@@ -32,7 +32,7 @@
           v-if="loading"
           variant="data-table"
           :rows="5"
-          :columns="5"
+          :columns="6"
         />
 
         <!-- Table Section -->
@@ -70,6 +70,7 @@ import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import AddDoorDetails from "@/pages/door/adddoordetails.vue";
+import { Plus, Trash } from "lucide-vue-next";
 
 const loading = ref(true);
 const showAddDoorPanel = ref(false);
@@ -79,14 +80,71 @@ const doors = ref([]);
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
 
-// Updated headers to include actions
 const headers = ref([
   { label: "Door Number", key: "doorNumber", sortable: true, width: "150px" },
   { label: "Door Name", key: "doorName", sortable: true, width: "150px" },
   { label: "Door Type", key: "doorType", sortable: true, width: "150px" },
   { label: "Branch", key: "branch", sortable: true, width: "150px" },
-  { label: "Departments", key: "departments", sortable: false, width: "150px" },
+  { label: "Location", key: "location", sortable: true, width: "150px" },
+  { label: "Departments", key: "departments", sortable: false, width: "200px" },
 ]);
+
+const departmentMap = ref(new Map());
+
+const fetchDepartments = async () => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/department?filter[tenant][tenantId][_eq]=${tenantId}&fields[]=id&fields[]=departmentName`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch departments");
+    }
+
+    const data = await response.json();
+
+    departmentMap.value = new Map(
+      data.data.map((dept) => [dept.id, dept.departmentName])
+    );
+
+    console.log("Department map created:", departmentMap.value);
+    return departmentMap.value;
+  } catch (error) {
+    console.error("Error fetching departments:", error);
+    return new Map();
+  }
+};
+
+const getDepartmentNamesFromIds = (departmentIds) => {
+  if (!departmentIds) return [];
+
+  try {
+    let idsArray = [];
+
+    if (typeof departmentIds === "string") {
+      idsArray = JSON.parse(departmentIds);
+    } else if (Array.isArray(departmentIds)) {
+      idsArray = departmentIds;
+    } else if (typeof departmentIds === "number") {
+      idsArray = [departmentIds];
+    }
+
+    const departmentNames = idsArray
+      .map((id) => departmentMap.value.get(id) || `Unknown (ID: ${id})`)
+      .filter((name) => name);
+
+    return departmentNames;
+  } catch (error) {
+    console.error("Error parsing departmentIds:", error, departmentIds);
+    return [];
+  }
+};
 
 const fetchDoors = async () => {
   try {
@@ -97,6 +155,8 @@ const fetchDoors = async () => {
       throw new Error("Authentication required or tenant not found");
     }
 
+    await fetchDepartments();
+
     const fields = [
       "id",
       "doorNumber",
@@ -105,11 +165,14 @@ const fetchDoors = async () => {
       "doorType",
       "assignedDepts.departmentName",
       "assignedDepts.departmentId",
+      "assignedDepts.id",
+      "departmentIds",
       "tenant.tenantId",
       "tenant.tenantName",
       "branchLocation.id",
       "branchLocation.locdetail",
       "status",
+      "location",
     ];
 
     const url = new URL(`${import.meta.env.VITE_API_URL}/items/doors`);
@@ -133,20 +196,44 @@ const fetchDoors = async () => {
     const data = await response.json();
 
     doors.value = (data.data || []).map((door) => {
+      console.log("Processing door:", door);
+      console.log("Department IDs:", door.departmentIds);
+
       let departmentsText = "Not assigned";
+      let departmentArray = [];
 
-      if (door.assignedDepts && Array.isArray(door.assignedDepts)) {
-        const departmentNames = door.assignedDepts
-          .filter((dept) => dept.departmentName)
-          .map((dept) => dept.departmentName);
-
-        departmentsText =
-          departmentNames.length > 0
-            ? departmentNames.join(", ")
-            : "Not assigned";
-      } else if (door.assignedDepts && door.assignedDepts.departmentName) {
-        departmentsText = door.assignedDepts.departmentName;
+      // PRIORITY 1: Use departmentIds JSON field (NEW LOGIC)
+      if (door.departmentIds) {
+        departmentArray = getDepartmentNamesFromIds(door.departmentIds);
+        console.log("Department names from departmentIds:", departmentArray);
       }
+
+      // PRIORITY 2: Fallback to assignedDepts (old logic for backward compatibility)
+      if (departmentArray.length === 0 && door.assignedDepts) {
+        if (Array.isArray(door.assignedDepts)) {
+          // Normal case: array of objects
+          departmentArray = door.assignedDepts
+            .filter((dept) => dept && (dept.departmentName || dept.id))
+            .map(
+              (dept) =>
+                dept.departmentName ||
+                departmentMap.value.get(dept.id) ||
+                "Unknown"
+            );
+        } else if (typeof door.assignedDepts === "number") {
+          // Handle malformed case: single ID
+          const deptName = departmentMap.value.get(door.assignedDepts);
+          departmentArray = deptName ? [deptName] : ["Unknown"];
+        } else if (door.assignedDepts.departmentName) {
+          // Handle malformed object case
+          departmentArray = [door.assignedDepts.departmentName];
+        }
+      }
+
+      departmentsText =
+        departmentArray.length > 0
+          ? departmentArray.join(", ")
+          : "Not assigned";
 
       return {
         id: door.id,
@@ -155,11 +242,19 @@ const fetchDoors = async () => {
         doorType: door.doorType,
         status: door.status || "active",
         branch: door.branchLocation?.locdetail?.locationName || "N/A",
+        location: door.location || "N/A", // Add location here
         departments: departmentsText,
         originalData: {
           ...door,
           branchLocation: door.branchLocation,
-          assignedDepts: door.assignedDepts || [],
+          departmentIds: door.departmentIds,
+          assignedDepts: Array.isArray(door.assignedDepts)
+            ? door.assignedDepts
+            : typeof door.assignedDepts === "number"
+              ? [{ id: door.assignedDepts }]
+              : door.assignedDepts
+                ? [door.assignedDepts]
+                : [],
         },
       };
     });
@@ -195,7 +290,36 @@ const closeAddDoorPanel = () => {
 
 const handleEditDoor = (door) => {
   isEditing.value = true;
-  // Make sure we're passing the complete door data with all necessary fields
+
+  // Prepare department data for editing
+  let departmentIds = [];
+
+  if (door.originalData?.departmentIds) {
+    try {
+      // Parse departmentIds for editing
+      if (typeof door.originalData.departmentIds === "string") {
+        departmentIds = JSON.parse(door.originalData.departmentIds);
+      } else if (Array.isArray(door.originalData.departmentIds)) {
+        departmentIds = [...door.originalData.departmentIds];
+      }
+    } catch (error) {
+      console.error("Error parsing departmentIds for editing:", error);
+    }
+  }
+
+  // Fallback to assignedDepts if departmentIds is empty
+  if (departmentIds.length === 0 && door.originalData?.assignedDepts) {
+    departmentIds = Array.isArray(door.originalData.assignedDepts)
+      ? door.originalData.assignedDepts.map(
+          (dept) => dept.departmentId || dept.id || dept
+        )
+      : typeof door.originalData.assignedDepts === "number"
+        ? [door.originalData.assignedDepts]
+        : door.originalData.assignedDepts
+          ? [door.originalData.assignedDepts]
+          : [];
+  }
+
   currentDoorData.value = {
     ...door.originalData,
     id: door.id,
@@ -204,11 +328,12 @@ const handleEditDoor = (door) => {
     doorType: door.doorType,
     status: door.status,
     branchLocation: door.originalData?.branchLocation,
-    assignedDepts: door.originalData?.assignedDepts || [],
+    location: door.location, // Include location in edit data
+    assignedDepts: departmentIds, // This will be used in the multi-select
   };
-  showAddDoorPanel.value = true;
 
-  // Optional: Show a toast message
+  console.log("Editing door with data:", currentDoorData.value);
+  showAddDoorPanel.value = true;
   showToast(`Editing door: ${door.doorName}`, "info");
 };
 
@@ -222,8 +347,6 @@ const handleSaveSuccess = () => {
 // Toast function
 const showToast = (message, type = "success") => {
   console.log(`${type.toUpperCase()}: ${message}`);
-  // Replace with your actual toast implementation
-  // Example: this.$toast[type](message);
 };
 
 // Fetch doors when component mounts

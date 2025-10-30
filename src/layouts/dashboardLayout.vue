@@ -490,7 +490,7 @@ export default {
           }
           if (item.subItems && item.subItems.length > 0) {
             const filteredSubItems = item.subItems.filter((subItem) =>
-              subItem.roles.includes(role),
+              subItem.roles.includes(role)
             );
             return {
               ...item,
@@ -797,7 +797,7 @@ export default {
 
           if (userData.avatar?.id) {
             await fetchAuthorizedImage(
-              `${import.meta.env.VITE_API_URL}/assets/${userData.avatar.id}`, // Fixed template literal
+              `${import.meta.env.VITE_API_URL}/assets/${userData.avatar.id}` // Fixed template literal
             );
           }
         } else {
@@ -879,7 +879,7 @@ export default {
         }
         closeRailSubmenu();
       },
-      { immediate: true },
+      { immediate: true }
     );
 
     return {
