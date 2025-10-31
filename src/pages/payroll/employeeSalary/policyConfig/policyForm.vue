@@ -184,7 +184,7 @@ const router = useRouter();
 
 const attendancePolicies = ref([]);
 const loadingPolicies = ref(true);
-
+const assignedUserId = ref(null);
 const internalSelectedPolicyId = ref(null);
 const internalWorkingHoursData = ref([]);
 const internalHolidayIds = ref([]);
@@ -355,6 +355,7 @@ async function fetchEmployeeAttendanceData() {
       "cycleType",
       "assignedUser.PFAccountNumber",
       "assignedUser.ESIAccountNumber",
+      "assignedUser.id",
     ];
     const queryString = `fields[]=${fields.join("&fields[]=")}&filter[id][_eq]=${props.id}`;
     const finalUrl = `${import.meta.env.VITE_API_URL}/items/personalModule?${queryString}`;
@@ -373,6 +374,7 @@ async function fetchEmployeeAttendanceData() {
     const data = await response.json();
     if (data.data && data.data.length > 0) {
       const employee = data.data[0];
+      assignedUserId.value = employee.assignedUser.id;
       originalData.value = JSON.parse(JSON.stringify(employee));
 
       internalSelectedPolicyId.value = employee.config?.id || null;
@@ -411,25 +413,15 @@ const saveChanges = async () => {
   try {
     const token = authService.getToken();
 
-    const transformedAttendanceSettings = {
-      id: props.employeeData.attendanceSettings?.id,
-    };
-    internalWorkingHoursData.value.forEach((day) => {
-      const isWorkingKey = `is${day.name}`;
-      const shiftsKey = `${day.key}J`;
-
-      transformedAttendanceSettings[isWorkingKey] = !day.isWorking;
-      transformedAttendanceSettings[shiftsKey] = {
-        shifts: day.shifts.map((s) => s.id.toString()),
-      };
-    });
-
     const payload = {
       config: internalSelectedPolicyId.value,
-      holidaySettingsJ: {
-        holidays: internalHolidayIds.value.map(String),
+      cycleType: selectedCycleType.value || null,
+      assignedUser: {
+        id: assignedUserId.value,
+        PFAccountNumber: formData.value.assignedUser.PFAccountNumber || "",
+        ESIAccountNumber: formData.value.assignedUser.ESIAccountNumber || "",
       },
-      attendanceSettings: transformedAttendanceSettings,
+      // attendanceSettings: transformedAttendanceSettings,
     };
 
     const response = await fetch(
@@ -455,13 +447,6 @@ const saveChanges = async () => {
       JSON.stringify(internalWorkingHoursData.value),
     );
     initialHolidayIds.value = [...internalHolidayIds.value];
-
-    emit("update:employeeData", {
-      ...props.employeeData,
-      config: { id: internalSelectedPolicyId.value },
-      holidaySettingsJ: { holidays: internalHolidayIds.value.map(String) },
-      attendanceSettings: transformedAttendanceSettings,
-    });
   } catch (error) {
     console.error("Error updating attendance settings:", error);
     showErrorMessage(`Error updating settings: ${error.message}`);

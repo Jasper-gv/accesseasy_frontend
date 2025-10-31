@@ -1,3 +1,4 @@
+<!-- /src/components/common/notifications/ToastNotification.vue -->
 <template>
   <div v-if="show" :class="['toast-notification', type]">
     <div class="toast-icon-wrapper">
@@ -16,15 +17,22 @@
 </template>
 
 <script setup>
-import { CheckCircleIcon, XCircleIcon, InfoIcon, AlertTriangleIcon, XIcon } from "lucide-vue-next";
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  InfoIcon,
+  AlertTriangleIcon,
+  XIcon,
+} from "lucide-vue-next";
 
 defineProps({
   show: Boolean,
   message: String,
   type: {
     type: String,
-    default: 'info',
-    validator: (value) => ['success', 'error', 'info', 'warning'].includes(value)
+    default: "info",
+    validator: (value) =>
+      ["success", "error", "info", "warning"].includes(value),
   },
 });
 

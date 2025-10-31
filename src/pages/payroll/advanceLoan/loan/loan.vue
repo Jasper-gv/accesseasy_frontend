@@ -17,27 +17,6 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <!-- Main Content -->
     <div
       class="main-content"
@@ -52,6 +31,28 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
+        <template #before-search>
+          <!-- Filter Toggle Button -->
+          <button
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Loading State -->
         <div v-if="loading">
           <SkeletonLoader
@@ -966,8 +967,7 @@ onMounted(async () => {
   position: fixed;
   top: 0;
   right: 0;
-  height: 100%;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  height: 90vh;
 }
 
 .v-navigation-drawer__content {
@@ -1041,7 +1041,6 @@ onMounted(async () => {
   .v-navigation-drawer {
     width: 100% !important;
     position: fixed;
-    z-index: 1001;
   }
 
   .filter-toggle-static {
@@ -1062,7 +1061,6 @@ onMounted(async () => {
     border-bottom: 1px solid #e5e7eb;
     max-height: 50vh;
     position: relative;
-    z-index: 100;
   }
 }
 </style>

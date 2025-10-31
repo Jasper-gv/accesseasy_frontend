@@ -9,7 +9,7 @@
               <v-icon size="18" color="primary" class="mr-2"
                 >mdi-format-title</v-icon
               >
-              Task Name <span class="required-indicator">*</span>
+              Job Name <span class="required-indicator">*</span>
             </v-label>
             <v-text-field
               label="taskName"
@@ -17,8 +17,8 @@
               variant="outlined"
               density="comfortable"
               hide-details="auto"
-              :rules="[(v) => !!v || 'Task name is required']"
-              placeholder="Enter task name"
+              :rules="[(v) => !!v || 'Job name is required']"
+              placeholder="Enter Job name"
             />
           </v-col>
 
@@ -27,16 +27,16 @@
               <v-icon size="18" color="primary" class="mr-2"
                 >mdi-text-box</v-icon
               >
-              Task Description
+              Job Description
             </v-label>
             <v-textarea
-              label="taskDescription"
+              label="Job Description"
               v-model="taskDescription"
               variant="outlined"
               density="comfortable"
               auto-grow
               hide-details="auto"
-              placeholder="Describe the task"
+              placeholder="Describe the Job"
             />
           </v-col>
 

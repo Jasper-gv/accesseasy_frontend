@@ -1,3 +1,4 @@
+// senzrfieldopsfrontend/src/composables/workorder/tasks/useTaskExport.js
 import {
   getFormattedExportData,
   generateFileName,
@@ -27,33 +28,24 @@ export function useTaskExport() {
       // Include the tenantId filter in the request if available
       const exportFields = [
         "id",
-        "title",
-        "description",
-        "taskType",
-        "status",
-        "amountCollected",
-        "amountExpected",
-        "currentLat",
-        "currentLng",
-        "demo",
-        "deviceType",
-        "dueTime",
-        "eAmountCollected",
-        "from",
-        "issueReport",
-        "lat",
-        "lng",
-        "paymentMode",
-        "radiusInMeters",
-        "referenceNumber",
-        "snNumber",
-        "date_created",
-        "prodName.productName",
-        "orgId.orgName",
-        "orgLocation.locType",
+        "taskType", //show
+        "status", //show
+        "title", //show
+        "description", //show
+        "employeeId.employeeId", //show
+        "employeeId.assignedUser.first_name", //show
         "tenant.tenantName",
-        "employeeId.assignedUser.first_name",
-        "clientId.customerName",
+        "dueTime", //show
+        "from", //show
+        "orgId.orgName", //show
+        "orgLocation.locdetail", //show
+        "orgLocation.locSize", //show
+        "task_priority", //show
+        "taskimage", //show
+        "dynamicFields", //show this json field important one
+        "ratings", //show
+        "signature", //show
+        "orgLocation.contactDetails", //show
       ];
 
       let url = `${API_BASE_URL}${API_ENDPOINTS.tasks}?fields[]=${exportFields.join(",")}`;

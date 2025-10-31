@@ -18,28 +18,6 @@
         </div>
       </div>
 
-      <!-- Filter Toggle Button -->
-      <button
-        v-if="tenantId && !tenantLoading && isAdmin"
-        class="filter-toggle-static"
-        @click="toggleFilters"
-        :class="{ active: hasActiveFilters }"
-        :title="showFilters ? 'Hide filters' : 'Show filters'"
-        aria-label="Toggle filters"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-        </svg>
-        <div v-if="hasActiveFilters" class="filter-indicator"></div>
-      </button>
-
       <!-- Main Content -->
       <div
         v-if="tenantId && !tenantLoading"
@@ -50,12 +28,34 @@
           v-model:searchQuery="search"
           :search-placeholder="'Search employees...'"
           :show-search="isAdmin"
-          :is-empty="attendanceData.length === 0 && !loading"
           :has-error="error"
           wrapper-class="attendance-table-wrapper"
         >
+          <template #before-search>
+            <button
+              class="filter-toggle-static"
+              @click="toggleFilters"
+              :class="{ active: hasActiveFilters }"
+              :title="showFilters ? 'Hide filters' : 'Show filters'"
+              aria-label="Toggle filters"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+              </svg>
+              <div v-if="hasActiveFilters" class="filter-indicator"></div>
+            </button>
+          </template>
           <!-- Toolbar Actions Slot -->
           <template #toolbar-actions v-if="isAdmin">
+            <!-- Filter Toggle Button - MOVED HERE, BEFORE EXPORT BUTTON -->
+
             <Dropdown
               text="Export"
               variant="primary"
@@ -75,25 +75,6 @@
             />
           </template>
 
-          <!-- Error State -->
-          <template v-else-if="error">
-            <ErrorState
-              title="Unable to load attendance data"
-              :message="error"
-              @retry="fetchAttendanceData"
-            />
-          </template>
-
-          <!-- Empty State -->
-          <template v-else-if="attendanceData.length === 0 && !loading">
-            <EmptyState
-              title="No attendance data found"
-              message="Try adjusting your filters or check back later"
-              :primary-action="{ text: 'Clear Filters', icon: 'X' }"
-              @primaryAction="clearFilters"
-            />
-          </template>
-
           <!-- Table Content -->
           <template v-else>
             <DataTable
@@ -106,15 +87,61 @@
               @rowClick="handleRowClick"
               @sort="handleSort"
             >
-              <!-- Custom Cell for Employee Name -->
+              <!-- Error State -->
+              <template #error-state>
+                <ErrorState
+                  v-if="error"
+                  title="Unable to load attendance data"
+                  :message="error"
+                  @retry="fetchAttendanceData"
+                />
+              </template>
+
+              <!-- Empty State -->
+              <template #empty-state>
+                <EmptyState
+                  v-if="attendanceData.length === 0 && !loading"
+                  :title="
+                    search
+                      ? 'No employees found'
+                      : 'No attendance data available'
+                  "
+                  :message="
+                    search
+                      ? 'Try a different search term'
+                      : 'Try adjusting your filters or check back later'
+                  "
+                  :primary-action="{ text: 'Clear Filters', icon: 'X' }"
+                  @primaryAction="clearFilters"
+                />
+              </template>
+
+              <!-- Cell Templates -->
+              <template #cell-profile="{ item }">
+                <div class="profile-avatar">
+                  <img
+                    v-if="item.avatarImage"
+                    :src="item.avatarImage"
+                    :alt="formatEmployeeName(item)"
+                    class="avatar-image"
+                  />
+                  <div v-else class="avatar-placeholder">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
+                </div>
+              </template>
               <template #cell-name="{ item }">
                 <div class="employee-info">
-                  <div
-                    class="employee-avatar"
-                    :style="{ backgroundColor: getAvatarColor(item) }"
-                  >
-                    {{ getInitials(item) }}
-                  </div>
                   <div class="employee-details">
                     <h3 class="employee-name">
                       {{ item.name || "Unknown Employee" }}
@@ -122,85 +149,67 @@
                   </div>
                 </div>
               </template>
+              <template #cell-department="{ item }">
+                <span class="department-name">{{
+                  item.department || "N/A"
+                }}</span>
+              </template>
 
-              <!-- Custom Cell for Employee Code -->
               <template #cell-employeeCode="{ item }">
                 <span class="employee-code">{{
                   item.employeeCode || "N/A"
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Present -->
               <template #cell-present="{ item }">
                 <span class="attendance-count present">{{
                   item.present || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Absent -->
               <template #cell-absent="{ item }">
                 <span class="attendance-count absent">{{
                   item.absent || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Half Days -->
               <template #cell-halfDay="{ item }">
                 <span class="attendance-count halfday">{{
                   item.halfDay || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Week Off -->
               <template #cell-weekOff="{ item }">
                 <span class="attendance-count weekoff">{{
                   item.weekOff || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Holiday -->
               <template #cell-holiday="{ item }">
                 <span class="attendance-count holiday">{{
                   item.holiday || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for On Duty -->
               <template #cell-onDuty="{ item }">
                 <span class="attendance-count onduty">{{
                   item.onDuty || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Work From Home -->
               <template #cell-workFromHome="{ item }">
                 <span class="attendance-count wfh">{{
                   item.workFromHome || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Paid Leave -->
               <template #cell-paidLeave="{ item }">
                 <span class="attendance-count paid">{{
                   item.paidLeave || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Unpaid Leave -->
               <template #cell-unPaidLeave="{ item }">
                 <span class="attendance-count unpaid">{{
                   item.unPaidLeave || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Payable Days -->
               <template #cell-totalPayableDays="{ item }">
                 <span class="attendance-count payable">{{
                   item.totalPayableDays || 0
                 }}</span>
               </template>
-
-              <!-- Custom Cell for Total Days -->
               <template #cell-totalDaysOfMonth="{ item }">
                 <span class="attendance-count total">{{
                   item.totalDaysOfMonth || 0
@@ -208,6 +217,7 @@
               </template>
             </DataTable>
           </template>
+
           <!-- Pagination Slot -->
           <template #pagination v-if="isAdmin">
             <PaginationComponent
@@ -383,13 +393,17 @@ const exportOptions = ref([
 ]);
 
 const columns = ref([
-  { key: "name", label: "Employee Name", sortable: true, width: "200px" },
+  { key: "profile", label: "Profile", width: "60px" },
   {
     key: "employeeCode",
     label: "Employee Code",
     sortable: true,
     width: "100px",
   },
+  { key: "name", label: "Employee Name", sortable: true, width: "200px" },
+
+  { key: "department", label: "Department", sortable: true, width: "120px" },
+
   { key: "present", label: "Present", sortable: true, width: "80px" },
   { key: "absent", label: "Absent", sortable: true, width: "80px" },
   { key: "halfDay", label: "Half Days", sortable: true, width: "80px" },
@@ -640,43 +654,60 @@ const fetchAttendanceData = async (
     // Unified data processing
     if (response.data && response.data.data) {
       if (Array.isArray(response.data.data)) {
-        // Admin view: list of employees
-        attendanceData.value = response.data.data.map((employee) => ({
-          employeeId: employee.employeeId,
-          employeeCode: employee.employeeCode,
-          name: employee.firstName,
-          department: employee.department,
-          branch: employee.branch,
-          present: employee.present,
-          absent: employee.absent,
-          halfDay: employee.halfDay,
-          weekOff: employee.weekOff,
-          holiday: employee.holiday,
-          onDuty: employee.onDuty,
-          workFromHome: employee.workFromHome,
-          paidLeave: employee.paidLeave,
-          unPaidLeave: employee.unPaidLeave,
-          weekoffPresent: employee.weekoffPresent,
-          holidayPresent: employee.holidayPresent,
-          earlyLeaving: employee.earlyLeaving,
-          lateComing: employee.lateComing,
-          workingDayOT: employee.workingDayOT,
-          weekoffPresentOT: employee.weekoffPresentOT,
-          holidayPresentOT: employee.holidayPresentOT,
-          workFromHomeOT: employee.workFromHomeOT,
-          totalPayableDays: employee.totalPayableDays,
-          totalDaysOfMonth: employee.totalDaysOfMonth,
-        }));
+        // Admin view: list of employees - fetch additional employee details
+        const employeesWithDetails = await Promise.all(
+          response.data.data.map(async (employee) => {
+            // Fetch additional employee details including avatar, department, and branch
+            const employeeDetails = await fetchEmployeeDetails(
+              employee.employeeId,
+            );
+
+            return {
+              employeeId: employee.employeeId,
+              employeeCode: employee.employeeCode,
+              name: employee.firstName,
+              department:
+                employeeDetails?.department || employee.department || "N/A",
+              present: employee.present,
+              absent: employee.absent,
+              halfDay: employee.halfDay,
+              weekOff: employee.weekOff,
+              holiday: employee.holiday,
+              onDuty: employee.onDuty,
+              workFromHome: employee.workFromHome,
+              paidLeave: employee.paidLeave,
+              unPaidLeave: employee.unPaidLeave,
+              weekoffPresent: employee.weekoffPresent,
+              holidayPresent: employee.holidayPresent,
+              earlyLeaving: employee.earlyLeaving,
+              lateComing: employee.lateComing,
+              workingDayOT: employee.workingDayOT,
+              weekoffPresentOT: employee.weekoffPresentOT,
+              holidayPresentOT: employee.holidayPresentOT,
+              workFromHomeOT: employee.workFromHomeOT,
+              totalPayableDays: employee.totalPayableDays,
+              totalDaysOfMonth: employee.totalDaysOfMonth,
+            };
+          }),
+        );
+
+        attendanceData.value = employeesWithDetails;
         totalItems.value =
           response.data.meta?.total || response.data.data.length;
       } else if (response.data.data.summary) {
         // Employee view: single summary
         const { summary } = response.data.data;
+
+        // Fetch employee details for the current employee
+        const employeeDetails = await fetchEmployeeDetails(employeeId);
+
         attendanceData.value = [
           {
             employeeId,
             employeeCode,
             name: employeeName,
+            department: employeeDetails?.department || "N/A",
+
             present: summary.present,
             absent: summary.absent,
             halfDay: summary.halfDay,
@@ -713,7 +744,76 @@ const fetchAttendanceData = async (
     loading.value = false;
   }
 };
+// Add this function to fetch detailed employee information
+const fetchEmployeeDetails = async (employeeId) => {
+  try {
+    const token = authService.getToken();
+    if (!token || !employeeId) {
+      return null;
+    }
 
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/items/personalModule/${employeeId}`,
+      {
+        params: {
+          fields: [
+            "assignedUser.first_name",
+            "assignedUser.last_name",
+            "assignedUser.avatar.id",
+            "department.departmentName",
+            "branchLocation.locdetail",
+            "employeeId",
+          ],
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (response.data && response.data.data) {
+      const employee = response.data.data;
+
+      // Process avatar image
+      let avatarImage = null;
+      if (employee.assignedUser?.avatar?.id) {
+        const avatarUrl = `${import.meta.env.VITE_API_URL}/assets/${employee.assignedUser.avatar.id}`;
+        avatarImage = await fetchAuthorizedImage(avatarUrl);
+      }
+
+      return {
+        name: `${employee.assignedUser?.first_name || ""} ${employee.assignedUser?.last_name || ""}`.trim(),
+        department: employee.department?.departmentName || "N/A",
+
+        location: employee.branchLocation?.locdetail?.locationName || "N/A",
+        avatarImage: avatarImage,
+        employeeCode: employee.employeeId,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching employee details for ${employeeId}:`, error);
+    return null;
+  }
+};
+// Avatar Functions
+const fetchAuthorizedImage = async (imageUrl) => {
+  try {
+    const token = authService.getToken();
+    const response = await fetch(imageUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error("Failed to load image");
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error loading profile image:", error);
+    return null;
+  }
+};
 const toggleFilters = () => {
   showFilters.value = !showFilters.value;
 };
@@ -1287,24 +1387,37 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.employee-avatar {
+.profile-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 0.75rem;
-  flex-shrink: 0;
+  background-color: #f3f4f6;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
 }
 
 .employee-details {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  /* min-width: 0; */
 }
 
 .employee-name {
@@ -1313,6 +1426,23 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: #1e293b;
 }
+
+.employee-code {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* .department-name,
+.branch-name {
+  font-size: 0.875rem;
+  color: #475569;
+  font-weight: 500;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+} */
 
 .employee-code {
   font-size: 0.75rem;

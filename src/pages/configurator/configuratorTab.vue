@@ -1,9 +1,21 @@
 <template>
   <v-app>
     <v-container fluid class="pa-0 fill-height" style="width: 100%">
-      <v-row class="fill-height" style="padding: 18px; width: 100%">
+      <div
+        class="layout-container"
+        style="
+          display: flex;
+          height: 100%;
+          padding: 18px;
+          gap: 18px;
+          width: 100%;
+        "
+      >
         <!-- Sidebar Navigation -->
-        <v-col cols="2" class="fill-height">
+        <div
+          class="sidebar"
+          style="flex: 0 0 auto; min-width: 250px; max-width: 300px"
+        >
           <v-card flat>
             <div
               v-for="config in configurators"
@@ -28,118 +40,189 @@
               </v-list>
             </div>
           </v-card>
-        </v-col>
+        </div>
 
         <!-- Main Content Area -->
-        <v-col cols="10" style="border: 1px solid #e2e8f0" class="fill-height">
-          <div class="d-flex align-center text-body-2" style="color: #64748b">
-            <span>Configurators</span>
+        <div
+          class="main-content"
+          style="
+            flex: 1;
+            border: 1px solid #e2e8f0;
+
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            height: 90vh;
+            border-radius: 1rem;
+          "
+        >
+          <!-- Breadcrumb -->
+          <div
+            class="breadcrumb d-flex align-center text-body-2 pa-4"
+            style="
+              color: #64748b;
+              border: 1px solid #059367;
+              background-color: #ecfdf5;
+            "
+          >
+            <!-- Root clickable -->
+            <span class="cursor-pointer" @click="switchTab(activeTab)">
+              Configurators
+            </span>
             <v-icon small class="mx-2">mdi-chevron-right</v-icon>
-            <span>{{ breadcrumbs[1].title }}</span>
+
+            <!-- Parent section clickable -->
+            <span class="cursor-pointer" @click="switchTab(activeTab)">
+              {{ breadcrumbs[1]?.title || "" }}
+            </span>
             <v-icon small class="mx-2">mdi-chevron-right</v-icon>
-            <span style="color: #0f172a; font-weight: 500">{{
-              breadcrumbs[2].title
-            }}</span>
+
+            <!-- Active subsection -->
+            <span class="font-weight-medium" @click="switchTab(activeTab)">
+              {{ breadcrumbs[2]?.title || "" }}
+            </span>
           </div>
 
-          <v-container fluid class="flex-grow-1">
-            <component
-              :is="componentMap[currentComponent]"
-              :key="currentComponent"
-            />
-          </v-container>
-        </v-col>
-      </v-row>
+          <!-- Content Area -->
+          <div class="content-area pa-4">
+            <router-view />
+          </div>
+        </div>
+      </div>
     </v-container>
   </v-app>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import PayrollCategoriesComponent from "@/pages/payroll/policy/salary/salaryPolicyDetails.vue";
-import PenaltyPoliciesComponent from "@/pages/payroll/policy/attendance/attendancePolicies/penalityDetails.vue";
-import AccessLevelComponent from "@/pages/accesslevel/accessleveldetails.vue";
-import DoorDetailsComponent from "@/pages/door/doordetails.vue";
-import DeviceDetailsComponent from "@/pages/device/devicedetails.vue";
-import TimerZoneComponent from "@/pages/accesslevel/timerzone.vue";
-import AntipassbackModeComponent from "@/pages/globalConfigurator/antipassbackMode.vue";
-import InterlockModeComponent from "@/pages/globalConfigurator/interlockMode.vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
 // --- Reactive state ---
-const activeTab = ref("doors"); // default active tab
-const currentComponent = ref("doors"); // default component
-console.log(
-  "currentComponent (type):",
-  typeof currentComponent.value,
-  currentComponent.value
-);
+const activeTab = ref("branches"); // default active tab
+
+const router = useRouter();
+const route = useRoute();
 
 // --- Configuration sections ---
 const configurators = [
-  // {
-  //   id: "organization",
-  //   label: "Organization Configurator",
-  //   subsections: [
-  //     { id: "branches", label: "Branches" },
-  //     { id: "departments", label: "Departments" },
-  //   ],
-  // },
-  // {
-  //   id: "attendance",
-  //   label: "Attendance Configurator",
-  //   subsections: [
-  //     { id: "shifts", label: "Shifts" },
-  //     { id: "attendance-cycle", label: "Attendance Cycle" },
-  //     { id: "leaves", label: "Leaves" },
-  //     { id: "holidays", label: "Holidays" },
-  //   ],
-  // },
+  {
+    id: "configuration",
+    label: "Organization Configurator",
+    subsections: [
+      { id: "branches", label: "Branches" },
+      { id: "departments", label: "Departments" },
+      // { id: "teams", label: "Teams" },
+      // { id: "designations", label: "Designations" },
+    ],
+  },
+  {
+    id: "attendance",
+    label: "Attendance Configurator",
+    subsections: [
+      { id: "ShiftSettings", label: "Shifts" },
+      { id: "attendance-cycle", label: "Attendance Cycle" },
+      { id: "LeaveSettings", label: "Leaves" },
+      { id: "HolidaySettings", label: "Holidays" },
+    ],
+  },
   // {
   //   id: "expense",
   //   label: "Expense Configurator",
-  //   subsections: [{ id: "manage-expenses", label: "Manage Expenses" }],
+  //   subsections: [{ id: "expense", label: "Manage Expenses" }],
+  // },
+  // {
+  //   id: "payroll",
+  //   label: "Payroll Configurator",
+  //   subsections: [
+  //     { id: "Payrollpolicy", label: "Payroll Policies" },
+  //     { id: "Penalitypolicy", label: "Penalty Policies" },
+  //   ],
   // },
   {
-    id: "payroll",
-    label: "Payroll Configurator",
+    id: "door",
+    label: "Door Configurator", // ← NEW SECTION
     subsections: [
-      { id: "payroll-categories", label: "Payroll Categories" },
-      { id: "penalty-policies", label: "Penalty Policies" },
-    ],
-  },
-
-  {
-    id: "doors",
-    label: "Doors Configurator",
-    subsections: [{ id: "doors", label: "Doors" }],
-  },
-  {
-    id: "access-level",
-    label: "Access Level Configurator",
-    subsections: [
-      { id: "access-level", label: "Access Level" },
-      { id: "timer-zone", label: "Timer Zone" },
-    ],
-  },
-  {
-    id: "access-control",
-    label: "Global Configurator",
-    subsections: [
-      { id: "antipassback-mode", label: "Antipassback Mode" },
-      { id: "interlock-mode", label: "Interlock Mode" },
+      { id: "door-configurator", label: "Manage Doors" }, // ← NEW SUB-SECTION
     ],
   },
   {
     id: "device",
     label: "Device Configurator",
-    subsections: [{ id: "devices", label: "Devices" }],
+    subsections: [{ id: "device-configurator", label: "Manage Devices" }],
   },
+  {
+    id: "accesslevel",
+    label: "Access Level Configurator",
+    subsections: [
+      { id: "accesslevel-configurator", label: "Manage Access Levels" },
+      { id: "timerzone", label: "Time Zones" }, // ← ADDED TIMERZONE SUBSECTION
+    ],
+  },
+  // {
+  //   id: "antipassbackMode",
+  //   label: "Global Configurator", // ← NEW GLOBAL CONFIGURATOR SECTION
+  //   subsections: [
+  //     { id: "antipassback-mode", label: "Anti-passback Mode" }, // ← NEW SUBSECTION
+  //     { id: "interlock-mode", label: "Interlock Mode" }, // ← NEW SUBSECTION
+  //   ],
+  // },
 ];
+
+// Get all valid route names from configurators
+const validRouteNames = computed(() => {
+  return configurators.flatMap((config) =>
+    config.subsections.map((subsection) => subsection.id)
+  );
+});
+
+// --- Route checking and initialization ---
+const initializeActiveTab = () => {
+  console.log("Current route:", route.name, route.path);
+
+  // Check if current route name exists in our valid route names
+  if (route.name && validRouteNames.value.includes(route.name)) {
+    // If route has a valid name, use it as active tab
+    activeTab.value = route.name;
+    console.log("Active tab set from route name:", route.name);
+  } else {
+    // If no valid route name, default to 'branches' and navigate there
+    activeTab.value = "branches";
+    router.replace({ name: "branches" });
+    console.log("No valid route name found, defaulting to 'branches'");
+  }
+};
+
+// --- Lifecycle hooks ---
+onMounted(() => {
+  console.log("Component mounted - initializing active tab");
+  initializeActiveTab();
+});
+
+// Watch for route changes
+watch(
+  () => route.name,
+  (newRouteName) => {
+    console.log("Route changed to:", newRouteName);
+    if (newRouteName && validRouteNames.value.includes(newRouteName)) {
+      activeTab.value = newRouteName;
+      console.log("Active tab updated from route change:", newRouteName);
+    }
+  }
+);
+
+// Optional: Check before unmount (for cleanup if needed)
+onBeforeUnmount(() => {
+  console.log("Component unmounting - current active tab:", activeTab.value);
+});
 
 const breadcrumbs = computed(() => {
   const subsection = configurators
     .flatMap((c) => c.subsections.map((s) => ({ ...s, parent: c.label })))
     .find((s) => s.id === activeTab.value);
+
+  // 👇 Add a console log here to see what's happening
+  console.log("Breadcrumb computed for activeTab:", activeTab.value);
+  console.log("Matched subsection:", subsection);
 
   return [
     { title: "Configurators", disabled: false },
@@ -148,38 +231,39 @@ const breadcrumbs = computed(() => {
   ];
 });
 
-// --- Component mapping ---
-const componentMap = {
-  "payroll-categories": PayrollCategoriesComponent,
-  "penalty-policies": PenaltyPoliciesComponent,
-  "access-level": AccessLevelComponent,
-  "timer-zone": TimerZoneComponent,
-  doors: DoorDetailsComponent,
-  devices: DeviceDetailsComponent,
-  "antipassback-mode": AntipassbackModeComponent,
-  "interlock-mode": InterlockModeComponent,
-};
+function goToRoot() {
+  router.push({ name: "branches" }); // or your default route
+}
+
+function goToParent() {
+  const subsection = configurators
+    .flatMap((c) =>
+      c.subsections.map((s) => ({ ...s, parentId: c.id, parent: c.label }))
+    )
+    .find((s) => s.id === activeTab.value);
+
+  if (subsection?.parentId) {
+    // Find the first subsection of that parent and navigate there
+    const parent = configurators.find((c) => c.id === subsection.parentId);
+    if (parent && parent.subsections.length) {
+      const firstChild = parent.subsections[0].id;
+      router.push({ name: firstChild });
+      activeTab.value = firstChild;
+    }
+  }
+}
 
 // --- Tab switch method ---
 function switchTab(tabId) {
   activeTab.value = tabId;
-  currentComponent.value = componentMap[tabId] || PayrollCategoriesComponent;
+  router.push({ name: tabId });
 }
-
-// --- Watcher (optional, keeps currentComponent synced) ---
-watch(activeTab, (newTab) => {
-  console.log("Tab changed to:", newTab);
-  console.log("Mapped component:", componentMap[newTab]);
-  currentComponent.value = newTab;
-  // Debug after updating
-  console.log("currentComponent after update:", currentComponent.value);
-});
 </script>
 
 <style scoped>
 .sidebar {
   /* width: 240px; */
-  background-color: #fafafa;
+  background-color: white;
   border-right: 1px solid #e0e0e0;
   height: 90vh !important;
 }
@@ -192,8 +276,8 @@ watch(activeTab, (newTab) => {
   font-weight: 600;
   font-size: 14px;
   padding: 8px 12px;
-  background-color: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background-color: #ecfdf5;
+  border: 1px solid #059367;
   border-radius: 4px;
   margin-bottom: 8px;
 }
@@ -207,10 +291,12 @@ watch(activeTab, (newTab) => {
 .breadcrumb-card {
   border-bottom: 1px solid #e0e0e0;
 }
-
+.breadcrumb span {
+  cursor: pointer;
+}
 .content-area {
   background-color: #fafafa;
-  overflow-y: auto;
+  height: 90vh;
 }
 
 .header-controls {

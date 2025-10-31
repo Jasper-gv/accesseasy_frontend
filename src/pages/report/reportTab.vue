@@ -20,7 +20,7 @@
 
     <!-- Routed View -->
     <v-card class="tab-content-wrapper" elevation="0">
-      <router-view />
+      <router-view></router-view>
     </v-card>
   </v-container>
 </template>
@@ -39,8 +39,13 @@ const tabs = [
     icon: "mdi-file-chart",
   },
   {
+    value: "attendance",
+    title: "Attendance Report",
+    icon: "mdi-calendar-check",
+  },
+  {
     value: "CompanyReport",
-    title: "Company Report",
+    title: "Payroll Report",
     icon: "mdi-file-chart",
   },
 ];
@@ -64,7 +69,8 @@ watch(
 </script>
 
 <style scoped>
-/* Container reset */
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
@@ -72,19 +78,17 @@ watch(
   margin-left: auto;
 }
 
-/* Tabs wrapper */
 .custom-tabs {
-  background-color: #e8edff; /* same as employee details */
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
-/* Individual Tab (inactive) */
 .custom-tab {
-  border-radius: 10px;
-  background-color: white; /* inactive tab background */
-  color: #122f68 !important; /* inactive text */
+  border-radius: 10;
+  background-color: #ecfdf5;
+  color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   margin-right: 8px;
@@ -96,31 +100,29 @@ watch(
   font-family: Lato, sans-serif, Arial;
 }
 
-/* Selected Tab (active) */
+/* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: #122f68 !important; /* active tab background */
-  color: whitesmoke !important; /* active text */
+  background-color: #059367 !important;
+  color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Icon styles */
 .custom-tab .v-icon {
-  color: #122f68 !important; /* inactive icon */
+  color: #122f68 !important;
   opacity: 0.8;
 }
 .v-tab--selected .v-icon {
-  color: white !important; /* active icon */
+  color: white !important;
   opacity: 1;
 }
 
-/* Routed content below tabs */
+/* Content below tabs */
 .tab-content-wrapper {
   border-radius: 0 0 12px 12px;
   background: white;
   padding: 16px;
 }
-
-/* Deep tab padding */
 ::v-deep(.v-tab.v-btn) {
   height: var(--v-tabs-height);
   border-radius: 10px !important;

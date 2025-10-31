@@ -80,7 +80,6 @@
             <DataTable
               :items="employeeSalaryData"
               :columns="columns"
-              :expandable="true"
               item-key="employee.employeeId"
               wrapper-class="salary-table compact-table"
               style="height: calc(80vh - 160px); overflow-y: auto"
@@ -291,7 +290,6 @@
                     v-if="selectedEmployeeDetail.pendingEarnings"
                     class="pending-earnings-section"
                   >
-                    <div class="section-heading">Pending Earnings</div>
                     <div
                       v-for="(
                         value, key
@@ -328,9 +326,6 @@
                     </div>
                   </div>
 
-                  <div class="text-subtitle-1 font-weight-medium mb-2">
-                    Other Deductions
-                  </div>
                   <div
                     v-for="(
                       value, key
@@ -913,24 +908,32 @@ const patchSalaryBreakdown = async (breakdowns) => {
   const token = authService.getToken();
   const batchSize = 100;
 
-  const transform = (breakdown) => ({
-    id: breakdown.id,
-    earnings: breakdown.earnings?.reduce((acc, item) => {
-      const [key, value] = item.split(": ");
-      acc[key] = Number(value) || 0;
-      return acc;
-    }, {}),
-    employeeDeduction: breakdown.employeeContributions?.reduce((acc, item) => {
-      const [key, value] = item.split(": ");
-      acc[key] = Number(value) || 0;
-      return acc;
-    }, {}),
-    deduction: breakdown.deductionsList?.reduce((acc, item) => {
-      const [key, value] = item.split(": ");
-      acc[key] = Number(value) || 0;
-      return acc;
-    }, {}),
-    employersContribution: Object.entries(
+  // 🗓️ Extract year and month from payrollDate.value.end (format: YYYY-MM-DD)
+  const [year, month] = payrollDate.value.end.split("-");
+
+  const transform = (breakdown) => {
+    const earningsData =
+      breakdown.earnings?.reduce((acc, item) => {
+        const [key, value] = item.split(": ");
+        acc[key] = Number(value) || 0;
+        return acc;
+      }, {}) || {};
+
+    const employeeDeductionData =
+      breakdown.employeeContributions?.reduce((acc, item) => {
+        const [key, value] = item.split(": ");
+        acc[key] = Number(value) || 0;
+        return acc;
+      }, {}) || {};
+
+    const deductionData =
+      breakdown.deductionsList?.reduce((acc, item) => {
+        const [key, value] = item.split(": ");
+        acc[key] = Number(value) || 0;
+        return acc;
+      }, {}) || {};
+
+    const employersContributionData = Object.entries(
       breakdown.employerContributions || {},
     ).reduce((acc, [key, value]) => {
       acc[key] = {
@@ -938,18 +941,50 @@ const patchSalaryBreakdown = async (breakdowns) => {
         includedInCTC: !!value.includedInCTC,
       };
       return acc;
-    }, {}),
+    }, {});
 
-    basicSalary: breakdown.monthlyCTC,
-    basicPay: breakdown.basicPayValue,
-    totalEarnings: breakdown.totalEarnings,
-    totalDeductions: breakdown.totalDeductions,
-    netSalary: breakdown.netSalary,
-    employerLwf: breakdown.employerLWF,
-    employeeLwf: breakdown.employeeLWF,
-    employeradmin: breakdown.adminAmount,
-    voluntaryPFAmount: breakdown.voluntaryPFAmount || 0,
-  });
+    // 🧩 Final structured format (no salaryTracking)
+    return {
+      id: breakdown.id,
+
+      earnings: {
+        [year]: {
+          [month]: {
+            ...earningsData,
+            "Basic Pay": breakdown.basicPayValue || 0,
+          },
+        },
+      },
+      employeeDeduction: {
+        [year]: {
+          [month]: employeeDeductionData,
+        },
+        ...employeeDeductionData, // keep flat-level copy
+      },
+      deduction: {
+        [year]: {
+          [month]: deductionData,
+        },
+      },
+      employersContribution: {
+        [year]: {
+          [month]: employersContributionData,
+        },
+        ...employersContributionData, // keep flat-level copy
+      },
+
+      basicSalary: breakdown.monthlyCTC,
+      basicPay: breakdown.basicPayValue,
+      totalEarnings: breakdown.totalEarnings,
+      totalDeductions: breakdown.totalDeductions,
+      netSalary: breakdown.netSalary,
+      employerLwf: breakdown.employerLWF,
+      employeeLwf: breakdown.employeeLWF,
+      employeradmin: breakdown.adminAmount,
+      voluntaryPFAmount: breakdown.voluntaryPFAmount || 0,
+      profeesionalTax: breakdown.profeesionalTax || 0,
+    };
+  };
 
   for (let i = 0; i < breakdowns.length; i += batchSize) {
     const batch = breakdowns
@@ -967,9 +1002,11 @@ const patchSalaryBreakdown = async (breakdowns) => {
           },
         },
       );
-      console.log(`Patched batch ${i / batchSize + 1} (${batch.length} items)`);
+      console.log(
+        `✅ Patched batch ${i / batchSize + 1} (${batch.length} items)`,
+      );
     } catch (error) {
-      console.error(`Patch failed for batch ${i / batchSize + 1}:`, error);
+      console.error(`❌ Patch failed for batch ${i / batchSize + 1}:`, error);
     }
   }
 };
@@ -1072,6 +1109,10 @@ const calculation = async (salaryVerificationArray) => {
     earnings["Loan Credits"] = Object.values(
       item.loanCreditAmounts || {},
     ).reduce((sum, val) => sum + (Number(val) || 0), 0);
+    earnings["Advance"] = Object.values(item.advanceAmounts || {}).reduce(
+      (sum, val) => sum + (Number(val) || 0),
+      0,
+    );
 
     (item.employerContributions || []).forEach(({ name, rupee }) => {
       const val = parseFloat(rupee) || 0;
@@ -1484,7 +1525,7 @@ onMounted(async () => {
 
 /* Header Styles */
 .header-banner {
-  background: #d5ddf1;
+  background: #ecfdf5;
   padding: 1.5rem;
   color: rgb(0, 0, 0);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);

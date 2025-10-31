@@ -134,7 +134,7 @@
             v-else
             :items="items"
             :columns="columns"
-            :show-selection="true"
+            :show-selection="false"
             :selected-items="selected"
             :sort-by="currentSortBy"
             :sort-direction="currentSortDirection"
@@ -626,12 +626,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.employee-container {
+/* .employee-container {
   height: 100vh;
   display: flex;
   overflow: hidden;
   position: relative;
-}
+} */
 .team-count {
   font-size: 17px;
   font-weight: 500;
@@ -717,9 +717,9 @@ onMounted(async () => {
   margin-right: 300px;
 }
 
-.teams-table-wrapper {
+/* .teams-table-wrapper {
   height: calc(100vh - 100px);
-}
+} */
 
 .action-buttons {
   display: flex;
@@ -727,10 +727,10 @@ onMounted(async () => {
   align-items: center;
 }
 
-:deep(.v-data-table__wrapper) {
+/* :deep(.v-data-table__wrapper) {
   overflow-x: auto;
   scrollbar-width: thin;
-}
+} */
 
 /* Header Styles */
 :deep(.resizable-header) {

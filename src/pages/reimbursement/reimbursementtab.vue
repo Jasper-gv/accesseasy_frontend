@@ -21,7 +21,7 @@
 
     <!-- Routed Content -->
     <v-card class="tab-content-wrapper" elevation="0">
-      <router-view />
+      <router-view></router-view>
     </v-card>
   </v-container>
 </template>
@@ -38,7 +38,7 @@ export default {
           path: "/reimbursement/reimbursementtab/reimbursement_card",
           name: "reimbursement_card",
           label: "Expense Approvals",
-          meta: { roles: ["Admin", "Employee"] },
+          meta: { roles: ["Admin"] },
           icon: "mdi-cash-multiple",
         },
         // {
@@ -48,18 +48,18 @@ export default {
         //   meta: { roles: ["Admin", "Employee"] },
         //   icon: "mdi-account-cog",
         // },
-        {
-          path: "/reimbursement/reimbursementtab/reimbursement_settings",
-          name: "reimbursement_settings",
-          label: "Expense Configuration",
-          meta: { roles: ["Admin", "Employee"] },
-          icon: "mdi-cog",
-        },
+        // {
+        //   path: "/reimbursement/reimbursementtab/reimbursement_settings",
+        //   name: "reimbursement_settings",
+        //   label: "Expense Configuration",
+        //   meta: { roles: ["Admin"] },
+        //   icon: "mdi-cog",
+        // },
         {
           path: "/reimbursement/reimbursementtab/addreimbursement",
           name: "addreimbursement",
           label: "Create Expense",
-          meta: { roles: ["Employee"] },
+          meta: { roles: ["Admin", "Employee"] },
           icon: "mdi-cash-multiple",
         },
       ],
@@ -142,6 +142,8 @@ export default {
 </script>
 
 <style scoped>
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
@@ -149,19 +151,19 @@ export default {
   margin-left: auto;
 }
 
-/* Tabs wrapper */
 .custom-tabs {
-  background-color: #dee8f1;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
-/* Individual Tab */
 .custom-tab {
-  border-radius: 10px;
-  background-color: #122f68;
-  color: white !important;
+  border-radius: 10;
+  background-color: #ecfdf5;
+  color: #122f68 !important;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
   margin-right: 8px;
   min-height: 48px;
   transition: background-color 0.3s ease;
@@ -171,27 +173,32 @@ export default {
   font-family: Lato, sans-serif, Arial;
 }
 
-/* Selected Tab */
+/* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: white !important;
-  color: #68ade1 !important;
+  background-color: #059367 !important;
+  color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Icon styles */
 .custom-tab .v-icon {
-  color: white !important;
+  color: #122f68 !important;
   opacity: 0.8;
 }
 .v-tab--selected .v-icon {
-  color: #68ade1 !important;
+  color: white !important;
   opacity: 1;
 }
 
-/* Routed content below tabs */
+/* Content below tabs */
 .tab-content-wrapper {
   border-radius: 0 0 12px 12px;
   background: white;
   padding: 16px;
+}
+::v-deep(.v-tab.v-btn) {
+  height: var(--v-tabs-height);
+  border-radius: 10px !important;
+  min-width: 90px !important;
 }
 </style>

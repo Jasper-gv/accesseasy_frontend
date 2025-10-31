@@ -59,6 +59,8 @@ watch(
 </script>
 
 <style scoped>
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
@@ -67,15 +69,15 @@ watch(
 }
 
 .custom-tabs {
-  background-color: #e8edff;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
 .custom-tab {
-  border-radius: 10px;
-  background-color: white;
+  border-radius: 10;
+  background-color: #ecfdf5;
   color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -90,7 +92,7 @@ watch(
 
 /* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: #122f68 !important;
+  background-color: #059367 !important;
   color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
@@ -111,7 +113,6 @@ watch(
   background: white;
   padding: 16px;
 }
-
 ::v-deep(.v-tab.v-btn) {
   height: var(--v-tabs-height);
   border-radius: 10px !important;

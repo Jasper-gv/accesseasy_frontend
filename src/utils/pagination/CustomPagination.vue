@@ -401,7 +401,7 @@ watch(
 }
 
 .page-number.active {
-  background-color: #122f68;
+  background-color: #059367;
   color: white;
   font-weight: 600;
 }

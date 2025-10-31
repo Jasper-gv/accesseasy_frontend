@@ -16,7 +16,7 @@
         <h3>Salary Details</h3>
         <div class="d-flex" style="gap: 16px">
           <v-btn
-            v-if="!showVoluntaryPFSection && (PFAccount || switches.allowPF)"
+            v-if="!showVoluntaryPFSection"
             color="green"
             @click="addVoluntaryPF"
           >
@@ -49,19 +49,7 @@
         </v-col>
 
         <v-col cols="10">
-          <v-row class="align-center" v-if="!hasPFAccount">
-            <v-col cols="6" md="4" class="d-flex align-center">
-              <v-icon color="red" class="mr-2">mdi-alert-circle</v-icon>
-              <span class="text-red font-weight-bold">PF Not Available</span>
-            </v-col>
-            <v-col cols="6" md="4" class="text-right">
-              <v-btn color="primary" small @click="addAccount">
-                Add PF Account
-              </v-btn>
-            </v-col>
-          </v-row>
-
-          <v-row v-if="hasPFAccount">
+          <v-row>
             <v-col cols="12" md="4">
               <v-select
                 :items="voluntaryPFTypeOptions"
@@ -166,6 +154,16 @@
 
                 <v-text-field
                   v-model="monthlyCTC"
+                  :readonly="showForm"
+                  :style="
+                    showForm
+                      ? {
+                          backgroundColor: '#f5f5f5',
+                          color: '#555',
+                          cursor: 'not-allowed',
+                        }
+                      : {}
+                  "
                   :disabled="!selectedCategory"
                   @input="calculateMonthlyCTC"
                   variant="outlined"
@@ -186,10 +184,21 @@
                 </div>
               </v-col>
             </v-row>
+            <div>
+              <CustomConfig
+                v-if="showForm"
+                :is="currentComponent"
+                :id="salaryBreakdownId"
+                :effectiveMonth="date"
+                @update:formData="handleFormUpdate"
+                @update:monthlyCTC="handleMonthlyCTCUpdate"
+                @update:netSalary="handleNetSalaryUpdate"
+              />
+            </div>
           </div>
         </v-card>
 
-        <div v-if="selectedCategory" class="salary-breakdown">
+        <div v-if="selectedCategory && !showForm" class="salary-breakdown">
           <v-row>
             <v-col cols="12" lg="6">
               <!-- Earnings Card -->
@@ -499,7 +508,7 @@
           </v-row>
         </div>
 
-        <v-card-text>
+        <v-card-text v-if="!showForm">
           <div class="d-flex align-center justify-space-between">
             <div class="d-flex align-center">
               <v-icon color="info" class="mr-2">mdi-information</v-icon>
@@ -561,6 +570,8 @@ import { currentUserTenant } from "@/utils/currentUserTenant";
 import { generateCodeFrame } from "vue/compiler-sfc";
 import dayjs from "dayjs";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import CustomConfig from "./customsalarytemplate.vue";
+
 const props = defineProps({
   id: {
     type: String,
@@ -588,7 +599,7 @@ const voluntaryPF = ref({
   calculations: [],
   calculationType: "percentage",
 });
-
+const showForm = ref(false);
 const voluntaryPFAmount = ref(0);
 
 const voluntaryPFOptions = [
@@ -787,21 +798,7 @@ const fetchEmployeeData = async () => {
     if (data.data && data.data.length > 0) {
       employee.value = data.data[0];
       gender.value = employee.value.assignedUser.gender;
-      if (employee.value) {
-        switches.value.allowPF = employee.value.allowPF;
-        switches.value.allowESI = employee.value.allowESI;
-        switches.value.allowLWF = employee.value.allowLwf;
-        const trimOrNull = (val) =>
-          typeof val === "string" ? val.trim() || null : val;
 
-        PFAccount.value = trimOrNull(
-          employee.value.assignedUser.PFAccountNumber,
-        );
-        ESIAccount.value = trimOrNull(
-          employee.value.assignedUser.ESIAccountNumber,
-        );
-        // shopAccount.value = trimOrNull(employee.assignedUser.shopAccount);
-      }
       emit("update:employeeData", employee.value);
       await fetchSalaryBreakdown();
       const [selectedYear, selectedMonth] = date.value.split("-");
@@ -832,6 +829,8 @@ const fetchEmployeeData = async () => {
       const initialCategoryId = findCategoryId();
       if (initialCategoryId) {
         await onSalarySettingChange(initialCategoryId);
+      } else {
+        showForm.value = false;
       }
 
       // Fetch salary breakdown
@@ -878,12 +877,33 @@ const breakdownValue = ref(null);
 const fetchSalaryBreakdown = async () => {
   try {
     const tenantId = currentUserTenant.getTenantId();
+    const fields = [
+      "id",
+      "ctc",
+      "voluntaryPF",
+      "employersContribution",
+      "salaryTracking",
+      "deduction",
+      "earnings",
+      "employeeDeduction",
+    ];
+
+    // Filters
+    const filters = [
+      `filter[tenant][tenantId][_eq]=${tenantId}`,
+      `filter[employee][_eq]=${props.id}`,
+    ];
+
+    // Build query string manually (exact multiple fields= format)
+    const queryString = fields
+      .map((f) => `fields=${f}`)
+      .concat(filters)
+      .join("&");
+
     const response = await fetch(
-      `${apiUrl}/items/SalaryBreakdown?fields=id&fields=ctc&fields=voluntaryPF&fields=employersContribution&fields=salaryTracking&filter[tenant][tenantId][_eq]=${tenantId}&filter[employee][_eq]=${props.id}`,
+      `${apiUrl}/items/SalaryBreakdown?${queryString}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       },
     );
 
@@ -892,6 +912,7 @@ const fetchSalaryBreakdown = async () => {
     const data = await response.json();
     if (data.data.length > 0) {
       salaryBreakdownId.value = data.data[0].id;
+
       breakdownValue.value = data.data[0];
       console.log("breakdown", breakdownValue.value?.employersContribution);
 
@@ -903,10 +924,16 @@ const fetchSalaryBreakdown = async () => {
 
         date.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-        const [year, month] = date.value.split("-").map(Number); // FIX: Extract year & month
+        const [year, month] = date.value.split("-").map(Number); // Extract year & month
+
+        console.log("💡 Current date:", date.value, "Current key:", currentKey);
+        console.log("💡 Tracking keys available:", Object.keys(tracking));
 
         if (tracking[currentKey]) {
           monthlyCTC.value = tracking[currentKey];
+          console.log(
+            `✅ Found current month in tracking: ${currentKey} → ${monthlyCTC.value}`,
+          );
         } else {
           const sortedKeys = Object.keys(tracking).sort((a, b) => {
             const [ma, ya] = a.split("/").map(Number);
@@ -914,16 +941,29 @@ const fetchSalaryBreakdown = async () => {
             return ya - yb || ma - mb;
           });
 
+          console.log("🔹 Sorted keys for fallback:", sortedKeys);
+
+          let found = false;
           for (let i = sortedKeys.length - 1; i >= 0; i--) {
             const [m, y] = sortedKeys[i].split("/").map(Number);
             if (y < year || (y === year && m < month)) {
               monthlyCTC.value = tracking[sortedKeys[i]];
+              found = true;
+              console.log(
+                `✅ Using previous month: ${sortedKeys[i]} → ${monthlyCTC.value}`,
+              );
               break;
             }
           }
+
+          if (!found) {
+            monthlyCTC.value = 0; // fallback to 0 if no previous month
+            console.log("⚠️ No previous month found. Fallback to 0");
+          }
         }
       } else {
-        monthlyCTC.value = data.data[0].ctc;
+        monthlyCTC.value = 0; // fallback to 0 if tracking is empty
+        console.log("⚠️ Tracking is empty. Fallback to 0");
       }
 
       originalCTC.value = data.data[0].ctc;
@@ -984,9 +1024,6 @@ const fetchTenant = async () => {
     );
 
     const data = await response.json();
-
-    hasPFAccount.value = data.data.some((tenant) => tenant.pfAccount);
-    shopAccount.value = data.data.some((tenant) => tenant.shopAccount);
   } catch (error) {
     console.error("Error fetching shop establishment data:", error);
   }
@@ -1055,8 +1092,13 @@ const onSalarySettingChange = async (id) => {
 
     const data = await response.json();
     const setting = data.data;
-    selectedCategory.value = { id: setting.id, name: setting.configName };
 
+    selectedCategory.value = { id: setting.id, name: setting.configName };
+    if (selectedCategory.value.name === "Custom") {
+      showForm.value = true;
+    } else {
+      showForm.value = false;
+    }
     settingVolunteryPF.value = data.data;
 
     // Set basic pay
@@ -1080,55 +1122,22 @@ const onSalarySettingChange = async (id) => {
 
     // Set employer contributions
     employerContributions.value = setting.employersContributions
-      ? Object.entries(setting.employersContributions)
-          .filter(([key]) => {
-            if (key === "EmployerPF")
-              return PFAccount.value || switches.value.allowPF;
-            if (key === "EmployerESI")
-              return ESIAccount.value || switches.value.allowESI;
-            return true;
-          })
-          .map(([key, value]) => {
-            const breakdownCTC =
-              breakdownValue.value?.employersContribution?.[key]?.includedInCTC;
-            const selectedId = selectedCategory.value?.id;
-            const match = selectedId === employee.value?.salaryConfig?.id;
-            console.log("employee.value", employee.value);
-            const fallbackCTC = value.withinCTC ?? false;
+      ? Object.entries(setting.employersContributions).map(([key, value]) => {
+          const breakdownCTC =
+            breakdownValue.value?.employersContribution?.[key]?.includedInCTC;
+          const selectedId = selectedCategory.value?.id;
+          const match = selectedId === employee.value?.salaryConfig?.id;
+          console.log("employee.value", employee.value);
+          const fallbackCTC = value.withinCTC ?? false;
 
-            return {
-              name: key,
-              calculations: value.Calculations || [],
-              component: (value.Calculations || [])
-                .map((item) => item.name)
-                .join(", "),
-              amount: value.selectedOption || 0,
-              includedInCTC: match ? breakdownCTC : fallbackCTC,
-              rupee: 0,
-              options: value.options
-                ? value.options.map((opt) => ({
-                    label: opt.label,
-                    value: opt.value,
-                  }))
-                : [],
-            };
-          })
-      : [];
-
-    employeeContributions.value = setting.employeeDeductions
-      ? Object.entries(setting.employeeDeductions)
-          .filter(([key]) => {
-            if (key === "EmployeePF")
-              return PFAccount.value || switches.value.allowPF;
-            if (key === "EmployeeESI")
-              return ESIAccount.value || switches.value.allowESI;
-            return true;
-          })
-          .map(([key, value]) => ({
+          return {
             name: key,
             calculations: value.Calculations || [],
-            component: value.Calculations.map((item) => item.name).join(", "),
+            component: (value.Calculations || [])
+              .map((item) => item.name)
+              .join(", "),
             amount: value.selectedOption || 0,
+            includedInCTC: match ? breakdownCTC : fallbackCTC,
             rupee: 0,
             options: value.options
               ? value.options.map((opt) => ({
@@ -1136,13 +1145,29 @@ const onSalarySettingChange = async (id) => {
                   value: opt.value,
                 }))
               : [],
-          }))
+          };
+        })
+      : [];
+
+    employeeContributions.value = setting.employeeDeductions
+      ? Object.entries(setting.employeeDeductions).map(([key, value]) => ({
+          name: key,
+          calculations: value.Calculations || [],
+          component: value.Calculations.map((item) => item.name).join(", "),
+          amount: value.selectedOption || 0,
+          rupee: 0,
+          options: value.options
+            ? value.options.map((opt) => ({
+                label: opt.label,
+                value: opt.value,
+              }))
+            : [],
+        }))
       : [];
 
     //admin charge
-    if (PFAccount.value || switches.value.allowPF) {
-      adminCharges.value = setting.adminCharges || {};
-    }
+
+    adminCharges.value = setting.adminCharges || {};
 
     lwf.value = setting.LWF?.stateTaxRules;
     lwfDeduction = lwf.value?.LWF?.Deduction?.join(", ");
@@ -1339,7 +1364,6 @@ const calculateMonthlyCTC = () => {
   const EMPLOYEE_PF_RATE = 0.12;
   const EMPLOYEE_ESI_RATE = 0.0075;
   const EPF_ADMIN_RATE = 0.01;
-  const ESI_THRESHOLD = 21000;
 
   const monthlyCtcCalculated = Number(monthlyCTC.value);
 
@@ -1455,12 +1479,10 @@ const calculateMonthlyCTC = () => {
 
     if (employerESI) {
       if (employerESI && employerESI.includedInCTC) {
-        if (monthlyCtcCalculated <= ESI_THRESHOLD) {
-          if (Number(employerESI.amount) === 1800) {
-            employeresiTotal = Math.min(esiBaseAmount * (3.25 / 100), 682.5);
-          } else if (employerESI.amount) {
-            employeresiTotal = esiBaseAmount * (employerESI.amount / 100);
-          }
+        if (Number(employerESI.amount) === 1800) {
+          employeresiTotal = Math.min(esiBaseAmount * (3.25 / 100), 682.5);
+        } else if (employerESI.amount) {
+          employeresiTotal = esiBaseAmount * (employerESI.amount / 100);
         }
       }
     }
@@ -1486,7 +1508,7 @@ const calculateMonthlyCTC = () => {
 
       const hraImpact =
         1 +
-        (monthlyCtcCalculated <= ESI_THRESHOLD ? EMPLOYER_ESI_RATE : 0) +
+        (EMPLOYER_ESI_RATE || 0) +
         EMPLOYER_PF_RATE +
         (adminCharges.value?.enable ? EPF_ADMIN_RATE : 0);
       const daImpact = hraImpact;
@@ -1528,7 +1550,7 @@ const calculateMonthlyCTC = () => {
       if (shortage > 0) {
         const basicImpact =
           1 +
-          (monthlyCtcCalculated <= ESI_THRESHOLD ? EMPLOYER_ESI_RATE : 0) +
+          (EMPLOYER_ESI_RATE || 0) +
           EMPLOYER_PF_RATE +
           (adminCharges.value?.enable ? EPF_ADMIN_RATE : 0);
 
@@ -1596,16 +1618,10 @@ const calculateMonthlyCTC = () => {
   const finalEpfAdmin = adminCharges.value?.enable
     ? EPF_ADMIN_RATE * finalpfBaseAmount
     : 0;
-  const finalEmployerEsi =
-    monthlyCtcCalculated <= ESI_THRESHOLD
-      ? EMPLOYER_ESI_RATE * finalesiBaseAmount
-      : 0;
+  const finalEmployerEsi = EMPLOYER_ESI_RATE * finalesiBaseAmount || 0;
   const finalEmployerTotal = finalEmployerPf + finalEpfAdmin + finalEmployerEsi;
   const finalEmployeePf = EMPLOYEE_PF_RATE * finalpfBaseAmount;
-  const finalEmployeeEsi =
-    monthlyCtcCalculated <= ESI_THRESHOLD
-      ? EMPLOYEE_ESI_RATE * finalesiBaseAmount
-      : 0;
+  const finalEmployeeEsi = EMPLOYEE_ESI_RATE * finalesiBaseAmount || 0;
   const finalDeductions =
     finalEmployeePf +
     finalEmployeeEsi +
@@ -1663,22 +1679,18 @@ const calculateMonthlyCTC = () => {
     let finalValue = 0;
 
     if (item.name === "EmployerPF") {
-      if (PFAccount.value) {
-        if (Number(item.amount) === 1800) {
-          finalValue = Math.min(
-            (totalAmount + basicPayValue.value) * (12 / 100),
-            1800,
-          );
-        } else {
-          finalValue =
-            (totalAmount + basicPayValue.value) * (item.amount / 100);
-        }
+      if (Number(item.amount) === 1800) {
+        finalValue = Math.min(
+          (totalAmount + basicPayValue.value) * (12 / 100),
+          1800,
+        );
+      } else {
+        finalValue = (totalAmount + basicPayValue.value) * (item.amount / 100);
       }
-    } else if (item.name === "EmployerESI" && ESIAccount.value) {
+    } else if (item.name === "EmployerESI") {
       finalValue =
-        monthlyCtcCalculated <= ESI_THRESHOLD
-          ? Math.min((totalAmount + basicPayValue.value) * (3.25 / 100), 682.5)
-          : 0;
+        Math.min((totalAmount + basicPayValue.value) * (3.25 / 100), 682.5) ||
+        0;
     }
 
     return { ...item, rupee: finalValue };
@@ -1686,53 +1698,49 @@ const calculateMonthlyCTC = () => {
 
   let adminAmountCalculated = 0;
   if (adminCharges.value?.enable === true) {
-    if (PFAccount.value || switches.value.allowPF) {
-      adminAmountCalculated = Math.min(
-        (pfCalculation + basicPayValue.value) * 0.01,
-        150,
-      );
-    }
+    adminAmountCalculated = Math.min(
+      (pfCalculation + basicPayValue.value) * 0.01,
+      150,
+    );
   }
 
   let voluntaryPFCalculated = 0;
   if (voluntary.value) {
-    if (PFAccount.value || switches.value.allowPF) {
-      const vp = voluntary.value.VoluntaryPF;
+    const vp = voluntary.value.VoluntaryPF;
 
-      if (vp.type === "percentage") {
-        const totalAmount = vp.Calculations.reduce((sum, calc) => {
-          const earningEntry = earnings.value.find(
-            (earn) => earn.name === calc.name,
-          );
-          const earningAmount = earningEntry ? earningEntry.amount : 0;
-          return sum + earningAmount;
-        }, 0);
+    if (vp.type === "percentage") {
+      const totalAmount = vp.Calculations.reduce((sum, calc) => {
+        const earningEntry = earnings.value.find(
+          (earn) => earn.name === calc.name,
+        );
+        const earningAmount = earningEntry ? earningEntry.amount : 0;
+        return sum + earningAmount;
+      }, 0);
 
-        if (Number(vp.selectedOption) === 1800) {
-          const percentageOption = vp.options?.find(
-            (opt) => opt.label === "percentage",
-          );
+      if (Number(vp.selectedOption) === 1800) {
+        const percentageOption = vp.options?.find(
+          (opt) => opt.label === "percentage",
+        );
 
-          if (percentageOption) {
-            const rawCalc = (totalAmount + basicPayValue.value) * (13 / 100);
-            voluntaryPFCalculated = Math.min(rawCalc, 1800);
-          }
-        } else if (vp.selectedOption === null) {
-          voluntaryPFCalculated = 0;
-        } else {
-          const percentageOption = vp.options?.find(
-            (opt) => opt.label === "percentage",
-          );
-
-          if (percentageOption) {
-            voluntaryPFCalculated =
-              (totalAmount + basicPayValue.value) *
-              (percentageOption.value / 100);
-          }
+        if (percentageOption) {
+          const rawCalc = (totalAmount + basicPayValue.value) * (13 / 100);
+          voluntaryPFCalculated = Math.min(rawCalc, 1800);
         }
+      } else if (vp.selectedOption === null) {
+        voluntaryPFCalculated = 0;
       } else {
-        voluntaryPFCalculated = vp.amount;
+        const percentageOption = vp.options?.find(
+          (opt) => opt.label === "percentage",
+        );
+
+        if (percentageOption) {
+          voluntaryPFCalculated =
+            (totalAmount + basicPayValue.value) *
+            (percentageOption.value / 100);
+        }
       }
+    } else {
+      voluntaryPFCalculated = vp.amount;
     }
   }
 
@@ -1755,34 +1763,21 @@ const calculateMonthlyCTC = () => {
 
     let finalValue = 0;
 
-    if (
-      item.name === "EmployeePF" &&
-      (PFAccount.value || switches.value.allowPF)
-    ) {
+    if (item.name === "EmployeePF") {
       if (Number(item.amount) === 1800) {
-        const percentageOption = item.options?.find(
-          (opt) => opt.label === "percentage",
+        finalValue = Math.min(
+          (totalAmount + basicPayValue.value) * (12 / 100),
+          1800,
         );
-        if (percentageOption) {
-          finalValue = Math.min(
-            (totalAmount + basicPayValue.value) *
-              (percentageOption.value / 100),
-            1800,
-          );
-        }
       } else {
         finalValue = (totalAmount + basicPayValue.value) * 0.12;
       }
-    } else if (
-      item.name === "EmployeeESI" &&
-      (ESIAccount.value || switches.value.allowESI)
-    ) {
+    } else if (item.name === "EmployeeESI") {
       finalValue =
-        monthlyCtcCalculated <= ESI_THRESHOLD
-          ? Math.min((totalAmount + basicPayValue.value) * (0.75 / 100), 157.5)
-          : 0;
+        Math.min((totalAmount + basicPayValue.value) * (0.75 / 100), 157.5) ||
+        0;
     }
-
+    console.log("employeepf", item, finalValue);
     return { ...item, rupee: finalValue };
   });
 
@@ -1860,54 +1855,71 @@ const getMultiplier = (frequency) => {
       return 1;
   }
 };
+const formData = ref(null);
 
-const updatePayrollCatagory = async () => {
+// Handle form data updates from child
+const handleFormUpdate = (data) => {
+  formData.value = data;
+};
+// Handle Monthly CTC updates from child
+const handleMonthlyCTCUpdate = (value) => {
+  monthlyCTC.value = value;
+};
+
+// Handle Net Salary updates from child
+const handleNetSalaryUpdate = (value) => {
+  netSalary.value = value;
+};
+const updatePayrollCatagoryCustom = async () => {
   if (!hasChanges.value) return;
-  if (monthlyCTC.value) {
-    if (totalAmount.value > monthlyCTC.value) {
-      showErrorMessage("Cannot update! Fixed earnings exceed Monthly CTC.");
-      return;
-    }
-  }
-  const earningsPayload = earnings.value.reduce((acc, item) => {
-    acc[item.name] = item.amount;
-    return acc;
-  }, {});
-  const employerContributionsPayload = employerContributions.value.reduce(
-    (acc, item) => {
-      acc[item.name] = {
-        amount: item.rupee,
-        includedInCTC: item.includedInCTC,
-      };
-      return acc;
-    },
-    {},
-  );
 
-  const employeeContributionsPayload = employeeContributions.value.reduce(
-    (acc, item) => {
-      acc[item.name] = item.rupee;
-      return acc;
-    },
-    {},
-  );
-  const deductionsPayload = deductions.value.reduce((acc, item) => {
-    acc[item.name] = item.amount;
-    return acc;
-  }, {});
+  if (monthlyCTC.value && totalAmount.value > monthlyCTC.value) {
+    showErrorMessage("Cannot update! Fixed earnings exceed Monthly CTC.");
+    return;
+  }
 
   const [year, month] = date.value.split("-");
+  console.log(`🗓 Updating Payroll for: ${month}/${year}`);
 
-  const updatedTracking = {
-    ...(employee.value?.salaryConfigTracking || {}),
+  // ===== Build Sectional Data =====
+  const earningsPayload = { [year]: { [month]: {} } };
+  formData.value.earning.forEach(
+    (item) => (earningsPayload[year][month][item.label] = item.value),
+  );
+
+  const employerContributionsPayload = { [year]: { [month]: {} } };
+  employerContributionsPayload[year][month] = {
+    PF: {
+      amount: formData.value.employerPF.amount,
+      includedInCTC: formData.value.employerPF.withinCTC,
+    },
+    ESI: {
+      amount: formData.value.employerESI.amount,
+      includedInCTC: formData.value.employerESI.withinCTC,
+    },
+    ...(formData.value.includeEdli && {
+      EDLI: { amount: formData.value.edliAmount, includedInCTC: false },
+    }),
   };
+
+  const employeeContributionsPayload = { [year]: { [month]: {} } };
+  employeeContributionsPayload[year][month] = {
+    PF: formData.value.employeePF.amount,
+    ESI: formData.value.employeeESI.amount,
+  };
+
+  const deductionsPayload = { [year]: { [month]: {} } };
+  formData.value.deduction.forEach(
+    (item) => (deductionsPayload[year][month][item.label] = item.value),
+  );
+
+  // ===== Salary Tracking =====
+  const updatedTracking = { ...(employee.value?.salaryConfigTracking || {}) };
   updatedTracking[year] = updatedTracking[year] || {};
   updatedTracking[year][month] = selectedCategory.value.id;
-  try {
-    const payload = {
-      salaryConfigTracking: updatedTracking,
-    };
 
+  try {
+    // 1️⃣ Update personal module
     const personalModuleResponse = await fetch(
       `${apiUrl}/items/personalModule/${props.id}`,
       {
@@ -1916,14 +1928,77 @@ const updatePayrollCatagory = async () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ salaryConfigTracking: updatedTracking }),
       },
     );
 
-    if (!personalModuleResponse.ok) {
+    if (!personalModuleResponse.ok)
       throw new Error("Failed to update personal module");
-    }
 
+    // ===== Merge Existing Data Before PATCH =====
+    const existingData = breakdownValue.value || {};
+    console.log("📂 Existing Salary Breakdown Data:", existingData);
+
+    // ✅ Deep merge helper
+    const deepMerge = (existing = {}, incoming = {}) => {
+      const result = { ...existing };
+      Object.keys(incoming).forEach((yearKey) => {
+        result[yearKey] = {
+          ...(existing[yearKey] || {}),
+          ...incoming[yearKey],
+        };
+      });
+      return result;
+    };
+
+    const mergedData = {
+      ...existingData,
+      earnings: deepMerge(existingData.earnings, earningsPayload),
+      employersContribution: deepMerge(
+        existingData.employersContribution,
+        employerContributionsPayload,
+      ),
+      employeeDeduction: deepMerge(
+        existingData.employeeDeduction,
+        employeeContributionsPayload,
+      ),
+      deduction: deepMerge(existingData.deduction, deductionsPayload),
+    };
+
+    console.log("🆕 New Monthly Payloads:", {
+      earningsPayload,
+      employerContributionsPayload,
+      employeeContributionsPayload,
+      deductionsPayload,
+    });
+
+    console.log("✅ Final Merged Data Before Patch:", mergedData);
+
+    // 2️⃣ Prepare final Salary Breakdown data
+    const salaryBreakdownData = {
+      ...mergedData,
+      ctc: annualCTC.value || 0,
+      basicPay: basicPayValue.value || 0,
+      basicSalary: monthlyCTC.value || 0,
+      netSalary: netSalary.value || 0,
+      profeesionalTax: professionalTaxAmount.value || 0,
+      employerLwf: employerLWF.value || 0,
+      employeeLwf: employeeLWF.value || 0,
+      employeradmin: adminAmount.value || 0,
+      totalDeductions: totalDeductions.value || 0,
+      totalEarnings: totalEarnings.value || 0,
+      salaryTracking: {
+        ...(mergedData.salaryTracking || {}),
+        [`${month}/${year}`]: monthlyCTC.value || 0,
+      },
+    };
+
+    console.log(
+      "🧾 Final SalaryBreakdown Payload to PATCH/POST:",
+      salaryBreakdownData,
+    );
+
+    // 3️⃣ PATCH or POST Salary Breakdown
     if (salaryBreakdownId.value) {
       const salaryBreakdownResponse = await fetch(
         `${apiUrl}/items/SalaryBreakdown/${salaryBreakdownId.value}`,
@@ -1933,44 +2008,17 @@ const updatePayrollCatagory = async () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            ctc: annualCTC.value || 0,
-            earnings: earningsPayload,
-            basicPay: basicPayValue.value || 0,
-            basicSalary: monthlyCTC.value || 0,
-            netSalary: netSalary.value || 0,
-            employersContribution: employerContributionsPayload || 0,
-            employeeDeduction: employeeContributionsPayload || 0,
-            deduction: deductionsPayload || 0,
-            profeesionalTax: professionalTaxAmount.value || 0,
-            employerLwf: employerLWF.value || 0,
-            employeeLwf: employeeLWF.value || 0,
-            employeradmin: adminAmount.value || 0,
-            totalDeductions: totalDeductions.value || 0,
-            totalEarnings: totalEarnings.value || 0,
-
-            salaryTracking: {
-              ...(breakdownValue.value?.salaryTracking || {}),
-              [`${date.value.split("-")[1]}/${date.value.split("-")[0]}`]:
-                monthlyCTC.value || 0,
-            },
-          }),
+          body: JSON.stringify(salaryBreakdownData),
         },
       );
 
-      if (!salaryBreakdownResponse.ok) {
+      if (!salaryBreakdownResponse.ok)
         throw new Error("Failed to update salary breakdown");
-      }
-      if (salaryBreakdownResponse.ok) {
-        const salaryBreakdownData = await salaryBreakdownResponse.json();
 
-        const earnings = salaryBreakdownData.data.id;
-        console.log("ear", earnings);
-
-        // await tdsDeduction(earnings);
-      }
+      console.log(
+        `✅ Salary breakdown successfully patched for ${month}/${year}`,
+      );
     } else {
-      // Create new salary breakdown if it doesn't exist
       const newSalaryBreakdownResponse = await fetch(
         `${apiUrl}/items/SalaryBreakdown`,
         {
@@ -1980,30 +2028,208 @@ const updatePayrollCatagory = async () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            ctc: annualCTC.value,
             employee: props.id,
             tenant: currentUserTenant.getTenantId(),
+            ...salaryBreakdownData,
           }),
         },
       );
 
-      if (!newSalaryBreakdownResponse.ok) {
+      if (!newSalaryBreakdownResponse.ok)
         throw new Error("Failed to create salary breakdown");
-      }
+
+      console.log(`✅ New salary breakdown created for ${month}/${year}`);
     }
 
-    // Refresh employee data
     await fetchEmployeeData();
     showSuccessMessage("Payroll category updated successfully!");
-    console.log("Payroll category updated successfully");
+    console.log("🎉 Payroll category updated successfully");
   } catch (error) {
-    console.error("Error updating payroll category:", error);
+    console.error("❌ Error updating payroll category:", error);
     showErrorMessage(`Error updating payroll category: ${error.message}`);
   }
 };
 
+const updatePayrollCatagory = async () => {
+  if (!hasChanges.value) return;
+
+  if (monthlyCTC.value && totalAmount.value > monthlyCTC.value) {
+    showErrorMessage("Cannot update! Fixed earnings exceed Monthly CTC.");
+    return;
+  }
+
+  if (selectedCategory.value.name === "Custom") {
+    await updatePayrollCatagoryCustom();
+  } else {
+    const [year, month] = date.value.split("-");
+    console.log(`🗓 Updating Payroll for: ${month}/${year}`);
+
+    // ===== Build Sectional Data =====
+    const earningsPayload = { [year]: { [month]: {} } };
+    earnings.value.forEach(
+      (item) => (earningsPayload[year][month][item.name] = item.amount),
+    );
+    // Include BasicPay inside earnings
+    earningsPayload[year][month]["Basic Pay"] = basicPayValue.value || 0;
+
+    const employerContributionsPayload = { [year]: { [month]: {} } };
+    employerContributions.value.forEach(
+      (item) =>
+        (employerContributionsPayload[year][month][item.name] = {
+          amount: item.rupee,
+          includedInCTC: item.includedInCTC,
+        }),
+    );
+
+    const employeeContributionsPayload = { [year]: { [month]: {} } };
+    employeeContributions.value.forEach(
+      (item) =>
+        (employeeContributionsPayload[year][month][item.name] = item.rupee),
+    );
+
+    const deductionsPayload = { [year]: { [month]: {} } };
+    deductions.value.forEach(
+      (item) => (deductionsPayload[year][month][item.name] = item.amount),
+    );
+
+    // ===== Salary Tracking =====
+    const updatedTracking = { ...(employee.value?.salaryConfigTracking || {}) };
+    updatedTracking[year] = updatedTracking[year] || {};
+    updatedTracking[year][month] = selectedCategory.value.id;
+
+    try {
+      // 1️⃣ Update personal module
+      const personalModuleResponse = await fetch(
+        `${apiUrl}/items/personalModule/${props.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ salaryConfigTracking: updatedTracking }),
+        },
+      );
+
+      if (!personalModuleResponse.ok)
+        throw new Error("Failed to update personal module");
+
+      // ===== Merge Existing Data Before PATCH =====
+      const existingData = breakdownValue.value || {};
+      console.log("📂 Existing Salary Breakdown Data:", existingData);
+
+      // ✅ Deep merge helper
+      const deepMerge = (existing = {}, incoming = {}) => {
+        const result = { ...existing };
+        Object.keys(incoming).forEach((yearKey) => {
+          result[yearKey] = {
+            ...(existing[yearKey] || {}),
+            ...incoming[yearKey],
+          };
+        });
+        return result;
+      };
+
+      const mergedData = {
+        ...existingData,
+        earnings: deepMerge(existingData.earnings, earningsPayload),
+        employersContribution: deepMerge(
+          existingData.employersContribution,
+          employerContributionsPayload,
+        ),
+        employeeDeduction: deepMerge(
+          existingData.employeeDeduction,
+          employeeContributionsPayload,
+        ),
+        deduction: deepMerge(existingData.deduction, deductionsPayload),
+      };
+
+      console.log("🆕 New Monthly Payloads:", {
+        earningsPayload,
+        employerContributionsPayload,
+        employeeContributionsPayload,
+        deductionsPayload,
+      });
+
+      console.log("✅ Final Merged Data Before Patch:", mergedData);
+
+      // 2️⃣ Prepare final Salary Breakdown data
+      const salaryBreakdownData = {
+        ...mergedData,
+        ctc: annualCTC.value || 0,
+        netSalary: netSalary.value || 0,
+        profeesionalTax: professionalTaxAmount.value || 0,
+        employerLwf: employerLWF.value || 0,
+        employeeLwf: employeeLWF.value || 0,
+        employeradmin: adminAmount.value || 0,
+        totalDeductions: totalDeductions.value || 0,
+        totalEarnings: totalEarnings.value || 0,
+        salaryTracking: {
+          ...(mergedData.salaryTracking || {}),
+          [`${month}/${year}`]: monthlyCTC.value || 0,
+        },
+      };
+
+      console.log(
+        "🧾 Final SalaryBreakdown Payload to PATCH/POST:",
+        salaryBreakdownData,
+      );
+
+      // 3️⃣ PATCH or POST Salary Breakdown
+      if (salaryBreakdownId.value) {
+        const salaryBreakdownResponse = await fetch(
+          `${apiUrl}/items/SalaryBreakdown/${salaryBreakdownId.value}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(salaryBreakdownData),
+          },
+        );
+
+        if (!salaryBreakdownResponse.ok)
+          throw new Error("Failed to update salary breakdown");
+
+        console.log(
+          `✅ Salary breakdown successfully patched for ${month}/${year}`,
+        );
+      } else {
+        const newSalaryBreakdownResponse = await fetch(
+          `${apiUrl}/items/SalaryBreakdown`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              employee: props.id,
+              tenant: currentUserTenant.getTenantId(),
+              ...salaryBreakdownData,
+            }),
+          },
+        );
+
+        if (!newSalaryBreakdownResponse.ok)
+          throw new Error("Failed to create salary breakdown");
+
+        console.log(`✅ New salary breakdown created for ${month}/${year}`);
+      }
+
+      await fetchEmployeeData();
+      showSuccessMessage("Payroll category updated successfully!");
+      console.log("🎉 Payroll category updated successfully");
+    } catch (error) {
+      console.error("❌ Error updating payroll category:", error);
+      showErrorMessage(`Error updating payroll category: ${error.message}`);
+    }
+  }
+};
+
 const redirectToPayrollConfig = () => {
-  router.push("/settings/payrollCatagory");
+  router.push("/configuration/payroll-policy");
 };
 const getMonthName = (monthValue) => {
   const month = months.value.find((m) => m.value === monthValue);
@@ -2082,6 +2308,7 @@ watch(date, async (newVal) => {
         }
       }
     }
+    showForm.value = false;
   }
 
   if (categoryId) {

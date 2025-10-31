@@ -126,6 +126,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
@@ -134,15 +136,16 @@ onMounted(() => {
 }
 
 .custom-tabs {
-  background-color: #dee8f1;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
 .custom-tab {
-  background-color: white;
-  color: black !important;
+  border-radius: 10;
+  background-color: #ecfdf5;
+  color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   margin-right: 8px;
@@ -156,16 +159,19 @@ onMounted(() => {
 
 /* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: #122f68 !important;
-  color: #ffffff !important;
+  background-color: #059367 !important;
+  color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Disabled tab style */
-.custom-tab.v-tab--disabled {
-  color: #ccc !important;
-  cursor: not-allowed;
-  opacity: 0.6;
+/* Icon styles */
+.custom-tab .v-icon {
+  color: #122f68 !important;
+  opacity: 0.8;
+}
+.v-tab--selected .v-icon {
+  color: white !important;
+  opacity: 1;
 }
 
 /* Content below tabs */
@@ -174,7 +180,6 @@ onMounted(() => {
   background: white;
   padding: 16px;
 }
-
 ::v-deep(.v-tab.v-btn) {
   height: var(--v-tabs-height);
   border-radius: 10px !important;

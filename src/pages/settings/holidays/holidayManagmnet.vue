@@ -58,17 +58,6 @@
               </div>
               <div class="d-flex button-group">
                 <BaseButton
-                  text="Default Holidays"
-                  :left-icon="{
-                    render: () => h(VIcon, { icon: 'mdi-flag', size: 16 }),
-                  }"
-                  variant="outlined"
-                  size="md"
-                  color="secondary"
-                  @click="openGovernmentHolidaysDialog"
-                  class="mr-2 rounded-lg text-none default-holiday-btn"
-                />
-                <BaseButton
                   text="Add Holiday"
                   :left-icon="{
                     render: () => h(VIcon, { icon: 'mdi-plus', size: 16 }),
@@ -114,23 +103,53 @@
               <!-- Organizations Cell -->
               <template #cell-branches="{ item }">
                 <div class="branch-chips">
+                  <template v-if="item.branches && item.branches.length > 0">
+                    <template v-if="item.branches.length === branches.length">
+                      <v-chip
+                        size="small"
+                        color="primary"
+                        variant="tonal"
+                        class="mr-1 mb-1"
+                        @click="showBranches(item)"
+                      >
+                        <v-icon
+                          icon="mdi-map-marker"
+                          size="12"
+                          class="mr-1"
+                        ></v-icon>
+                        All Branches
+                      </v-chip>
+                    </template>
+                    <template v-else>
+                      <v-chip
+                        size="small"
+                        color="#059367"
+                        variant="tonal"
+                        class="mr-1 mb-1"
+                      >
+                        <v-icon
+                          icon="mdi-map-marker"
+                          size="12"
+                          class="mr-1"
+                        ></v-icon>
+                        {{
+                          item.branches[0].locationName || "Unknown Location"
+                        }}
+                      </v-chip>
+                      <v-chip
+                        v-if="item.branches.length > 1"
+                        size="small"
+                        color="grey"
+                        variant="tonal"
+                        class="mr-1 mb-1 view-more-chip"
+                        @click="showBranches(item)"
+                      >
+                        + {{ item.branches.length - 1 }} more
+                      </v-chip>
+                    </template>
+                  </template>
                   <v-chip
-                    v-for="branch in item.branches || []"
-                    :key="branch.id"
-                    size="small"
-                    color="primary"
-                    variant="tonal"
-                    class="mr-1 mb-1"
-                  >
-                    <v-icon
-                      icon="mdi-map-marker"
-                      size="12"
-                      class="mr-1"
-                    ></v-icon>
-                    {{ branch.locationName || "Unknown Location" }}
-                  </v-chip>
-                  <v-chip
-                    v-if="!item.branches || item.branches.length === 0"
+                    v-else
                     size="small"
                     color="grey"
                     variant="tonal"
@@ -248,42 +267,62 @@
               :rules="[(v) => !!v || 'Date is required']"
             />
 
-            <!-- Branch Selection Dropdown -->
-            <v-select
-              v-model="selectedBranches"
-              :items="[
-                { id: 'all', locationName: 'All Branches' },
-                ...branches,
-              ]"
-              item-title="locationName"
-              item-value="id"
-              label="Select Branches"
-              placeholder="Choose branches"
-              variant="outlined"
-              density="comfortable"
-              class="mb-4 form-field"
-              prepend-inner-icon="mdi-map-marker"
-              multiple
-              :rules="[
-                (v) => v.length > 0 || 'At least one branch is required',
-              ]"
+            <!-- Branch Selection with Checkboxes -->
+            <v-menu
+              v-model="branchMenu"
+              :close-on-content-click="false"
+              location="bottom"
+              max-height="300px"
             >
-              <template #selection="{ item, index }">
-                <v-chip v-if="index < 2" size="small" class="mr-1">
-                  {{ item.title }}
-                </v-chip>
-                <span v-if="index === 2" class="text-grey text-caption">
-                  (+{{ selectedBranches.length - 2 }} others)
-                </span>
+              <template #activator="{ props }">
+                <v-text-field
+                  v-bind="props"
+                  :model-value="selectedBranchesDisplay"
+                  label="Select Branches"
+                  placeholder="Choose branches"
+                  variant="outlined"
+                  density="comfortable"
+                  class="mb-4 form-field"
+                  prepend-inner-icon="mdi-map-marker"
+                  readonly
+                  :rules="[
+                    () =>
+                      selectedBranches.length > 0 ||
+                      'At least one branch is required',
+                  ]"
+                />
               </template>
-              <template #item="{ props, item }">
-                <v-list-item v-bind="props">
-                  <template #prepend>
-                    <v-icon icon="mdi-map-marker" class="mr-2" />
-                  </template>
-                </v-list-item>
-              </template>
-            </v-select>
+              <v-card>
+                <v-card-text class="pa-0">
+                  <v-list density="compact">
+                    <v-list-item>
+                      <v-checkbox
+                        v-model="selectAllBranches"
+                        label="All Branches"
+                        hide-details
+                        density="compact"
+                        @update:modelValue="toggleAllBranches"
+                      />
+                    </v-list-item>
+                    <v-divider />
+                    <v-list-item
+                      v-for="branch in branches"
+                      :key="branch.id"
+                      :value="branch.id"
+                    >
+                      <v-checkbox
+                        v-model="selectedBranches"
+                        :label="branch.locationName"
+                        :value="branch.id"
+                        hide-details
+                        density="compact"
+                        @update:modelValue="updateSelectAll"
+                      />
+                    </v-list-item>
+                  </v-list>
+                </v-card-text>
+              </v-card>
+            </v-menu>
 
             <v-alert
               v-if="!selectedBranches.length"
@@ -328,6 +367,49 @@
       </v-card>
     </v-dialog>
 
+    <!-- View Assigned Branches Dialog -->
+    <v-dialog v-model="showViewDialog" max-width="400px">
+      <v-card>
+        <v-card-title class="pa-6 pb-4 dialog-header">
+          <div class="d-flex align-center justify-space-between w-100">
+            <h3 class="text-h6 font-weight-bold dialog-title">
+              Assigned Branches
+            </h3>
+            <v-btn
+              icon="mdi-close"
+              @click="showViewDialog = false"
+              variant="text"
+              size="small"
+              class="rounded-lg dialog-close-btn"
+            ></v-btn>
+          </div>
+        </v-card-title>
+        <v-card-text>
+          <v-list>
+            <v-list-item
+              v-for="branch in selectedHolidayForView?.branches"
+              :key="branch.id"
+            >
+              <v-list-item-title>{{
+                branch.locationName || "Unknown Location"
+              }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-card-actions class="pa-6 pt-4 dialog-footer">
+          <v-spacer></v-spacer>
+          <BaseButton
+            text="Close"
+            variant="danger"
+            color="grey-darken-1"
+            size="md"
+            @click="showViewDialog = false"
+            class="footer-btn"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Delete Confirmation Dialog -->
     <ConfirmDeleteModal
       :show="showDeleteDialog"
@@ -343,140 +425,6 @@
       @close="closeDeleteDialog"
       @confirm="confirmDelete"
     />
-
-    <!-- Default Holiday Prompt Dialog -->
-    <v-dialog
-      v-model="showDefaultHolidayPromptDialog"
-      max-width="600px"
-      persistent
-    >
-      <v-card class="rounded-xl pa-4 text-center">
-        <v-card-title class="text-h5 font-weight-bold text-primary mb-4">
-          <v-icon
-            icon="mdi-calendar-question"
-            size="64"
-            class="mb-3"
-            color="primary"
-          ></v-icon>
-          <div class="mt-2">
-            No Holidays for {{ new Date().getFullYear() }} Yet!
-          </div>
-        </v-card-title>
-        <v-card-text class="text-body-1 text-medium-emphasis">
-          It looks like you haven't added any holidays for the current year.
-          Would you like to add common Indian government holidays, or create
-          your own?
-        </v-card-text>
-        <v-card-actions class="d-flex flex-column pa-4">
-          <BaseButton
-            text="Add Default Government Holidays"
-            :left-icon="{
-              render: () => h(VIcon, { icon: 'mdi-flag', size: 16 }),
-            }"
-            color="primary"
-            variant="elevated"
-            block
-            size="large"
-            class="mb-3 text-none rounded-lg"
-            @click="openGovernmentHolidaysDialog"
-          />
-          <BaseButton
-            text="Create Your Own Holiday"
-            :left-icon="{
-              render: () => h(VIcon, { icon: 'mdi-pencil-plus', size: 16 }),
-            }"
-            color="secondary"
-            variant="outlined"
-            block
-            size="large"
-            class="mb-3 text-none rounded-lg"
-            @click="openCreateOwnHolidayDialog"
-          />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Default Government Holidays Dialog -->
-    <v-dialog v-model="showGovernmentHolidaysDialog" max-width="700px">
-      <v-card class="rounded-xl pa-4">
-        <v-card-title class="pa-4 pb-2">
-          <div class="d-flex align-center justify-space-between w-100">
-            <h3 class="text-h6 font-weight-medium">
-              <v-icon icon="mdi-flag-variant" class="mr-2"></v-icon>
-              Select Default Indian Government Holidays
-            </h3>
-            <v-btn
-              icon="mdi-close"
-              @click="cancelGovernmentHolidaysAction"
-              variant="text"
-              size="small"
-              class="rounded-lg"
-            ></v-btn>
-          </div>
-        </v-card-title>
-        <v-card-text class="pa-4 pt-0">
-          <v-checkbox
-            v-model="selectAllDefaultHolidays"
-            label="Select All"
-            density="compact"
-            hide-details
-            class="mb-3"
-            :disabled="allHolidaysAdded"
-          ></v-checkbox>
-          <v-list density="comfortable" class="rounded-lg border">
-            <v-list-item
-              v-for="holiday in indianGovernmentHolidays"
-              :key="holiday.event"
-              class="mb-2"
-              rounded="lg"
-              :disabled="isHolidayDisabled(holiday)"
-            >
-              <template #prepend>
-                <v-checkbox-btn
-                  :model-value="selectedDefaultHolidays.includes(holiday)"
-                  :value="holiday"
-                  color="primary"
-                  :disabled="isHolidayDisabled(holiday)"
-                  @update:modelValue="toggleHolidaySelection(holiday, $event)"
-                ></v-checkbox-btn>
-              </template>
-              <v-list-item-title class="font-weight-medium">
-                {{ holiday.event }}
-              </v-list-item-title>
-              <v-list-item-subtitle>
-                {{ holiday.typicalDate }}
-                <span
-                  v-if="holiday.remarks"
-                  class="text-caption text-grey-darken-1"
-                >
-                  ({{ holiday.remarks }})
-                </span>
-              </v-list-item-subtitle>
-            </v-list-item>
-          </v-list>
-        </v-card-text>
-        <v-card-actions class="pa-4 pt-0 d-flex justify-end">
-          <BaseButton
-            text="Cancel"
-            variant="danger"
-            color="grey"
-            size="md"
-            @click="cancelGovernmentHolidaysAction"
-            class="mr-3"
-          />
-          <BaseButton
-            text="Create Selected Holidays"
-            :left-icon="{
-              render: () => h(VIcon, { icon: 'mdi-check', size: 16 }),
-            }"
-            size="md"
-            @click="createDefaultHolidays"
-            :disabled="selectedDefaultHolidays.length === 0"
-            variant="primary"
-          />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-container>
 </template>
 
@@ -507,6 +455,7 @@ const successMessage = ref("");
 const errorMessage = ref("");
 const formValid = ref(false);
 const yearMenu = ref(false);
+const branchMenu = ref(false); // New state for branch menu
 
 // State for branches from locationManagement
 const branches = ref([]);
@@ -517,133 +466,29 @@ const sortDirection = ref("asc");
 const currentPage = ref(1);
 const itemsPerPage = ref(25);
 
-// Holiday data (same as before)
-const indianGovernmentHolidays = [
-  {
-    event: "New Year",
-    typicalDate: "1 January",
-    remarks: "Celebration of the new year",
-    calculateDate: (year) => new Date(year, 0, 1),
-  },
-  {
-    event: "Republic Day",
-    typicalDate: "26 January",
-    remarks: "National holiday",
-    calculateDate: (year) => new Date(year, 0, 26),
-  },
-  {
-    event: "Independence Day",
-    typicalDate: "15 August",
-    remarks: "National holiday",
-    calculateDate: (year) => new Date(year, 7, 15),
-  },
-  {
-    event: "Gandhi Jayanti",
-    typicalDate: "2 October",
-    remarks: "National holiday",
-    calculateDate: (year) => new Date(year, 9, 2),
-  },
-  {
-    event: "Christmas Day",
-    typicalDate: "25 December",
-    remarks: "Christian holiday",
-    calculateDate: (year) => new Date(year, 11, 25),
-  },
-  {
-    event: "Good Friday",
-    typicalDate: "Varies (April)",
-    remarks: "Christian holiday, nationwide off",
-    calculateDate: (year) => {
-      const a = year % 19;
-      const b = Math.floor(year / 100);
-      const c = year % 100;
-      const d = Math.floor(b / 4);
-      const e = b % 4;
-      const f = Math.floor((b + 8) / 25);
-      const g = Math.floor((b - f + 1) / 3);
-      const h = (19 * a + b - d - g + 15) % 30;
-      const i = Math.floor(c / 4);
-      const k = c % 4;
-      const l = (32 + 2 * e + 2 * i - h - k) % 7;
-      const m = Math.floor((a + 11 * h + 22 * l) / 451);
-      const month = Math.floor((h + l - 7 * m + 114) / 31);
-      const day = ((h + l - 7 * m + 114) % 31) + 1;
-      const easterSunday = new Date(year, month - 1, day);
-      const goodFriday = new Date(easterSunday);
-      goodFriday.setDate(easterSunday.getDate() - 2);
-      return goodFriday;
-    },
-  },
-  {
-    event: "Holi",
-    typicalDate: "Varies (March)",
-    remarks: "Festival of colors",
-    calculateDate: (year) => new Date(year, 2, 10),
-  },
-  {
-    event: "Diwali",
-    typicalDate: "Varies (Oct/Nov)",
-    remarks: "Major Hindu festival",
-    calculateDate: (year) => new Date(year, 9, 25),
-  },
-  {
-    event: "Labour's Day",
-    typicalDate: "1 May",
-    remarks: "International Workers' Day",
-    calculateDate: (year) => new Date(year, 4, 1),
-  },
-];
-
 // State
 const selectedYear = ref(new Date().getFullYear());
 const selectedDate = ref(null);
 const holidays = ref([]);
-const selectedBranches = ref(["all"]); // Default to 'all' branches
+const selectedBranches = ref([]); // Changed default to empty array
+const selectAllBranches = ref(false); // New state for "All Branches" checkbox
 const isAddingHoliday = ref(false);
 const newHolidayName = ref("");
 const editingHoliday = ref(null);
 const editedHolidayName = ref("");
 const showHolidayFormDialog = ref(false);
-const showDefaultHolidayPromptDialog = ref(false);
-const hasUserInteractedWithInitialPrompt = ref(false);
-const showGovernmentHolidaysDialog = ref(false);
-const selectedDefaultHolidays = ref([]);
 
-// Computed properties for select all default holidays and all holidays added (unchanged)
-const selectAllDefaultHolidays = computed({
-  get: () => {
-    const nonDisabledHolidays = indianGovernmentHolidays.filter(
-      (holiday) => !isHolidayDisabled(holiday),
-    );
-    return (
-      nonDisabledHolidays.length > 0 &&
-      nonDisabledHolidays.every((holiday) =>
-        selectedDefaultHolidays.value.includes(holiday),
-      )
-    );
-  },
-  set: (value) => {
-    if (value) {
-      selectedDefaultHolidays.value = indianGovernmentHolidays.filter(
-        (holiday) => !isHolidayDisabled(holiday),
-      );
-    } else {
-      selectedDefaultHolidays.value = [];
-    }
-  },
-});
+// View Dialog State
+const showViewDialog = ref(false);
+const selectedHolidayForView = ref(null);
 
-const allHolidaysAdded = computed(() =>
-  indianGovernmentHolidays.every((holiday) => isHolidayDisabled(holiday)),
-);
-
-// Table columns definition (simplified to focus on branches)
+// Table columns definition
 const holidayColumns = ref([
   { key: "date", label: "Date", sortable: false, width: "50px" },
   { key: "event", label: "Holiday Name", sortable: false, width: "200px" },
   {
     key: "branches",
-    label: "Branches",
+    label: "Branch",
     sortable: false,
     width: "400px",
   },
@@ -682,6 +527,34 @@ const availableYearsForSelection = computed(() => {
   }
   return Array.from(years).sort((a, b) => b - a);
 });
+
+const selectedBranchesDisplay = computed(() => {
+  if (selectAllBranches.value) return "All Branches";
+  if (selectedBranches.value.length === 0) return "";
+  if (selectedBranches.value.length === branches.value.length)
+    return "All Branches";
+  const selected = branches.value
+    .filter((branch) => selectedBranches.value.includes(branch.id))
+    .map((branch) => branch.locationName);
+  return selected.length > 2
+    ? `${selected.slice(0, 2).join(", ")} (+${selected.length - 2} others)`
+    : selected.join(", ");
+});
+
+// Toggle all branches
+const toggleAllBranches = (value) => {
+  if (value) {
+    selectedBranches.value = branches.value.map((branch) => branch.id);
+  } else {
+    selectedBranches.value = [];
+  }
+};
+
+// Update select all checkbox state
+const updateSelectAll = () => {
+  selectAllBranches.value =
+    selectedBranches.value.length === branches.value.length;
+};
 
 // Fetch branches from locationManagement
 const fetchBranches = async () => {
@@ -729,7 +602,6 @@ const fetchBranches = async () => {
       let locationName = "Unknown Location";
       let orgName = branch.orgLocation?.orgName || "Unknown Organization";
 
-      // Handle locdetail
       if (branch.locdetail) {
         if (typeof branch.locdetail === "object") {
           locationName = branch.locdetail.locationName || "Unknown Location";
@@ -746,7 +618,6 @@ const fetchBranches = async () => {
         }
       }
 
-      // Ensure holidays is a JSON string
       let holidays = branch.holidays;
       if (Array.isArray(branch.holidays)) {
         holidays = JSON.stringify(branch.holidays);
@@ -762,10 +633,9 @@ const fetchBranches = async () => {
         ...branch,
         locationName,
         orgName,
-        holidays, // Store as JSON string
+        holidays,
       };
     });
-    console.log("Fetched branches:", branches.value);
   } catch (error) {
     console.error("Error fetching branches:", error);
     setErrorMessage("Failed to load branches. Please try again.");
@@ -773,23 +643,15 @@ const fetchBranches = async () => {
   }
 };
 
-// Fetch holidays (updated to include branch information)
+// Fetch holidays
 const fetchHolidays = async (year) => {
   try {
-    console.log("⏳ Starting fetchHolidays for year:", year);
     isLoading.value = true;
-
     const branchIds = branches.value.map((branch) => branch.id);
-    console.log("✅ Extracted branch IDs:", branchIds);
-
     const holidaysByBranch = [];
-
+    const tenantId = currentUserTenant.getTenantId();
     for (const branchId of branchIds) {
-      console.log("🔍 Processing branch ID:", branchId);
-
       const branch = branches.value.find((b) => b.id === branchId);
-      console.log("🏢 Found branch details:", branch);
-
       let holidayIds = [];
       if (branch.holidays) {
         if (typeof branch.holidays === "string") {
@@ -807,7 +669,6 @@ const fetchHolidays = async (year) => {
             holidayIds = [];
           }
         } else if (Array.isArray(branch.holidays)) {
-          // Handle case where holidays is already an array (or Proxy-wrapped array)
           holidayIds = branch.holidays;
         } else {
           console.warn(
@@ -817,10 +678,8 @@ const fetchHolidays = async (year) => {
           holidayIds = [];
         }
       }
-      console.log("📅 Parsed holiday IDs for branch:", branchId, holidayIds);
 
       if (holidayIds.length === 0) {
-        console.log("⚠️ No holidays found for branch:", branchId);
         continue;
       }
 
@@ -828,6 +687,7 @@ const fetchHolidays = async (year) => {
         fields: ["id", "event", "date", "assignedYear"],
         "filter[id][_in]": holidayIds.join(","),
         "filter[assignedYear][_eq]": year,
+        "filter[tenant][tenantId][_eq": tenantId,
       };
 
       const queryString = Object.keys(params)
@@ -839,35 +699,23 @@ const fetchHolidays = async (year) => {
         })
         .join("&");
 
-      console.log("🌐 Final query string:", queryString);
-
-      const url = `${import.meta.env.VITE_API_URL}/items/holiday?${queryString}`;
-      console.log("🚀 Fetching holidays from:", url);
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/holiday?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
-
-      console.log(
-        "📨 Response status for branch",
-        branchId,
-        ":",
-        response.status,
       );
 
       if (!response.ok) {
-        console.warn(`⚠️ Failed to fetch holidays for branch ${branchId}`);
+        console.warn(`Failed to fetch holidays for branch ${branchId}`);
         continue;
       }
 
       const holidayData = await response.json();
-      console.log("📦 Raw holiday data:", holidayData);
-
       const validHolidays = holidayData.data || [];
-      console.log("✅ Valid holidays fetched:", validHolidays);
 
       holidaysByBranch.push(
         ...validHolidays.map((holiday) => ({
@@ -882,11 +730,7 @@ const fetchHolidays = async (year) => {
           ],
         })),
       );
-
-      console.log("📚 holidaysByBranch after adding branch:", holidaysByBranch);
     }
-
-    console.log("🧮 Merging holidays by ID...");
 
     const aggregatedHolidays = holidaysByBranch.reduce((acc, holiday) => {
       const existing = acc.find((h) => h.id === holiday.id);
@@ -898,16 +742,13 @@ const fetchHolidays = async (year) => {
       return acc;
     }, []);
 
-    console.log("🎉 Final aggregated holidays:", aggregatedHolidays);
-
     holidays.value = aggregatedHolidays;
   } catch (error) {
-    console.error("❌ Error fetching holidays:", error);
+    console.error("Error fetching holidays:", error);
     setErrorMessage("Failed to load holidays. Please try again.");
     holidays.value = [];
   } finally {
     isLoading.value = false;
-    console.log("✅ FetchHolidays completed. isLoading set to false.");
   }
 };
 
@@ -919,7 +760,6 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
       throw new Error(`Branch with ID ${branchId} not found`);
     }
 
-    // Parse existing holidays or initialize as an empty array
     let currentHolidays = [];
     if (branch.holidays) {
       if (typeof branch.holidays === "string") {
@@ -947,11 +787,9 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
       }
     }
 
-    // Check if holidayId is already in the array to avoid duplicates
     if (!currentHolidays.includes(holidayId)) {
       const updatedHolidays = [...currentHolidays, holidayId];
 
-      // Update the branch with the new holidays array as a JSON string
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/items/locationManagement/${branchId}`,
         {
@@ -961,7 +799,7 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            holidays: JSON.stringify(updatedHolidays), // Ensure JSON string
+            holidays: JSON.stringify(updatedHolidays),
           }),
         },
       );
@@ -970,12 +808,7 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
         throw new Error(`Failed to update holidays for branch ${branchId}`);
       }
 
-      // Update the local branches array to reflect the change
-      branch.holidays = JSON.stringify(updatedHolidays); // Store as JSON string
-    } else {
-      console.log(
-        `Holiday ID ${holidayId} already exists in branch ${branchId}`,
-      );
+      branch.holidays = JSON.stringify(updatedHolidays);
     }
   } catch (error) {
     console.error(`Error updating branch ${branchId} with holiday:`, error);
@@ -1022,7 +855,6 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
 
       const updatedHolidays = currentHolidays.filter((id) => id !== holidayId);
 
-      // Only update if the holidays array has changed
       if (JSON.stringify(currentHolidays) !== JSON.stringify(updatedHolidays)) {
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/items/locationManagement/${branchId}`,
@@ -1033,7 +865,7 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              holidays: JSON.stringify(updatedHolidays), // Ensure JSON string
+              holidays: JSON.stringify(updatedHolidays),
             }),
           },
         );
@@ -1041,8 +873,7 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
         if (!response.ok) {
           console.warn(`Failed to remove holiday from branch ${branchId}`);
         } else {
-          // Update local branch state
-          branch.holidays = JSON.stringify(updatedHolidays); // Store as JSON string
+          branch.holidays = JSON.stringify(updatedHolidays);
         }
       }
     }
@@ -1052,7 +883,7 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
   }
 };
 
-// Date formatting (unchanged)
+// Date formatting
 const formatDate = (date) => {
   if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return date;
@@ -1077,7 +908,7 @@ const getDayFromDate = (dateString) => {
   return date.getDate();
 };
 
-// Message handling (unchanged)
+// Message handling
 const setSuccessMessage = (message) => {
   if (toastContainer.value) {
     toastContainer.value.success(message, 5000);
@@ -1100,21 +931,14 @@ const setErrorMessage = (message) => {
 
 // Holiday Actions
 const handleAddHolidayClick = () => {
-  if (
-    holidays.value.length === 0 &&
-    selectedYear.value === new Date().getFullYear() &&
-    !hasUserInteractedWithInitialPrompt.value
-  ) {
-    showDefaultHolidayPromptDialog.value = true;
-  } else {
-    isAddingHoliday.value = true;
-    editingHoliday.value = null;
-    newHolidayName.value = "";
-    selectedDate.value = null;
-    selectedBranches.value = ["all"]; // Default to 'all' branches
-    errorMessage.value = "";
-    showHolidayFormDialog.value = true;
-  }
+  isAddingHoliday.value = true;
+  editingHoliday.value = null;
+  newHolidayName.value = "";
+  selectedDate.value = null;
+  selectedBranches.value = [];
+  selectAllBranches.value = false;
+  errorMessage.value = "";
+  showHolidayFormDialog.value = true;
 };
 
 const handleEditHolidayClick = (holiday) => {
@@ -1122,11 +946,9 @@ const handleEditHolidayClick = (holiday) => {
   editingHoliday.value = holiday;
   editedHolidayName.value = holiday.event;
   selectedDate.value = formatDate(new Date(holiday.date));
-  // Set 'all' if all branches are selected, otherwise use specific branch IDs
-  selectedBranches.value =
-    holiday.branches.length === branches.value.length
-      ? ["all"]
-      : holiday.branches.map((b) => b.id);
+  selectedBranches.value = holiday.branches.map((b) => b.id);
+  selectAllBranches.value =
+    selectedBranches.value.length === branches.value.length;
   errorMessage.value = "";
   showHolidayFormDialog.value = true;
 };
@@ -1203,12 +1025,8 @@ const addHoliday = async () => {
     const holidayData = await response.json();
     const holidayId = holidayData.data.id;
 
-    // If 'all' is selected, assign holiday to all branches
-    const branchIdsToUpdate = selectedBranches.value.includes("all")
-      ? branches.value.map((branch) => branch.id)
-      : selectedBranches.value;
+    const branchIdsToUpdate = selectedBranches.value;
 
-    // Update all selected branches
     for (const branchId of branchIdsToUpdate) {
       await updateBranchWithHoliday(branchId, holidayId);
     }
@@ -1241,7 +1059,6 @@ const updateHoliday = async () => {
       date: formatDate(selectedDate.value),
     };
 
-    // Update the holiday details
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/holiday/${editingHoliday.value.id}`,
       {
@@ -1258,13 +1075,9 @@ const updateHoliday = async () => {
       throw new Error("Failed to update holiday");
     }
 
-    // Determine old and new branch IDs
     const oldBranchIds = editingHoliday.value.branches.map((b) => b.id);
-    const newBranchIds = selectedBranches.value.includes("all")
-      ? branches.value.map((branch) => branch.id)
-      : selectedBranches.value;
+    const newBranchIds = selectedBranches.value;
 
-    // Remove holiday from branches no longer selected
     const branchesToRemove = oldBranchIds.filter(
       (id) => !newBranchIds.includes(id),
     );
@@ -1275,7 +1088,6 @@ const updateHoliday = async () => {
       );
     }
 
-    // Add holiday to new branches
     const branchesToAdd = newBranchIds.filter(
       (id) => !oldBranchIds.includes(id),
     );
@@ -1295,112 +1107,20 @@ const updateHoliday = async () => {
 const cancelAction = () => {
   newHolidayName.value = "";
   selectedDate.value = null;
-  selectedBranches.value = ["all"]; // Reset to 'all' branches
+  selectedBranches.value = [];
+  selectAllBranches.value = false;
   isAddingHoliday.value = false;
   editingHoliday.value = null;
   editedHolidayName.value = "";
   showHolidayFormDialog.value = false;
 };
 
-// Default Holiday Actions
-const openGovernmentHolidaysDialog = () => {
-  showDefaultHolidayPromptDialog.value = false;
-  selectedDefaultHolidays.value = [];
-  showGovernmentHolidaysDialog.value = true;
-  hasUserInteractedWithInitialPrompt.value = true;
-};
-
-const openCreateOwnHolidayDialog = () => {
-  showDefaultHolidayPromptDialog.value = false;
-  hasUserInteractedWithInitialPrompt.value = true;
-  handleAddHolidayClick();
-};
-
-const cancelGovernmentHolidaysAction = () => {
-  showGovernmentHolidaysDialog.value = false;
-  selectedDefaultHolidays.value = [];
-};
-
-const createDefaultHolidays = async () => {
-  if (selectedDefaultHolidays.value.length === 0) return;
-
-  try {
-    const currentYear = new Date().getFullYear();
-    for (const holiday of selectedDefaultHolidays.value) {
-      const calculatedDate = holiday.calculateDate(currentYear);
-      const payload = {
-        date: formatDate(calculatedDate),
-        status: "assigned",
-        event: holiday.event,
-        tenant: tenantId,
-        assignedYear: currentYear,
-        uniqueId: `${tenantId}-${formatDate(calculatedDate)}-${currentYear}`,
-      };
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/items/holiday`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to add default holiday: ${holiday.event}`);
-      }
-
-      const holidayData = await response.json();
-      const holidayId = holidayData.data.id;
-
-      // Assign to all branches
-      for (const branch of branches.value) {
-        await updateBranchWithHoliday(branch.id, holidayId);
-      }
-    }
-
-    setSuccessMessage("Default holidays added successfully!");
-    showGovernmentHolidaysDialog.value = false;
-    selectedDefaultHolidays.value = [];
-    await fetchHolidays(selectedYear.value);
-  } catch (error) {
-    console.error("Error adding default holidays:", error);
-    setErrorMessage("Failed to add default holidays. Please try again.");
-  }
-};
-
-// Year selection and holiday disablement (unchanged)
+// Year selection
 const handleYearSelect = (item) => {
   selectedYear.value = item.value;
 };
 
-const isHolidayDisabled = (holiday) => {
-  const calculatedDate = formatDate(holiday.calculateDate(selectedYear.value));
-  return holidays.value.some(
-    (existingHoliday) => existingHoliday.date === calculatedDate,
-  );
-};
-
-const toggleHolidaySelection = (holiday, isChecked) => {
-  if (isHolidayDisabled(holiday)) return;
-  if (isChecked) {
-    if (!selectedDefaultHolidays.value.includes(holiday)) {
-      selectedDefaultHolidays.value = [
-        ...selectedDefaultHolidays.value,
-        holiday,
-      ];
-    }
-  } else {
-    selectedDefaultHolidays.value = selectedDefaultHolidays.value.filter(
-      (h) => h.event !== holiday.event,
-    );
-  }
-};
-
-// Delete confirmation handlers (unchanged)
+// Delete confirmation handlers
 const showDeleteConfirm = (holiday) => {
   holidayToDelete.value = holiday;
   showDeleteDialog.value = true;
@@ -1426,23 +1146,27 @@ const confirmDelete = async () => {
   }
 };
 
+// Show branches dialog
+const showBranches = (item) => {
+  selectedHolidayForView.value = item;
+  showViewDialog.value = true;
+};
+
 // Lifecycle Hooks
 onMounted(async () => {
   isLoading.value = true;
   await fetchBranches();
   await fetchHolidays(selectedYear.value);
-  if (holidays.value.length === 0) {
-    showDefaultHolidayPromptDialog.value = true;
-  }
   isLoading.value = false;
 });
 
 onUnmounted(() => {
-  // Cleanup unchanged
+  // Cleanup
 });
 </script>
 
 <style scoped>
+/* Existing styles remain unchanged */
 .stats-container {
   display: flex;
   align-items: center;
@@ -1457,7 +1181,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
   align-items: center;
-  /* padding: 0 12px; */
   position: relative;
   gap: 5px;
 }
@@ -1487,22 +1210,7 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.default-holiday-btn {
-  border: 2px solid #1976d2 !important;
-  background: transparent;
-  transition: all 0.2s ease;
-}
 
-.default-holiday-btn:hover {
-  background: #e3f2fd;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
-}
-.h-100 {
-  height: 100%;
-}
-
-/* Modern Card Styles */
 .modern-action-card {
   background: white;
   border: 1px solid #e2e8f0;
@@ -1513,7 +1221,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* Table Styles */
 .holidays-table-wrapper {
   background: white;
   overflow: hidden;
@@ -1531,7 +1238,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #68ade1;
+  background: #059367;
   color: white;
   border-radius: 12px;
   padding: 8px;
@@ -1603,7 +1310,6 @@ onUnmounted(() => {
   padding: 40px;
 }
 
-/* Dialog Styles */
 .dialog-card {
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -1646,7 +1352,6 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-/* Date Input Styles */
 .date-input-container {
   position: relative;
 }
@@ -1712,7 +1417,6 @@ onUnmounted(() => {
   box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
 }
 
-/* Responsive Design */
 @media (max-width: 960px) {
   .dialog-content {
     padding: 20px;
@@ -1775,7 +1479,6 @@ onUnmounted(() => {
   }
 }
 
-/* Animation Classes */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -1796,5 +1499,9 @@ onUnmounted(() => {
 
 :deep(.v-date-picker) {
   border-radius: 12px;
+}
+
+.view-more-chip {
+  cursor: pointer;
 }
 </style>

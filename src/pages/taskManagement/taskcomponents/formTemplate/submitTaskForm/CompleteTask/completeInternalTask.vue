@@ -13,7 +13,7 @@
 
       <div class="sidebar-content">
         <div class="task-details-box">
-          <h4 class="section-title">Task Details</h4>
+          <h4 class="section-title">Job Details</h4>
 
           <!-- Loading state for task details -->
           <div v-if="loadingTaskDetails" class="loading-state">
@@ -22,14 +22,14 @@
               color="primary"
               size="24"
             ></v-progress-circular>
-            <span>Loading task details...</span>
+            <span>Loading JOb details...</span>
           </div>
 
           <!-- Task details content -->
           <div v-else>
             <div class="detail-row">
-              <label class="detail-label">Task Type:</label>
-              <span class="detail-value">Internal Task</span>
+              <label class="detail-label">Job Type:</label>
+              <span class="detail-value">Internal Job</span>
             </div>
 
             <div class="detail-row">
@@ -43,23 +43,23 @@
             </div>
 
             <div class="detail-row">
-              <label class="detail-label">Task Title:</label>
+              <label class="detail-label">Job Title:</label>
               <div class="detail-value">
                 {{ taskDetails?.title || "No title provided" }}
               </div>
             </div>
 
             <div class="detail-row">
-              <label class="detail-label">Task Description:</label>
+              <label class="detail-label">JOb Description:</label>
               <div class="detail-value description-text">
                 {{ taskDetails?.description || "No description provided" }}
               </div>
             </div>
 
             <div class="detail-row">
-              <label class="detail-label">Task Type:</label>
+              <label class="detail-label">Job Type:</label>
               <span class="detail-value">{{
-                taskDetails?.taskType || "Internal Task"
+                taskDetails?.taskType || "Internal JOb"
               }}</span>
             </div>
 
@@ -111,10 +111,9 @@
           </div>
         </div>
 
-        <div class="upload-section">
+        <!-- <div class="upload-section">
           <h4 class="section-title">Task Image</h4>
 
-          <!-- Show existing image loading state -->
           <div v-if="existingImageLoading" class="loading-image-state">
             <v-progress-circular
               indeterminate
@@ -124,7 +123,6 @@
             <p>Loading existing image...</p>
           </div>
 
-          <!-- Upload area (shown when no image exists or uploaded) -->
           <div
             v-else-if="!uploadedImage"
             class="upload-area"
@@ -161,7 +159,6 @@
             </div>
           </div>
 
-          <!-- Display uploaded/existing image -->
           <div v-else class="image-container">
             <div class="image-wrapper">
               <img
@@ -187,9 +184,9 @@
               }}</span>
             </div>
           </div>
-        </div>
+        </div> -->
 
-        <div class="notes-section">
+        <!-- <div class="notes-section">
           <h4 class="section-title">Completion Notes</h4>
           <textarea
             v-model="completionNotes"
@@ -197,10 +194,10 @@
             rows="4"
             class="notes-textarea"
           ></textarea>
-        </div>
+        </div> -->
       </div>
 
-      <footer class="sidebar-footer">
+      <!-- <footer class="sidebar-footer">
         <BaseButton
           variant="primary"
           text="Complete Task"
@@ -213,7 +210,7 @@
           :loading="taskApiLoading || loading"
           @click="handleSaveDraft"
         />
-      </footer>
+      </footer> -->
     </div>
   </div>
 </template>
@@ -466,7 +463,7 @@ const handleSaveDraft = () => {
 <style scoped>
 .sidebar-overlay {
   position: fixed;
-  top: 60px;
+  top: 35px;
   right: 0;
   bottom: 0;
   width: 500px;

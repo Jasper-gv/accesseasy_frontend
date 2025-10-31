@@ -1,121 +1,45 @@
 <template>
-  <v-container fluid class="attendance-settings-editor-container pa-0">
-    <div class="d-flex justify-space-between align-center mb-4">
-      <h3 class="text-h6 font-weight-bold d-flex align-center">
-        <v-icon class="mr-2" color="black">mdi-list-box-outline</v-icon>
-        Select Attendance Policy
-      </h3>
-      <BaseButton
-        variant="primary"
-        text="Update"
-        :disabled="!hasChanges"
-        @click="saveChanges"
-      />
-    </div>
-
-    <v-card flat class="attendance-card">
-      <v-card-text>
-        <v-row align="center">
-          <v-col cols="12" md="6">
-            <v-select
-              v-model="internalSelectedPolicyId"
-              :items="attendancePolicies"
-              item-title="configName"
-              item-value="id"
-              label="Choose a Policy"
-              variant="outlined"
-              density="comfortable"
-              placeholder="Select an attendance policy"
-              clearable
-              class="mb-6"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="6">
-            <div
-              style="
-                background-color: #e1f5fe;
-                padding: 16px;
-                border-radius: 4px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              "
-            >
-              <v-icon color="blue" style="margin-right: 8px"
-                >mdi-information</v-icon
-              >
-              <span style="color: #2196f3">
-                To manage attendance policies and settings, click the button
-                below:
-              </span>
-              <v-btn
-                color="primary"
-                @click="redirectToAttendanceConfig"
-                style="margin-left: 8px"
-              >
-                Go to Attendance policies
-              </v-btn>
-            </div>
-          </v-col>
-        </v-row>
-
-        <v-alert
-          v-if="loadingPolicies"
-          type="info"
-          variant="tonal"
-          class="mb-4"
-          icon="mdi-information-outline"
-        >
-          Loading attendance policies...
-        </v-alert>
-        <v-alert
-          v-else-if="!attendancePolicies.length"
-          type="warning"
-          variant="tonal"
-          class="mb-4"
-          icon="mdi-alert-outline"
-        >
-          No attendance policies found. Please create one.
-        </v-alert>
-        <v-alert
-          v-else-if="!internalSelectedPolicyId"
-          type="info"
-          variant="tonal"
-          class="mb-4"
-          icon="mdi-information-outline"
-        >
-          Please select an attendance policy from the dropdown above to view its
-          details.
-        </v-alert>
-      </v-card-text>
-
-      <v-divider class="my-6"></v-divider>
-
-      <v-card-title class="text-h6 font-weight-bold mb-4 d-flex align-center">
-        <v-icon class="mr-2" color="black">mdi-calendar-clock</v-icon>
-        Employee Working Hours Configuration
-      </v-card-title>
-      <v-card-text>
-        <WorkingHoursForm
-          v-model="internalWorkingHoursData"
-          :tenant-id="tenantId"
+  <div class="attendance-settings">
+    <v-container v-if="isLoading">
+      <v-row>
+        <v-col cols="12" class="text-center">
+          <v-progress-circular
+            indeterminate
+            color="#059367"
+          ></v-progress-circular>
+          <p>Loading attendance settings...</p>
+        </v-col>
+      </v-row>
+    </v-container>
+    <v-container v-else fluid class="attendance-settings-editor-container pa-0">
+      <div class="d-flex justify-space-between align-center mb-4">
+        <h3 class="text-h6 font-weight-bold d-flex align-center"></h3>
+        <BaseButton
+          variant="primary"
+          text="Update"
+          :disabled="!hasChanges"
+          @click="saveChanges"
         />
-      </v-card-text>
+      </div>
 
-      <!-- <v-divider class="my-6"></v-divider> -->
+      <v-card flat class="attendance-card">
+        <v-card-text>
+          <WorkingHoursForm
+            v-model="internalWorkingHoursData"
+            :tenant-id="tenantId"
+          />
+        </v-card-text>
 
-      <!-- <v-card-title class="text-h6 font-weight-bold mb-4 d-flex align-center">
-        <v-icon class="mr-2" color="black">mdi-calendar-star</v-icon>
-        Employee Holiday Settings
-      </v-card-title> -->
-      <v-card-text>
-        <HolidaySettingsForm
-          v-model="internalHolidayIds"
-          :tenant-id="tenantId"
-          :branch-id="employeeData.branch?.id"
-        />
-      </v-card-text>
-    </v-card>
+        <v-card-text>
+          <HolidaySettingsForm
+            v-model="internalHolidayIds"
+            :tenant-id="tenantId"
+            :branch-id="employeeData.branch?.id"
+          />
+        </v-card-text>
+      </v-card>
+    </v-container>
+
     <v-snackbar
       v-model="showSuccessSnackbar"
       color="success"
@@ -140,7 +64,7 @@
         {{ errorMessage }}
       </div>
     </v-snackbar>
-  </v-container>
+  </div>
 </template>
 
 <script setup>
@@ -186,6 +110,7 @@ const successMessage = ref("");
 const errorMessage = ref("");
 
 const allShifts = ref([]);
+const isLoading = ref(true);
 
 const defaultWorkingHours = [
   { name: "Monday", key: "mon", shifts: [], isWorking: true },
@@ -321,7 +246,7 @@ async function fetchEmployeeAttendanceData() {
         "Content-Type": "application/json",
       },
     });
-console.log(response)
+    console.log(response);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -407,7 +332,7 @@ console.log(response)
 }
 
 const redirectToAttendanceConfig = () => {
-  router.push("/settings/attendancepolicy");
+  router.push("/configuration/penalty-policy");
 };
 
 const saveChanges = async () => {
@@ -472,17 +397,19 @@ const saveChanges = async () => {
 };
 
 onMounted(async () => {
+  isLoading.value = true;
   await fetchShifts();
-  await fetchAttendancePolicies();
   await fetchEmployeeAttendanceData();
+  isLoading.value = false;
 });
 
 watch(
   () => props.id,
   async () => {
+    isLoading.value = true;
     await fetchShifts();
-    await fetchAttendancePolicies();
     await fetchEmployeeAttendanceData();
+    isLoading.value = false;
   },
 );
 
@@ -490,21 +417,22 @@ watch(
   () => props.tenantId,
   async (newVal) => {
     if (newVal) {
+      isLoading.value = true;
       await fetchShifts();
-      await fetchAttendancePolicies();
       await fetchEmployeeAttendanceData();
+      isLoading.value = false;
     }
   },
 );
 </script>
 
 <style scoped>
-.attendance-settings-editor-container {
+/* .attendance-settings-editor-container {
   height: calc(90vh - 170px);
   overflow-y: auto;
   overflow-x: hidden;
   border-radius: 8px;
-}
+} */
 
 .attendance-card {
   border-radius: 12px;

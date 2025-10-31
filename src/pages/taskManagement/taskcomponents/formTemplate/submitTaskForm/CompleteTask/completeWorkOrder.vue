@@ -1,1290 +1,1458 @@
 <template>
-  <div v-if="open" class="sidebar-overlay">
-    <div class="complete-task-sidebar">
-      <!-- Header -->
-      <header class="sidebar-header">
-        <div class="sidebar-title-with-icon">
-          <v-icon color="primary" class="mr-2">mdi-clipboard-list</v-icon>
-          <h3 class="sidebar-title">
-            Complete Work Order: {{ workOrderDetails?.formName || "Task" }}
-          </h3>
+  <div class="wo-single-page-root" :class="`status-${statusClass}`">
+    <!-- Header with Status Badge and Download Button -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">{{ taskDetails?.title || "Work Order" }}</h1>
+          <v-chip
+            v-if="taskDetails?.status"
+            :color="statusColor(taskDetails.status)"
+            class="status-badge"
+            size="large"
+            label
+          >
+            <v-icon size="18" class="mr-1">{{
+              statusIcon(taskDetails.status)
+            }}</v-icon>
+            {{ statusLabel(taskDetails.status) }}
+          </v-chip>
         </div>
-        <button class="close-btn" @click="closeSidebar">
-          <X class="icon" />
-        </button>
-      </header>
+        <v-btn
+          class="pdf-btn"
+          @click="downloadPDF"
+          :loading="pdfLoading"
+          :disabled="!taskDetails"
+          variant="flat"
+          icon
+        >
+          <v-icon size="20">mdi-download</v-icon>
+        </v-btn>
+      </div>
+      <v-divider class="mt-3" />
+    </div>
 
-      <!-- Content -->
-      <div class="sidebar-content">
-        <!-- Loading State -->
-        <div v-if="fetchingWorkOrder" class="loading-container">
-          <v-progress-circular
-            indeterminate
-            size="32"
-            color="primary"
-            class="mb-3"
-          ></v-progress-circular>
-          <p class="loading-text">Loading work order details...</p>
-        </div>
+    <!-- Loading/Error States -->
+    <v-alert
+      v-if="pdfError"
+      type="error"
+      variant="tonal"
+      class="ma-3"
+      closable
+      @click:close="pdfError = null"
+    >
+      {{ pdfError }}
+    </v-alert>
 
-        <!-- Error State -->
-        <div v-else-if="workOrderError" class="error-container">
-          <v-icon color="error" size="32" class="mb-2">mdi-alert-circle</v-icon>
-          <p class="error-text">{{ workOrderError }}</p>
-          <BaseButton
-            variant="secondary"
-            text="Retry"
-            @click="retryFetch"
-            class="mt-2"
-          />
-        </div>
+    <v-alert
+      v-if="pdfSuccess"
+      type="success"
+      variant="tonal"
+      class="ma-3"
+      closable
+      @click:close="pdfSuccess = null"
+    >
+      {{ pdfSuccess }}
+    </v-alert>
 
-        <!-- Work Order Content -->
-        <div v-else-if="workOrderDetails">
-          <!-- Task Details Box -->
-          <div class="task-details-box">
-            <h4 class="section-title">Work Order Details</h4>
-
-            <div class="detail-row">
-              <label class="detail-label">Task Type:</label>
-              <span class="detail-value">{{
-                props.task?.taskType || "N/A"
-              }}</span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Task Title:</label>
-              <div class="detail-value description-text">
-                {{ props.task?.title || "No title provided" }}
-              </div>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Description:</label>
-              <div class="detail-value description-text">
-                {{ props.task?.description || "No description provided" }}
-              </div>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Current Status:</label>
-              <div
-                class="status-badge"
-                :class="getStatusClass(props.task?.status)"
-              >
-                {{ formatStatus(props.task?.status) }}
-              </div>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Priority:</label>
-              <div
-                class="priority-badge"
-                :class="getPriorityClass(props.task?.task_priority)"
-              >
-                {{ formatPriority(props.task?.task_priority) }}
-              </div>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Assigned to:</label>
-              <span class="detail-value">
-                {{
-                  props.task?.assignedUser && props.task?.employeeId
-                    ? `${props.task.assignedUser} - ${props.task.employeeId}`
-                    : "Not assigned"
-                }}
-              </span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Client:</label>
-              <span class="detail-value">{{
-                props.task?.orgName || "N/A"
-              }}</span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Tenant:</label>
-              <span class="detail-value">{{
-                props.task?.tenantName || "N/A"
-              }}</span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Start Date:</label>
-              <span class="detail-value">
-                {{ formatDate(props.task?.from) || "N/A" }}
-              </span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Due Date:</label>
-              <span class="detail-value">
-                {{ formatDate(props.task?.dueTime) || "N/A" }}
-              </span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Location:</label>
-              <span class="detail-value">
-                {{ props.task?.locationName || "N/A" }}
-                <span v-if="props.task?.address">
-                  ({{ props.task.address }})
-                </span>
-              </span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Pincode:</label>
-              <span class="detail-value">
-                {{ props.task?.pincodes?.join(", ") || "N/A" }}
-              </span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Within Range:</label>
-              <span class="detail-value">
-                {{
-                  props.task?.locSize ? `${props.task.locSize} meters` : "N/A"
-                }}
-              </span>
-            </div>
-
-            <div class="detail-row">
-              <label class="detail-label">Radius:</label>
-              <span class="detail-value">
-                {{
-                  props.task?.radiusInMeters
-                    ? `${props.task.radiusInMeters} meters`
-                    : "N/A"
-                }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Dynamic Form for Completion Fields -->
-          <div v-if="visibleCompletionFields.length > 0" class="form-section">
-            <h4 class="section-title">
-              <v-icon color="primary" class="mr-2">mdi-form-select</v-icon>
-              Complete Task Form
-            </h4>
-
-            <v-form
-              ref="formRef"
-              v-model="formValid"
-              @submit.prevent="handleComplete"
-            >
-              <div class="form-fields">
-                <div
-                  v-for="field in visibleCompletionFields"
-                  :key="field.key"
-                  class="form-field"
-                  :class="getFieldColSize(field.type)"
-                >
-                  <label class="field-label">
-                    {{ field.label }}
-                    <span
-                      v-if="isFieldMandatory(field, userRole)"
-                      class="required-asterisk"
-                      >*</span
-                    >
-                  </label>
-
-                  <!-- Dynamic Field Rendering -->
-                  <component
-                    :is="getFieldComponent(field)"
-                    v-bind="getFieldProps(field)"
-                    :model-value="formData[field.key]"
-                    @update:model-value="
-                      (value) => updateFieldValue(field.key, value)
-                    "
-                    :rules="getValidationRules(field, userRole, formData)"
-                    :error-messages="getFieldErrorMessages(field)"
-                    @click:append-inner="handleFieldAction(field, $event)"
-                    @change="handleFieldChange(field, $event)"
-                  />
-
-                  <!-- Field-specific additional content -->
-                  <template
-                    v-if="field.type === 'otp' || field.type === 'happy-code'"
-                  >
-                    <BaseButton
-                      variant="secondary"
-                      text="Generate/Resend Code"
-                      class="mt-2"
-                      @click="generateCode(field)"
-                    >
-                      <template #icon>
-                        <v-icon>mdi-key-variant</v-icon>
-                      </template>
-                    </BaseButton>
-                  </template>
-
-                  <!-- GPS Current Location Status -->
-                  <template
-                    v-if="
-                      getFieldTypeString(field.type) === 'gps-currentLocation'
-                    "
-                  >
-                    <v-progress-linear
-                      v-if="currentLocation.loading"
-                      indeterminate
-                      color="primary"
-                      class="mt-2"
-                    ></v-progress-linear>
-                    <v-alert
-                      v-else-if="currentLocation.error"
-                      type="error"
-                      variant="tonal"
-                      class="mt-2"
-                      closable
-                    >
-                      {{ currentLocation.error }}
-                    </v-alert>
-                    <v-chip
-                      v-else-if="formData[field.key]"
-                      color="success"
-                      variant="tonal"
-                      size="small"
-                      class="mt-2"
-                    >
-                      <v-icon start size="small">mdi-check-circle</v-icon>
-                      Location Captured
-                    </v-chip>
-                  </template>
-
-                  <!-- Image Preview -->
-                  <template
-                    v-if="
-                      field.type === 'image' && imageFieldDisplayUrls[field.key]
-                    "
-                  >
-                    <div class="image-preview-container mt-2">
-                      <img
-                        :src="imageFieldDisplayUrls[field.key]"
-                        :alt="field.label"
-                        class="image-preview"
-                      />
-                      <button
-                        @click="removeImage(field.key)"
-                        class="remove-image-btn"
-                      >
-                        <X class="icon-sm" />
-                      </button>
-                    </div>
-                  </template>
-
-                  <!-- Unsupported field type warning -->
-                  <template v-if="!isFieldTypeSupported(field.type)">
-                    <v-chip
-                      color="warning"
-                      variant="tonal"
-                      size="small"
-                      class="mt-2"
-                    >
-                      <v-icon start size="small"
-                        >mdi-alert-circle-outline</v-icon
-                      >
-                      Unsupported field type:
-                      {{ getFieldTypeDisplay(field.type) }}
-                    </v-chip>
-                  </template>
+    <!-- Main Content - All Sections on One Page -->
+    <div class="page-content">
+      <v-skeleton-loader v-if="loading" type="list-item-three-line" />
+      <div v-else class="content-sections">
+        <!-- Work Order Details Section -->
+        <v-div class="section-card" elevation="2" rounded="lg">
+          <v-card-title class="section-title">
+            Work Order Details
+          </v-card-title>
+          <v-card-text>
+            <div class="details-grid">
+              <div class="detail-item">
+                <div class="detail-label">Job Type</div>
+                <div class="detail-value">
+                  {{ taskDetails?.taskType || "No Data" }}
                 </div>
               </div>
-            </v-form>
-          </div>
+              <div class="detail-item">
+                <div class="detail-label">Job Title</div>
+                <div class="detail-value">
+                  {{ taskDetails?.title || "No Data" }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Start Date</div>
+                <div class="detail-value">
+                  {{ fmtDateTime(taskDetails?.from) }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Due Date</div>
+                <div class="detail-value">
+                  {{ fmtDateTime(taskDetails?.dueTime) }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Priority</div>
+                <v-chip
+                  v-if="taskDetails?.task_priority"
+                  :color="priorityColor(taskDetails.task_priority)"
+                  size="small"
+                  label
+                >
+                  {{ cap(taskDetails?.task_priority) || "No Data" }}
+                </v-chip>
+                <div v-else class="detail-value">—</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Location</div>
+                <div class="detail-value">
+                  {{ taskDetails?.locationName || "No Data" }}
+                  <span
+                    v-if="taskDetails?.address"
+                    class="text-xs text-gray-500"
+                  >
+                    ({{ taskDetails.address }})
+                  </span>
+                </div>
+              </div>
+            </div>
 
-          <!-- Completion Notes -->
-          <div class="notes-section">
-            <h4 class="section-title">Completion Notes</h4>
-            <textarea
-              v-model="completionNotes"
-              placeholder="Enter your completion notes here..."
-              rows="4"
-              class="notes-textarea"
-            ></textarea>
-          </div>
-        </div>
+            <!-- Task Image -->
+            <div v-if="taskImageUrl" class="mt-4">
+              <div class="detail-label mb-2">Task Image</div>
+              <v-img
+                :src="taskImageUrl"
+                alt="Task image"
+                class="rounded-lg"
+                height="200"
+                cover
+              />
+            </div>
+
+            <!-- Organization Location Map -->
+            <div v-if="location" class="mt-4">
+              <div class="detail-label mb-2">Organization Location</div>
+              <div
+                ref="mapContainer"
+                class="gps-map-container"
+                style="height: 250px"
+              ></div>
+              <div class="text-xs text-gray-600 mt-2">
+                Lat: {{ location.lat }}, Lng: {{ location.lng }} | Radius:
+                {{ radius }} meters
+              </div>
+            </div>
+          </v-card-text>
+        </v-div>
+
+        <!-- Client Details Section -->
+        <v-div class="section-card" elevation="2" rounded="lg">
+          <v-card-title class="section-title"> Client Details </v-card-title>
+          <v-card-text>
+            <div class="details-grid">
+              <div class="detail-item">
+                <div class="detail-label">Client Name</div>
+                <div class="detail-value">
+                  {{ taskDetails?.orgName || "No Data" }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Work Location</div>
+                <div class="detail-value">
+                  {{ taskDetails?.locationName || "No Data" }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Supervisor</div>
+                <div class="detail-value">
+                  {{
+                    taskDetails?.orgLocation?.contactDetails?.contactPerson ||
+                    "No Data"
+                  }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Contact Number</div>
+                <div class="detail-value">
+                  {{
+                    taskDetails?.orgLocation?.contactDetails?.contactNumber ||
+                    "No Data"
+                  }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Email</div>
+                <div class="detail-value">
+                  {{
+                    taskDetails?.orgLocation?.contactDetails?.Email || "No Data"
+                  }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Service Range</div>
+                <div class="detail-value">
+                  {{
+                    taskDetails?.locSize ? `${taskDetails.locSize}` : "No Data"
+                  }}
+                </div>
+              </div>
+            </div>
+          </v-card-text>
+        </v-div>
+
+        <!-- Assigned Employee Section -->
+        <v-div class="section-card" elevation="2" rounded="lg">
+          <v-card-title class="section-title"> Assigned Employee </v-card-title>
+          <v-card-text>
+            <div class="details-grid">
+              <div class="detail-item">
+                <div class="detail-label">Employee Name</div>
+                <div class="detail-value">
+                  {{
+                    taskDetails?.employeeId?.assignedUser?.first_name &&
+                    taskDetails?.employeeId?.employeeId
+                      ? `${taskDetails.employeeId.assignedUser.first_name} - ${taskDetails.employeeId.employeeId}`
+                      : taskDetails?.employeeId?.employeeId || "Not assigned"
+                  }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Employee ID</div>
+                <div class="detail-value">
+                  {{ taskDetails?.employeeId?.employeeId || "No Data" }}
+                </div>
+              </div>
+            </div>
+          </v-card-text>
+        </v-div>
+
+        <!-- Jobsheets Section -->
+        <v-div class="section-card" elevation="2" rounded="lg">
+          <v-card-title class="section-title">
+            Assigned Jobsheets
+            <v-btn
+              class="ml-auto"
+              :text="allExpanded ? 'Collapse All' : 'Show All'"
+              :icon="allExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+              variant="flat"
+              :color="statusColor(taskDetails?.status)"
+              @click="toggleAllJobs"
+            ></v-btn>
+          </v-card-title>
+          <v-card-text>
+            <v-alert
+              v-if="!jobsWithData.length"
+              type="info"
+              variant="tonal"
+              class="mb-3"
+            >
+              No jobsheet data available.
+            </v-alert>
+
+            <div v-else class="jobsheets-container">
+              <v-div
+                v-for="job in jobsWithData"
+                :key="job.job_id"
+                class="jobsheet-item"
+                elevation="1"
+                rounded="lg"
+              >
+                <v-card-title
+                  class="jobsheet-title"
+                  @click="toggleJob(job.job_id)"
+                >
+                  <v-btn
+                    class="expand-btn mr-2"
+                    :icon="
+                      expandedJobs[job.job_id]
+                        ? 'mdi-chevron-up'
+                        : 'mdi-chevron-down'
+                    "
+                    size="small"
+                    variant="text"
+                  ></v-btn>
+                  {{ job.job_name }}
+                  <v-chip
+                    class="ml-auto"
+                    :color="
+                      job.taskRef?.status
+                        ? taskStatusColor(job.taskRef.status)
+                        : 'amber'
+                    "
+                    size="small"
+                    label
+                  >
+                    {{
+                      job.taskRef?.status ? cap(job.taskRef.status) : "Pending"
+                    }}
+                  </v-chip>
+                </v-card-title>
+
+                <v-expand-transition>
+                  <v-card-text v-if="expandedJobs[job.job_id]">
+                    <div
+                      v-if="job.taskRef?.workHours"
+                      class="mb-3 d-flex gap-3 flex-wrap"
+                    >
+                      <v-chip
+                        size="small"
+                        label
+                        color="grey-lighten-3"
+                        variant="flat"
+                      >
+                        <v-icon size="16" class="mr-1">mdi-play-circle</v-icon>
+                        {{ fmtDateTime(job.taskRef.workHours.start_time) }}
+                      </v-chip>
+                      <v-chip
+                        size="small"
+                        label
+                        color="grey-lighten-3"
+                        variant="flat"
+                      >
+                        <v-icon size="16" class="mr-1">mdi-stop-circle</v-icon>
+                        {{ fmtDateTime(job.taskRef.workHours.end_time) }}
+                      </v-chip>
+                      <v-chip
+                        size="small"
+                        label
+                        color="grey-lighten-3"
+                        variant="flat"
+                      >
+                        <v-icon size="16" class="mr-1"
+                          >mdi-timer-outline</v-icon
+                        >
+                        {{ job.taskRef.workHours.total_hours }} hrs
+                      </v-chip>
+                    </div>
+
+                    <div class="field-grid">
+                      <template
+                        v-for="field in job.fields.filter(isCompletionField)"
+                        :key="`${job.job_id}-${field.key}`"
+                      >
+                        <div class="field-item">
+                          <div class="field-label">
+                            {{ field.label }}
+                          </div>
+
+                          <div v-if="isImage(field)" class="mt-2">
+                            <div class="d-flex gap-2 flex-wrap">
+                              <template
+                                v-for="img in imagesFor(job, field)"
+                                :key="img.key"
+                              >
+                                <v-skeleton-loader
+                                  v-if="!img.url && img.loading"
+                                  type="image"
+                                  class="rounded-lg"
+                                  width="100"
+                                  height="80"
+                                />
+                                <v-img
+                                  v-else-if="img.url"
+                                  :src="img.url"
+                                  :alt="`${field.label} image`"
+                                  width="100"
+                                  class="rounded-lg ring-1"
+                                  cover
+                                />
+                              </template>
+                              <span
+                                v-if="!imagesFor(job, field).length"
+                                class="text-medium-emphasis"
+                                >—</span
+                              >
+                            </div>
+                          </div>
+
+                          <div v-else-if="isGPS(field)" class="mt-2">
+                            <div
+                              v-if="valueFor(job, field)"
+                              :ref="
+                                (el) =>
+                                  setGpsMapContainer(job.job_id, field.key, el)
+                              "
+                              class="gps-map-container"
+                              style="height: 150px"
+                            ></div>
+                            <span v-else class="text-medium-emphasis">—</span>
+                          </div>
+
+                          <div v-else-if="isBoolean(field)" class="mt-2">
+                            <v-chip
+                              size="small"
+                              :color="valueFor(job, field) ? 'green' : 'grey'"
+                              label
+                              variant="flat"
+                            >
+                              {{ valueFor(job, field) ? "Yes" : "No" }}
+                            </v-chip>
+                          </div>
+
+                          <div v-else class="mt-2 text-medium-emphasis">
+                            {{ displayValue(valueFor(job, field)) }}
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </v-card-text>
+                </v-expand-transition>
+              </v-div>
+            </div>
+          </v-card-text>
+        </v-div>
+
+        <!-- Notes Section -->
+        <v-div class="section-card" elevation="2" rounded="lg">
+          <v-card-title class="section-title">
+            Notes & Additional Information
+          </v-card-title>
+          <v-card-text>
+            <v-alert
+              v-if="
+                !taskDetails?.complete_Task_Note &&
+                !sharedBooleans.rating &&
+                !sharedBooleans.signature &&
+                !clientImageUrl &&
+                !taskDetails?.assignedTo
+              "
+              type="info"
+              variant="tonal"
+              class="mb-3"
+            >
+              No notes, rating, signature, or client photo available.
+            </v-alert>
+
+            <div class="notes-container">
+              <v-card
+                v-if="taskDetails?.complete_Task_Note"
+                class="note-item"
+                variant="flat"
+                color="white"
+                rounded="lg"
+                elevation="1"
+              >
+                <v-card-title class="note-title">
+                  Completion Notes
+                </v-card-title>
+                <v-card-text class="pt-0">
+                  <div class="text-body-2 text-black">
+                    {{ taskDetails?.complete_Task_Note }}
+                  </div>
+                </v-card-text>
+              </v-card>
+
+              <v-card
+                v-if="sharedBooleans.rating"
+                class="note-item"
+                variant="flat"
+                color="white"
+                rounded="lg"
+                elevation="1"
+              >
+                <v-card-title class="note-title"> Rating </v-card-title>
+                <v-card-text class="pt-0">
+                  <div class="d-flex align-center">
+                    <template v-for="n in 5" :key="n">
+                      <v-icon
+                        :color="
+                          n <= (ratingsValue || 0) ? 'yellow' : 'grey-lighten-1'
+                        "
+                        size="24"
+                        class="mr-1"
+                      >
+                        {{
+                          n <= (ratingsValue || 0)
+                            ? "mdi-star"
+                            : "mdi-star-outline"
+                        }}
+                      </v-icon>
+                    </template>
+                    <span class="ml-2 text-black">
+                      {{ ratingsValue ? `${ratingsValue} / 5` : "No rating" }}
+                    </span>
+                  </div>
+                </v-card-text>
+              </v-card>
+
+              <v-card
+                v-if="sharedBooleans.signature"
+                class="note-item"
+                variant="flat"
+                color="white"
+                rounded="lg"
+                elevation="1"
+              >
+                <v-card-title class="note-title"> Signature </v-card-title>
+                <v-card-text class="pt-0">
+                  <div v-if="signatureUrl">
+                    <v-img
+                      :src="signatureUrl"
+                      alt="Signature"
+                      height="120"
+                      class="rounded-lg"
+                      contain
+                    />
+                  </div>
+                  <div v-else class="text-black">No signature available.</div>
+                </v-card-text>
+              </v-card>
+
+              <v-card
+                class="note-item"
+                variant="flat"
+                color="white"
+                rounded="lg"
+                elevation="1"
+              >
+                <v-card-title class="note-title"> Client Photo </v-card-title>
+                <v-card-text class="pt-0">
+                  <div v-if="clientImageUrl">
+                    <v-img
+                      :src="clientImageUrl"
+                      alt="Client Photo"
+                      height="120"
+                      class="rounded-lg"
+                      contain
+                    />
+                  </div>
+                  <div v-else class="text-black">
+                    No client image available.
+                  </div>
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-card-text>
+        </v-div>
       </div>
-
-      <!-- Footer -->
-      <footer class="sidebar-footer">
-        <BaseButton
-          variant="primary"
-          text="Complete Task"
-          :loading="loading"
-          :disabled="fetchingWorkOrder || !!workOrderError || !canCompleteTask"
-          @click="handleComplete"
-        />
-        <BaseButton
-          variant="secondary"
-          text="Save Draft"
-          :disabled="fetchingWorkOrder || !!workOrderError"
-          @click="handleSaveDraft"
-        />
-      </footer>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, reactive, onMounted } from "vue";
-import { X } from "lucide-vue-next";
-import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { ref, computed, watch } from "vue";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { useTaskCompletionApi } from "@/composables/workorder/completeWorkOrderForm/useTaskCompletionApi";
-import {
-  getValidationRules,
-  isFieldMandatory,
-} from "@/utils/createWOF/validationRules";
+import { usePdfGenerator } from "@/composables/workorder/completeWorkOrderForm/usePdfGenerator";
 import { currentUserTenant } from "@/utils/currentUserTenant";
+import { authService } from "@/services/authService";
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  task: { type: Object, default: () => ({}) },
+  taskId: { type: [String, Number], required: true },
+  assignFormId: { type: [String, Number], required: false },
+  initialTemplateJson: { type: Object, default: null },
+  initialDynamicFieldsJson: { type: Object, default: null },
+  ratings: { type: Number, default: null },
+  signatureFileId: { type: String, default: null },
 });
 
 const emit = defineEmits(["update:modelValue", "complete", "saveDraft"]);
 
-// Initialize the API composable
+const loading = ref(false);
+const taskDetails = ref(null);
+const templateJson = ref(null);
+const dynamicFieldsObj = ref(null);
+const taskImageUrl = ref(null);
+const signatureUrl = ref(null);
+const clientImageUrl = ref(null);
+const fileUrlCache = new Map();
+const mapContainer = ref(null);
+const gpsMapContainerMap = ref(new Map());
+const expandedJobs = ref({});
+
+// PDF related state
+const pdfLoading = ref(false);
+const pdfError = ref(null);
+const pdfSuccess = ref(null);
+const tenantData = ref({});
+
+// API composables
 const {
-  fetchWorkOrderDetails: apiFetchWorkOrderDetails,
-  uploadTaskImage,
-  loading: taskApiLoading,
+  fetchTaskDetails,
+  fetchWorkOrderDetails,
+  fetchTaskImageBlob,
+  fetchOrganizationDetails,
+  fetchLocationManagementData,
 } = useTaskCompletionApi();
 
-// Component state
-const open = ref(props.modelValue);
-const loading = ref(false);
-const completionNotes = ref("");
-const formRef = ref(null);
-const formValid = ref(true); // Default to true to allow saving non-mandatory fields
-const userRole = ref(null); // Will be set dynamically
+const { generateTaskPDF } = usePdfGenerator();
 
-// Work order specific
-const fetchingWorkOrder = ref(false);
-const workOrderError = ref(null);
-const workOrderDetails = ref(null);
-
-// Form data and validation
-const formData = reactive({});
-const fieldErrors = reactive({});
-const imageFieldFileIds = reactive({});
-const imageFieldDisplayUrls = reactive({});
-
-// Location handling
-const currentLocation = reactive({
-  lat: null,
-  lng: null,
-  error: null,
-  loading: false,
+const statusClass = computed(() => {
+  const status = String(taskDetails.value?.status || "").toLowerCase();
+  if (status === "completed") return "completed";
+  if (status === "overdue") return "overdue";
+  if (status === "inProgress") return "inProgress";
+  if (status === "pending") return "pending";
+  if (status === "cancelled") return "cancelled";
+  return "default";
 });
-
-// Field type support mapping
-const SUPPORTED_FIELD_TYPES = {
-  text: true,
-  number: true,
-  bigtext: true,
-  dropdown: true,
-  boolean: true,
-  image: true,
-  gps: true,
-  "gps-currentLocation": true,
-  clientSelector: true,
-  otp: true,
-  "happy-code": true,
-  date: true,
-};
-
-// Fetch user role on mount
-onMounted(async () => {
-  try {
-    userRole.value = await currentUserTenant.getRoleAsync();
-    if (!userRole.value) {
-      console.error("No user role found");
-      workOrderError.value = "User role not found. Please log in again.";
-    }
-  } catch (error) {
-    console.error("Error fetching user role:", error);
-    workOrderError.value = "Failed to fetch user role. Please try again.";
-  }
-});
-
-// Watchers
-watch(
-  () => props.modelValue,
-  (val) => (open.value = val),
-);
-watch(open, (val) => emit("update:modelValue", val));
-
-watch(
-  () => props.task,
-  async (newTask) => {
-    if (newTask && newTask.assignFormId) {
-      fetchingWorkOrder.value = true;
-      workOrderError.value = null;
-
-      try {
-        const result = await apiFetchWorkOrderDetails(newTask.assignFormId);
-
-        if (result.success) {
-          workOrderDetails.value = result.data;
-          initializeFormData();
-        } else {
-          workOrderError.value = result.error;
-        }
-      } catch (err) {
-        console.error("Error fetching work order details:", err);
-        workOrderError.value =
-          err.message || "Failed to fetch work order details.";
-      } finally {
-        fetchingWorkOrder.value = false;
-      }
-    } else {
-      resetFormState();
-    }
-  },
-  { immediate: true },
-);
-
-// Computed properties
-const completionFields = computed(() => {
-  if (!workOrderDetails.value?.custom_FormTemplate?.fields) return [];
-  return workOrderDetails.value.custom_FormTemplate.fields.filter(
-    (field) =>
-      field.field_type === "completion" ||
-      field.field_type === "creation/completion",
-  );
-});
-
-const visibleCompletionFields = computed(() => {
-  if (!userRole.value) return [];
-  return completionFields.value.filter((field) =>
-    isFieldVisible(field, userRole.value),
-  );
-});
-
-const canCompleteTask = computed(() => {
-  if (!userRole.value) return false;
-  return visibleCompletionFields.value.every((field) => {
-    if (!isFieldMandatory(field, userRole.value)) return true;
-    const value = formData[field.key];
-    return value !== null && value !== undefined && value !== "";
-  });
-});
-
-// Methods
-const resetFormState = () => {
-  Object.keys(formData).forEach((key) => delete formData[key]);
-  Object.keys(fieldErrors).forEach((key) => delete fieldErrors[key]);
-  Object.keys(imageFieldFileIds).forEach(
-    (key) => delete imageFieldFileIds[key],
-  );
-  Object.keys(imageFieldDisplayUrls).forEach(
-    (key) => delete imageFieldDisplayUrls[key],
-  );
-  completionNotes.value = "";
-  workOrderError.value = null;
-  workOrderDetails.value = null;
-};
-
-const initializeFormData = () => {
-  if (!workOrderDetails.value?.custom_FormTemplate?.fields || !userRole.value)
-    return;
-
-  visibleCompletionFields.value.forEach((field) => {
-    if (formData[field.key] === undefined) {
-      const fieldType = getFieldTypeString(field.type);
-
-      switch (fieldType) {
-        case "boolean":
-          formData[field.key] = false;
-          break;
-        case "number":
-          formData[field.key] = null;
-          break;
-        case "dropdown":
-        case "clientSelector":
-          formData[field.key] = null;
-          break;
-        default:
-          formData[field.key] = "";
-      }
-    }
-  });
-};
-
-const retryFetch = () => {
-  if (props.task?.assignFormId) {
-    fetchingWorkOrder.value = true;
-    workOrderError.value = null;
-
-    apiFetchWorkOrderDetails(props.task.assignFormId)
-      .then((result) => {
-        if (result.success) {
-          workOrderDetails.value = result.data;
-          initializeFormData();
-        } else {
-          workOrderError.value = result.error;
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching work order details:", err);
-        workOrderError.value =
-          err.message || "Failed to fetch work order details.";
-      })
-      .finally(() => {
-        fetchingWorkOrder.value = false;
-      });
-  }
-};
-
-// Field type utilities
-const getFieldTypeString = (fieldType) => {
-  if (typeof fieldType === "object" && fieldType.date === true) {
-    return "date";
-  }
-  return fieldType;
-};
-
-const getFieldTypeDisplay = (fieldType) => {
-  return getFieldTypeString(fieldType);
-};
-
-const isFieldTypeSupported = (fieldType) => {
-  const typeString = getFieldTypeString(fieldType);
-  return SUPPORTED_FIELD_TYPES[typeString] || false;
-};
-
-// Field visibility and validation
-const isFieldVisible = (field, role) => {
-  const required = field.roleBasedRequired;
-  if (
-    required &&
-    typeof required === "object" &&
-    required[role] !== undefined
-  ) {
-    return required[role];
-  }
-  return false; // Default to hidden if role not specified
-};
-
-// Dynamic field component mapping
-const getFieldComponent = (field) => {
-  const fieldType = getFieldTypeString(field.type);
-
-  switch (fieldType) {
-    case "text":
-    case "number":
-    case "date":
-    case "gps":
-    case "gps-currentLocation":
-    case "otp":
-    case "happy-code":
-      return "v-text-field";
-    case "bigtext":
-      return "v-textarea";
-    case "dropdown":
-    case "clientSelector":
-      return "v-select";
-    case "boolean":
-      return "v-checkbox";
-    case "image":
-      return "v-file-input";
-    default:
-      return "v-text-field";
-  }
-};
-
-// Get dynamic field properties
-const getFieldProps = (field) => {
-  const fieldType = getFieldTypeString(field.type);
-  const baseProps = {
-    label: field.placeholder || field.label,
-    variant: "outlined",
-    density: "comfortable",
-    clearable: fieldType !== "boolean",
-  };
-
-  switch (fieldType) {
-    case "number":
-      return {
-        ...baseProps,
-        type: "number",
-        min: field.validations?.min,
-        max: field.validations?.max,
-      };
-
-    case "date":
-      return {
-        ...baseProps,
-        type: "date",
-      };
-
-    case "bigtext":
-      return {
-        ...baseProps,
-        rows: 3,
-        autoGrow: true,
-        maxlength: field.validations?.maxLength,
-      };
-
-    case "dropdown":
-      return {
-        ...baseProps,
-        items: field.options || [],
-        itemTitle: "text",
-        itemValue: "value",
-      };
-
-    case "clientSelector":
-      return {
-        ...baseProps,
-        items: [], // Assume fetched dynamically
-        itemTitle: "orgName",
-        itemValue: "id",
-        appendInnerIcon: field.input_modes?.qr ? "mdi-qrcode-scan" : undefined,
-      };
-
-    case "boolean":
-      return {
-        label: field.label,
-        density: "comfortable",
-        color: "primary",
-      };
-
-    case "image":
-      return {
-        ...baseProps,
-        accept: "image/jpeg,image/jpg,image/png",
-        prependIcon: "mdi-camera",
-        showSizeCounter: true,
-      };
-
-    case "gps":
-    case "gps-currentLocation":
-      return {
-        ...baseProps,
-        readonly: true,
-        appendInnerIcon: "mdi-map-marker",
-      };
-
-    case "otp":
-    case "happy-code":
-      return {
-        ...baseProps,
-        type: field.input_modes?.number !== false ? "number" : "text",
-        maxlength: field.validations?.length,
-      };
-
-    default:
-      return {
-        ...baseProps,
-        disabled: !isFieldTypeSupported(field.type),
-      };
-  }
-};
-
-// Field interaction handlers
-const updateFieldValue = (fieldKey, value) => {
-  formData[fieldKey] = value;
-  if (fieldErrors[fieldKey]) {
-    delete fieldErrors[fieldKey];
-  }
-};
-
-const handleFieldAction = async (field, event) => {
-  const fieldType = getFieldTypeString(field.type);
-
-  if (fieldType === "clientSelector" && field.input_modes?.qr) {
-    console.log("Open QR scanner for", field.key);
-  } else if (fieldType === "gps") {
-    console.log("Open location selector for", field.key);
-  } else if (fieldType === "gps-currentLocation") {
-    await getCurrentLocation(field.key);
-  }
-};
-
-const handleFieldChange = async (field, value) => {
-  const fieldType = getFieldTypeString(field.type);
-
-  if (fieldType === "image") {
-    const file = Array.isArray(value) ? value[0] : value;
-    if (file) {
-      await handleImageUpload(field.key, file);
-    }
-  }
-};
-
-// Specific field handlers
-const getCurrentLocation = async (fieldKey) => {
-  currentLocation.loading = true;
-  currentLocation.error = null;
-
-  try {
-    if (!navigator.geolocation) {
-      throw new Error("Geolocation is not supported by this browser");
-    }
-
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      });
-    });
-
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    const accuracy = position.coords.accuracy;
-
-    currentLocation.lat = lat;
-    currentLocation.lng = lng;
-
-    // Save to formData so it can be submitted
-    formData[fieldKey] = `${lat},${lng}`;
-
-    console.log("📍 Location found:", lat, lng, "±", accuracy, "meters");
-  } catch (error) {
-    currentLocation.error = error.message || "Failed to get current location";
-    console.error("Geolocation error:", error);
-  } finally {
-    currentLocation.loading = false;
-  }
-};
-
-const handleImageUpload = async (fieldKey, file) => {
-  try {
-    const result = await uploadTaskImage(file, props.task?.id);
-
-    if (result.success) {
-      imageFieldFileIds[fieldKey] = result.data.id;
-      imageFieldDisplayUrls[fieldKey] = result.data.url;
-      formData[fieldKey] = file;
-    } else {
-      fieldErrors[fieldKey] = result.error;
-    }
-  } catch (error) {
-    fieldErrors[fieldKey] = "Failed to upload image";
-    console.error("Image upload error:", error);
-  }
-};
-
-const removeImage = (fieldKey) => {
-  if (imageFieldDisplayUrls[fieldKey]) {
-    URL.revokeObjectURL(imageFieldDisplayUrls[fieldKey]);
-  }
-  delete imageFieldFileIds[fieldKey];
-  delete imageFieldDisplayUrls[fieldKey];
-  formData[fieldKey] = null;
-};
-
-const generateCode = (field) => {
-  const length = field.validations?.length || 6;
-  const code = Math.floor(100000 + Math.random() * 900000)
-    .toString()
-    .substr(0, length);
-  formData[field.key] = code;
-  console.log(`Generated ${field.type} for ${field.label}:`, code);
-};
 
 // Utility functions
-const getFieldColSize = (fieldType) => {
-  const typeString = getFieldTypeString(fieldType);
-  switch (typeString) {
-    case "bigtext":
-    case "image":
-      return "full-width";
-    case "boolean":
-      return "half-width";
-    default:
-      return "standard-width";
-  }
+const cap = (s) =>
+  s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : "";
+const fmtDateTime = (d) => (d ? new Date(d).toLocaleString() : "No Data");
+const statusLabel = (s) => cap(s);
+
+const statusColor = (s) => {
+  const m = String(s || "").toLowerCase();
+  if (m === "completed") return "green";
+  if (m === "overdue") return "red";
+  if (m === "inProgress" || m === "inProgress") return "orange";
+  if (m === "pending" || m === "pending") return "orange";
+  return "grey";
 };
 
-const getStatusClass = (status) => {
-  switch (status?.toLowerCase()) {
-    case "completed":
-      return "status-completed";
-    case "pending":
-      return "status-pending";
-    case "inprogress":
-      return "status-inprogress";
-    case "overdue":
-      return "status-overdue";
-    default:
-      return "status-pending";
-  }
+const statusIcon = (s) => {
+  const m = String(s || "").toLowerCase();
+  if (m === "completed") return "mdi-check-circle";
+  if (m === "overdue") return "mdi-alert-circle";
+  if (m === "inProgress") return "mdi-progress-clock";
+  if (m === "pending") return "mdi-clock-outline";
+  return "mdi-information";
 };
 
-const formatStatus = (status) => {
-  if (!status) return "Pending";
+const taskStatusColor = statusColor;
+
+const sharedBooleans = computed(() => {
   return (
-    status.charAt(0).toUpperCase() + status.slice(1).replace(/([A-Z])/g, " $1")
+    templateJson.value?.shared_properties?.booleans || {
+      signature: false,
+      rating: false,
+    }
+  );
+});
+
+const ratingsValue = computed(() => {
+  if (props.ratings != null) return props.ratings;
+  const rootRating =
+    taskDetails.value?.ratings ?? taskDetails.value?.rating ?? null;
+  if (rootRating != null) return Number(rootRating);
+  const dfRating =
+    dynamicFieldsObj.value?.ratings ?? dynamicFieldsObj.value?.rating ?? null;
+  return dfRating != null ? Number(dfRating) : null;
+});
+
+const signatureFileId = computed(() => {
+  if (props.signatureFileId) return props.signatureFileId;
+  return (
+    taskDetails.value?.signature || dynamicFieldsObj.value?.signature || null
+  );
+});
+
+const clientImageId = computed(() => {
+  return (
+    taskDetails.value?.verified_client_photo ||
+    dynamicFieldsObj.value?.verified_client_photo ||
+    null
+  );
+});
+
+const dfTasks = computed(() => dynamicFieldsObj.value?.tasks || []);
+
+// const jobsWithData = computed(() => {
+//   const jobs = templateJson.value?.jobSheet || [];
+//   if (!jobs.length) return [];
+//   const byId = Object.fromEntries(dfTasks.value.map((t) => [t.taskId, t]));
+//   return jobs.map((job) => ({
+//     ...job,
+//     taskRef: byId[job.job_id] || null,
+//   }));
+// });
+
+const jobsWithData = computed(() => {
+  const jobs = templateJson.value?.jobSheet || [];
+  if (!jobs.length) return [];
+  const byId = Object.fromEntries(
+    dfTasks.value
+      .filter((t) => t.isVisible === true) // Only include tasks with isVisible: true
+      .map((t) => [t.taskId, t]),
+  );
+  return jobs
+    .map((job) => ({
+      ...job,
+      taskRef: byId[job.job_id] || null,
+    }))
+    .filter((job) => job.taskRef !== null); // Only include jobs with a matching task
+});
+const allExpanded = computed(() => {
+  return jobsWithData.value.every((job) => expandedJobs.value[job.job_id]);
+});
+
+const location = computed(() => {
+  let loc = taskDetails.value?.orgLocation;
+  if (typeof loc === "string") {
+    try {
+      loc = JSON.parse(loc);
+    } catch {
+      return null;
+    }
+  }
+  return loc?.lat && loc?.lng ? { lat: loc.lat, lng: loc.lng } : null;
+});
+
+const radius = computed(() => taskDetails.value?.radiusInMeters || 100);
+
+const isCompletionField = (field) => {
+  const ft = String(field.field_type || "").toLowerCase();
+  return (
+    ft === "completion" || ft === "creation/completion" || ft === "creation"
   );
 };
+const isImage = (field) => String(normalizeType(field.type)) === "image";
+const isGPS = (field) => {
+  const t = String(normalizeType(field.type));
+  return t === "gps" || t === "gps-currentlocation";
+};
+const isBoolean = (field) => String(normalizeType(field.type)) === "boolean";
+const normalizeType = (t) => {
+  if (!t) return "text";
+  if (typeof t === "object" && t.date) return "date";
+  return String(t).toLowerCase();
+};
 
-const getPriorityClass = (priority) => {
-  switch (priority?.toLowerCase()) {
-    case "high":
-      return "priority-high";
-    case "medium":
-      return "priority-medium";
-    case "low":
-      return "priority-low";
-    default:
-      return "priority-medium";
+const iconFor = (t) => {
+  const k = String(normalizeType(t));
+  const map = {
+    text: "mdi-form-textbox",
+    number: "mdi-numeric",
+    bigtext: "mdi-text-long",
+    dropdown: "mdi-menu-down",
+    boolean: "mdi-checkbox-marked",
+    image: "mdi-camera",
+    gps: "mdi-map-marker",
+    "gps-currentlocation": "mdi-crosshairs-gps",
+    date: "mdi-calendar",
+    "happy-code": "mdi-emoticon-happy",
+    otp: "mdi-key-variant",
+    clientselector: "mdi-account-group",
+    orgid: "mdi-domain",
+  };
+  return map[k] || "mdi-form-textbox";
+};
+
+const priorityColor = (priority) => {
+  const p = String(priority || "").toLowerCase();
+  if (p === "high") return "red";
+  if (p === "medium") return "amber";
+  if (p === "low") return "green";
+  return "grey";
+};
+
+const valueFor = (job, field) => {
+  const task = job.taskRef;
+  if (!task) return null;
+  const key = field.key;
+  const v = task.fields?.[key];
+  return v === undefined ? null : v;
+};
+
+const displayValue = (v) => {
+  if (v == null || v === "") return "No Data";
+  if (Array.isArray(v)) return v.join(", ");
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+};
+
+const imagesFor = (job, field) => {
+  const val = valueFor(job, field);
+  if (!val) return [];
+  const arr = Array.isArray(val) ? val : [val];
+  const normalized = arr
+    .map((x) => {
+      const isId = typeof x === "string" && /^[0-9a-f-]{10,}$/i.test(x);
+      return { id: isId ? x : null, raw: x };
+    })
+    .filter((x) => x.id || typeof x.raw === "string");
+
+  return normalized.map((item) => {
+    const cacheKey = item.id || item.raw;
+    const url = fileUrlCache.get(cacheKey);
+    return {
+      key: cacheKey,
+      url: url || (typeof item.raw === "string" && !item.id ? item.raw : null),
+      loading: !url && !!item.id,
+    };
+  });
+};
+
+const ensureFileUrl = async (id) => {
+  if (!id || fileUrlCache.has(id)) return;
+  const { success, data } = await fetchTaskImageBlob(id);
+  if (success && data?.url) {
+    fileUrlCache.set(id, data.url);
   }
 };
 
-const formatPriority = (priority) => {
-  return priority
-    ? priority.charAt(0).toUpperCase() + priority.slice(1)
-    : "Medium";
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return null;
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-const getFieldErrorMessages = (field) => {
-  return fieldErrors[field.key] ? [fieldErrors[field.key]] : [];
-};
-
-// Main action handlers
-const closeSidebar = () => {
-  Object.values(imageFieldDisplayUrls).forEach((url) => {
-    if (url && url.startsWith("blob:")) {
-      URL.revokeObjectURL(url);
-    }
-  });
-
-  resetFormState();
-  open.value = false;
-};
-
-// template.vue
-const handleComplete = async () => {
-  loading.value = true;
-  try {
-    let allValid = true;
-    for (const field of visibleCompletionFields.value) {
-      if (isFieldMandatory(field, userRole.value)) {
-        const value = formData[field.key];
-        if (value === null || value === undefined || value === "") {
-          allValid = false;
-          fieldErrors[field.key] =
-            field.validations?.message || `${field.label} is required`;
-        } else {
-          // Validate field against its rules
-          const rules = getValidationRules(field, userRole.value, formData);
-          for (const rule of rules) {
-            const result = rule(value);
-            if (result !== true) {
-              allValid = false;
-              fieldErrors[field.key] = result;
-            }
-          }
-        }
+const resolveJobImages = async () => {
+  const jobs = jobsWithData.value;
+  for (const job of jobs) {
+    for (const field of (job.fields || []).filter(isCompletionField)) {
+      if (!isImage(field)) continue;
+      const val = valueFor(job, field);
+      const arr = Array.isArray(val) ? val : val ? [val] : [];
+      for (const x of arr) {
+        const isId = typeof x === "string" && /^[0-9a-f-]{10,}$/i.test(x);
+        if (isId) await ensureFileUrl(x);
       }
     }
+  }
+};
 
-    if (!allValid) {
-      loading.value = false;
-      return;
+const setGpsMapContainer = (jobId, fieldKey, el) => {
+  if (el) {
+    const key = `${jobId}-${fieldKey}`;
+    gpsMapContainerMap.value.set(key, el);
+  }
+};
+
+const toggleJob = (jobId) => {
+  expandedJobs.value = {
+    ...expandedJobs.value,
+    [jobId]: !expandedJobs.value[jobId],
+  };
+};
+
+const toggleAllJobs = () => {
+  const newState = !allExpanded.value;
+  const updatedJobs = {};
+  jobsWithData.value.forEach((job) => {
+    updatedJobs[job.job_id] = newState;
+  });
+  expandedJobs.value = updatedJobs;
+};
+
+const initMaps = () => {
+  if (location.value && mapContainer.value) {
+    const map = L.map(mapContainer.value).setView(
+      [location.value.lat, location.value.lng],
+      15,
+    );
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+    L.circle([location.value.lat, location.value.lng], {
+      color: "blue",
+      fillColor: "#30f",
+      fillOpacity: 0.5,
+      radius: radius.value,
+    }).addTo(map);
+  }
+
+  jobsWithData.value.forEach((job) => {
+    job.fields
+      .filter(isCompletionField)
+      .filter(isGPS)
+      .forEach((field) => {
+        const gpsValue = valueFor(job, field);
+        if (gpsValue?.lat && gpsValue?.lng && expandedJobs.value[job.job_id]) {
+          const key = `${job.job_id}-${field.key}`;
+          const container = gpsMapContainerMap.value.get(key);
+          if (container) {
+            const gpsMap = L.map(container).setView(
+              [gpsValue.lat, gpsValue.lng],
+              15,
+            );
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              attribution: "&copy; OpenStreetMap contributors",
+            }).addTo(gpsMap);
+            L.circle([gpsValue.lat, gpsValue.lng], {
+              color: "blue",
+              fillColor: "#30f",
+              fillOpacity: 0.5,
+              radius: taskDetails.value?.radiusInMeters || 100,
+            }).addTo(gpsMap);
+          }
+        }
+      });
+  });
+};
+
+const fetchTenantData = async () => {
+  try {
+    const token = authService.getToken();
+    const tenantId = await currentUserTenant.getTenantId();
+    if (!tenantId) return;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/tenant?filter[tenantId][_eq]=${tenantId}&fields[]=tenantName&fields[]=companyAddress&fields[]=logo`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.data?.[0]) {
+        tenantData.value = {
+          companyName: data.data[0].tenantName || "Company Name",
+          companyAddress: data.data[0].companyAddress || "",
+          contact: data.data[0].contactNumber || data.data[0].email || "",
+          logoId: data.data[0].logo || null,
+        };
+      }
     }
+  } catch (error) {
+    console.error("Error fetching tenant data:", error);
+  }
+};
 
-    const completionData = {
-      task: props.task,
-      notes: completionNotes.value,
-      formData: { ...formData },
-      imageFileIds: { ...imageFieldFileIds },
-      workOrderDetails: workOrderDetails.value,
-      isInternalTask: false,
+const downloadPDF = async () => {
+  if (!taskDetails.value) {
+    pdfError.value = "Task details not loaded yet";
+    return;
+  }
+
+  pdfLoading.value = true;
+  pdfError.value = null;
+  pdfSuccess.value = null;
+
+  try {
+    const pdfData = {
+      tenantData: tenantData.value,
+      logoId: tenantData.value.logoId,
+      overview: {
+        taskId: props.taskId,
+        taskType: taskDetails.value.taskType || "N/A",
+        title: taskDetails.value.title || "N/A",
+        assignedTo: taskDetails.value.employeeId?.assignedUser?.first_name
+          ? `${taskDetails.value.employeeId.assignedUser.first_name} - ${taskDetails.value.employeeId.employeeId}`
+          : taskDetails.value.employeeId?.employeeId || "N/A",
+        employeeIdDisplay: taskDetails.value.employeeId?.employeeId || "N/A",
+        orgName: taskDetails.value.orgName || "N/A",
+        startDate: fmtDateTime(taskDetails.value.from),
+        dueDate: fmtDateTime(taskDetails.value.dueTime),
+        priority: cap(taskDetails.value.task_priority) || "N/A",
+        status: cap(taskDetails.value.status) || "N/A",
+      },
+      location: {
+        locationName: taskDetails.value.locationName || "N/A",
+        address: taskDetails.value.address || "N/A",
+        locSize: taskDetails.value.locSize || "N/A",
+        supervisor:
+          taskDetails.value.orgLocation?.contactDetails?.contactPerson || "N/A",
+        contactNumber:
+          taskDetails.value.orgLocation?.contactDetails?.contactNumber || "N/A",
+        email: taskDetails.value.orgLocation?.contactDetails?.Email || "N/A",
+      },
+      jobsWithData: jobsWithData.value,
+      notesData: {
+        notes: taskDetails.value.complete_Task_Note || null,
+        rating: ratingsValue.value,
+        signature: signatureFileId.value,
+        clientImage: clientImageId.value,
+      },
     };
 
-    emit("complete", completionData);
-    closeSidebar();
+    const result = await generateTaskPDF(pdfData);
+
+    if (result.success) {
+      pdfSuccess.value = "PDF downloaded successfully!";
+      setTimeout(() => {
+        pdfSuccess.value = null;
+      }, 3000);
+    } else {
+      pdfError.value = result.error || "Failed to generate PDF";
+    }
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    pdfError.value = "An error occurred while generating the PDF";
+  } finally {
+    pdfLoading.value = false;
+  }
+};
+
+const init = async () => {
+  if (!props.taskId) {
+    console.error("Task ID is required but not provided.");
+    return;
+  }
+  loading.value = true;
+  try {
+    await fetchTenantData();
+
+    const tRes = await fetchTaskDetails(props.taskId);
+    if (tRes?.success) {
+      taskDetails.value = tRes.data;
+
+      if (taskDetails.value?.orgId) {
+        const orgRes = await fetchOrganizationDetails(taskDetails.value.orgId);
+        if (orgRes?.success) {
+          taskDetails.value.orgName = orgRes.data.orgName;
+        } else {
+          console.warn("Failed to fetch organization details:", orgRes.error);
+        }
+
+        const locRes = await fetchLocationManagementData(
+          taskDetails.value.orgId,
+        );
+        if (locRes?.success && locRes.data?.length > 0) {
+          const location = locRes.data[0];
+          taskDetails.value = {
+            ...taskDetails.value,
+            locationName: location.locdetail?.locationName,
+            address: location.locdetail?.address,
+            pincodes: location.locdetail?.pincode
+              ? [location.locdetail.pincode]
+              : [],
+            locSize: location.locSize,
+            locmark: location.locmark,
+          };
+        } else {
+          console.warn(
+            "Failed to fetch location management data:",
+            locRes?.error || "No locations found",
+          );
+        }
+      }
+
+      if (props.initialTemplateJson) {
+        templateJson.value = props.initialTemplateJson;
+      } else if (props.assignFormId) {
+        const wRes = await fetchWorkOrderDetails(props.assignFormId);
+        if (wRes?.success) {
+          const raw =
+            wRes.data?.custom_FormTemplate ||
+            wRes.data?.custom_FormTemplate?.json;
+          templateJson.value =
+            typeof raw === "string" ? JSON.parse(raw) : raw || null;
+        }
+      }
+
+      if (props.initialDynamicFieldsJson) {
+        dynamicFieldsObj.value = props.initialDynamicFieldsJson;
+      } else {
+        const df = tRes?.data?.dynamicFields;
+        dynamicFieldsObj.value =
+          typeof df === "string" ? JSON.parse(df) : df || null;
+      }
+
+      const taskImageId = Array.isArray(tRes.data?.taskimage)
+        ? tRes.data.taskimage[0]
+        : tRes.data?.taskimage;
+      if (taskImageId) {
+        const isId = /^[0-9a-f-]{10,}$/i.test(taskImageId);
+        if (isId) {
+          const imgRes = await fetchTaskImageBlob(taskImageId);
+          if (imgRes?.success) taskImageUrl.value = imgRes.data.url;
+        } else {
+          taskImageUrl.value = taskImageId;
+        }
+      }
+
+      if (signatureFileId.value) {
+        const sRes = await fetchTaskImageBlob(signatureFileId.value);
+        if (sRes?.success) signatureUrl.value = sRes.data.url;
+      }
+
+      if (clientImageId.value) {
+        const cRes = await fetchTaskImageBlob(clientImageId.value);
+        if (cRes?.success) clientImageUrl.value = cRes.data.url;
+      }
+
+      await resolveJobImages();
+      initMaps();
+    }
+  } catch (e) {
+    console.warn("[WorkOrderReadOnlyTabs] init failed", e);
   } finally {
     loading.value = false;
   }
 };
 
-const handleSaveDraft = () => {
-  const draftData = {
-    task: props.task,
-    notes: completionNotes.value,
-    formData: { ...formData },
-    imageFileIds: { ...imageFieldFileIds },
-    workOrderDetails: workOrderDetails.value,
-    isInternalTask: false,
-  };
+watch(
+  () => [props.taskId, props.assignFormId],
+  () => init(),
+  { immediate: true },
+);
 
-  emit("saveDraft", draftData);
-  closeSidebar();
-};
+watch(
+  [taskDetails, jobsWithData],
+  () => {
+    if (taskDetails.value && jobsWithData.value) {
+      initMaps();
+    }
+  },
+  { deep: true },
+);
+
+watch(
+  expandedJobs,
+  () => {
+    setTimeout(() => {
+      initMaps();
+    }, 300);
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped>
-.sidebar-overlay {
-  position: fixed;
-  top: 60px;
-  right: 0;
-  bottom: 0;
-  width: 460px;
-  z-index: 999;
-  pointer-events: none;
-}
-
-.complete-task-sidebar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  background-color: #fff;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+/* Complete redesign for single-page layout with status-based styling */
+.wo-single-page-root {
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.3s ease-out;
-  pointer-events: auto;
-  border-left: 1px solid #e5e7eb;
+  min-height: 100dvh; /* Dynamic viewport height (fixes mobile address bar) */
+  overflow: hidden; /* Prevent double scrollbars */
+  background: #f5f5f5;
+  transition: background-color 0.3s ease;
+  font-family: "Inter", sans-serif;
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+/* Status-based background colors */
+.wo-single-page-root.status-completed {
+  --status-color: #10b981;
+  --status-light: #d1fae5;
+  --status-border: #6ee7b7;
 }
 
-.sidebar-header {
+.wo-single-page-root.status-overdue {
+  --status-color: #861313;
+  --status-light: #fee2e2;
+  --status-border: #b67575;
+}
+
+.wo-single-page-root.status-inProgress {
+  --status-color: #6366f1;
+  --status-light: #e0e7ff;
+  --status-border: #a5b4fc;
+}
+
+.wo-single-page-root.status-pending {
+  --status-color: #f59e0b;
+  --status-light: #fef3c7;
+  --status-border: #fcd34d;
+}
+
+.wo-single-page-root.status-cancelled {
+  --status-color: #ef4444;
+  --status-light: #fee2e2;
+  --status-border: #fca5a5;
+}
+
+.wo-single-page-root.status-default {
+  --status-color: #6b7280;
+  --status-light: #f3f4f6;
+  --status-border: #d1d5db;
+}
+
+.page-header {
+  flex-shrink: 0; /* Prevent header from shrinking */
+  background: white;
+  border-bottom: 3px solid var(--status-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  background-color: #fff;
-  margin-top: 10px;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
 }
 
-.sidebar-title-with-icon {
+.section-card {
+  border: 2px solid #c5c5c5;
+  border-radius: 20px;
+}
+
+.title-section {
   display: flex;
   align-items: center;
+  gap: 16px;
+  flex: 1;
 }
 
-.sidebar-title {
-  font-size: 1.125rem;
-  font-weight: 600;
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
   color: #1f2937;
   margin: 0;
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.375rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
+.status-badge {
+  background: var(--status-color) !important;
+  color: white !important;
+  font-weight: 600;
 }
 
-.close-btn:hover {
-  background-color: #f3f4f6;
+.pdf-btn {
+  background: linear-gradient(
+    135deg,
+    var(--status-color) 0%,
+    var(--status-color) 100%
+  ) !important;
+  color: white !important;
+  height: 44px;
+  width: 44px;
+  min-width: 44px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
 }
 
-.icon {
-  width: 20px;
-  height: 20px;
-  color: #374151;
+.pdf-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
-.icon-sm {
-  width: 16px;
-  height: 16px;
-  color: #374151;
+.page-content {
+  flex: 1 1 auto;
+  padding: 14px;
+  background-color: white;
+  -webkit-overflow-scrolling: touch;
 }
 
-.sidebar-content {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  background-color: #fff;
-}
-
-.loading-container,
-.error-container {
+.content-sections {
+  height: 70vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-}
-
-.loading-text {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.error-text {
-  font-size: 0.875rem;
-  color: #991b1b;
-  margin: 0 0 1rem 0;
-}
-
-.task-details-box {
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.form-section {
-  background: #f0f9ff;
-  border: 2px solid #0ea5e9;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow-y: auto;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-width: thin;
 }
 
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 1rem 0;
+  font-size: large;
+  font-weight: 700;
+  color: #059669;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  padding: 16px !important;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.detail-row {
+.section-title .v-icon {
+  color: var(--status-color);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.detail-item {
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-  gap: 0.75rem;
-}
-
-.detail-row:last-child {
-  margin-bottom: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 5px;
+  transition: all 0.2s ease;
+  text-transform: capitalize;
 }
 
 .detail-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #64748b;
-  min-width: 100px;
+  font-size: medium;
+  font-weight: 600;
+  color: #969696;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
   flex-shrink: 0;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+}
+
+.detail-label::after {
+  content: ":";
+  margin-right: 4px;
 }
 
 .detail-value {
-  font-size: 0.875rem;
-  color: #1e293b;
+  font-size: medium;
+  font-weight: 500;
+  color: #000000;
+  text-transform: capitalize;
   flex: 1;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
 }
 
-.description-text {
-  background: #fff;
-  padding: 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid #e2e8f0;
-  min-height: 60px;
-  word-wrap: break-word;
+.detail-value .v-chip {
+  margin-top: 0;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.work-hours-chips .v-chip {
+  background: var(--status-light) !important;
+  color: var(--status-color) !important;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: medium;
+  border: 1px solid var(--status-border);
 }
 
-.status-completed {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.status-pending {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-
-.status-inprogress {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #93c5fd;
-}
-
-.status-overdue {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.priority-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.priority-high {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.priority-medium {
-  background: #fff7ed;
-  color: #9a3412;
-  border: 1px solid #fed7aa;
-}
-
-.priority-low {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.form-fields {
+.jobsheets-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
-.form-field {
+.text-medium-emphasis {
+  color: rgb(0 0 0) !important;
+}
+
+.jobsheet-title {
+  font-size: medium;
+  font-weight: 600;
+  color: #1f2937;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  padding: 12px !important;
+  background: #f9fafb;
+  cursor: pointer;
 }
 
-.form-field.full-width {
-  width: 100%;
+.jobsheet-title:hover {
+  background: #e5e7eb;
 }
 
-.form-field.half-width {
-  width: 50%;
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
 }
 
-.form-field.standard-width {
-  width: 100%;
+.field-item {
+  font-size: medium;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s ease;
 }
 
 .field-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.required-asterisk {
-  color: #ef4444;
+  font-size: medium;
   font-weight: 600;
-}
-
-.image-preview-container {
-  position: relative;
-  display: inline-block;
-}
-
-.image-preview {
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 0.5rem;
-  border: 2px solid #e5e7eb;
-}
-
-.remove-image-btn {
-  position: absolute;
-  top: -0.5rem;
-  right: -0.5rem;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  color: #6b7280;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
 }
 
-.remove-image-btn:hover {
-  background: #dc2626;
-}
-
-.notes-section {
-  margin-bottom: 1rem;
-}
-
-.notes-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 100px;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.notes-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.sidebar-footer {
+.notes-container {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background-color: #fff;
+  flex-direction: column;
+  gap: 16px;
 }
 
-@media (max-width: 1024px) {
-  .sidebar-overlay {
-    width: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    pointer-events: auto;
+.note-title {
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  padding: 12px !important;
+  background: #f9fafb;
+}
+
+.gps-map-container {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--status-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: height 0.3s ease;
+}
+
+.text-black {
+  color: #1f2937;
+}
+
+.text-xs {
+  font-size: 12px;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.ring-1 {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+.gap-3 {
+  gap: 12px;
+}
+.mt-2 {
+  margin-top: 8px;
+}
+.mt-3 {
+  margin-top: 12px;
+}
+.mt-4 {
+  margin-top: 16px;
+}
+.mb-2 {
+  margin-bottom: 8px;
+}
+.mb-3 {
+  margin-bottom: 12px;
+}
+.mr-1 {
+  margin-right: 4px;
+}
+.mr-2 {
+  margin-right: 8px;
+}
+.ml-auto {
+  margin-left: auto;
+}
+
+.expand-btn {
+  transition: transform 0.2s ease;
+}
+
+.expand-btn:hover {
+  transform: scale(1.1);
+}
+
+.jobsheet-item {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.jobsheet-item:hover {
+  background: #f9fafb;
+}
+
+.jobsheet-item .v-card-text {
+  padding-top: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    padding: 12px;
   }
 
-  .complete-task-sidebar {
-    width: 90%;
-    max-width: 460px;
-    margin-left: auto;
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+
+  .details-grid,
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-item {
+    flex-wrap: wrap;
+  }
+
+  .detail-label {
+    min-width: 120px;
   }
 }
 </style>

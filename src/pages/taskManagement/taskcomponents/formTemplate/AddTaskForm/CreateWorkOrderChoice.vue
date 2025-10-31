@@ -1,257 +1,218 @@
+<!-- Changed from full-screen modal to right-side sidebar drawer -->
 <template>
-  <v-navigation-drawer
-    :model-value="open"
-    @update:model-value="onDrawerModelUpdate"
-    location="right"
-    width="460"
-    :temporary="false"
-    :scrim="false"
-    class="cwo-drawer"
-  >
-    <div class="drawer-root">
-      <header class="drawer-header">
-        <div class="title-wrap">
-          <v-icon color="primary" class="mr-2">mdi-file-document-plus</v-icon>
-          <h3 class="title">{{ headerTitle }}</h3>
+  <Transition name="slide-fade">
+    <div v-if="open" class="cwo-overlay">
+      <!-- Sidebar drawer that slides in from right -->
+      <div class="cwo-sidebar">
+        <div class="cwo-header">
+          <div class="header-content">
+            <h3 class="title">Create Field Job</h3>
+            <button
+              class="close-btn"
+              @click="onClose"
+              aria-label="Close sidebar"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
-        <v-btn icon variant="text" @click="onClose">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </header>
 
-      <section class="drawer-body">
-        <v-card elevation="2" rounded="lg" class="mb-4">
-          <v-card-text>
-            <v-row dense>
-              <v-col cols="12">
-                <v-select
-                  v-model="mode"
-                  :items="[
-                    { label: 'Internal Work Order', value: 'internal' },
-                    { label: 'Work Order ', value: 'workorder' },
-                  ]"
-                  item-title="label"
-                  item-value="value"
-                  variant="outlined"
-                  prepend-inner-icon="mdi-format-list-bulleted"
-                  hide-details="auto"
-                  clearable
-                  @update:model-value="onTaskTypeChange"
-                  placeholder="Select task type"
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-
-        <InternalTaskForm
-          v-if="mode === 'internal'"
-          :users="users"
-          @created="onCreated"
-          @back="mode = 'internal'"
-          @cancel="onClose"
-        />
-
-        <CreateWorkOrder
-          v-else-if="mode === 'workorder'"
-          :embedded="true"
-          @created="onCreated"
-        />
-      </section>
-
-      <footer class="drawer-footer">
-        <small class="muted">
-          Actions stay visible at the bottom. No need to scroll to submit.
-        </small>
-      </footer>
+        <!-- Form content inside sidebar with proper scrolling -->
+        <div class="cwo-body">
+          <CreateWorkOrder :embedded="true" @created="onCreated" />
+        </div>
+      </div>
     </div>
-  </v-navigation-drawer>
+  </Transition>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch } from "vue";
 import CreateWorkOrder from "./createWorkOrder.vue";
-import InternalTaskForm from "@/components/WorkOrdeForm_Components/form/InternalTaskForm.vue";
 import { useFormApi as formApi } from "@/composables/workorder/createWorkOrderForm/useFormApi";
 
-const props = defineProps({ open: { type: Boolean, default: false } });
+const props = defineProps({
+  modelValue: { type: Boolean, default: false },
+});
 const emit = defineEmits(["update:modelValue", "created"]);
 
-const mode = ref("internal"); // 'none' | 'internal' | 'workorder'
-const { users, fetchDropdownData } = formApi(); // call alias instead of useFormApi()
+const { fetchDropdownData } = formApi();
 
-const headerTitle = computed(() => {
-  if (mode.value === "internal") return "Create Internal Work Order";
-  if (mode.value === "workorder") return "Create Work Order";
-  return "Create Work Order";
-});
-
-const choose = (next) => {
-  mode.value = next;
-  if (next === "internal") {
-    Promise.resolve(fetchDropdownData()).catch(() => {});
-  }
-};
-
-const resetState = () => {
-  mode.value = "internal";
-};
+const open = computed(() => props.modelValue);
 
 const onClose = () => {
-  resetState();
+  console.log("[v0] Close button clicked, emitting update:modelValue = false");
   emit("update:modelValue", false);
 };
 
-const resetAndClose = () => {
-  resetState();
-  emit("update:open", false);
-};
-
 const onCreated = () => {
+  console.log("[v0] Task created successfully, closing sidebar");
   emit("created");
-  resetAndClose();
+  onClose();
 };
 
-const onTaskTypeChange = (val) => {
-  if (!val) {
-    mode.value = "internal";
-  } else {
-    mode.value = val;
-  }
-  if (mode.value === "internal") {
-    Promise.resolve(fetchDropdownData()).catch(() => {});
-  }
-};
-
-const onDrawerModelUpdate = (v) => {
-  emit("update:open", v);
-  if (v) {
-    mode.value = "internal";
-    Promise.resolve(fetchDropdownData()).catch(() => {});
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("exclusive-sidebar-open", { detail: "create-wo" }),
-      );
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    console.log("[v0] modelValue changed to:", newVal);
+    if (newVal) {
+      console.log("[v0] Fetching dropdown data...");
+      Promise.resolve(fetchDropdownData()).catch((err) => {
+        console.error("[v0] Error fetching dropdown data:", err);
+      });
     }
-  }
-};
-
-const onExclusiveEvent = (e) => {
-  const who = e?.detail;
-  if (who && who !== "create-wo") emit("update:open", false);
-};
-
-onMounted(() => {
-  if (typeof window !== "undefined") {
-    window.addEventListener("exclusive-sidebar-open", onExclusiveEvent);
-  }
-});
-onUnmounted(() => {
-  if (typeof window !== "undefined") {
-    window.removeEventListener("exclusive-sidebar-open", onExclusiveEvent);
-  }
-});
+  },
+);
 </script>
 
 <style scoped>
-.cwo-drawer {
-  top: 0 !important;
-  height: 100% !important;
+/* Overlay for semi-transparent background */
+.cwo-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   right: 0;
-  position: fixed !important;
-  width: 460px !important;
-  z-index: 904 !important;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.drawer-root {
+/* Sidebar drawer styling - slides in from right */
+.cwo-sidebar {
+  width: 1100px;
+  max-width: 90vw;
+  height: 100vh;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
 
-.drawer-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #fff;
+.cwo-header {
+  background: #ffffff;
+  padding: 10px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  margin-top: 50px;
+}
+
+.header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  margin-top: 60px;
-}
-
-.title-wrap {
-  display: flex;
-  align-items: center;
 }
 
 .title {
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-weight: 600;
+  font-size: 1.25rem;
   margin: 0;
+  color: #1f2937;
 }
 
-.drawer-body {
-  flex: 1 1 auto;
-  overflow: auto;
-  background: #fafbff;
-}
-
-.drawer-footer {
-  position: sticky;
-  bottom: 0;
-  background: #fff;
-  padding: 10px 16px 14px 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.muted {
-  color: #6b7280;
-}
-
-.choice-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.choice-card {
+.close-btn {
+  background: none;
+  border: none;
   cursor: pointer;
-  border-radius: 12px !important;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.2s;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
-.choice-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+.close-btn:hover {
+  color: #1f2937;
+  background: #f3f4f6;
 }
 
-.choice-card-inner {
-  padding: 16px;
-  text-align: center;
+.close-btn svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 2.5;
 }
 
-.choice-title {
-  font-weight: 700;
-  margin-bottom: 4px;
+/* Body with visible scrollbar for form content */
+.cwo-body {
+  flex: 1;
+  /* overflow-y: auto; */
+  /* padding: 24px; */
+  background: #fafbfc;
 }
 
-.choice-sub {
-  font-size: 0.9rem;
-  color: #64748b;
+/* Custom scrollbar styling for better visibility */
+.cwo-body::-webkit-scrollbar {
+  width: 8px;
 }
 
-:deep(.form-actions) {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: #fff;
-  padding-top: 16px;
-  margin-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+.cwo-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.cwo-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.cwo-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+.cwo-body {
+  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-width: thin;
+}
+
+/* Slide animation from right to left */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .cwo-sidebar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .cwo-body {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 1.1rem;
+  }
 }
 </style>

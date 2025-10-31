@@ -1,3 +1,4 @@
+// authService.js;
 import axios from "axios";
 import Cookies from "js-cookie";
 
@@ -242,12 +243,10 @@ class AuthService {
         throw new Error("RESIGNED_USER");
       }
 
-      const cleanPhone = phone.replace(/\D/g, "").replace(/^91/, "");
-      const formattedPhone = "0" + cleanPhone;
-
-      const response = await this.api.get(
-        `/flows/trigger/3f1fef76-a221-4ac0-b13d-64469cf4f233?phone_number=${formattedPhone}&country_code=91&user_app=fieldeasy`,
-      );
+      const response = await this.api.post("/sent-otp-sms", {
+        phone,
+        userApp: "fieldeasy",
+      });
 
       if (response.data.otp_session_uuid) {
         localStorage.setItem("sessionUuid", response.data.otp_session_uuid);
@@ -267,15 +266,29 @@ class AuthService {
         throw new Error("Missing required verification data");
       }
 
+      // Step 1: Verify OTP using /directus/verify-otp
+      const verifyResponse = await this.api.post("/sent-otp-sms/verify-otp", {
+        phone,
+        otp,
+        otp_session_uuid: sessionUuid,
+      });
+
+      if (!verifyResponse.data.success) {
+        throw new Error(
+          verifyResponse.data.message || "OTP verification failed",
+        );
+      }
+
+      // Step 2: OTP verified, now fetch token
       const cleanPhone = phone.replace(/\D/g, "").replace(/^91/, "");
       const formattedPhone = "0" + cleanPhone;
 
-      const response = await this.api.get(
+      const tokenResponse = await this.api.get(
         `/flows/trigger/542de075-7445-49a5-bd18-c8d8b92b3440?otp=${otp}&session_uuid=${sessionUuid}&phone_number=${formattedPhone}`,
       );
 
-      if (response.data.token) {
-        this.setToken(response.data.token);
+      if (tokenResponse.data.token) {
+        this.setToken(tokenResponse.data.token);
         this.setPhone(phone);
         localStorage.removeItem("sessionUuid");
 
@@ -288,7 +301,7 @@ class AuthService {
         }
       }
 
-      return response.data;
+      return tokenResponse.data;
     } catch (error) {
       console.error("Error verifying OTP:", error);
       throw error;
@@ -440,8 +453,6 @@ class AuthService {
       const storedOtp = String(userData.otp).trim();
       const enteredOtp = String(otp).trim();
 
-      console.log("Stored OTP:", storedOtp, "Entered OTP:", enteredOtp);
-
       if (storedOtp !== enteredOtp) {
         throw new Error("OTP is wrong, please enter correct OTP");
       }
@@ -481,6 +492,51 @@ class AuthService {
         throw new Error(error.response.data.message);
       }
 
+      throw error;
+    }
+  }
+
+  // 🔥 FIXED: FORGOT PIN METHODS - PRESERVE +91
+  async forgotPin({ phone, email, userApp = "fieldeasy" }) {
+    try {
+      const payload = {
+        userApp,
+      };
+
+      // 🔥 DON'T strip + symbol - send phone AS IS
+      if (phone) {
+        payload.phone = phone; // Keep +91 intact
+      }
+      if (email) {
+        payload.email = email;
+      }
+      const response = await this.api.post("/pin/forgot-pin", payload);
+      return response.data;
+    } catch (error) {
+      console.error("Error forgot PIN:", error);
+      throw error;
+    }
+  }
+
+  async verifyForgotPinOtp({ phone, email, otp }) {
+    try {
+      const payload = { otp };
+
+      // 🔥 DON'T strip + symbol - send phone AS IS
+      if (phone) {
+        payload.phone = phone;
+      }
+      if (email) {
+        payload.email = email;
+      }
+
+      const response = await this.api.post(
+        "/pin/verify-forgotpin-otp",
+        payload,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error verifying forgot PIN OTP:", error);
       throw error;
     }
   }

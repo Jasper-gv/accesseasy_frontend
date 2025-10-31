@@ -14,27 +14,6 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <div class="main-content" :class="{ 'full-width': !showFilters }">
       <DataTableWrapper
         v-model:searchQuery="search"
@@ -44,7 +23,27 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
-        <!-- Toolbar Actions Slot -->
+        <!-- Filter Toggle Button -->
+        <template #before-search>
+          <button
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div></button
+        ></template>
 
         <!-- Table content states -->
         <div v-if="loading">
@@ -65,7 +64,7 @@
 
         <div v-else-if="filteredLeaveDetails.length === 0">
           <EmptyState
-            title="No Leave Details found"
+            title="No employee leave Details found"
             message="Try adjusting your filters or search term"
             :primaryAction="{ text: 'Clear Filters', icon: X }"
             @primaryAction="clearFilters"
@@ -254,7 +253,7 @@ const tenantId = currentUserTenant.getTenantId();
 // Define columns for DataTable
 const columns = computed(() => {
   const staticColumns = [
-    { key: "profile", label: "Profile", sortable: false, width: "60px" },
+    // { key: "profile", label: "Profile", sortable: false, width: "60px" },
     { key: "name", label: "Employee Name", sortable: false, width: "150px" },
     {
       key: "employeeId",
@@ -283,17 +282,29 @@ const columns = computed(() => {
     },
   ];
 
-  const leaveTypeColumns = uniqueLeaveTypes.value.map((leaveType) => ({
-    key: leaveType,
-    label: leaveType
-      .split(/(?=[A-Z])/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" "),
-    sortable: false,
-    width: "180px",
-  }));
-
-  return [...staticColumns, ...leaveTypeColumns];
+  if (uniqueLeaveTypes.value.length > 0) {
+    const leaveTypeColumns = uniqueLeaveTypes.value.map((leaveType) => ({
+      key: leaveType,
+      label: leaveType
+        .split(/(?=[A-Z])/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "),
+      sortable: false,
+      width: "180px",
+    }));
+    return [...staticColumns, ...leaveTypeColumns];
+  } else {
+    // If no leave types exist, show a single "Leave Details" column
+    return [
+      ...staticColumns,
+      {
+        key: "leaveDetails",
+        label: "Leave Details",
+        sortable: false,
+        width: "200px",
+      },
+    ];
+  }
 });
 const initialFilters = computed(() => ({
   organization: filters.organization,

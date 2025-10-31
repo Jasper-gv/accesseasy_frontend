@@ -14,6 +14,8 @@ export function useFormApi() {
 
   const token = ref(authService.getToken());
   const tenantId = computed(() => currentUserTenant.getTenantId());
+  const userRole = computed(() => currentUserTenant.getRole());
+  const userId = computed(() => currentUserTenant.getUserId());
 
   // Utility function to get the first present value from a list of keys
   const getFirstPresent = (obj, keys) => {
@@ -93,6 +95,7 @@ export function useFormApi() {
         ["fields[]", "orgName"],
         ["fields[]", "id"],
         ["fields[]", "orgId.email"],
+        ["fields[]", "orgType"],
         ["filter[_and][0][_and][0][tenant][tenantId][_eq]", tenantId.value],
         ["filter[_and][1][status][_neq]", "archived"],
         ["sort", "orgName"],
@@ -112,7 +115,7 @@ export function useFormApi() {
         id: c.id,
       }));
 
-      // Employees (personalModule) - limit to 100 initially
+      // Employees (personalModule) - Adjust based on user role
       const employeeParams = new URLSearchParams([
         ["limit", limit.toString()],
         ["fields[]", "employeeId"],
@@ -124,7 +127,14 @@ export function useFormApi() {
           tenantId.value,
         ],
         ["sort", "employeeId"],
-      ]).toString();
+      ]);
+
+      if (userRole.value === "Employee") {
+        employeeParams.append(
+          "filter[_and][1][assignedUser][id][_eq]",
+          userId.value,
+        );
+      }
 
       const usersResponse = await fetch(
         `${import.meta.env.VITE_API_URL}/items/personalModule?${employeeParams}`,
@@ -395,17 +405,15 @@ export function useFormApi() {
         ["sort", "employeeId"],
       ];
 
-      // Add search filters for employee ID or name
-      if (searchQuery && searchQuery.trim()) {
+      if (userRole.value === "Employee") {
+        params.push(["filter[_and][1][assignedUser][id][_eq]", userId.value]);
+      } else if (searchQuery && searchQuery.trim()) {
         const query = searchQuery.trim();
-        // Search by employee ID
         params.push(["filter[_and][1][_or][0][employeeId][_contains]", query]);
-        // Search by first name
         params.push([
           "filter[_and][1][_or][1][assignedUser][first_name][_contains]",
           query,
         ]);
-        // Search by last name
         params.push([
           "filter[_and][1][_or][2][assignedUser][last_name][_contains]",
           query,
@@ -632,106 +640,22 @@ export function useFormApi() {
 
       const processedPayloads = await Promise.all(
         payloads.map(async (data) => {
-          const dynamicFields = [];
+          console.log(
+            "[DEBUG] Incoming data.dynamicFields:",
+            JSON.stringify(data.dynamicFields, null, 2),
+          );
 
-          // Main task fields (core) - Move directly to top-level payload
-          const coreFields = formDetails?.custom_FormTemplate?.corefields || [];
-          const mainFields = {};
-          for (const f of coreFields) {
-            const key = f.key;
-            if (data[key] !== undefined) {
-              if (key === "user_location") {
-                mainFields[key] = { lat: data.lat, lng: data.lng };
-              } else if (key === "taskimage" && data[key]) {
-                // Check if already uploaded (array of ID strings)
-                if (
-                  Array.isArray(data[key]) &&
-                  typeof data[key][0] === "string"
-                ) {
-                  mainFields[key] = data[key]; // Already uploaded IDs
-                } else if (
-                  Array.isArray(data[key]) &&
-                  data[key][0] instanceof File
-                ) {
-                  mainFields[key] = await uploadImages(data[key]); // Upload File objects
-                }
-              } else {
-                mainFields[key] = data[key];
-              }
-            }
-          }
-
-          // Job sheets
-          const jobSheets = formDetails?.custom_FormTemplate?.jobSheet || [];
-          for (const jobSheet of jobSheets) {
-            const jobSheetData = data[jobSheet.job_id] || {};
-            const jobFields = {};
-
-            // Copy all fields from jobSheetData, excluding undefined/null/empty
-            for (const key of Object.keys(jobSheetData)) {
-              if (
-                jobSheetData[key] !== undefined &&
-                jobSheetData[key] !== null &&
-                jobSheetData[key] !== ""
-              ) {
-                if (key === "taskimage" && jobSheetData[key]) {
-                  // Check if already uploaded (array of ID strings)
-                  if (
-                    Array.isArray(jobSheetData[key]) &&
-                    typeof jobSheetData[key][0] === "string"
-                  ) {
-                    jobFields[key] = jobSheetData[key]; // Already uploaded IDs
-                  } else if (
-                    Array.isArray(jobSheetData[key]) &&
-                    jobSheetData[key][0] instanceof File
-                  ) {
-                    jobFields[key] = await uploadImages(jobSheetData[key]); // Upload File objects
-                  }
-                } else {
-                  jobFields[key] = jobSheetData[key];
-                }
-              }
-            }
-
-            // Handle location for job sheets (if requires_location)
-            if (jobSheet.requires_location) {
-              const latKey = jobSheet.location_field_key?.lat || "lat";
-              const lngKey = jobSheet.location_field_key?.lng || "lng";
-              if (jobSheetData[latKey] || jobSheetData[lngKey]) {
-                jobFields["user_location"] = {
-                  lat: jobSheetData[latKey],
-                  lng: jobSheetData[lngKey],
-                };
-              }
-            }
-            jobFields.UsersId = getFirstPresent(data, [
-              "UsersId",
-              "employeeId",
-              "empId",
-              "assignedEmployee",
-              "assignedUserId",
-            ]);
-            dynamicFields.push({
-              taskId: jobSheet.job_id,
-              job_name: jobSheet.job_name || "Unnamed Job Sheet",
-              fields: jobFields,
-            });
-          }
-
-          // Construct payload with core fields at top level and dynamicFields in tasks
           const payload = {
-            assignFormId: formDetails?.id,
+            assignFormId: formDetails?.id || null,
             status: determinedInitialStatus,
-            tenant: tenantId.value,
+            tenant: tenantId.value || null,
             taskType: formDetails?.formName,
             title: data.title || formDetails?.formName,
             task_priority: data.task_priority,
-            orgId: data.orgId,
-            orgLocation: data.orgLocation,
+            orgId: data.orgId || null,
+            orgLocation: data.orgLocation || null,
             team: data.team || null,
-            dynamicFields: {
-              tasks: dynamicFields,
-            },
+            dynamicFields: data.dynamicFields || { tasks: [] },
           };
 
           const employeeIdAlt = getFirstPresent(data, [
@@ -780,7 +704,10 @@ export function useFormApi() {
         }),
       );
 
-      console.log("Final Payload Sent:", processedPayloads);
+      console.log(
+        "Final Payload Sent:",
+        JSON.stringify(processedPayloads, null, 2),
+      );
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -802,7 +729,8 @@ export function useFormApi() {
         );
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result;
     } catch (err) {
       submissionError.value =
         err.message || "Failed to submit form. Please try again.";

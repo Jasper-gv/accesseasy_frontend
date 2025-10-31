@@ -347,13 +347,7 @@ const saveDetails = async () => {
     }
 
     Object.assign(formData, tempFormData);
-    emit("update:employee-data", {
-      ...props.employeeData,
-      assignedUser: {
-        ...props.employeeData.assignedUser,
-        ...updatedData.assignedUser,
-      },
-    });
+
     closeDetailsDialog();
   } catch (error) {
     console.error("Error saving bank details:", error);

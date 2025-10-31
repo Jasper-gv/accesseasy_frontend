@@ -12,25 +12,7 @@
         />
       </div>
     </div>
-    <button
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
+
     <!-- Main Content -->
     <div class="main-content" :class="{ 'full-width': !showFilters }">
       <DataTableWrapper
@@ -42,12 +24,32 @@
         @update:searchQuery="debounceSearchInput"
       >
         <!-- Toolbar Actions Slot -->
-
+        <template #before-search>
+          <button
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Table content states -->
         <div v-if="loading || initialLoading">
           <SkeletonLoader
             variant="table-body-only"
-            :rows="itemsPerPage.value"
+            :rows="itemsPerPage"
             :columns="columns.length"
           />
         </div>
@@ -334,16 +336,16 @@ const pageFilters = [
 
 // Columns for DataTable
 const columns = [
-  { key: "profile", label: "Profile", sortable: false, width: "60px" },
+  // { key: "profile", label: "Profile", sortable: false, width: "60px" },
   { key: "name", label: "Name", sortable: false, width: "1.5" },
   { key: "department", label: "Department", sortable: false, width: "1.5" },
-  {
-    key: "attendancePolicy",
-    label: "Attendance Policy",
-    sortable: false,
-    width: "2px",
-  },
-  { key: "status", label: "Status", sortable: false, width: "1.2" },
+  // {
+  //   key: "attendancePolicy",
+  //   label: "Attendance Policy",
+  //   sortable: false,
+  //   width: "2px",
+  // // },
+  // { key: "status", label: "Status", sortable: false, width: "1.2" },
   { key: "days", label: "Shifts Assigned Days", sortable: false, width: "5" },
 ];
 

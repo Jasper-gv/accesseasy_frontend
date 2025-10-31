@@ -1,30 +1,34 @@
 <!-- src/page/taskmanagmnet/task/workOrderTabs.vue -->
 <template>
-  <v-container fluid>
-    <!-- Styled Tabs -->
-    <v-tabs
-      v-model="activeTab"
-      show-arrows
-      background-color="transparent"
-      class="custom-tabs"
-    >
-      <v-tab
-        v-for="tab in tabs"
-        :key="tab.value"
-        :value="tab.value"
-        class="custom-tab"
-        @click="handleTabClick(tab.value)"
-      >
-        <v-icon :icon="tab.icon" class="mr-2"></v-icon>
-        {{ tab.title }}
-      </v-tab>
-    </v-tabs>
+  <v-app>
+    <v-main>
+      <v-container fluid>
+        <!-- Styled Tabs -->
+        <v-tabs
+          v-model="activeTab"
+          show-arrows
+          background-color="transparent"
+          class="custom-tabs"
+        >
+          <v-tab
+            v-for="tab in tabs"
+            :key="tab.value"
+            :value="tab.value"
+            class="custom-tab"
+            @click="handleTabClick(tab.value)"
+          >
+            <v-icon :icon="tab.icon" class="mr-2"></v-icon>
+            {{ tab.title }}
+          </v-tab>
+        </v-tabs>
 
-    <!-- Routed View -->
-    <v-card class="tab-content-wrapper" elevation="0">
-      <router-view />
-    </v-card>
-  </v-container>
+        <!-- Routed View -->
+        <v-card class="tab-content-wrapper" elevation="0">
+          <router-view></router-view>
+        </v-card>
+      </v-container>
+    </v-main>
+  </v-app>
 </template>
 
 <script setup>
@@ -40,16 +44,16 @@ const tabs = [
     title: "Work Orders",
     icon: "mdi-clipboard-check-outline",
   },
-  {
-    value: "fieldtrip",
-    title: "Completed Work Orders",
-    icon: "mdi-map-marker-radius-outline",
-  },
-  {
-    value: "workflow",
-    title: "Smart Forms",
-    icon: "mdi-form-textbox",
-  },
+  // {
+  //   value: "fieldtrip",
+  //   title: "Field Trips",
+  //   icon: "mdi-map-marker-radius-outline",
+  // },
+  // {
+  //   value: "workflow",
+  //   title: "Smart Forms",
+  //   icon: "mdi-form-textbox",
+  // },
 ];
 
 const activeTab = ref("workorder");
@@ -72,7 +76,7 @@ const handleTabClick = (tabValue) => {
   if (tabValue === "fieldtrip") {
     router.push({ name: "WorkOrderFieldTrip" });
   } else if (tabValue === "workflow") {
-    router.push({ name: "workflow" }); // Add the appropriate route name for workflow
+    router.push({ name: "workflow" });
   } else {
     router.push({ name: "WorkOrderTasks" });
   }
@@ -101,6 +105,8 @@ watch(activeTab, (newValue, oldValue) => {
 </script>
 
 <style scoped>
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
@@ -109,16 +115,16 @@ watch(activeTab, (newValue, oldValue) => {
 }
 
 .custom-tabs {
-  background-color: #dee8f1;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
 .custom-tab {
-  border-radius: 10px;
-  background-color: #122f68;
-  color: white !important;
+  border-radius: 10;
+  background-color: #ecfdf5;
+  color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   margin-right: 8px;
@@ -126,32 +132,34 @@ watch(activeTab, (newValue, oldValue) => {
   transition: background-color 0.3s ease;
   text-transform: capitalize;
   font-weight: 550;
-  font-size: 16px;
+  font-size: medium;
+  font-family: "Inter";
   font-family: Lato, sans-serif, Arial;
-  cursor: pointer;
 }
 
+/* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: white !important;
-  color: #68ade1 !important;
+  background-color: #059367 !important;
+  color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Icon styles */
 .custom-tab .v-icon {
-  color: white !important;
+  color: #122f68 !important;
   opacity: 0.8;
 }
 .v-tab--selected .v-icon {
-  color: #68ade1 !important;
+  color: white !important;
   opacity: 1;
 }
 
+/* Content below tabs */
 .tab-content-wrapper {
   border-radius: 0 0 12px 12px;
   background: white;
   padding: 16px;
 }
-
 ::v-deep(.v-tab.v-btn) {
   height: var(--v-tabs-height);
   border-radius: 10px !important;

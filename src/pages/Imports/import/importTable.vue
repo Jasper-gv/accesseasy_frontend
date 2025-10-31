@@ -13,26 +13,7 @@
         />
       </div>
     </div>
-    <button
-      v-if="tenantId"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
+
     <div class="main-content" :class="{ 'full-width': !showFilters }">
       <!-- DataTableWrapper Implementation -->
       <DataTableWrapper
@@ -41,6 +22,28 @@
         :has-error="showError"
         wrapper-class="custom-table-wrapper"
       >
+        <template #before-search>
+          <button
+            v-if="tenantId"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Error State -->
         <template v-if="showError">
           <ErrorState
@@ -106,12 +109,22 @@
             <template #cell-date_created="{ item }">
               {{ formatDate(item.date_created) }}
             </template>
-
+            <template #cell-action="{ item }">
+              <BaseButton
+                variant="primary"
+                size="sm"
+                text="reCheckLogs"
+                @click="recheckLog(item)"
+              />
+            </template>
             <!-- Custom cell content for imported by -->
             <template #cell-user_created="{ item }">
               {{ item.user_created?.first_name || "Unknown" }}
             </template>
 
+            <template #cell-processingCount="{ item }">
+              {{ item.processingCount?.lastProcessedRow || 0 }}
+            </template>
             <!-- Custom cell content for tenant -->
             <template #cell-tenant="{ item }">
               {{ item.tenant?.tenantName || "N/A" }}
@@ -146,8 +159,11 @@ import FilterComponent from "@/components/common/filters/payrollfilter.vue";
 import EmptyState from "@/components/common/states/EmptyState.vue";
 import ErrorState from "@/components/common/states/ErrorState.vue";
 import debounce from "lodash/debounce";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
 
 // Reactive state
+
+const token = authService.getToken();
 const showImport = ref(false);
 const editedItem = ref({});
 const showEditPage = ref(false);
@@ -236,10 +252,22 @@ const tableColumns = ref([
     width: "400px",
   },
   {
+    key: "processingCount",
+    label: "ProcessingCount",
+    sortable: false,
+    width: "400px",
+  },
+  {
     key: "date_created",
     label: "Import Date",
     sortable: false,
     width: "200px",
+  },
+  {
+    key: "action",
+    label: "Action",
+    sortable: false,
+    width: "150px",
   },
 ]);
 
@@ -263,7 +291,46 @@ const formatDate = (dateString) => {
     minute: "2-digit",
   });
 };
+const recheckLog = async (item) => {
+  try {
+    // 1️⃣ Fetch the file from Assets collection (raw binary)
+    const fileResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/assets/${item.processingCount.fileId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
+    if (!fileResponse.ok)
+      throw new Error(`Failed to fetch file ${item.generatedFile}`);
+
+    const fileBlob = await fileResponse.blob();
+    const fileName = `file_${item.generatedFile}.xlsx`;
+    const formData = new FormData();
+    formData.append("importID", item.id);
+    formData.append(
+      "lastProcessedRow",
+      item.processingCount.lastProcessedRow || 0,
+    );
+    formData.append("file", new File([fileBlob], fileName));
+    formData.append("tenantId", tenantId);
+    // 3️⃣ POST to /recheckLog
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/rechecklogs`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      },
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    console.log("Recheck result:", data);
+  } catch (err) {
+    console.error("Recheck failed:", err);
+  }
+};
 const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
     case "completed":
@@ -355,53 +422,51 @@ const fetchData = async () => {
   loading.value = true;
 
   try {
-    const params = new URLSearchParams();
-
-    // Fields to fetch
-    [
-      "id",
-      "collectionName",
-      "generatedFile.title",
-      "generatedFile.id",
-      "generatedFile.type",
-      "status",
-      "user_created.first_name",
-      "tenant.tenantName",
-      "date_created",
-    ].forEach((field) => params.append("fields[]", field));
-
-    // Add count for total items
-    params.append("meta", "total_count");
-
-    // Handle sorting
-    const sortField = currentSortBy.value;
-    const sortOrder = currentSortDirection.value === "desc" ? "-" : "";
-    params.append("sort[]", `${sortOrder}${sortField}`);
-
-    // Pagination parameters
-    params.append("limit", String(itemsPerPage.value));
-    params.append("page", String(currentPage.value));
+    let params = {
+      fields: [
+        "id",
+        "collectionName",
+        "generatedFile.title",
+        "generatedFile.id",
+        "generatedFile.type",
+        "status",
+        "user_created.first_name",
+        "tenant.tenantName",
+        "date_created",
+        "processingCount",
+      ],
+      sort:
+        currentSortBy.value && currentSortDirection.value === "desc"
+          ? `-${currentSortBy.value}`
+          : currentSortBy.value,
+      limit: itemsPerPage.value,
+      page: currentPage.value,
+      ...buildFilterQuery(),
+    };
 
     // Add tenant filter for role-based access
     if (userRole.value === "Manager" || userRole.value === "Admin") {
-      params.append("filter[tenant][tenantId][_eq]", tenantId);
+      params["filter[tenant][tenantId][_eq]"] = tenantId;
     }
 
-    // Add search and startDate filter
-    const filterQuery = buildFilterQuery();
-    filterQuery.forEach((value, key) => {
-      params.append(key, value);
-    });
+    // Construct query string
+    const queryString = Object.keys(params)
+      .map((key) => {
+        if (key === "fields") {
+          return params[key].map((f) => `fields[]=${f}`).join("&");
+        }
+        return `${key}=${encodeURIComponent(params[key])}`;
+      })
+      .join("&");
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/import?${params}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+    const url = `${import.meta.env.VITE_API_URL}/items/import?${queryString}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     if (!response.ok) {
       if (response.status === 401)

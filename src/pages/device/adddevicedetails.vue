@@ -260,10 +260,8 @@
                                 form.doors[doorTab.value].passageMode ===
                                 'limittime'
                               "
-                              v-model="
-                                form.doors[doorTab.value].selectedTimeSlot
-                              "
-                              label="Select Time Slot"
+                              v-model="form.doors[doorTab.value].scheduleTime"
+                              label="Select Schedule Time"
                               :items="timeSlots"
                               item-title="displayText"
                               item-value="id"
@@ -274,7 +272,7 @@
                                   form.doors[doorTab.value].passageMode !==
                                     'limittime' ||
                                   !!v ||
-                                  'Time slot is required for Limit Time mode',
+                                  'Schedule time is required for Limit Time mode',
                               ]"
                               clearable
                             ></v-select>
@@ -441,7 +439,7 @@ const form = reactive({
       alarmEnabled: false,
       passageStatus: false,
       passageMode: "24hours",
-      selectedTimeSlot: null,
+      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
     },
     door2: {
       selectedDoor: "",
@@ -451,7 +449,7 @@ const form = reactive({
       alarmEnabled: false,
       passageStatus: false,
       passageMode: "24hours",
-      selectedTimeSlot: null,
+      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
     },
     door3: {
       selectedDoor: "",
@@ -461,7 +459,7 @@ const form = reactive({
       alarmEnabled: false,
       passageStatus: false,
       passageMode: "24hours",
-      selectedTimeSlot: null,
+      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
     },
     door4: {
       selectedDoor: "",
@@ -471,7 +469,7 @@ const form = reactive({
       alarmEnabled: false,
       passageStatus: false,
       passageMode: "24hours",
-      selectedTimeSlot: null,
+      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
     },
   },
 });
@@ -502,7 +500,7 @@ const resetDoorConfigurations = (deviceType) => {
     alarmEnabled: false,
     passageStatus: false,
     passageMode: "24hours",
-    selectedTimeSlot: null,
+    scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
   };
 
   Object.keys(form.doors).forEach((key) => {
@@ -565,7 +563,7 @@ const onDoorSelectionChange = (doorKey) => {
       alarmEnabled: false,
       passageStatus: false,
       passageMode: "24hours",
-      selectedTimeSlot: null,
+      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
     };
   }
 };
@@ -588,7 +586,7 @@ const onPassageModeChange = (doorKey) => {
       loadTimeSlots();
     }
   } else if (doorConfig.passageMode === "24hours") {
-    doorConfig.selectedTimeSlot = null;
+    doorConfig.scheduleTime = null; // Changed from selectedTimeSlot to scheduleTime
   }
 };
 
@@ -621,23 +619,28 @@ const checkDeviceExists = async (serialNumber) => {
 
 // Map door configuration to backend fields
 const mapDoorConfigToBackend = (doorConfig, deviceId) => {
-  let timeSlotValue = null;
+  let scheduleTimeValue = null;
 
   if (doorConfig.passageStatus) {
     if (doorConfig.passageMode === "24hours") {
-      timeSlotValue = null; // No specific times for 24-hour access
-    } else if (doorConfig.passageMode === "limittime") {
-      // Find the selected time slot by ID and extract entryTime/exitTime
-      const selectedSlot = timeSlots.value.find(
-        (slot) => slot.id === doorConfig.selectedTimeSlot
+      // 24-hour access → send full-day range as object
+      scheduleTimeValue = {
+        entryTime: "00:00:00",
+        exitTime: "23:59:59",
+      };
+    } else if (
+      doorConfig.passageMode === "limittime" &&
+      doorConfig.scheduleTime
+    ) {
+      // For limit time mode, find the selected time slot and extract entry/exit times
+      const selectedTimeSlot = timeSlots.value.find(
+        (slot) => slot.id === doorConfig.scheduleTime
       );
-      if (selectedSlot) {
-        timeSlotValue = {
-          entryTime: selectedSlot.entryTime,
-          exitTime: selectedSlot.exitTime,
+      if (selectedTimeSlot) {
+        scheduleTimeValue = {
+          entryTime: selectedTimeSlot.entryTime,
+          exitTime: selectedTimeSlot.exitTime,
         };
-      } else {
-        timeSlotValue = null; // Fallback if slot not found
       }
     }
   }
@@ -648,7 +651,7 @@ const mapDoorConfigToBackend = (doorConfig, deviceId) => {
     delayTimer: doorConfig.alarmEnabled ? doorConfig.dotlDelay || null : null,
     sensorMode: doorConfig.sensorStatus,
     passiveMode: doorConfig.passageStatus,
-    timeSlot: timeSlotValue, // Now an object with entryTime/exitTime or null
+    scheduleTime: scheduleTimeValue, // ← Now this is always an object with entryTime/exitTime or null
   };
 };
 
@@ -678,10 +681,10 @@ const validateDoorConfiguration = (doorKey) => {
   if (
     doorConfig.passageStatus &&
     doorConfig.passageMode === "limittime" &&
-    !doorConfig.selectedTimeSlot
+    !doorConfig.scheduleTime
   ) {
     showToast(
-      `Please select a time slot for ${doorKey.toUpperCase()}`,
+      `Please select a schedule time for ${doorKey.toUpperCase()}`,
       "error"
     );
     return false;
@@ -800,7 +803,7 @@ const saveDevice = async () => {
         };
 
         console.log(
-          `Updating door ${doorTab.value} configuration:} ${JSON.stringify(payload)}`
+          `Updating door ${doorTab.value} configuration: ${JSON.stringify(payload)}`
         );
 
         return fetch(
@@ -928,10 +931,37 @@ const loadDoorConfigurations = async (selectedDoorIds) => {
             form.doors[tab.value].dotlDelay = config.delayTimer || "";
             form.doors[tab.value].alarmEnabled = !!config.delayTimer;
             form.doors[tab.value].passageStatus = config.passiveMode || false;
-            form.doors[tab.value].passageMode = config.timeSlot
-              ? "limittime"
-              : "24hours";
-            form.doors[tab.value].selectedTimeSlot = config.timeSlot || null;
+
+            // Handle scheduleTime - it should be an object with entryTime/exitTime
+            if (
+              config.scheduleTime &&
+              typeof config.scheduleTime === "object"
+            ) {
+              const scheduleTime = config.scheduleTime;
+
+              // Check if it's 24-hour access
+              if (
+                scheduleTime.entryTime === "00:00:00" &&
+                scheduleTime.exitTime === "23:59:59"
+              ) {
+                form.doors[tab.value].passageMode = "24hours";
+                form.doors[tab.value].scheduleTime = null;
+              } else {
+                // It's limit time - find matching time slot
+                form.doors[tab.value].passageMode = "limittime";
+                const matchingSlot = timeSlots.value.find(
+                  (slot) =>
+                    slot.entryTime === scheduleTime.entryTime &&
+                    slot.exitTime === scheduleTime.exitTime
+                );
+                form.doors[tab.value].scheduleTime = matchingSlot
+                  ? matchingSlot.id
+                  : null;
+              }
+            } else {
+              form.doors[tab.value].passageMode = "24hours";
+              form.doors[tab.value].scheduleTime = null;
+            }
           }
         }
       }

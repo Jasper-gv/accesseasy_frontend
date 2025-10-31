@@ -3,18 +3,25 @@
     <v-main>
       <v-container fluid>
         <!-- Tabs -->
-        <v-tabs v-model="activeTab" color="#68ade1" show-arrows>
-          <v-tab
-            v-for="tab in tabs"
-            :key="tab.value"
-            :value="tab.value"
-            style="text-transform: none"
-            class="tab-text"
-          >
-            <v-icon :icon="tab.icon" class="mr-2"></v-icon>
-            {{ tab.title }}
-          </v-tab>
-        </v-tabs>
+        <v-row class="align-center mb-4">
+          <v-col cols="auto">
+            <v-btn icon="mdi-arrow-left" variant="text" @click="goBack"></v-btn>
+          </v-col>
+          <v-col cols="3">
+            <div
+              style="
+                background-color: #ecfdf5;
+                color: black;
+                padding: 6px;
+                border: 1px solid #059367;
+              "
+            >
+              <h2 class="text-h6 font-weight-medium mb-0">
+                {{ props.selectedConfig.configName }}
+              </h2>
+            </div>
+          </v-col>
+        </v-row>
 
         <!-- Tab content -->
         <v-window v-model="activeTab">
@@ -65,7 +72,11 @@ const props = defineProps({
     default: null,
   },
 });
+const emit = defineEmits([]);
 
+const goBack = () => {
+  emit("close");
+};
 const tabs = [
   {
     title: "Penalty Settings",

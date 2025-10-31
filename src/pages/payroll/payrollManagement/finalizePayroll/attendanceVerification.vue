@@ -88,7 +88,6 @@
             <DataTable
               :items="paginatedEmployees"
               :columns="columns"
-              :expandable="true"
               item-key="employee.employeeId"
               wrapper-class="employee-status-table compact-table"
               style="height: calc(80vh - 160px); overflow-y: auto"
@@ -204,7 +203,7 @@
               <!-- Employee ID -->
               <template #cell-id="{ item }">
                 <span class="employee-code">
-                  {{ item?.employee?.id || "N/A" }}
+                  {{ item?.employee?.employeeId || "N/A" }}
                 </span>
               </template>
 
@@ -215,38 +214,44 @@
 
               <!-- Payable Days -->
               <template #cell-payableDays="{ item }">
-                {{ item?.totalPayableDays ?? "N/A" }}
-              </template>
-              <template #cell-present="{ item }">
-                {{ item?.present ?? "N/A" }}
+                {{ item.attendanceData?.totalPayableDays ?? 0 }}
               </template>
 
+              <!-- Present Days -->
+              <template #cell-present="{ item }">
+                {{ item.attendanceData?.present ?? 0 }}
+              </template>
+
+              <!-- Absent Days -->
               <template #cell-absent="{ item }">
-                {{ item?.absent ?? "N/A" }}
+                {{ item.attendanceData?.absent ?? 0 }}
               </template>
 
               <!-- Unpaid Leave -->
               <template #cell-unpaidLeave="{ item }">
-                {{ item?.unpaidLeave ?? "N/A" }}
+                {{ item.attendanceData?.unpaidLeave ?? 0 }}
               </template>
 
+              <!-- Week Off -->
               <template #cell-weekOff="{ item }">
-                {{ item?.weekOff ?? "N/A" }}
+                {{ item.attendanceData?.weekOff ?? 0 }}
               </template>
 
+              <!-- Holiday -->
               <template #cell-holiday="{ item }">
-                {{ item?.holiday ?? "N/A" }}
+                {{ item.attendanceData?.holiday ?? 0 }}
               </template>
+
               <template #cell-actions="{ item }">
-                <v-btn
-                  small
-                  color="primary"
-                  text
-                  class="view-details-btn"
+                <BaseButton
+                  variant="primary"
+                  size="sm"
+                  :left-icon="Eye"
+                  class="view-details-btn ms-2"
                   @click.stop="viewEmployeeDetails(item)"
                 >
-                  view
-                </v-btn>
+                  View
+                </BaseButton>
               </template>
 
               <!-- Attendance Status -->
@@ -294,9 +299,9 @@
 
     <div class="action-footer">
       <BaseButton
-        variant="secondary"
+        variant="danger"
         size="md"
-        left-icon="mdi-close"
+        :left-icon="X"
         @click="goBack"
         class="ms-2"
       >
@@ -307,7 +312,7 @@
         v-if="hasUnverifiedEmployees"
         variant="primary"
         size="md"
-        left-icon="mdi-check-circle"
+        :left-icon="CheckCircle"
         @click="showVerifyAllDialog = true"
         class="ms-2"
       >
@@ -318,7 +323,7 @@
         v-else
         variant="primary"
         size="md"
-        left-icon="mdi-arrow-right"
+        :left-icon="ArrowRight"
         @click="handleNext"
         class="ms-2"
         style="min-width: 80px"
@@ -787,11 +792,6 @@
 
           <div v-else class="verify-confirm-text">
             Are you sure you want to verify attendance for all employees?
-            <div class="verify-details">
-              This will verify attendance for
-              {{ selectedEmployees.length }} employees based on the current
-              attendance cycle.
-            </div>
           </div>
         </v-card-text>
 
@@ -836,7 +836,7 @@ import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import EmptyState from "@/components/common/states/EmptyState.vue";
-
+import { X, CheckCircle, ArrowRight, Eye } from "lucide-vue-next";
 const router = useRouter();
 const userRole = currentUserTenant.getRole();
 const selectedEmployees = ref([]);
@@ -854,7 +854,7 @@ const cycleStartDate = ref("");
 const cycleEndDate = ref("");
 const showEmployeeDetails = ref(false);
 const selectedEmployeeDetail = ref(null);
-// const activeTab = ref("attendance");
+const activeTab = ref("attendance");
 const employeeAttendanceData = ref({});
 const attendanceSummaryData = ref([]);
 const tenantId = ref("");
@@ -875,7 +875,7 @@ const columns = [
   { key: "name", label: "Employee Name", width: "150px" },
 
   { key: "ctc", label: "Monthly CTC", width: "150px" },
-  { key: "totalPayableDays", label: "Payable Days", width: "150px" },
+  { key: "payableDays", label: "Payable Days", width: "150px" },
   { key: "present", label: "Present", width: "150px" },
   { key: "absent", label: "Absent", width: "150px" },
   { key: "unpaidLeave", label: "UnPaidLeave", width: "150px" },
@@ -932,7 +932,7 @@ const formatAmount = (value) => {
 };
 
 const goBack = () => {
-  router.push("/payroll");
+  router.push("/payroll/management");
 };
 
 const hasUnverifiedEmployees = computed(() => {
@@ -997,10 +997,9 @@ const loadDateRangeFromStorage = async () => {
     }
   }
 };
-
+const attendanceData = ref("null");
 const fetchAttendanceSummary = async () => {
   isLoadingEmployees.value = true;
-
   try {
     const token = authService.getToken();
     const employeeIds = selectedEmployees.value
@@ -1020,7 +1019,7 @@ const fetchAttendanceSummary = async () => {
     };
 
     const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/attendance/attendance-verification`,
+      `${import.meta.env.VITE_API_URL}/payroll-attendance/verification`,
       {
         params: params,
         headers: {
@@ -1033,14 +1032,44 @@ const fetchAttendanceSummary = async () => {
     totalItems.value = selectedEmployees.value.length;
 
     selectedEmployees.value.forEach((employee) => {
-      const attendanceData = attendanceSummaryData.value.find(
+      attendanceData.value = attendanceSummaryData.value.find(
         (data) =>
           data.employeeId.toString() === employee.employee.id.toString(),
       );
+      const [yearStr, monthStr] = cycleEndDate.value.split("-");
+      let year = Number(yearStr);
+      let month = Number(monthStr);
 
-      if (attendanceData) {
-        employee.payableDays = attendanceData.totalPayableDays || 0;
-        employee.attendanceData = attendanceData;
+      // make sure day (like 2025-08-14) won’t break the split
+      if (monthStr.includes("-")) month = Number(monthStr.split("-")[0]);
+
+      const salaryTracking = employee?.salaryTracking || {};
+      console.log("salaryTracking ", salaryTracking);
+      let monthlyCTC = 0;
+
+      // 🔁 keep checking current and previous months until found
+      for (let i = 0; i < 12; i++) {
+        const key = `${String(month).padStart(2, "0")}/${year}`;
+        console.log("key", key);
+        const found = salaryTracking[key];
+        if (found) {
+          monthlyCTC = Number(found);
+          break;
+        }
+
+        // move to previous month
+        month -= 1;
+        if (month === 0) {
+          month = 12;
+          year -= 1;
+        }
+      }
+
+      employee.monthlyCTC = monthlyCTC;
+      5;
+
+      if (attendanceData.value) {
+        employee.attendanceData = attendanceData.value;
       } else {
         employee.payableDays = 0;
         employee.attendanceData = null;
@@ -1698,7 +1727,7 @@ onMounted(() => {
 }
 
 .header-banner {
-  background: #d5ddf1;
+  background: #ecfdf5;
   padding: 1.5rem;
   color: rgb(0, 0, 0);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);

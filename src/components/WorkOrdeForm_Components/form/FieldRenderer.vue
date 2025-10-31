@@ -1,13 +1,8 @@
 <!-- /senzrGo/senzrfieldopsfrontend/src/components/WorkOrdeForm_Components/form/FieldRenderer.vue -->
 <template>
-  <div class="field-wrapper">
+  <!-- Wrap the entire field wrapper with v-if to control visibility -->
+  <div v-if="isFieldVisible" class="field-wrapper">
     <v-label class="field-label">
-      <v-icon
-        :icon="getFieldIcon(field)"
-        size="18"
-        class="mr-2"
-        :color="isFieldMandatory(field, userRole) ? 'error' : 'primary'"
-      ></v-icon>
       {{ field.label }}
       <span v-if="isFieldMandatory(field, userRole)" class="required-indicator"
         >*</span
@@ -16,61 +11,56 @@
 
     <!-- Special handling for orgId field type -->
     <div v-if="isOrgIdField">
-      <v-select
-        v-if="!selectedOrgType"
-        :items="orgTypeOptions"
-        item-title="label"
-        item-value="value"
-        label="Choose Organization Type"
+      <v-autocomplete
+        v-model="formData[field.key]"
+        :items="filteredOrganizations"
+        :loading="loadingOrganizations"
+        item-title="orgName"
+        item-value="id"
         variant="outlined"
         density="comfortable"
         :error-messages="touchedFields[field.key] ? fieldErrors : []"
-        @update:model-value="onOrgTypeChange"
+        clearable
+        class="field-input"
+        :menu-props="{ maxHeight: 400 }"
+        @update:model-value="handleOrgSelection"
         @blur="markFieldTouched(field.key)"
-        class="field-input mb-3"
       >
         <template #prepend-inner>
-          <v-icon>mdi-account-group</v-icon>
+          <v-icon>mdi-domain</v-icon>
         </template>
-      </v-select>
 
-      <div v-else>
-        <v-autocomplete
-          v-model="formData[field.key]"
-          :items="filteredOrganizations"
-          :loading="loadingOrganizations"
-          item-title="orgName"
-          item-value="id"
-          :label="`Select ${selectedOrgType}`"
-          variant="outlined"
-          density="comfortable"
-          :error-messages="touchedFields[field.key] ? fieldErrors : []"
-          clearable
-          class="field-input"
-          placeholder="Search by organization name..."
-          :search-input.sync="orgSearchQuery"
-          @update:model-value="markFieldTouched(field.key)"
-          @blur="markFieldTouched(field.key)"
-        >
-          <template #prepend-inner>
-            <v-icon :icon="orgTypeIcon"></v-icon>
-          </template>
-          <template #append-inner>
-            <v-icon size="20" color="grey">mdi-magnify</v-icon>
-          </template>
-        </v-autocomplete>
+        <!-- Search box inside dropdown menu -->
+        <template #prepend-item>
+          <v-text-field
+            v-model="orgSearchQuery"
+            placeholder="Search organizations..."
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+            class="ma-2"
+            @click.stop
+            @keydown.stop
+          >
+          </v-text-field>
+          <v-divider class="mb-2"></v-divider>
+        </template>
 
-        <v-btn
-          size="small"
-          variant="text"
-          color="primary"
-          @click="resetOrgSelection"
-          class="mt-2"
-        >
-          <v-icon size="16" class="mr-1">mdi-arrow-left</v-icon>
-          Change Type
-        </v-btn>
-      </div>
+        <template #item="{ props: itemProps, item }">
+          <v-list-item v-bind="itemProps">
+            <template #append>
+              <v-chip
+                size="x-small"
+                :color="orgTypeColor(item.raw.orgType)"
+                variant="tonal"
+              >
+                {{ orgTypeLabel(item.raw.orgType) }}
+              </v-chip>
+            </template>
+          </v-list-item>
+        </template>
+      </v-autocomplete>
     </div>
 
     <!-- UsersId special select -->
@@ -81,25 +71,34 @@
       item-title="label"
       item-value="id"
       v-model="formData.UsersId"
-      :label="usersLabel"
       :hint="formData?.UsersId ? 'Personal ID selected' : 'Select employee'"
       persistent-hint
       clearable
       variant="outlined"
       density="comfortable"
       class="field-input"
-      placeholder="Search by name or employee ID..."
-      :search-input.sync="userSearchQuery"
+      :menu-props="{ maxHeight: 400 }"
       :error-messages="touchedFields[field.key] ? fieldErrors : []"
-      @update:model-value="markFieldTouched(field.key)"
+      @update:model-value="handleUserSelection"
       @blur="markFieldTouched(field.key)"
     >
-      <template #prepend-inner>
-        <v-icon>mdi-account-search</v-icon>
+      <!-- Search box inside dropdown menu -->
+      <template #prepend-item>
+        <v-text-field
+          v-model="userSearchQuery"
+          placeholder="Search by name or employee ID..."
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          class="ma-2"
+          @click.stop
+          @keydown.stop
+        >
+        </v-text-field>
+        <v-divider class="mb-2"></v-divider>
       </template>
-      <template #append-inner>
-        <v-icon size="20" color="grey">mdi-magnify</v-icon>
-      </template>
+
       <template #item="{ props: itemProps, item }">
         <v-list-item v-bind="itemProps">
           <template #append>
@@ -124,27 +123,35 @@
       item-title="departmentName"
       item-value="id"
       v-model="formData.team"
-      label="Department"
       hint="Select department"
       persistent-hint
       clearable
       variant="outlined"
       density="comfortable"
       class="field-input"
-      placeholder="Search by department name..."
-      :search-input.sync="departmentSearchQuery"
+      :menu-props="{ maxHeight: 400 }"
       :error-messages="touchedFields[field.key] ? fieldErrors : []"
-      @update:model-value="markFieldTouched(field.key)"
+      @update:model-value="handleDepartmentSelection"
       @blur="markFieldTouched(field.key)"
     >
-      <template #prepend-inner>
-        <v-icon>mdi-account-group</v-icon>
-      </template>
-      <template #append-inner>
-        <v-icon size="20" color="grey">mdi-magnify</v-icon>
-      </template>
-      <template #item="{ props: itemProps, item }">
-        <v-list-item v-bind="itemProps"> </v-list-item>
+      <!-- Search box inside dropdown menu -->
+      <template #prepend-item>
+        <v-text-field
+          v-model="departmentSearchQuery"
+          placeholder="Search departments..."
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          class="ma-2"
+          @click.stop
+          @keydown.stop
+        >
+          <template #prepend-inner>
+            <v-icon size="20">mdi-magnify</v-icon>
+          </template>
+        </v-text-field>
+        <v-divider class="mb-2"></v-divider>
       </template>
     </v-autocomplete>
 
@@ -152,7 +159,6 @@
     <div v-else-if="field.type === 'gps-currentLocation'">
       <v-text-field
         v-model="formData[field.key]"
-        :label="field.label || 'Current Location'"
         variant="outlined"
         density="comfortable"
         readonly
@@ -169,14 +175,11 @@
         density="compact"
         class="mt-2"
       >
-        <template #prepend>
-          <v-icon>mdi-alert-circle-outline</v-icon>
-        </template>
         {{ locationError }}
       </v-alert>
     </div>
 
-    <!-- Client Location -->
+    <!-- Client Location (using gps type/key as dropdown) -->
     <div v-else-if="isClientLocationField">
       <v-select
         :disabled="disableClientLocation"
@@ -184,7 +187,6 @@
         :items="clientLocations"
         item-title="name"
         item-value="id"
-        label="Client Location"
         variant="outlined"
         density="comfortable"
         :hint="disableClientLocation ? 'Select a Client first' : ''"
@@ -249,7 +251,7 @@
       }}</v-alert>
     </div>
 
-    <!-- Generic dynamic field -->
+    <!-- Generic dynamic field (exclude gps/clientLocation from fallback) -->
     <component
       v-else
       :is="getFieldComponent(field)"
@@ -333,7 +335,6 @@ const emit = defineEmits([
 const touchedFields = inject("touchedFields", ref({}));
 
 // Organization selection state
-const selectedOrgType = ref(null);
 const filteredOrganizations = ref([]);
 const loadingOrganizations = ref(false);
 const orgSearchQuery = ref("");
@@ -361,11 +362,18 @@ const departmentSearchQuery = ref("");
 // Get composable functions
 const { searchOrganizations, searchUsers, searchDepartments } = useFormApi();
 
-// Static data
-const orgTypeOptions = [
-  { label: "Client", value: "Client" },
-  { label: "Contact", value: "Contact" },
-];
+// New computed property to determine field visibility based on roleBasedRequired
+const isFieldVisible = computed(() => {
+  const required = props.field?.roleBasedRequired;
+  if (required && typeof required === "object" && props.userRole) {
+    // If role exists in roleBasedRequired, return its value (true = show, false = hide)
+    if (required[props.userRole] !== undefined) {
+      return required[props.userRole] === true;
+    }
+  }
+  // Default to true if roleBasedRequired is not defined or role is not found
+  return true;
+});
 
 const fieldErrors = computed(() => {
   if (!touchedFields.value[props.field?.key]) {
@@ -408,10 +416,6 @@ const isOrgIdField = computed(() => {
   return key === "orgId" || getFieldTypeString(props.field?.type) === "orgId";
 });
 
-const orgTypeIcon = computed(() => {
-  return selectedOrgType.value === "Client" ? "mdi-domain" : "mdi-account";
-});
-
 const isUsersField = computed(() => {
   const key = props.field?.key || props.field?.name || "";
   return key === "UsersId";
@@ -420,21 +424,8 @@ const isUsersField = computed(() => {
 const usersLabel = computed(() => props.field?.label || "Assign to (Employee)");
 
 const isClientLocationField = computed(() => {
-  const key = (
-    props.field?.key ||
-    props.field?.field ||
-    props.field?.name ||
-    ""
-  )
-    .toString()
-    .toLowerCase();
-  return [
-    "clientlocation",
-    "client_location",
-    "client_location_id",
-    "client_locationid",
-    "orglocation",
-  ].includes(key);
+  const type = getFieldTypeString(props.field.type);
+  return type === "gps" || props.field.key === "gps";
 });
 
 const hasClientSelected = computed(() => {
@@ -456,6 +447,15 @@ const isTeamField = computed(() => {
   const key = props.field?.key || "";
   return key === "team";
 });
+
+// New functions for orgType chip display
+const orgTypeLabel = (orgType) => {
+  return orgType === "clientorg" ? "Client" : "Contact";
+};
+
+const orgTypeColor = (orgType) => {
+  return orgType === "clientorg" ? "blue" : "purple";
+};
 
 const resolvedProps = computed(() => {
   const base = getFieldProps(props.field);
@@ -527,20 +527,7 @@ const validateField = () => {
   });
 };
 
-const onOrgTypeChange = async (type) => {
-  selectedOrgType.value = type;
-  await fetchFilteredOrganizations(type);
-  markFieldTouched(props.field.key);
-};
-
-const resetOrgSelection = () => {
-  selectedOrgType.value = null;
-  filteredOrganizations.value = [];
-  props.formData[props.field.key] = null;
-  markFieldTouched(props.field.key);
-};
-
-const fetchFilteredOrganizations = async (orgType) => {
+const fetchFilteredOrganizations = async () => {
   const token = authService.getToken();
   const tenantId = currentUserTenant.getTenantId();
 
@@ -552,19 +539,13 @@ const fetchFilteredOrganizations = async (orgType) => {
   loadingOrganizations.value = true;
 
   try {
-    const filterParam =
-      orgType === "Client"
-        ? "filter[_and][0][_and][1][orgType][_contains]=clientorg"
-        : "filter[_and][0][_and][0][orgType][_contains]=contact";
-
     const params = new URLSearchParams([
-      ["limit", "-1"],
+      ["limit", "100"],
       ["fields[]", "orgName"],
       ["fields[]", "id"],
       ["fields[]", "orgType"],
-      [`filter[_and][0][tenant][tenantId][_eq]`, tenantId],
-      [filterParam.split("=")[0], filterParam.split("=")[1]],
-      ["filter[_and][2][status][_neq]", "archived"],
+      ["filter[_and][0][tenant][tenantId][_eq]", tenantId],
+      ["filter[_and][1][status][_neq]", "archived"],
       ["sort", "orgName"],
     ]).toString();
 
@@ -589,11 +570,27 @@ const fetchFilteredOrganizations = async (orgType) => {
       orgType: org.orgType,
     }));
   } catch (error) {
-    console.error(`Error fetching ${orgType.toLowerCase()}s:`, error);
+    console.error("Error fetching organizations:", error);
     filteredOrganizations.value = [];
   } finally {
     loadingOrganizations.value = false;
   }
+};
+
+// Handlers for selections (to prevent search trigger on selection)
+const handleOrgSelection = (value) => {
+  markFieldTouched(props.field.key);
+  // Don't trigger search when selecting
+};
+
+const handleUserSelection = (value) => {
+  markFieldTouched(props.field.key);
+  // Don't trigger search when selecting
+};
+
+const handleDepartmentSelection = (value) => {
+  markFieldTouched(props.field.key);
+  // Don't trigger search when selecting
 };
 
 const captureCurrentLocation = (field) => {
@@ -770,8 +767,8 @@ async function fetchClientLocations(orgId) {
         ["fields[]", "locmark"],
         ["fields[]", "id"],
         ["fields[]", "orgLocation.orgName"],
+        ["fields[]", "contactDetails"],
         [`filter[_and][1][tenant][tenantId][_eq]`, tenantId],
-        ["filter[_and][1][locType][_eq]", "serviceable_area"],
       ]).toString() +
       "&" +
       filterParam;
@@ -792,7 +789,7 @@ async function fetchClientLocations(orgId) {
 
     const data = await response.json();
     clientLocations.value = (data?.data || [])
-      .filter((loc) => loc.locType === "serviceable_area")
+      .filter((loc) => loc.locType !== "serviceable_area")
       .map((loc) => ({
         id: loc.id,
         name: loc.locdetail?.locationName || "Unnamed Location",
@@ -855,15 +852,6 @@ const statusIcon = (s) =>
       : "mdi-clock-outline";
 
 watch(
-  () => props.formData[props.field?.key],
-  (newValue) => {
-    if (!newValue && selectedOrgType.value) {
-      resetOrgSelection();
-    }
-  },
-);
-
-watch(
   () => props.formData.orgId,
   async (newOrgId) => {
     if (isClientLocationField.value && newOrgId) {
@@ -879,6 +867,7 @@ watch(
   { immediate: true },
 );
 
+// Organization search with backend API
 let orgSearchTimeout = null;
 watch(orgSearchQuery, (newQuery) => {
   if (orgSearchTimeout) clearTimeout(orgSearchTimeout);
@@ -888,10 +877,7 @@ watch(orgSearchQuery, (newQuery) => {
       console.log("[v0] Searching organizations:", newQuery);
       loadingOrganizations.value = true;
       try {
-        const results = await searchOrganizations(
-          newQuery,
-          selectedOrgType.value,
-        );
+        const results = await searchOrganizations(newQuery, null);
         filteredOrganizations.value = results;
         console.log("[v0] Organization search results:", results.length);
       } catch (error) {
@@ -899,22 +885,24 @@ watch(orgSearchQuery, (newQuery) => {
       } finally {
         loadingOrganizations.value = false;
       }
-    } else if (selectedOrgType.value) {
-      await fetchFilteredOrganizations(selectedOrgType.value);
+    } else {
+      await fetchFilteredOrganizations();
     }
   }, 500);
 });
 
+// Initialize users from props
 watch(
   () => props.users,
   (newUsers) => {
-    if (newUsers && newUsers.length > 0 && searchedUsers.value.length === 0) {
+    if (newUsers && newUsers.length > 0) {
       searchedUsers.value = newUsers;
     }
   },
   { immediate: true },
 );
 
+// User search with backend API
 let userSearchTimeout = null;
 watch(userSearchQuery, (newQuery) => {
   if (userSearchTimeout) clearTimeout(userSearchTimeout);
@@ -938,20 +926,18 @@ watch(userSearchQuery, (newQuery) => {
   }, 500);
 });
 
+// Initialize departments from props
 watch(
   () => props.departments,
   (newDepartments) => {
-    if (
-      newDepartments &&
-      newDepartments.length > 0 &&
-      searchedDepartments.value.length === 0
-    ) {
+    if (newDepartments && newDepartments.length > 0) {
       searchedDepartments.value = newDepartments;
     }
   },
   { immediate: true },
 );
 
+// Department search with backend API
 let departmentSearchTimeout = null;
 watch(departmentSearchQuery, (newQuery) => {
   if (departmentSearchTimeout) clearTimeout(departmentSearchTimeout);
@@ -974,6 +960,9 @@ watch(departmentSearchQuery, (newQuery) => {
     }
   }, 500);
 });
+
+// Initialize organizations on mount
+fetchFilteredOrganizations();
 </script>
 
 <style scoped>
@@ -983,7 +972,8 @@ watch(departmentSearchQuery, (newQuery) => {
   font-weight: 600;
   color: #37474f;
   margin-bottom: 12px;
-  font-size: 0.95rem;
+  font-size: medium;
+  font-family: "Inter";
 }
 
 .required-indicator {
@@ -1045,7 +1035,8 @@ watch(departmentSearchQuery, (newQuery) => {
 }
 
 :deep(.v-text-field input[type="datetime-local"]) {
-  font-size: 0.95rem;
+  font-size: medium;
+  font-family: "Inter";
   padding: 8px 12px;
   width: 100%;
 }
@@ -1082,14 +1073,15 @@ watch(departmentSearchQuery, (newQuery) => {
   position: absolute;
   bottom: 4px;
   left: 4px;
-  font-size: 0.75rem;
+  font-size: medium;
+  font-family: "Inter";
   color: white;
   background: rgba(0, 0, 0, 0.5);
   padding: 2px 4px;
   border-radius: 4px;
 }
 
-/* Added styles for autocomplete search functionality */
+/* Autocomplete dropdown styles */
 :deep(.v-autocomplete .v-field) {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
@@ -1103,15 +1095,38 @@ watch(departmentSearchQuery, (newQuery) => {
   box-shadow: 0 4px 16px rgba(25, 118, 210, 0.2);
 }
 
-:deep(.v-autocomplete input::placeholder) {
-  color: #9e9e9e;
-  font-size: 0.9rem;
+:deep(.v-autocomplete .v-chip) {
+  font-size: medium;
+  font-family: "Inter";
+  height: 20px;
+  margin-left: 8px;
 }
+
+/* Search box inside dropdown styling */
+:deep(.v-list-item) {
+  cursor: pointer;
+}
+
+:deep(.v-list-item:hover) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Remove extra spacing */
 :deep(.v-input__details) {
   min-height: unset !important;
   padding-top: unset !important;
 }
+
 .v-messages {
   min-height: unset !important;
+}
+
+/* Style for the search text field inside dropdown */
+:deep(.v-autocomplete .v-overlay__content) {
+  border-radius: 8px;
+}
+
+:deep(.v-list) {
+  padding-top: 0 !important;
 }
 </style>

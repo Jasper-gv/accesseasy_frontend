@@ -14,27 +14,6 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <div class="main-content" :class="{ 'full-width': !showFilters }">
       <DataTableWrapper
         v-model:searchQuery="search"
@@ -44,6 +23,27 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
+        <!-- Filter Toggle Button -->
+        <template #before-search>
+          <button
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div></button
+        ></template>
         <div v-if="loading">
           <SkeletonLoader
             variant="table-body-only"
@@ -190,14 +190,13 @@ const page = ref(1);
 const showFilters = ref(true);
 const filters = reactive({
   role: [],
-  organization: "",
+
   department: [],
   monthYear: null,
 });
 
 // Filter schema for FilterComponent
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "monthYear", label: "Month & Year", type: "month", show: true },
   { key: "department", label: "Department", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
@@ -364,14 +363,13 @@ const columns = computed(() => [
 
 const initialFilters = computed(() => ({
   role: filters.role,
-  organization: filters.organization,
+
   department: filters.department,
 }));
 
 const hasActiveFilters = computed(() => {
   return (
     filters.role.length > 0 ||
-    filters.organization !== "" ||
     filters.department.length > 0 ||
     search.value !== ""
   );
@@ -1010,16 +1008,9 @@ const fetchFilterOptions = async () => {
       "filter[tenant][tenantId][_eq]": tenantId,
     });
 
-    const [roleRes, organizationRes, departmentRes] = await Promise.all([
+    const [roleRes, departmentRes] = await Promise.all([
       fetch(
         `${import.meta.env.VITE_API_URL}/roles?filter[_and][0][name][_neq]=Administrator&filter[_and][1][name][_neq]=esslAdmin&filter[_and][2][name][_neq]=Dealer`,
-        {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      ),
-      fetch(
-        `${import.meta.env.VITE_API_URL}/items/organization?${params}&fields=id,organizationName`,
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
@@ -1034,15 +1025,14 @@ const fetchFilterOptions = async () => {
       ),
     ]);
 
-    if (!roleRes.ok || !organizationRes.ok || !departmentRes.ok) {
+    if (!roleRes.ok || !departmentRes.ok) {
       throw new Error(
         `HTTP error! Status: Roles(${roleRes.status}), Organization(${organizationRes.status}), Department(${departmentRes.status})`,
       );
     }
 
-    const [roleData, organizationData, departmentData] = await Promise.all([
+    const [roleData, departmentData] = await Promise.all([
       roleRes.json(),
-      organizationRes.json(),
       departmentRes.json(),
     ]);
 
@@ -1050,10 +1040,7 @@ const fetchFilterOptions = async () => {
       title: r.name,
       value: r.name,
     }));
-    organizationOptions.value = organizationData.data.map((o) => ({
-      title: o.organizationName,
-      value: o.id,
-    }));
+
     departmentOptions.value = departmentData.data.map((d) => ({
       title: d.departmentName,
       value: d.departmentName,

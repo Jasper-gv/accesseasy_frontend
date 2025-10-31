@@ -1,369 +1,202 @@
 <template>
   <div>
+    <ToastNotification
+      v-if="showSuccessAlert"
+      :show="showSuccessAlert"
+      message="Location added successfully!"
+      type="success"
+      @close="showSuccessAlert = false"
+    />
+    <ToastNotification
+      v-if="showErrorAlert"
+      :show="showErrorAlert"
+      :message="errorMessage"
+      type="error"
+      @close="showErrorAlert = false"
+    />
     <v-form ref="form">
       <v-toolbar density="compact" color="grey-lighten-4">
-        <v-btn icon color="black" @click="handleClose">
-          <v-icon>mdi-arrow-left</v-icon>
-        </v-btn>
-        <v-toolbar-title class="ml-4">Add Brach</v-toolbar-title>
         <v-spacer></v-spacer>
-        <v-btn color="error" variant="text" class="mr-2" @click="handleClose">
-          CANCEL
-        </v-btn>
-        <v-btn
-          style="background-color: skyblue"
-          color="white"
+        <BaseButton
+          color="primary"
           @click="handleSave"
           :loading="isSaving"
-        >
-          SAVE
-        </v-btn>
+          :text="`save`"
+        ></BaseButton>
       </v-toolbar>
 
-      <div class="d-flex content-wrapper">
-        <!-- Side Navigation -->
-        <div class="side-nav pa-4">
-          <v-list density="compact" nav>
-            <v-list-item
-              v-for="(item, i) in menuItems"
-              :key="i"
-              :value="item"
-              :active="selectedTab === item.value"
-              @click="selectedTab = item.value"
-              color="black"
-              rounded
-            >
-              <template v-slot:prepend>
-                <v-icon :icon="item.icon"></v-icon>
-              </template>
-              <v-list-item-title>{{ item.title }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </div>
-
+      <div class="content-wrapper">
         <!-- Content Area -->
         <div class="content-area pa-4">
           <v-card flat>
-            <v-window v-model="selectedTab">
-              <!-- Basic Details -->
-              <v-window-item value="basic">
-                <v-row>
-                  <!-- Location Name -->
-                  <v-col cols="12" sm="6">
-                    <v-text-field
-                      v-model="formData.locationName"
-                      label="Branch Name *"
-                      variant="outlined"
-                      density="comfortable"
-                      :rules="locationNameRules"
-                      required
-                    ></v-text-field>
-                  </v-col>
+            <v-row>
+              <!-- Location Name -->
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.locationName"
+                  label="Branch Name *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="locationNameRules"
+                  required
+                ></v-text-field>
+              </v-col>
 
-                  <!-- Location Type -->
-                  <!-- <v-col cols="12" sm="6">
-                    <v-select
-                      v-model="formData.locationType"
-                      label="Location Type *"
-                      :items="locationTypeOptions"
-                      :rules="[(v) => !!v || 'Location type is required']"
-                      required
-                      variant="outlined"
-                      density="comfortable"
-                    ></v-select>
-                  </v-col> -->
-
-                  <!-- Organization Selection -->
-                  <!-- <v-col cols="12" sm="6">
-                    <v-select
-                      v-model="formData.orgLocation"
-                      :items="organizationOptions"
-                      label="Organization *"
-                      variant="outlined"
-                      density="comfortable"
-                      :rules="[(v) => !!v || 'Organization is required']"
-                      :loading="organizationsLoading"
-                      required
+              <!-- Multiple Pincodes with Index Display -->
+              <v-col cols="12" sm="6">
+                <v-card
+                  class="pa-3 mb-3"
+                  elevation="1"
+                  v-if="formData.pincodes.length > 0"
+                >
+                  <v-card-title class="text-subtitle-1 pa-0 mb-2">
+                    <v-icon class="mr-2" color="primary">mdi-map-marker</v-icon>
+                    Added Pincodes ({{ formData.pincodes.length }})
+                  </v-card-title>
+                  <div class="d-flex flex-wrap gap-2">
+                    <v-chip
+                      v-for="(pincode, index) in formData.pincodes"
+                      :key="index"
+                      color="primary"
+                      variant="flat"
+                      size="small"
+                      closable
+                      @click:close="removePincode(index)"
                     >
-                      <template v-slot:selection="{ item }">
-                        <div class="d-flex align-center">
-                          <span class="mr-2">{{ getOrgName(item.value) }}</span>
-                          <v-chip
-                            :color="getOrgTypeColor(item.value)"
-                            size="small"
-                            variant="flat"
-                          >
-                            {{ getOrgType(item.value) }}
-                          </v-chip>
-                        </div>
-                      </template>
-                      <template v-slot:item="{ props, item }">
-                        <v-list-item v-bind="props">
-                          <template v-slot:append>
-                            <v-chip
-                              :color="getOrgTypeColor(item.value)"
-                              size="small"
-                              variant="flat"
-                            >
-                              {{ getOrgType(item.value) }}
-                            </v-chip>
-                          </template>
-                        </v-list-item>
-                      </template>
-                    </v-select>
-                  </v-col> -->
+                      <v-icon start size="small"
+                        >mdi-numeric-{{ index }}-circle</v-icon
+                      >
+                      {{ pincode }}
+                    </v-chip>
+                  </div>
+                </v-card>
 
-                  <!-- Multiple Pincodes with Index Display -->
-                  <v-col cols="12" sm="6">
-                    <!-- Display Pincodes with Index -->
-                    <v-card
-                      class="pa-3 mb-3"
-                      elevation="1"
-                      v-if="formData.pincodes.length > 0"
-                    >
-                      <v-card-title class="text-subtitle-1 pa-0 mb-2">
-                        <v-icon class="mr-2" color="primary"
-                          >mdi-map-marker</v-icon
-                        >
-                        Added Pincodes ({{ formData.pincodes.length }})
-                      </v-card-title>
-                      <div class="d-flex flex-wrap gap-2">
-                        <v-chip
-                          v-for="(pincode, index) in formData.pincodes"
+                <!-- Pincode Input with Validation -->
+                <v-text-field
+                  v-model="newPincode"
+                  label="Add New Pincode"
+                  variant="outlined"
+                  density="comfortable"
+                  type="number"
+                  maxlength="6"
+                  @keyup.enter="addPincode"
+                  append-inner-icon="mdi-plus"
+                  @click:append-inner="addPincode"
+                  :rules="[
+                    (v) =>
+                      !v ||
+                      /^\d{6}$/.test(v) ||
+                      'Pincode must be exactly 6 digits',
+                    (v) =>
+                      !formData.pincodes.includes(v) || 'Pincode already added',
+                  ]"
+                  :hint="`Enter 6-digit pincode (${formData.pincodes.length} added)`"
+                  persistent-hint
+                ></v-text-field>
+
+                <v-alert
+                  v-if="pincodeValidationMessage"
+                  :type="pincodeValidationType"
+                  variant="tonal"
+                  density="compact"
+                  class="mt-2"
+                >
+                  {{ pincodeValidationMessage }}
+                </v-alert>
+              </v-col>
+
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="formData.state"
+                  :items="stateOptions"
+                  label="State *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="[(v) => !!v || 'State is required']"
+                  @change="updateState"
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12">
+                <v-card class="map-card" elevation="2">
+                  <v-card-title class="pa-3 pb-2">
+                    <v-icon class="mr-2" color="primary">mdi-map-marker</v-icon>
+                    <span class="text-h6">Location Selection</span>
+                  </v-card-title>
+                  <v-card-text class="pa-3">
+                    <!-- Search Bar -->
+                    <div class="search-container mb-3">
+                      <v-text-field
+                        v-model="searchQuery"
+                        label="Search location..."
+                        variant="outlined"
+                        density="compact"
+                        prepend-inner-icon="mdi-magnify"
+                        clearable
+                        @click:clear="clearSearch"
+                        :loading="searchLoading"
+                      ></v-text-field>
+                      <!-- Search Results -->
+                      <v-list
+                        v-if="searchResults.length > 0"
+                        class="search-results"
+                        elevation="4"
+                      >
+                        <v-list-item
+                          v-for="(result, index) in searchResults"
                           :key="index"
-                          color="primary"
-                          variant="flat"
-                          size="small"
-                          closable
-                          @click:close="removePincode(index)"
+                          @click="selectSearchResult(result)"
+                          class="search-result-item"
                         >
-                          <v-icon start size="small"
-                            >mdi-numeric-{{ index }}-circle</v-icon
-                          >
-                          {{ pincode }}
+                          <v-list-item-title>{{
+                            result.description
+                          }}</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </div>
+                    <!-- Map Container -->
+                    <div class="map-wrapper">
+                      <div id="map" class="map-container"></div>
+                      <!-- Coordinates Display -->
+                      <div class="coordinates-display">
+                        <v-chip
+                          v-if="formData.lat && formData.lng"
+                          color="primary"
+                          variant="elevated"
+                          size="small"
+                        >
+                          <v-icon start>mdi-crosshairs-gps</v-icon>
+                          {{ parseFloat(formData.lat).toFixed(6) }},
+                          {{ parseFloat(formData.lng).toFixed(6) }}
                         </v-chip>
                       </div>
-                    </v-card>
+                    </div>
+                    <div class="text-caption mt-2 text-grey-darken-1">
+                      <v-icon size="small" class="mr-1">mdi-information</v-icon>
+                      Click on the map to select location or use the search
+                      above
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
 
-                    <!-- Pincode Input with Validation -->
-                    <v-text-field
-                      v-model="newPincode"
-                      label="Add New Pincode"
-                      variant="outlined"
-                      density="comfortable"
-                      type="number"
-                      maxlength="6"
-                      @keyup.enter="addPincode"
-                      append-inner-icon="mdi-plus"
-                      @click:append-inner="addPincode"
-                      :rules="[
-                        (v) =>
-                          !v ||
-                          /^\d{6}$/.test(v) ||
-                          'Pincode must be exactly 6 digits',
-                        (v) =>
-                          !formData.pincodes.includes(v) ||
-                          'Pincode already added',
-                      ]"
-                      :hint="`Enter 6-digit pincode (${formData.pincodes.length} added)`"
-                      persistent-hint
-                    ></v-text-field>
-
-                    <v-alert
-                      v-if="pincodeValidationMessage"
-                      :type="pincodeValidationType"
-                      variant="tonal"
-                      density="compact"
-                      class="mt-2"
-                    >
-                      {{ pincodeValidationMessage }}
-                    </v-alert>
-                  </v-col>
-
-                  <v-col cols="12" sm="6">
-                    <v-select
-                      v-model="formData.state"
-                      :items="stateOptions"
-                      label="State *"
-                      variant="outlined"
-                      density="comfortable"
-                      :rules="[(v) => !!v || 'State is required']"
-                      @change="updateState"
-                    ></v-select>
-                  </v-col>
-
-                  <!-- Serviceable Area Radius -->
-                  <!-- <v-col cols="12" sm="8">
-                    <v-card class="pa-4" elevation="1">
-                      <v-card-title class="text-subtitle-1 pa-0 mb-3">
-                        <v-icon class="mr-2" color="primary"
-                          >mdi-map-marker-radius</v-icon
-                        >
-                        Serviceable Area Radius
-                      </v-card-title>
-
-                     
-                      <v-slider
-                        v-model="formData.radiusKm"
-                        label="Radius (KM)"
-                        min="1"
-                        max="500"
-                        step="1"
-                        thumb-label="always"
-                        :rules="radiusRules"
-                        color="primary"
-                        class="mb-4"
-                      >
-                        <template v-slot:append>
-                          <v-text-field
-                            v-model="formData.radiusKm"
-                            style="width: 100px"
-                            density="compact"
-                            hide-details
-                            variant="outlined"
-                            suffix="KM"
-                            :min="1"
-                            :max="500"
-                            type="number"
-                          ></v-text-field>
-                        </template>
-                      </v-slider>
-
-                     
-                      <v-alert
-                        type="info"
-                        variant="tonal"
-                        density="compact"
-                        class="mb-2"
-                      >
-                        <div class="d-flex align-center">
-                          <div>
-                            <strong>Radius:</strong> {{ formData.radiusKm }} KM
-                            ({{ radiusInMeters }} meters)
-                          </div>
-                        </div>
-                      </v-alert>
-
-                      <div class="text-caption text-grey-darken-1">
-                        <v-icon size="small" class="mr-1"
-                          >mdi-information</v-icon
-                        >
-                        Set the radius for serviceable area coverage (1-500 KM)
-                      </div>
-                    </v-card>
-                  </v-col> -->
-
-                  <v-col cols="12">
-                    <v-card class="map-card" elevation="2">
-                      <v-card-title class="pa-3 pb-2">
-                        <v-icon class="mr-2" color="primary"
-                          >mdi-map-marker</v-icon
-                        >
-                        <span class="text-h6">Location Selection</span>
-                      </v-card-title>
-                      <v-card-text class="pa-3">
-                        <!-- Search Bar -->
-                        <div class="search-container mb-3">
-                          <v-text-field
-                            v-model="searchQuery"
-                            label="Search location..."
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-magnify"
-                            clearable
-                            @click:clear="clearSearch"
-                            :loading="searchLoading"
-                          ></v-text-field>
-                          <!-- Search Results -->
-                          <v-list
-                            v-if="searchResults.length > 0"
-                            class="search-results"
-                            elevation="4"
-                          >
-                            <v-list-item
-                              v-for="(result, index) in searchResults"
-                              :key="index"
-                              @click="selectSearchResult(result)"
-                              class="search-result-item"
-                            >
-                              <v-list-item-title>{{
-                                result.description
-                              }}</v-list-item-title>
-                            </v-list-item>
-                          </v-list>
-                        </div>
-                        <!-- Map Container -->
-                        <div class="map-wrapper">
-                          <div id="map" class="map-container"></div>
-                          <!-- Coordinates Display -->
-                          <div class="coordinates-display">
-                            <v-chip
-                              v-if="formData.lat && formData.lng"
-                              color="primary"
-                              variant="elevated"
-                              size="small"
-                            >
-                              <v-icon start>mdi-crosshairs-gps</v-icon>
-                              {{ parseFloat(formData.lat).toFixed(6) }},
-                              {{ parseFloat(formData.lng).toFixed(6) }}
-                            </v-chip>
-                          </div>
-                        </div>
-                        <div class="text-caption mt-2 text-grey-darken-1">
-                          <v-icon size="small" class="mr-1"
-                            >mdi-information</v-icon
-                          >
-                          Click on the map to select location or use the search
-                          above
-                        </div>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-
-                  <!-- Address Display -->
-                  <v-col cols="12">
-                    <v-textarea
-                      v-model="formData.address"
-                      label="Selected Address"
-                      variant="outlined"
-                      rows="3"
-                      readonly
-                      auto-grow
-                    ></v-textarea>
-                  </v-col>
-                </v-row>
-              </v-window-item>
-            </v-window>
+              <!-- Address Display -->
+              <v-col cols="12">
+                <v-textarea
+                  v-model="formData.address"
+                  label="Selected Address"
+                  variant="outlined"
+                  rows="3"
+                  readonly
+                  auto-grow
+                ></v-textarea>
+              </v-col>
+            </v-row>
           </v-card>
         </div>
       </div>
 
-      <!-- Success Snackbar -->
-      <v-snackbar
-        v-model="showSuccessAlert"
-        color="success"
-        timeout="2000"
-        location="top"
-      >
-        <v-icon class="me-2" color="white">mdi-check-circle</v-icon>
-        Location added successfully!
-      </v-snackbar>
-
-      <!-- Error Snackbar -->
-      <v-snackbar
-        v-model="showErrorAlert"
-        color="red"
-        timeout="3000"
-        location="top"
-      >
-        <v-icon class="me-2" color="white">mdi-alert-circle</v-icon>
-        {{ errorMessage }}
-        <template v-slot:actions>
-          <v-btn color="red" variant="text" @click="showErrorAlert = false">
-            Close
-          </v-btn>
-        </template>
-      </v-snackbar>
+      <!-- Toast Notifications -->
     </v-form>
   </div>
 </template>
@@ -373,16 +206,35 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
 import { useRouter } from "vue-router";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import ToastNotification from "@/components/common/notifications/ToastNotification.vue";
+
 const tenantId = currentUserTenant.getTenantId();
 const router = useRouter();
 const showSuccessAlert = ref(false);
 const showErrorAlert = ref(false);
 const errorMessage = ref("");
 const form = ref(null);
-const selectedTab = ref("basic");
 const isSaving = ref(false);
-const organizationsLoading = ref(false);
 
+// Auto-close toast notifications after a timeout
+watch(showSuccessAlert, (newVal) => {
+  if (newVal) {
+    setTimeout(() => {
+      showSuccessAlert.value = false;
+    }, 2000); // Matches v-snackbar timeout for success
+  }
+});
+
+watch(showErrorAlert, (newVal) => {
+  if (newVal) {
+    setTimeout(() => {
+      showErrorAlert.value = false;
+    }, 3000); // Matches v-snackbar timeout for error
+  }
+});
+
+// State options
 const stateOptions = [
   "Andhra Pradesh",
   "Arunachal Pradesh",
@@ -433,10 +285,6 @@ const newPincode = ref("");
 const pincodeValidationMessage = ref("");
 const pincodeValidationType = ref("info");
 
-// Organizations data
-const organizations = ref([]);
-const organizationOptions = ref([]);
-
 // ==================== API CONFIGURATION ====================
 const token = authService.getToken();
 const apiHeaders = {
@@ -470,7 +318,6 @@ const makeApiRequest = async (endpoint, options = {}) => {
 const formData = ref({
   locationName: "",
   locationType: "branch",
-  orgLocation: "",
   pincodes: [],
   radiusKm: 5,
   lat: null,
@@ -503,45 +350,9 @@ const previewPayload = computed(() => {
         parseFloat(formData.value.lat),
       ],
     },
-    orgLocation: formData.value.orgLocation,
     status: "draft",
   };
 });
-
-// Helper functions for organization dropdown
-const getOrgName = (orgId) => {
-  const org = organizations.value.find((o) => o.id === orgId);
-  return org ? org.orgName : "";
-};
-
-const getOrgType = (orgId) => {
-  const org = organizations.value.find((o) => o.id === orgId);
-  if (!org || !org.orgType) return "";
-  const formatted = org.orgType.replace(/org$/i, "");
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase();
-};
-
-const getOrgTypeColor = (orgId) => {
-  const org = organizations.value.find((o) => o.id === orgId);
-  if (!org || !org.orgType) return "grey";
-  const orgType = org.orgType.toLowerCase();
-  if (orgType.includes("tenant")) return "blue";
-  if (orgType.includes("distributor")) return "green";
-  if (orgType.includes("client")) return "yellow";
-  return "grey";
-};
-
-// Location type options
-const locationTypeOptions = [{ title: "Branch", value: "branch" }];
-
-// Menu items
-const menuItems = [
-  {
-    title: "Basic Details",
-    icon: "mdi-card-text-outline",
-    value: "basic",
-  },
-];
 
 // Validation rules
 const locationNameRules = [
@@ -549,11 +360,6 @@ const locationNameRules = [
   (v) => (v && v.length >= 3) || "Location name must be at least 3 characters",
 ];
 
-const radiusRules = [
-  (v) => (v >= 1 && v <= 500) || "Radius must be between 1-500 KM",
-];
-
-// Pincode validation rules
 const pincodeRules = computed(() => {
   return [
     (v) => (v && v.length > 0) || "At least one pincode is required",
@@ -785,53 +591,6 @@ watch(searchQuery, (newQuery) => {
 });
 
 // ==================== FORM HANDLERS ====================
-const handleClose = () => {
-  router.push({ name: "branch-configuration" });
-};
-
-// Fetch organizations
-const fetchOrganizations = async () => {
-  try {
-    organizationsLoading.value = true;
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/organization?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch organizations");
-    }
-
-    const result = await response.json();
-    organizations.value = result.data || [];
-    organizationOptions.value = organizations.value.map((org) => ({
-      title: org.orgName,
-      value: org.id,
-    }));
-
-    // Set default to main tenant if found
-    const mainTenant = organizations.value.find(
-      (org) => org.orgType && org.orgType.toLowerCase() === "main tenant",
-    );
-
-    if (mainTenant) {
-      formData.value.orgLocation = mainTenant.id;
-    }
-  } catch (error) {
-    console.error("Error fetching organizations:", error);
-    errorMessage.value = "Failed to load organizations";
-    showErrorAlert.value = true;
-  } finally {
-    organizationsLoading.value = false;
-  }
-};
-
 // Save Location
 const saveLocationToApi = async (locationData) => {
   try {
@@ -850,6 +609,12 @@ const saveLocationToApi = async (locationData) => {
     console.error("Error saving location:", error);
     throw error;
   }
+};
+const encodeToBase64 = (string) => {
+  if (typeof string !== "string") {
+    throw new Error("Input must be a string");
+  }
+  return btoa(string); // Encodes the string to base64
 };
 
 const handleSave = async () => {
@@ -885,6 +650,12 @@ const handleSave = async () => {
 
   isSaving.value = true;
   try {
+    // First, construct the original qrDetails string
+    const originalQrDetails = `${tenantId}|${formData.value.lng}|${formData.value.lat}`;
+
+    // Encode it to base64 using the helper function
+    const encodedQrDetails = encodeToBase64(originalQrDetails);
+
     const locationPayload = {
       locdetail: {
         locationName: formData.value.locationName,
@@ -901,10 +672,9 @@ const handleSave = async () => {
           parseFloat(formData.value.lat),
         ],
       },
-      // orgLocation: formData.value.orgLocation,
       status: "active",
       tenant: tenantId,
-      qrDetails: `${tenantId}|${formData.value.lng}|${formData.value.lat}`,
+      qrDetails: encodedQrDetails, // Use the base64-encoded version
     };
 
     console.log("Final payload:", JSON.stringify(locationPayload, null, 2));
@@ -913,9 +683,6 @@ const handleSave = async () => {
     console.log("API response:", result);
 
     showSuccessAlert.value = true;
-    setTimeout(() => {
-      router.push({ name: "branch-configuration" });
-    }, 2000);
   } catch (error) {
     errorMessage.value =
       error.message || "Failed to add location. Please try again.";
@@ -934,7 +701,6 @@ const loadGoogleMaps = () => {
   script.onload = () => {
     nextTick(() => {
       initMap();
-      fetchOrganizations();
     });
   };
   document.head.appendChild(script);
@@ -957,25 +723,28 @@ onUnmounted(() => {
 <style scoped>
 .content-wrapper {
   height: calc(100vh - 64px);
-}
-
-.side-nav {
-  width: 240px;
-  border-right: 1px solid #e0e0e0;
-  background-color: white;
-  height: 100%;
+  padding: 16px;
 }
 
 .content-area {
-  flex: 1;
-  max-height: 80vh;
+  width: 100%;
+  max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
   border-radius: 8px;
+  background-color: white;
+  padding: 16px;
 }
 
 .v-row {
   margin-top: 1rem;
+}
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
 }
 
 .map-card {
@@ -1029,20 +798,6 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.index-display {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.index-item {
-  padding: 4px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.index-item:last-child {
-  border-bottom: none;
-}
-
 .text-h6 {
   font-weight: 600;
   color: #1976d2;
@@ -1064,15 +819,6 @@ onUnmounted(() => {
   color: #1976d2 !important;
 }
 
-:deep(.v-slider-thumb__label) {
-  background-color: #1976d2;
-}
-
-:deep(.v-slider-track__fill) {
-  background-color: #1976d2;
-}
-
-/* Enhanced styles for pincode chips */
 :deep(.v-chip) {
   margin: 2px;
 }
@@ -1081,26 +827,13 @@ onUnmounted(() => {
   min-height: 40px;
 }
 
-/* JSON code display styling */
-:deep(.v-code) {
-  background-color: #f5f5f5;
-  padding: 12px;
-  border-radius: 4px;
-  font-family: "Courier New", monospace;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
 @media (max-width: 768px) {
   .content-wrapper {
-    flex-direction: column;
+    padding: 8px;
   }
 
-  .side-nav {
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
+  .content-area {
+    padding: 8px;
   }
 
   .map-container {

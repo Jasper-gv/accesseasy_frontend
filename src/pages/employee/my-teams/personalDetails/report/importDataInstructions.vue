@@ -474,7 +474,7 @@ const proceedToDownload = () => {
 
 .instruction-section h4 {
   margin-bottom: 8px;
-  color: #1e40b0;
+  color: #059367;
   font-size: 16px;
 }
 
@@ -625,7 +625,7 @@ const proceedToDownload = () => {
 }
 
 .continue-btn {
-  background-color: #1e40b0;
+  background-color: #059367;
   border: none;
   color: white;
 }

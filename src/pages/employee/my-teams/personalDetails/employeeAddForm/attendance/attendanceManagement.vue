@@ -1,11 +1,11 @@
 <template>
   <v-container fluid class="attendance-settings-editor-container pa-0">
     <v-card flat class="attendance-card">
-      <v-card-title class="text-h6 font-weight-bold mb-4 d-flex align-center">
-        <v-icon class="mr-2" color="black">mdi-list-box-outline</v-icon>
-        Select Attendance Policy
+      <v-card-title class="text-h6 font-weight-bold d-flex align-center">
+        <!-- <v-icon class="mr-2" color="black">mdi-list-box-outline</v-icon>
+        Select Attendance Policy -->
       </v-card-title>
-      <v-card-text>
+      <!-- <v-card-text>
         <v-row align="center">
           <v-col cols="12" md="6">
             <v-select
@@ -78,14 +78,14 @@
           Please select an attendance policy from the dropdown above to view its
           details.
         </v-alert>
-      </v-card-text>
+      </v-card-text> -->
 
       <v-divider class="my-6"></v-divider>
 
-      <v-card-title class="text-h6 font-weight-bold mb-4 d-flex align-center">
+      <!-- <v-card-title class="text-h6 font-weight-bold mb-4 d-flex align-center">
         <v-icon class="mr-2" color="black">mdi-calendar-clock</v-icon>
         Employee Working Hours Configuration
-      </v-card-title>
+      </v-card-title> -->
       <v-card-text>
         <WorkingHours
           v-model="internalWorkingHoursData"
@@ -195,11 +195,11 @@ async function fetchAttendancePolicies() {
 }
 
 const redirectToAttendanceConfig = () => {
-  router.push("/settings/attendancepolicy");
+  router.push("/configuration/penalty-policy");
 };
 
 onMounted(() => {
-  fetchAttendancePolicies();
+  // fetchAttendancePolicies();
 });
 
 watch(internalSelectedPolicyId, (newVal) => {

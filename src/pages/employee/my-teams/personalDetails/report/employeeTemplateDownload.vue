@@ -493,7 +493,7 @@ const downloadTemplate = () => {
 }
 
 .download-btn {
-  background-color: #1e40b0;
+  background-color: #059367;
   border: none;
   color: white;
 }

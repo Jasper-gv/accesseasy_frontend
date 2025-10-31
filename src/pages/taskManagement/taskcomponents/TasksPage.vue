@@ -1,4 +1,4 @@
-<!-- taskpage.vue - Updated main page with status filter -->
+<!-- senzrfieldopsfrontend/src/pages/taskManagement/taskcomponents/TasksPage.vue -->
 <template>
   <div class="tasks-container">
     <div
@@ -27,7 +27,7 @@
             >
               <ListChecks class="wo-icon" aria-hidden="true" />
               <span class="wo-label">Total</span>
-              <span class="wo-count">{{ statusCounts.total }}</span>
+              <span class="wo-count">{{ statusCounts?.total ?? 0 }}</span>
             </div>
             <div
               class="wo-pill pending"
@@ -38,18 +38,29 @@
             >
               <Clock class="wo-icon" aria-hidden="true" />
               <span class="wo-label">Pending</span>
-              <span class="wo-count">{{ statusCounts.pending }}</span>
+              <span class="wo-count">{{ statusCounts?.pending ?? 0 }}</span>
             </div>
             <div
-              class="wo-pill overdue"
+              class="wo-pill overDue"
               role="button"
               aria-live="polite"
-              @click="filterByStatus('overdue')"
-              :class="{ active: filters.status === 'overdue' }"
+              @click="filterByStatus('overDue')"
+              :class="{ active: filters.status === 'overDue' }"
             >
               <AlertTriangle class="wo-icon" aria-hidden="true" />
-              <span class="wo-label">Overdue</span>
-              <span class="wo-count">{{ statusCounts.overdue }}</span>
+              <span class="wo-label">Over Due</span>
+              <span class="wo-count">{{ statusCounts?.overDue ?? 0 }}</span>
+            </div>
+            <div
+              class="wo-pill cancelled"
+              role="button"
+              aria-live="polite"
+              @click="filterByStatus('cancelled')"
+              :class="{ active: filters.status === 'cancelled' }"
+            >
+              <AlertTriangle class="wo-icon" aria-hidden="true" />
+              <span class="wo-label">Cancelled</span>
+              <span class="wo-count">{{ statusCounts?.cancelled ?? 0 }}</span>
             </div>
             <div
               class="wo-pill completed"
@@ -60,11 +71,9 @@
             >
               <CheckCircle class="wo-icon" aria-hidden="true" />
               <span class="wo-label">Completed</span>
-              <span class="wo-count">{{ statusCounts.completed }}</span>
+              <span class="wo-count">{{ statusCounts?.completed ?? 0 }}</span>
             </div>
           </div>
-
-          <!-- Existing actions -->
           <BaseButton
             variant="secondary"
             text="Filters"
@@ -73,7 +82,7 @@
             @click="toggleFilters"
           />
           <BaseButton
-            v-if="selectedTaskIds.length > 0"
+            v-if="userRole === 'Employee' && selectedTaskIds.length > 0"
             variant="danger"
             :loading="externalLoading"
             :text="`Delete (${selectedTaskIds.length})`"
@@ -82,13 +91,13 @@
           />
           <BaseButton
             variant="primary"
-            :text="`Create Work Order`"
+            :text="`Create Job`"
             :leftIcon="PlusIcon"
             :loading="externalLoading"
             @click="handleCreateWorkOrder"
           />
-
           <DropdownButton
+            v-if="userRole === 'Admin'"
             text="Export"
             :leftIcon="Download"
             :items="exportItems"
@@ -141,7 +150,6 @@
           v-model="openCreateWO"
           @created="refreshTasks"
         />
-
         <!-- Complete Task Sidebar -->
         <CompleteTaskSidebar
           v-model="openCompleteSidebar"
@@ -198,12 +206,97 @@
           @clear="clearStatusFilter"
         />
       </FilterSection>
+
+      <!-- Replace the FilterSelect components with SearchableSelect -->
+      <FilterSection title="Client" :icon="Building">
+        <SearchableSelect
+          v-model="filters.orgId"
+          placeholder="All Clients"
+          :static-options="clientOptions"
+          :fetch-options="searchOrganizations"
+          @change="applyFilters"
+          @clear="clearClientFilter"
+        />
+      </FilterSection>
+
+      <FilterSection title="Employee" :icon="User">
+        <SearchableSelect
+          v-model="filters.employeeUserId"
+          placeholder="All Employees"
+          :static-options="employeeOptions"
+          :fetch-options="searchEmployees"
+          @change="applyFilters"
+          @clear="clearEmployeeFilter"
+        />
+      </FilterSection>
     </FilterPanel>
 
-    <!-- Toast Container -->
-    <ToastContainer ref="toastContainer" />
+    <!-- Bottom Action Bar for Admin Bulk Actions -->
+    <div
+      v-if="userRole === 'Admin' && selectedTaskIds.length > 0"
+      class="bottom-actions"
+    >
+      <BaseButton
+        v-if="canRescheduleOrReassign"
+        :leftIcon="Plus"
+        variant="primary"
+        text="Reassign"
+        @click="openReassignModal = true"
+      />
+      <BaseButton
+        v-if="canRescheduleOrReassign"
+        :leftIcon="CalendarClock"
+        variant="primary"
+        text="Reschedule"
+        @click="openRescheduleModal = true"
+      />
+      <BaseButton
+        :leftIcon="Trash2"
+        variant="danger"
+        text="Delete"
+        @click="openDeleteModal = true"
+      />
+      <BaseButton
+        v-if="canCancel"
+        :leftIcon="XCircle"
+        variant="danger"
+        text="Cancel task"
+        :loading="externalLoading"
+        @click="openCancelModal = true"
+      />
+    </div>
 
-    <!-- Common Delete Modal -->
+    <!-- Modals -->
+    <ReassignModal
+      v-if="openReassignModal"
+      :show="openReassignModal"
+      :taskIds="selectedTaskIds"
+      :users="users"
+      :currentEmployeeId="
+        selectedTasks.length === 1 ? selectedTasks[0].employeeId : null
+      "
+      @close="openReassignModal = false"
+      @reassign="handleReassign"
+    />
+    <RescheduleModal
+      v-if="openRescheduleModal"
+      :show="openRescheduleModal"
+      :taskIds="selectedTaskIds"
+      :currentFrom="selectedTasks.length === 1 ? selectedTasks[0].from : null"
+      :currentDueTime="
+        selectedTasks.length === 1 ? selectedTasks[0].dueTime : null
+      "
+      @close="openRescheduleModal = false"
+      @reschedule="handleReschedule"
+    />
+    <ConfirmCancelModal
+      v-if="openCancelModal"
+      :show="openCancelModal"
+      :taskIds="selectedTaskIds"
+      :loading="externalLoading"
+      @close="openCancelModal = false"
+      @confirm="handleConfirmCancel"
+    />
     <ConfirmDeleteModal
       :show="openDeleteModal"
       title="Delete Tasks"
@@ -215,15 +308,19 @@
       @close="openDeleteModal = false"
       @confirm="handleConfirmDelete"
     />
+
+    <!-- Toast Container -->
+    <ToastContainer ref="toastContainer" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onBeforeMount, watch } from "vue";
+import { useRoute } from "vue-router";
 import {
   Filter,
   Trash2,
-  Plus,
+  Plus as PlusIcon,
   Download,
   Calendar,
   Tag,
@@ -232,20 +329,26 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  Plus,
+  CalendarClock,
+  XCircle,
+  Building,
+  User,
 } from "lucide-vue-next";
 
-// Import composables
+import { currentUserTenant } from "@/utils/currentUserTenant";
+import { useFormApi } from "@/composables/workorder/createWorkOrderForm/useFormApi";
 import { useTaskApi } from "@/composables/workorder/tasks/useTaskApi";
 import { useTaskExport } from "@/composables/workorder/tasks/useTaskExport";
 import { useTaskFilters } from "@/composables/workorder/tasks/useTaskFilters";
 
-// Import components
 import TaskTable from "@/components/tasks_Components/table/taskTable.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import CreateWorkOrderSidebar from "@/pages/taskManagement/taskcomponents/formTemplate/AddTaskForm/CreateWorkOrderChoice.vue";
 import CompleteTaskSidebar from "@/pages/taskManagement/taskcomponents/formTemplate/submitTaskForm/CompleteWorkOrder.vue";
-
-// Common components
+import ReassignModal from "@/components/modals/tasks_Components/reassignModal.vue";
+import RescheduleModal from "@/components/modals/tasks_Components/rescheduleModal.vue";
+import ConfirmCancelModal from "@/components/modals/tasks_Components/confirmCancelModal.vue";
 import ConfirmDeleteModal from "@/components/common/modals/ConfirmDeleteModal.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import FilterPanel from "@/components/common/filters/FilterPanel.vue";
@@ -258,20 +361,27 @@ import ErrorState from "@/components/common/states/ErrorState.vue";
 import EmptyState from "@/components/common/states/EmptyState.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import ToastContainer from "@/components/common/notifications/ToastContainer.vue";
+import SearchableSelect from "@/components/common/filters/SearchableSelect.vue";
 
 // State
 const openCreateWO = ref(false);
 const openCompleteSidebar = ref(false);
 const selectedTaskForCompletion = ref(null);
 const openDeleteModal = ref(false);
+const openReassignModal = ref(false);
+const openRescheduleModal = ref(false);
+const openCancelModal = ref(false);
 const deleting = ref(false);
 const isInitialLoading = ref(true);
 const externalLoading = ref(false);
+const userRole = ref(null);
 
 // Initialize composables
 const taskApi = useTaskApi();
 const taskExport = useTaskExport();
 const taskFilters = useTaskFilters();
+const formApi = useFormApi();
+const route = useRoute();
 
 const {
   tasks,
@@ -282,7 +392,14 @@ const {
   fetchTasks,
   fetchFormTemplates,
   deleteSelectedTasks: apiDeleteSelectedTasks,
+  updateMultipleTasks,
   statusCounts,
+  fetchOrganizations,
+  fetchEmployees,
+  organizations,
+  employees,
+  searchOrganizations,
+  searchEmployees,
 } = taskApi;
 
 const { exportData } = taskExport;
@@ -295,7 +412,11 @@ const {
   clearAllFilters,
   clearStatusFilter,
   debouncedApplyFilters,
+  clearClientFilter, // NEW
+  clearEmployeeFilter, // NEW
 } = taskFilters;
+
+const { users, fetchDropdownData } = formApi;
 
 // Component state
 const showFilters = ref(false);
@@ -307,21 +428,15 @@ const sortBy = ref("date_created");
 const sortDirection = ref("desc");
 const toastContainer = ref(null);
 
-// Status options for filter dropdown
-const statusOptions = [
-  { label: "All Statuses", value: "" },
-  { label: "Pending", value: "pending" },
-  { label: "Overdue", value: "overdue" },
-  { label: "Completed", value: "completed" },
-];
+// Computed
+const selectedTasks = computed(() =>
+  tasks.value.filter((t) => selectedTaskIds.value.includes(t.id)),
+);
 
-// Export items config
-const exportItems = [
-  { label: "Export to Excel", value: "excel", icon: Download },
-  { label: "Export to CSV", value: "csv", icon: Download },
-];
+const canCancel = computed(() =>
+  selectedTasks.value.every((t) => t.status === "pending"),
+);
 
-// Options
 const formTemplateOptions = computed(() =>
   formTemplates.value.map((template) => ({
     label: template.formName,
@@ -335,7 +450,42 @@ const allTasksSelected = computed(
     selectedTaskIds.value.length === tasks.value.length,
 );
 
-// --- Methods ---
+const statusOptions = [
+  { label: "All Statuses", value: "" },
+  { label: "inprogress", value: "inprogress" },
+  { label: "over Due", value: "overDue" },
+  { label: "Completed", value: "completed" },
+  { label: "Cancelled", value: "cancelled" },
+];
+
+const exportItems = [
+  { label: "Export to Excel", value: "excel", icon: Download },
+  { label: "Export to CSV", value: "csv", icon: Download },
+];
+
+const canRescheduleOrReassign = computed(() => {
+  if (selectedTasks.value.length === 0) return false;
+  return selectedTasks.value.every(
+    (t) => t.status !== "completed" && t.status !== "cancelled",
+  );
+});
+
+// NEW: Client & Employee Options
+const clientOptions = computed(() =>
+  organizations.value.map((o) => ({
+    label: o.label,
+    value: o.id,
+  })),
+);
+
+const employeeOptions = computed(() =>
+  employees.value.map((e) => ({
+    label: e.label,
+    value: e.id,
+  })),
+);
+
+// Methods
 const fetchTasksWithFilters = async () => {
   const filterParams = buildTaskFilterParams();
   await fetchTasks({
@@ -355,7 +505,7 @@ const applyFilters = async () => {
 
 const filterByStatus = (status) => {
   filters.status = status;
-  currentPage.value = 1; // Reset to first page
+  currentPage.value = 1;
   applyFilters();
 };
 
@@ -370,7 +520,7 @@ const clearAllFiltersAndReload = async () => {
 };
 
 const clearMonthFilter = () => {
-  clearMonthFilter();
+  filters.month = null;
   applyFilters();
 };
 
@@ -396,20 +546,77 @@ const handleConfirmDelete = async () => {
     openDeleteModal.value = false;
     return;
   }
-
   deleting.value = true;
   externalLoading.value = true;
-  const success = await apiDeleteSelectedTasks(selectedTaskIds.value);
-  deleting.value = false;
-  externalLoading.value = false;
+  try {
+    const success = await apiDeleteSelectedTasks(selectedTaskIds.value);
+    if (success) {
+      selectedTaskIds.value = [];
+      toastContainer.value?.success("Tasks deleted successfully!");
+      await fetchTasksWithFilters();
+      openDeleteModal.value = false;
+    } else {
+      toastContainer.value?.error("Failed to delete tasks. Please try again.");
+    }
+  } catch (err) {
+    toastContainer.value?.error("Failed to delete tasks: " + err.message);
+  } finally {
+    deleting.value = false;
+    externalLoading.value = false;
+  }
+};
 
-  if (success) {
-    selectedTaskIds.value = [];
-    toastContainer.value?.success("Tasks deleted successfully!");
+const handleReassign = async (payload) => {
+  try {
+    externalLoading.value = true;
+    const { employeeId, status } = payload;
+    await updateMultipleTasks(selectedTaskIds.value, { employeeId, status });
+    toastContainer.value?.success("Tasks reassigned successfully!");
     await fetchTasksWithFilters();
-    openDeleteModal.value = false;
-  } else {
-    toastContainer.value?.error("Failed to delete tasks. Please try again.");
+    selectedTaskIds.value = [];
+  } catch (err) {
+    toastContainer.value?.error("Failed to reassign tasks: " + err.message);
+  } finally {
+    externalLoading.value = false;
+    openReassignModal.value = false;
+  }
+};
+
+const handleReschedule = async (payload) => {
+  try {
+    externalLoading.value = true;
+    const { from, dueTime, status } = payload;
+    await updateMultipleTasks(selectedTaskIds.value, { from, dueTime, status });
+    toastContainer.value?.success("Tasks rescheduled successfully!");
+    await fetchTasksWithFilters();
+    selectedTaskIds.value = [];
+  } catch (err) {
+    toastContainer.value?.error("Failed to reschedule tasks: " + err.message);
+  } finally {
+    externalLoading.value = false;
+    openRescheduleModal.value = false;
+  }
+};
+
+const handleConfirmCancel = async () => {
+  if (selectedTaskIds.value.length === 0) {
+    toastContainer.value?.warning("No tasks selected for cancellation.");
+    openCancelModal.value = false;
+    return;
+  }
+  try {
+    externalLoading.value = true;
+    await updateMultipleTasks(selectedTaskIds.value, { status: "cancelled" });
+    toastContainer.value?.success(
+      `${selectedTaskIds.value.length} task(s) cancelled successfully!`,
+    );
+    selectedTaskIds.value = [];
+    await fetchTasksWithFilters();
+  } catch (err) {
+    toastContainer.value?.error("Failed to cancel task(s): " + err.message);
+  } finally {
+    externalLoading.value = false;
+    openCancelModal.value = false;
   }
 };
 
@@ -424,32 +631,48 @@ const handleCreateWorkOrder = () => {
 };
 
 const handleOpenCompleteSidebar = (task) => {
+  if (!task?.id) {
+    console.error("Task ID is undefined or missing:", task);
+    toastContainer.value?.error("Cannot open task: Task ID is missing.");
+    return;
+  }
   showFilters.value = false;
   openCreateWO.value = false;
   selectedTaskForCompletion.value = task;
   openCompleteSidebar.value = true;
 };
 
-const handleTaskComplete = async (completionData) => {
+const handleTaskComplete = async ({ message, error }) => {
   try {
     externalLoading.value = true;
-    console.log("Completing task:", completionData);
-    toastContainer.value?.success("Task completed successfully!");
-    await fetchTasksWithFilters();
-  } catch (error) {
-    toastContainer.value?.error("Failed to complete task. Please try again.");
+    if (error) {
+      toastContainer.value?.error(error);
+    } else {
+      toastContainer.value?.success(message);
+      await fetchTasksWithFilters();
+      openCompleteSidebar.value = false;
+      selectedTaskForCompletion.value = null;
+    }
+  } catch (err) {
+    toastContainer.value?.error("Failed to complete task: " + err.message);
   } finally {
     externalLoading.value = false;
   }
 };
 
-const handleTaskSaveDraft = async (draftData) => {
+const handleTaskSaveDraft = async ({ message, error }) => {
   try {
     externalLoading.value = true;
-    console.log("Saving draft:", draftData);
-    toastContainer.value?.success("Draft saved successfully!");
-  } catch (error) {
-    toastContainer.value?.error("Failed to save draft. Please try again.");
+    if (error) {
+      toastContainer.value?.error(error);
+    } else {
+      toastContainer.value?.success(message);
+      await fetchTasksWithFilters();
+      openCompleteSidebar.value = false;
+      selectedTaskForCompletion.value = null;
+    }
+  } catch (err) {
+    toastContainer.value?.error("Failed to save draft: " + err.message);
   } finally {
     externalLoading.value = false;
   }
@@ -506,23 +729,51 @@ watch(openCompleteSidebar, (isOpen) => {
 });
 
 onBeforeMount(async () => {
-  await fetchFormTemplates();
-  await fetchTasksWithFilters();
+  try {
+    userRole.value = await currentUserTenant.getRoleAsync();
+    await fetchFormTemplates();
+    if (userRole.value === "Admin" || userRole.value === "Employee") {
+      await fetchDropdownData();
+    }
+
+    // NEW: Fetch organizations & employees
+    await Promise.all([fetchOrganizations(), fetchEmployees()]);
+
+    await fetchTasksWithFilters();
+
+    const statusFromQuery = route.query.status;
+    if (statusFromQuery) {
+      filters.status = statusFromQuery;
+      await applyFilters();
+    }
+  } catch (err) {
+    console.error("Error during initialization:", err);
+    toastContainer.value?.error("Failed to initialize page: " + err.message);
+  }
 });
+
+watch(
+  () => route.query.status,
+  (newStatus) => {
+    if (newStatus) {
+      filters.status = newStatus;
+      applyFilters();
+    } else if (filters.status !== "") {
+      filters.status = "";
+      applyFilters();
+    }
+  },
+);
 </script>
 
 <style scoped>
 .tasks-container {
   height: 100vh;
   display: flex;
-  padding: -1rem;
+  padding: 0;
   overflow: hidden;
   background-color: #f8fafc;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: "Inter";
 }
 
 .main-content {
@@ -535,10 +786,6 @@ onBeforeMount(async () => {
 
 .main-content.with-filter {
   margin-right: 350px;
-}
-
-.main-content.with-complete {
-  margin-right: 460px;
 }
 
 @media (max-width: 1024px) {
@@ -562,17 +809,18 @@ onBeforeMount(async () => {
   gap: 6px;
   border-radius: 999px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: medium;
+  font-family: "Inter";
   line-height: 1;
   border: 1px solid transparent;
-  cursor: pointer; /* Indicate clickable */
+  cursor: pointer;
   transition:
     background-color 0.2s,
     border-color 0.2s;
 }
 
 .wo-pill.active {
-  border-color: #3b82f6; /* Highlight active filter */
+  border-color: #3b82f6;
   background-color: #e0f2fe;
 }
 
@@ -612,13 +860,24 @@ onBeforeMount(async () => {
   border-color: #f97316;
 }
 
-.wo-pill.overdue {
+.wo-pill.overDue {
   background: #fef2f2;
   color: #991b1b;
   border-color: #fecaca;
 }
 
-.wo-pill.overdue.active {
+.wo-pill.overDue.active {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.wo-pill.cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.wo-pill.cancelled.active {
   background: #fee2e2;
   border-color: #ef4444;
 }
@@ -632,5 +891,19 @@ onBeforeMount(async () => {
 .wo-pill.completed.active {
   background: #d1fae5;
   border-color: #10b981;
+}
+
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 1rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+  z-index: 10;
 }
 </style>

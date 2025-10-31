@@ -142,7 +142,7 @@
                 />
               </div>
 
-              <div class="report-item" @click="downloadReport('bank')">
+              <!-- <div class="report-item" @click="downloadReport('bank')">
                 <div class="report-icon">
                   <v-icon color="primary">mdi-bank</v-icon>
                 </div>
@@ -157,7 +157,7 @@
                   @click="handleDownload"
                   class="action-btn edit-btn"
                 />
-              </div>
+              </div> -->
 
               <!-- PF Report -->
               <div class="report-item" @click="downloadReport('pf')">
@@ -336,7 +336,7 @@ const paymentTotal = async () => {
       "benefits",
       "startDate",
       "endDate",
-      "totalAttendanceCount",
+
       "individualDeduction",
       "salaryArrears",
       "totalEarnings",
@@ -350,11 +350,13 @@ const paymentTotal = async () => {
       "employee.assignedUser.first_name",
       "employee.branch.state",
       "employee.branch.branchName",
-      "employee.assignedUser.PFAccountNumber",
+      "employee.assignedUser.ESIAccountNumber",
+      "employee.assignedUser.tenant.tenantName",
+      "employee.assignedUser.tenant.logo",
+      "employee.assignedUser.tenant.companyAddress",
       "employee.department.departmentName",
       "employee.employeeId",
       "employee.assignedUser.designation",
-      "employee.salaryConfig.employersContributions",
     ];
 
     const query = [
@@ -382,7 +384,26 @@ const paymentTotal = async () => {
     }
 
     const data = await response.json();
+    if (data?.data) {
+      for (const item of data.data) {
+        if (item.employee?.assignedUser?.tenant?.logo) {
+          const logoId = item.employee.assignedUser.tenant.logo;
+          const logoUrl = `${import.meta.env.VITE_API_URL}/assets/${logoId}`;
+          const logoResponse = await fetch(logoUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const blob = await logoResponse.blob();
+          item.tenantLogoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    }
+
     totalPayrollData.value = data?.data;
+
     totalspaymentTotal.value = {
       totalEarnings: data?.data?.reduce(
         (sum, item) => sum + Number(item.totalEarnings || 0),
@@ -425,16 +446,12 @@ const handleDownload = () => {
     : [totalPayrollData.value];
 
   users.forEach((userData, userIndex) => {
-    // Add new page for each user (except first)
-    if (userIndex > 0) {
-      doc.addPage();
-    }
+    if (userIndex > 0) doc.addPage();
 
     let currentY = 15;
-    const pageHeight = 297; // A4 height in mm
+    const pageHeight = 297;
     const marginBottom = 30;
 
-    // Helper function to check if we need a new page
     const checkPageBreak = (requiredSpace = 20) => {
       if (currentY + requiredSpace > pageHeight - marginBottom) {
         doc.addPage();
@@ -444,103 +461,99 @@ const handleDownload = () => {
       return false;
     };
 
-    // Helper function to draw table borders
     const drawTableBorder = (x, y, width, height) => {
       doc.setLineWidth(0.3);
       doc.setDrawColor(0, 0, 0);
       doc.rect(x, y, width, height);
     };
 
-    // Helper function to draw section with border
     const drawSectionBorder = (x, y, width, height) => {
       doc.setLineWidth(0.5);
       doc.setDrawColor(100, 100, 100);
       doc.rect(x, y, width, height);
     };
 
-    // Company Header Section with border
+    // Company Header Section
     checkPageBreak(35);
     drawSectionBorder(10, currentY, 190, 30);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text(userData.tenantName || "Company Name", 105, currentY + 10, {
-      align: "center",
-    });
+    if (userData.tenantLogoBase64) {
+      doc.addImage(userData.tenantLogoBase64, "PNG", 15, currentY + 2, 25, 25);
+    }
+    doc.text(
+      userData.employee.assignedUser.tenant.tenantName || "-",
+      105,
+      currentY + 10,
+      { align: "center" },
+    );
 
     // Company Address
-    if (userData.Address) {
+    if (userData.employee.assignedUser.tenant.companyAddress) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      const address = `${userData.Address.house}, ${userData.Address.street}, ${userData.Address.vtc}, ${userData.Address.dist}, ${userData.Address.zip}`;
-      doc.text(address, 105, currentY + 18, { align: "center" });
+      const companyAddress = `${userData.employee.assignedUser.tenant.companyAddress.house}, ${userData.employee.assignedUser.tenant.companyAddress.street}, ${userData.employee.assignedUser.tenant.companyAddress.vtc}, ${userData.employee.assignedUser.tenant.companyAddress.dist}, ${userData.employee.assignedUser.tenant.companyAddress.state}, ${userData.employee.assignedUser.tenant.companyAddress.zip}, Landmark: ${userData.employee.assignedUser.tenant.companyAddress.landmark}`;
+      doc.text(companyAddress, 105, currentY + 18, { align: "center" });
     }
 
     // Payslip Title
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    const payPeriod = `${userData.month}/${userData.year}` || "Current Period";
+    const payPeriod = new Date(userData.endDate).toLocaleString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
     doc.text(`PAYSLIP FOR ${payPeriod}`, 105, currentY + 26, {
       align: "center",
     });
 
     currentY += 40;
 
-    // Employee Details Section with border
+    // Employee Details Section
     checkPageBreak(50);
     const employeeDetailsHeight = 45;
     drawSectionBorder(10, currentY, 190, employeeDetailsHeight);
-
     doc.setFillColor(240, 240, 240);
     doc.rect(10, currentY, 190, 8, "F");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
     doc.text("Employee Details", 15, currentY + 6);
 
     currentY += 12;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
 
-    // Employee details in table format
     const employeeDetails = [
       [
         "Employee Name:",
-        userData.employee?.assignedUser?.first_name || "N/A",
+        userData.employee?.assignedUser?.first_name || "-",
         "Employee ID:",
-        userData.employee?.employeeId || "N/A",
+        userData.employee?.employeeId || "-",
       ],
       [
         "Role:",
-        userData.employee?.assignedUser?.role?.name || "N/A",
+        userData.employee?.assignedUser?.role?.name || "-",
         "Designation:",
-        userData.employee?.assignedUser?.designation || "N/A",
+        userData.employee?.assignedUser?.designation || "-",
       ],
       [
         "PF(UAN) Number:",
-        userData.employee?.assignedUser?.UAN || "N/A",
+        userData.employee?.assignedUser?.UAN || "-",
         "ESI Number:",
-        userData.employee?.assignedUser?.PFAccountNumber || "N/A",
+        userData.employee?.assignedUser?.ESIAccountNumber || "-",
       ],
-      [
-        "Pay Period:",
-        payPeriod,
-        "Payable Days:",
-        userData.payableDays || "N/A",
-      ],
+      ["Pay Period:", payPeriod, "Payable Days:", userData.payableDays || "-"],
     ];
 
     employeeDetails.forEach((row, index) => {
       const rowY = currentY + index * 8;
-      // Draw row borders
       drawTableBorder(10, rowY - 2, 95, 8);
       drawTableBorder(105, rowY - 2, 95, 8);
-
       doc.setFont("helvetica", "bold");
       doc.text(String(row[0] ?? ""), 12, rowY + 3);
       doc.text(String(row[2] ?? ""), 107, rowY + 3);
-
       doc.setFont("helvetica", "normal");
       doc.text(String(row[1] ?? ""), 50, rowY + 3);
       doc.text(String(row[3] ?? ""), 145, rowY + 3);
@@ -557,7 +570,6 @@ const handleDownload = () => {
     const leftColWidth = 92;
     let leftY = currentY;
 
-    // Earnings Header
     doc.setFillColor(230, 230, 230);
     doc.rect(leftColX, leftY, leftColWidth, 8, "F");
     drawTableBorder(leftColX, leftY, leftColWidth, 8);
@@ -571,25 +583,22 @@ const handleDownload = () => {
     doc.setFontSize(9);
 
     let earningsTotal = 0;
-    let earningsRowCount = 0;
 
     // Regular Earnings
     if (userData.earnings) {
       Object.entries(userData.earnings).forEach(([key, value]) => {
-        const amount = Number(value || 0);
+        const amount = Math.round(Number(value || 0));
         earningsTotal += amount;
 
-        // Draw row border
         drawTableBorder(leftColX, leftY, leftColWidth, 7);
-        drawTableBorder(leftColX, leftY, 60, 7); // Description column
-        drawTableBorder(leftColX + 60, leftY, 32, 7); // Amount column
+        drawTableBorder(leftColX, leftY, 60, 7);
+        drawTableBorder(leftColX + 60, leftY, 32, 7);
 
         doc.text(key, leftColX + 2, leftY + 5);
-        doc.text(`₹ ${amount}`, leftColX + leftColWidth - 2, leftY + 5, {
+        doc.text(String(amount), leftColX + leftColWidth - 2, leftY + 5, {
           align: "right",
         });
         leftY += 7;
-        earningsRowCount++;
       });
     }
 
@@ -598,7 +607,6 @@ const handleDownload = () => {
       userData.salaryArrears &&
       Object.keys(userData.salaryArrears).length > 0
     ) {
-      // Sub-header
       doc.setFillColor(245, 245, 245);
       doc.rect(leftColX, leftY, leftColWidth, 6, "F");
       drawTableBorder(leftColX, leftY, leftColWidth, 6);
@@ -610,26 +618,28 @@ const handleDownload = () => {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       Object.entries(userData.salaryArrears).forEach(([key, value]) => {
-        const amount = Number(value || 0);
-        earningsTotal += amount;
+        if (typeof value === "object") {
+          Object.entries(value).forEach(([innerKey, innerValue]) => {
+            const amount = Math.round(Number(innerValue || 0));
+            earningsTotal += amount;
 
-        drawTableBorder(leftColX, leftY, leftColWidth, 7);
-        drawTableBorder(leftColX, leftY, 60, 7);
-        drawTableBorder(leftColX + 60, leftY, 32, 7);
+            drawTableBorder(leftColX, leftY, leftColWidth, 7);
+            drawTableBorder(leftColX, leftY, 60, 7);
+            drawTableBorder(leftColX + 60, leftY, 32, 7);
 
-        doc.text(key, leftColX + 2, leftY + 5);
-        doc.text(`₹ ${amount}`, leftColX + leftColWidth - 2, leftY + 5, {
-          align: "right",
-        });
-        leftY += 7;
-        earningsRowCount++;
+            doc.text(innerKey, leftColX + 2, leftY + 5);
+            doc.text(`${amount}`, leftColX + leftColWidth - 2, leftY + 5, {
+              align: "right",
+            });
+            leftY += 7;
+          });
+        }
       });
     }
 
     // Benefits
     let benefitsTotal = 0;
     if (userData.benefits && Object.keys(userData.benefits).length > 0) {
-      // Sub-header
       doc.setFillColor(245, 245, 245);
       doc.rect(leftColX, leftY, leftColWidth, 6, "F");
       drawTableBorder(leftColX, leftY, leftColWidth, 6);
@@ -641,7 +651,7 @@ const handleDownload = () => {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       Object.entries(userData.benefits).forEach(([key, value]) => {
-        const amount = Number(value || 0);
+        const amount = Math.round(Number(value || 0));
         benefitsTotal += amount;
 
         drawTableBorder(leftColX, leftY, leftColWidth, 7);
@@ -649,11 +659,10 @@ const handleDownload = () => {
         drawTableBorder(leftColX + 60, leftY, 32, 7);
 
         doc.text(key, leftColX + 2, leftY + 5);
-        doc.text(`₹ ${amount}`, leftColX + leftColWidth - 2, leftY + 5, {
+        doc.text(String(amount), leftColX + leftColWidth - 2, leftY + 5, {
           align: "right",
         });
         leftY += 7;
-        earningsRowCount++;
       });
     }
 
@@ -668,7 +677,7 @@ const handleDownload = () => {
     doc.setFontSize(10);
     doc.text("Total Earnings", leftColX + 2, leftY + 6);
     doc.text(
-      `₹ ${earningsTotal + benefitsTotal}`,
+      String(Math.round(earningsTotal + benefitsTotal)),
       leftColX + leftColWidth - 2,
       leftY + 6,
       { align: "right" },
@@ -678,12 +687,9 @@ const handleDownload = () => {
     const rightColX = 108;
     const rightColWidth = 92;
     let rightY = salaryStartY;
-
-    // Deductions Header
     doc.setFillColor(230, 230, 230);
     doc.rect(rightColX, rightY, rightColWidth, 8, "F");
     drawTableBorder(rightColX, rightY, rightColWidth, 8);
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.text("Deductions", rightColX + 3, rightY + 6);
@@ -691,130 +697,40 @@ const handleDownload = () => {
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-
     let deductionsTotal = 0;
-    let deductionsRowCount = 0;
 
-    // Regular Deductions
-    if (userData.deductions) {
-      Object.entries(userData.deductions).forEach(([key, value]) => {
-        const amount = Number(value || 0);
-        deductionsTotal += amount;
+    const handleDeductions = (data, label) => {
+      if (data && Object.keys(data).length > 0) {
+        doc.setFillColor(245, 245, 245);
+        doc.rect(rightColX, rightY, rightColWidth, 6, "F");
+        drawTableBorder(rightColX, rightY, rightColWidth, 6);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text(label, rightColX + 3, rightY + 4);
+        rightY += 6;
 
-        drawTableBorder(rightColX, rightY, rightColWidth, 7);
-        drawTableBorder(rightColX, rightY, 60, 7);
-        drawTableBorder(rightColX + 60, rightY, 32, 7);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        Object.entries(data).forEach(([key, value]) => {
+          const amount = Math.round(Number(value || 0));
+          deductionsTotal += amount;
 
-        doc.text(key, rightColX + 2, rightY + 5);
-        doc.text(`₹ ${amount}`, rightColX + rightColWidth - 2, rightY + 5, {
-          align: "right",
+          drawTableBorder(rightColX, rightY, rightColWidth, 7);
+          drawTableBorder(rightColX, rightY, 60, 7);
+          drawTableBorder(rightColX + 60, rightY, 32, 7);
+
+          doc.text(key, rightColX + 2, rightY + 5);
+          doc.text(String(amount), rightColX + rightColWidth - 2, rightY + 5, {
+            align: "right",
+          });
+          rightY += 7;
         });
-        rightY += 7;
-        deductionsRowCount++;
-      });
-    }
+      }
+    };
 
-    // Penalties
-    if (userData.penalties && Object.keys(userData.penalties).length > 0) {
-      doc.setFillColor(245, 245, 245);
-      doc.rect(rightColX, rightY, rightColWidth, 6, "F");
-      drawTableBorder(rightColX, rightY, rightColWidth, 6);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.text("Penalties", rightColX + 3, rightY + 4);
-      rightY += 6;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      Object.entries(userData.penalties).forEach(([key, value]) => {
-        const amount = Number(value || 0);
-        deductionsTotal += amount;
-
-        drawTableBorder(rightColX, rightY, rightColWidth, 7);
-        drawTableBorder(rightColX, rightY, 60, 7);
-        drawTableBorder(rightColX + 60, rightY, 32, 7);
-
-        doc.text(key, rightColX + 2, rightY + 5);
-        doc.text(`₹ ${amount}`, rightColX + rightColWidth - 2, rightY + 5, {
-          align: "right",
-        });
-        rightY += 7;
-        deductionsRowCount++;
-      });
-    }
-
-    // Other Deductions
-    if (
-      userData.otherDeduction &&
-      Object.keys(userData.otherDeduction).length > 0
-    ) {
-      doc.setFillColor(245, 245, 245);
-      doc.rect(rightColX, rightY, rightColWidth, 6, "F");
-      drawTableBorder(rightColX, rightY, rightColWidth, 6);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.text("Other Deductions", rightColX + 3, rightY + 4);
-      rightY += 6;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      Object.entries(userData.otherDeduction).forEach(([key, value]) => {
-        const amount = Number(value || 0);
-        deductionsTotal += amount;
-
-        drawTableBorder(rightColX, rightY, rightColWidth, 7);
-        drawTableBorder(rightColX, rightY, 60, 7);
-        drawTableBorder(rightColX + 60, rightY, 32, 7);
-
-        doc.text(key, rightColX + 2, rightY + 5);
-        doc.text(`₹ ${amount}`, rightColX + rightColWidth - 2, rightY + 5, {
-          align: "right",
-        });
-        rightY += 7;
-        deductionsRowCount++;
-      });
-    }
-
-    // Individual Deductions
-    if (
-      userData.individualDeduction &&
-      Object.keys(userData.individualDeduction).length > 0
-    ) {
-      doc.setFillColor(245, 245, 245);
-      doc.rect(rightColX, rightY, rightColWidth, 6, "F");
-      drawTableBorder(rightColX, rightY, rightColWidth, 6);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.text("Individual Deductions", rightColX + 3, rightY + 4);
-      rightY += 6;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      Object.entries(userData.individualDeduction).forEach(
-        ([groupKey, group]) => {
-          if (typeof group === "object") {
-            Object.entries(group).forEach(([key, value]) => {
-              const amount = Number(value || 0);
-              deductionsTotal += amount;
-
-              drawTableBorder(rightColX, rightY, rightColWidth, 7);
-              drawTableBorder(rightColX, rightY, 60, 7);
-              drawTableBorder(rightColX + 60, rightY, 32, 7);
-
-              doc.text(key, rightColX + 2, rightY + 5);
-              doc.text(
-                `₹ ${amount}`,
-                rightColX + rightColWidth - 2,
-                rightY + 5,
-                { align: "right" },
-              );
-              rightY += 7;
-              deductionsRowCount++;
-            });
-          }
-        },
-      );
-    }
+    handleDeductions(userData.deductions, "Deductions");
+    handleDeductions(userData.penalties, "Penalties");
+    handleDeductions(userData.otherDeduction, "Other Deductions");
 
     // Total Deductions
     doc.setFillColor(220, 220, 220);
@@ -827,67 +743,28 @@ const handleDownload = () => {
     doc.setFontSize(10);
     doc.text("Total Deductions", rightColX + 2, rightY + 6);
     doc.text(
-      `₹ ${deductionsTotal}`,
+      String(Math.round(deductionsTotal)),
       rightColX + rightColWidth - 2,
       rightY + 6,
       { align: "right" },
     );
 
-    // Update currentY to the maximum of both columns
+    // Net Salary
     currentY = Math.max(leftY, rightY) + 15;
-
-    // Net Salary Section
     checkPageBreak(20);
-    const netSalary =
-      Number(userData.netSalary) ||
-      earningsTotal + benefitsTotal - deductionsTotal;
-
-    // Net salary box with border
+    const netSalary = Math.round(Number(userData.netSalary) || 0);
     drawSectionBorder(10, currentY, 190, 15);
     doc.setFillColor(240, 248, 255);
     doc.rect(10, currentY, 190, 15, "F");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
     doc.text("Net Salary (in words):", 12, currentY + 6);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
-    doc.text(`₹ ${Math.round(netSalary)}`, 198, currentY + 6, {
-      align: "right",
-    });
-
-    currentY += 25;
-
-    // Attendance Section
-    if (userData.attendance) {
-      checkPageBreak(30);
-      drawSectionBorder(10, currentY, 190, 30);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("Attendance Summary", 15, currentY + 8);
-
-      currentY += 15;
-
-      const attendanceEntries = Object.entries(userData.attendance);
-      const itemsPerRow = 3;
-
-      for (let i = 0; i < attendanceEntries.length; i += itemsPerRow) {
-        const rowItems = attendanceEntries.slice(i, i + itemsPerRow);
-
-        rowItems.forEach(([key, value], index) => {
-          const formattedKey = key.replace(/([A-Z])/g, " $1").trim();
-          const xPos = 15 + index * 60;
-          doc.text(`${formattedKey}: ${value}`, xPos, currentY);
-        });
-
-        currentY += 8;
-      }
-    }
+    doc.text(String(netSalary), 198, currentY + 6, { align: "right" });
 
     // Footer
-    checkPageBreak(20);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
@@ -899,8 +776,9 @@ const handleDownload = () => {
     );
   });
 
-  doc.save("payslip.pdf");
+  doc.save("payslip.pdf`");
 };
+
 const generateExcelWorkbook = async (data, totals) => {
   if (!data || data.length === 0) return null;
 
@@ -1062,7 +940,7 @@ const handleDownloadPF = async () => {
     totalPayrollData.value,
     totalspaymentTotal.value,
   );
-  await downloadWorkbook(workbook, "PF_Payroll");
+  await downloadWorkbook(workbook, "PF_Report");
 };
 const handleDownloadESI = async () => {
   if (!totalPayrollData.value.length) {
@@ -1074,7 +952,7 @@ const handleDownloadESI = async () => {
     totalPayrollData.value,
     totalspaymentTotal.value,
   );
-  await downloadWorkbook(workbook, "PF_Payroll");
+  await downloadWorkbook(workbook, "ESI_Report");
 };
 
 const handleNext = () => {
@@ -1102,7 +980,7 @@ onMounted(async () => {
 
 /* Header Styles */
 .header-banner {
-  background: #d5ddf1;
+  background: #ecfdf5;
   padding: 1.5rem;
   color: rgb(0, 0, 0);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);

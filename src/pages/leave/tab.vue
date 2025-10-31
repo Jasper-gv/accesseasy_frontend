@@ -6,168 +6,141 @@
       show-arrows
       background-color="transparent"
       class="custom-tabs"
-      @update:modelValue="handleTabChange"
     >
       <v-tab
         v-for="tab in visibleTabs"
-        :key="tab.value"
-        :value="tab.value"
+        :key="tab.name"
+        :value="tab.name"
         class="custom-tab"
+        :disabled="loading"
+        @click="navigateTo(tab.name)"
       >
         <v-icon :icon="tab.icon" class="mr-2"></v-icon>
-        {{ tab.title }}
+        {{ tab.label }}
       </v-tab>
     </v-tabs>
 
-    <!-- Dynamic Component Loading -->
-    <v-window v-model="activeTab">
-      <v-window-item
-        v-for="tab in visibleTabs"
-        :key="tab.value"
-        :value="tab.value"
-      >
-        <v-card flat class="tab-content-wrapper">
-          <v-card-text>
-            <!-- Main Component -->
-            <component
-              :is="tab.component"
-              v-if="!tab.showAdd && !tab.showEdit"
-              @showAddPage="() => (tab.showAdd = true)"
-              @showEditPage="(item) => handleShowEdit(tab, item)"
-            />
-
-            <!-- Add Component -->
-            <component
-              :is="tab.addComponent"
-              v-if="tab.showAdd"
-              @closeAddPage="() => (tab.showAdd = false)"
-            />
-          </v-card-text>
-        </v-card>
-      </v-window-item>
-    </v-window>
+    <!-- Tab Content -->
+    <v-card flat class="tab-content-wrapper">
+      <v-card-text>
+        <router-view v-if="!loading && activeTab"></router-view>
+      </v-card-text>
+    </v-card>
   </v-container>
 </template>
+
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import LeaveRequest from "./leaveRequest.vue/table.vue";
-import AddLeaveRequest from "./leaveRequest.vue/add.vue";
-import LeavePermission from "./leavePermission.vue/leavePermissionTable.vue";
-import SpecialRequest from "./specialRequest.vue/table.vue";
-import AddSpecialRequest from "./specialRequest.vue/add.vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { currentUserTenant } from "@/utils/currentUserTenant";
-import LeaveManagement from "../settings/leaves/leaveManagmnet.vue";
 
+const router = useRouter();
+const route = useRoute();
+const activeTab = ref(null);
 const userRole = ref(null);
-const tenantId = ref(null);
+const loading = ref(true);
 
-const tabs = ref([
+const tabs = [
   {
-    value: "leavePermission",
-    title: "Request",
+    name: "leavePermission",
+    label: "Leave Permissions",
     icon: "mdi-account-check",
-    component: LeavePermission,
-    addComponent: null,
     roles: ["Admin"],
-    showAdd: false,
-    showEdit: false,
-    editedItem: {},
   },
   {
-    value: "leaveRequest",
-    title: "Request",
+    name: "table",
+    label: "Leave Requests",
     icon: "mdi-calendar-clock",
-    component: LeaveRequest,
-    addComponent: AddLeaveRequest,
-    roles: ["Manager", "Employee"],
-    showAdd: false,
-    showEdit: false,
-    editedItem: {},
+    roles: ["Employee"],
   },
-
-  // {
-  //   value: "specialRequest",
-  //   title: "My Special Request",
-  //   icon: "mdi-star-circle",
-  //   component: SpecialRequest,
-  //   addComponent: AddSpecialRequest,
-  //   roles: ["Manager", "Employee", "Admin"],
-  //   showAdd: false,
-  //   showEdit: false,
-  //   editedItem: {},
-  // },
-  {
-    value: "leavetypes",
-    title: "Leave Config",
-    icon: "mdi-cog",
-    component: LeaveManagement,
-    roles: ["Manager", "Employee", "Admin"],
-    addComponent: null,
-    showAdd: false,
-    showEdit: false,
-    editedItem: {},
-  },
-]);
-
-const activeTab = ref("leaveRequest");
+];
 
 const visibleTabs = computed(() => {
   if (!userRole.value) return [];
-
-  return tabs.value.filter((tab) => {
-    if (userRole.value === "Employee") {
-      return ["leaveRequest", "specialRequest", "leavetypes"].includes(
-        tab.value,
-      );
-    } else if (userRole.value === "Manager") {
-      return [
-        "leaveRequest",
-        "leavePermission",
-        "specialRequest",
-        "leavetypes",
-      ].includes(tab.value);
-    } else if (userRole.value === "Dealer") {
-      return tab.value === "leavePermission";
-    } else if (userRole.value === "Admin") {
-      return ["leavePermission", "specialRequest", "leavetypes"].includes(
-        tab.value,
-      );
-    } else if (userRole.value === "accessManager") {
-      return ["leaveRequest"].includes(tab.value);
-    }
-    return false;
-  });
+  return tabs.filter((tab) => tab.roles.includes(userRole.value));
 });
 
-const handleTabChange = () => {
-  tabs.value.forEach((tab) => {
-    tab.showAdd = false;
-    tab.showEdit = false;
-    tab.editedItem = {};
-  });
+// Watch route changes to sync active tab
+watch(
+  () => route.name,
+  (newName) => {
+    // Only update activeTab if it's a child route, not the parent
+    if (
+      newName &&
+      newName !== "leaveTab" &&
+      tabs.find((t) => t.name === newName)
+    ) {
+      activeTab.value = newName;
+    }
+  },
+);
+
+const navigateTo = async (tabName) => {
+  if (route.name === tabName) return;
+
+  try {
+    await router.push({ name: tabName });
+  } catch (err) {
+    if (err.name !== "NavigationDuplicated") {
+      console.error("Navigation error:", err);
+    }
+  }
 };
 
-const handleShowEdit = (tab, item) => {
-  tab.editedItem = item;
-  tab.showEdit = true;
+const getDefaultTabName = (role) => {
+  return role === "Admin" ? "leavePermission" : "table";
+};
+
+const initializeTab = async () => {
+  try {
+    loading.value = true;
+
+    // Fetch user details
+    const userData = await currentUserTenant.fetchLoginUserDetails();
+    userRole.value = userData.role?.name || "Employee";
+
+    console.log("User Role:", userRole.value);
+    console.log("Current Route:", route.name, route.path);
+
+    // Get default tab for user role
+    const defaultTabName = getDefaultTabName(userRole.value);
+
+    // Wait for next tick to ensure DOM is ready
+    await nextTick();
+
+    // Check if we're on parent route or invalid child route
+    if (route.name === "leaveTab" || !route.name) {
+      // We're on parent route, navigate to default child
+      console.log("Navigating to default tab:", defaultTabName);
+      activeTab.value = defaultTabName;
+      await router.replace({ name: defaultTabName });
+    } else {
+      // We're on a child route, check if user has access
+      const currentTab = tabs.find((t) => t.name === route.name);
+
+      if (currentTab && currentTab.roles.includes(userRole.value)) {
+        // User has access to current route
+        console.log("User has access to current route:", route.name);
+        activeTab.value = route.name;
+      } else {
+        // User doesn't have access, redirect to default
+        console.log("User lacks access, redirecting to:", defaultTabName);
+        activeTab.value = defaultTabName;
+        await router.replace({ name: defaultTabName });
+      }
+    }
+  } catch (error) {
+    console.error("Error initializing tabs:", error);
+    userRole.value = "Employee";
+    activeTab.value = "table";
+    await router.replace({ name: "table" });
+  } finally {
+    loading.value = false;
+  }
 };
 
 onMounted(async () => {
-  try {
-    const userData = await currentUserTenant.fetchLoginUserDetails();
-    userRole.value = userData.role?.name || "Employee";
-    tenantId.value = userData.tenantId;
-
-    if (userRole.value === "Admin" || userRole.value === "Dealer") {
-      activeTab.value = "leavePermission";
-    } else {
-      activeTab.value = "leaveRequest";
-    }
-  } catch (error) {
-    console.error("Error fetching user role:", error);
-    userRole.value = "Employee";
-    activeTab.value = "leaveRequest";
-  }
+  await initializeTab();
 });
 </script>
 
@@ -180,14 +153,15 @@ onMounted(async () => {
 }
 
 .custom-tabs {
-  background-color: #e8edff;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
 .custom-tab {
-  background-color: white;
+  border-radius: 10;
+  background-color: #ecfdf5;
   color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -201,7 +175,7 @@ onMounted(async () => {
 }
 
 .v-tab--selected.custom-tab {
-  background-color: #122f68 !important;
+  background-color: #059367 !important;
   color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }

@@ -15,26 +15,6 @@
     </div>
 
     <!-- Filter Toggle Button -->
-    <button
-      v-if="tenantId"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
 
     <!-- Main Content -->
     <div
@@ -50,6 +30,28 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
+        <template #before-search>
+          <button
+            v-if="tenantId"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Header Slot for Stats -->
         <template v-slot:toolbar-actions>
           <div class="stats-container">
@@ -107,22 +109,50 @@
             @rowClick="handleRowClick"
           >
             <!-- Employee Column -->
-            <template #cell-employee="{ item }">
-              <div class="employee-info">
-                <div
-                  class="employee-avatar"
-                  :style="{ backgroundColor: getAvatarColor(item) }"
-                >
-                  {{ getInitials(item) }}
-                </div>
-                <div class="employee-details">
-                  <h3 class="employee-name">{{ formatEmployeeName(item) }}</h3>
-                  <p class="employee-id">ID: {{ item.employeeId || "N/A" }}</p>
-                  <p class="employee-department">
-                    {{ getDepartmentName(item) }}
-                  </p>
+            <!-- Avatar column only -->
+            <template #cell-profile="{ item }">
+              <div class="profile-avatar">
+                <img
+                  v-if="item.avatarImage"
+                  :src="item.avatarImage"
+                  :alt="formatEmployeeName(item)"
+                  class="avatar-image"
+                />
+                <div v-else class="avatar-placeholder">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
                 </div>
               </div>
+            </template>
+            <template #cell-employee="{ item }">
+              <div class="employee-details">
+                <h3 class="employee-name">{{ formatEmployeeName(item) }}</h3>
+              </div>
+            </template>
+            <!-- Employee ID Column -->
+            <template #cell-employeeId="{ item }">
+              <span class="employee-id">{{ item.employeeId || "N/A" }}</span>
+            </template>
+
+            <!-- Department Column -->
+            <template #cell-department="{ item }">
+              <span class="department-name">{{
+                item.departmentName || "N/A"
+              }}</span>
+            </template>
+
+            <!-- Location Column -->
+            <template #cell-location="{ item }">
+              <span class="location-name">{{ item.locationName || "-" }}</span>
             </template>
 
             <!-- Status Column -->
@@ -284,6 +314,7 @@ const totalUsers = ref([]);
 const tenantId = ref("");
 const userId = ref(currentUserTenant.getUserId()); // Get logged-in user ID
 const userRole = ref(currentUserTenant.getRole()); // Get logged-in user role
+const token = authService.getToken();
 
 // Filter Management
 const showFilters = ref(true);
@@ -310,12 +341,17 @@ const sortDirection = ref("asc");
 const currentPage = ref(1);
 const itemsPerPage = ref(25);
 
-// DataTable Configuration
+// DataTable Configuration - Updated columns
 const columns = ref([
-  { key: "employee", label: "Employee", sortable: true },
-  { key: "status", label: "Status", sortable: true },
-  { key: "inTime", label: "First Punch", sortable: true },
-  { key: "outTime", label: "Last Punch", sortable: true },
+  { key: "profile", label: "Profile", sortable: true, width: 60 },
+  { key: "employeeId", label: "Employee ID", sortable: true, width: 60 },
+  { key: "employee", label: "Employee", sortable: true, width: 60 },
+
+  { key: "department", label: "Department", sortable: true, width: 60 },
+  { key: "location", label: "Branch", sortable: true, width: 60 },
+  { key: "status", label: "Status", sortable: true, width: 60 },
+  { key: "inTime", label: "First Punch", sortable: true, width: 60 },
+  { key: "outTime", label: "Last Punch", sortable: true, width: 60 },
 ]);
 
 // Date and Day Computed Properties
@@ -348,6 +384,23 @@ const isEmployeeLeft = (employee) => {
   today.setHours(0, 0, 0, 0);
   leavingDate.setHours(0, 0, 0, 0);
   return leavingDate <= today;
+};
+
+// Avatar Functions
+const fetchAuthorizedImage = async (imageUrl) => {
+  try {
+    const response = await fetch(imageUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error("Failed to load image");
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error loading profile image:", error);
+    return null;
+  }
 };
 
 // Computed Properties
@@ -394,15 +447,16 @@ const mergedAttendanceData = computed(() => {
       employeeId: user.employeeId,
       firstName: user.assignedUser?.first_name || "",
       lastName: user.assignedUser?.last_name || "",
-      departmentName:
-        user.assignedDepartment?.[0]?.department_id?.departmentName || "N/A",
-      orgType: user.assignedUser?.organization?.orgType || "N/A",
+      departmentName: user.department?.departmentName || "N/A",
+      locationName: user.branchLocation?.locdetail?.locationName || "-", // Get location name from branchLocation
+
       status: attendanceRecord?.status || "out",
       attendance: attendanceRecord?.attendance || "absent",
       inTime: attendanceRecord?.inTime || null,
       outTime: attendanceRecord?.outTime || null,
       lateBy: attendanceRecord?.lateBy || null,
       earlyDeparture: attendanceRecord?.earlyDeparture || null,
+      avatarImage: user.avatarImage || null, // Add avatar image
     };
   });
 });
@@ -417,7 +471,8 @@ const filteredAttendance = computed(() => {
       (item) =>
         formatEmployeeName(item).toLowerCase().includes(query) ||
         item.employeeId?.toLowerCase().includes(query) ||
-        item.departmentName.toLowerCase().includes(query),
+        item.departmentName.toLowerCase().includes(query) ||
+        item.locationName?.toLowerCase().includes(query), // Include location in search
     );
   }
 
@@ -480,7 +535,8 @@ const buildPersonalModuleUrl = () => {
     filterIndex++;
   }
 
-  url += `&fields[]=assignedUser.first_name&fields[]=assignedUser.last_name&fields[]=assignedUser.dateOfLeaving&fields[]=assignedUser.organization.orgType&fields[]=id&fields[]=employeeId&fields[]=assignedDepartment.department_id.departmentName`;
+  // Include all required fields including branchLocation.locdetail
+  url += `&fields[]=assignedUser.first_name&fields[]=assignedUser.last_name&fields[]=assignedUser.dateOfLeaving&fields[]=id&fields[]=employeeId&fields[]=department.departmentName&fields[]=assignedUser.avatar.id&fields[]=branchLocation.locdetail`;
 
   console.log("Personal Module URL:", url);
   return url;
@@ -494,7 +550,7 @@ const buildAttendanceUrl = (activeUserIds, today) => {
   let url = `${import.meta.env.VITE_API_URL}/items/attendance?filter[_and][0][date][_eq]=${today}&filter[_and][1][tenant][tenantId][_eq]=${tenantId.value}&filter[_and][2][employeeId][id][_in]=${activeUserIds.join(",")}&limit=-1`;
 
   url += `&sort[]=-date_updated`;
-  url += `&fields[]=employeeId.id&fields[]=employeeId.employeeId&fields[]=employeeId.assignedUser.first_name&fields[]=employeeId.assignedUser.last_name&fields[]=employeeId.assignedDepartment.department_id.departmentName&fields[]=status&fields[]=attendance&fields[]=inTime&fields[]=outTime&fields[]=lateBy&fields[]=earlyDeparture`;
+  url += `&fields[]=employeeId.id&fields[]=employeeId.employeeId&fields[]=employeeId.assignedUser.first_name&fields[]=employeeId.assignedUser.last_name&fields[]=employeeId.department.departmentName&fields[]=status&fields[]=attendance&fields[]=inTime&fields[]=outTime&fields[]=lateBy&fields[]=earlyDeparture`;
 
   console.log("Attendance URL:", url);
   return url;
@@ -562,7 +618,22 @@ const fetchAttendanceData = async () => {
       personalModuleUrl,
       "Failed to fetch users",
     );
-    totalUsers.value = usersData.data || [];
+
+    // Process users and fetch avatars
+    totalUsers.value = await Promise.all(
+      (usersData.data || []).map(async (user) => {
+        const userWithAvatar = { ...user };
+        if (user.assignedUser?.avatar?.id) {
+          const avatarUrl = `${import.meta.env.VITE_API_URL}/assets/${
+            user.assignedUser.avatar.id
+          }`;
+          userWithAvatar.avatarImage = await fetchAuthorizedImage(avatarUrl);
+        } else {
+          userWithAvatar.avatarImage = null;
+        }
+        return userWithAvatar;
+      }),
+    );
 
     // Get active user IDs
     const activeUserIds = activeUsers.value.map((user) => user.id);
@@ -596,8 +667,6 @@ const fetchAttendanceData = async () => {
 // Formatting Functions
 const formatEmployeeName = (item) =>
   `${item.firstName} ${item.lastName}`.trim() || "Unknown Employee";
-
-const getDepartmentName = (item) => item.departmentName || "N/A";
 
 const formatStatus = (status) => {
   const statusMap = {
@@ -645,30 +714,6 @@ const formatTime = (time) => {
   } catch (error) {
     return "-- : --";
   }
-};
-
-const getInitials = (item) => {
-  const firstName = item.firstName || "";
-  const lastName = item.lastName || "";
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "??";
-};
-
-const getAvatarColor = (item) => {
-  const colors = [
-    "#3b82f6",
-    "#8b5cf6",
-    "#ec4899",
-    "#06b6d4",
-    "#10b981",
-    "#f59e0b",
-    "#ef4444",
-    "#6366f1",
-  ];
-  const employeeId = item.employeeId || item.id?.toString() || "";
-  const sum = employeeId
-    .split("")
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[sum % colors.length];
 };
 
 // Event Handlers
@@ -885,17 +930,31 @@ onMounted(async () => {
   min-width: 200px;
 }
 
-.employee-avatar {
+.profile-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 0.75rem;
-  flex-shrink: 0;
+  background-color: #f3f4f6;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
 }
 
 .employee-details {
@@ -915,15 +974,22 @@ onMounted(async () => {
 }
 
 .employee-id {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #374151;
 }
 
-.employee-department {
-  font-size: 0.75rem;
-  color: #3b82f6;
+/* .department-name {
   font-weight: 500;
-}
+  font-size: 0.875rem;
+  color: #3b82f6;
+} */
+
+/* .location-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #6b7280;
+} */
 
 .status-badge {
   display: inline-flex;
@@ -1064,10 +1130,7 @@ onMounted(async () => {
   }
 
   :deep(.header-left) {
-    flex-direction: row; /* Keep search and stats in a row on smaller screens */
-    align-items: center;
-    gap: 0.5rem; /* Further reduced gap for smaller screens */
-  }
+    flex-direction: row; /* Keep search and stats in a row on
 
   .stats-container {
     gap: 0.75rem; /* Reduced gap for stats on smaller screens */

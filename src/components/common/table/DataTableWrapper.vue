@@ -44,8 +44,8 @@
     >
       <p class="table-description">{{ description }}</p>
     </div>
-
     <!-- Table Content -->
+    <slot name="below-search" />
     <div class="table-container">
       <slot />
     </div>
@@ -136,7 +136,9 @@ const shouldHidePagination = computed(() => {
   border-bottom: 1px solid #f1f5f9;
   background: #fafbfc;
   gap: 2rem;
-  position: sticky !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header-left {
@@ -163,7 +165,7 @@ const shouldHidePagination = computed(() => {
 .search-input {
   width: 100%;
   padding: 0.75rem 2.5rem 0.75rem 2.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #b9b4b4;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   background: white;
@@ -213,6 +215,8 @@ const shouldHidePagination = computed(() => {
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10001;
 }
 
 .table-description-row {
@@ -228,9 +232,8 @@ const shouldHidePagination = computed(() => {
 }
 
 .table-container {
-  /* height: calc(86vh - 160px); */
-
   border-radius: 8px;
+  overflow: visible;
 }
 
 .table-pagination {

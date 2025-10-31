@@ -3,668 +3,510 @@
     <!-- Main Content -->
     <div class="main-content">
       <!-- Side by Side Section: Work Orders & Employee Metrics -->
-      <div class="content-grid">
-        <!-- First Card: Employee Metrics -->
-        <div class="content-card">
-          <div class="card-header">
-            <h2 class="card-title">Employee Overview</h2>
-            <BaseButton
-              color="primary"
-              @click="navigateTo('/employee-details/employee/add/personal')"
-              :text="` Add User`"
-              :left-icon="User2Icon"
-              size="md"
-            />
-          </div>
-
-          <div class="card-content">
-            <div class="metrics-grid-compact">
-              <!-- Total Employees -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/employee-details')"
-                @keydown.enter="navigateTo('/employee-details')"
-                tabindex="0"
-                role="button"
-                :aria-label="`${attendanceCounts.total} Total Employees`"
-              >
-                <div class="metric-icon-compact metric-icon-blue">
-                  <i class="fas fa-users" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ attendanceCounts.total }}
-                  </div>
-                  <div class="metric-label-compact">Total Employees</div>
-                </div>
-              </div>
-
-              <!-- Present Employees -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/attendanceDeatils/daily?status=present')"
-                @keydown.enter="
-                  navigateTo('/attendanceDeatils/daily?status=present')
-                "
-                tabindex="0"
-                role="button"
-                :aria-label="`${attendanceCounts.present} Present Employees`"
-              >
-                <div class="metric-icon-compact metric-icon-teal">
-                  <i class="fas fa-users" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ attendanceCounts.present }}
-                  </div>
-                  <div class="metric-label-compact">Present</div>
-                </div>
-              </div>
-
-              <!-- Absent Employees -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/attendanceDeatils/daily?status=absent')"
-                @keydown.enter="
-                  navigateTo('/attendanceDeatils/daily?status=absent')
-                "
-                tabindex="0"
-                role="button"
-                :aria-label="`${attendanceCounts.absent} Absent Employees`"
-              >
-                <div class="metric-icon-compact metric-icon-red">
-                  <i class="fas fa-user-times" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ absentCount }}
-                  </div>
-                  <div class="metric-label-compact">Absent</div>
-                </div>
+      <div class="content-gri">
+        <div class="left-column">
+          <!-- Attendance Overview Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <i class="fas fa-calendar-check card-header-icon"></i>
+                <h2 class="card-title">Attendance Overview</h2>
               </div>
             </div>
-          </div>
-          <div
-            class="card-subtitle"
-            style="font-size: 14px; color: #666; margin-bottom: 15px"
-          >
-            Attendance for {{ formatDate(currentDate) }}
-          </div>
-        </div>
 
-        <!-- Second Card: Work Orders (Front and Center) -->
-        <div class="content-card featured-card">
-          <div class="card-header-workorders">
-            <h2 class="card-title">Work Orders</h2>
-            <div class="workorder-subtitle">{{ formatMonth(currentDate) }}</div>
-            <BaseButton
-              color="primary"
-              @click="navigateTo('/taskManagement/taskcomponents/workorder')"
-              :text="`Add Work Order`"
-              size="md"
-            />
-          </div>
-          <div class="card-content">
-            <div class="workorders-grid">
-              <!-- Active Work Orders -->
-              <div
-                class="workorder-metric"
-                @click="
-                  navigateTo(
-                    '/taskManagement/taskcomponents/TasksPage?status=inprogress',
-                  )
-                "
-                @keydown.enter="
-                  navigateTo(
-                    '/taskManagement/taskcomponents/TasksPage?status=inprogress',
-                  )
-                "
-                tabindex="0"
-                role="button"
-              >
-                <div class="workorder-icon workorder-icon-blue">
-                  <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                </div>
-                <div class="workorder-content">
-                  <div class="workorder-number">{{ taskCounts.total }}</div>
-                  <div class="workorder-label">Active</div>
-                </div>
-              </div>
-
-              <!-- Completed Work Orders -->
-              <div
-                class="workorder-metric"
-                @click="
-                  navigateTo(
-                    '/taskManagement/taskcomponents/TasksPage?status=completed',
-                  )
-                "
-                @keydown.enter="
-                  navigateTo(
-                    '/taskManagement/taskcomponents/TasksPage?status=completed',
-                  )
-                "
-                tabindex="0"
-                role="button"
-              >
-                <div class="workorder-icon workorder-icon-green">
-                  <i class="fas fa-check-circle" aria-hidden="true"></i>
-                </div>
-                <div class="workorder-content">
-                  <div class="workorder-number">{{ taskCounts.completed }}</div>
-                  <div class="workorder-label">Completed</div>
-                </div>
-              </div>
-
-              <!-- Overdue Tasks -->
-              <div
-                class="workorder-metric"
-                @click="
-                  navigateTo(
-                    '/taskManagement/taskcomponents/TasksPage?status=overdue',
-                  )
-                "
-                @keydown.enter="
-                  navigateTo(
-                    '/taskManagement/taskcomponents/TasksPage?status=overdue',
-                  )
-                "
-                tabindex="0"
-                role="button"
-              >
-                <div class="workorder-icon workorder-icon-orange">
-                  <i class="fas fa-clock" aria-hidden="true"></i>
-                </div>
-                <div class="workorder-content">
-                  <div class="workorder-number">{{ taskCounts.overdue }}</div>
-                  <div class="workorder-label">Overdue</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Third Card: Organization Metrics -->
-        <div class="content-card">
-          <div class="card-header">
-            <h2 class="card-title">Clients&Sites Overview</h2>
-            <BaseButton
-              color="primary"
-              @click="navigateTo('/organization/orgmainui')"
-              :text="`Add Clients`"
-            />
-          </div>
-          <div class="card-content">
-            <div class="metrics-grid-compact">
-              <!-- Total Organizations -->
-              <!-- <div
-                class="metric-card-compact"
-                @click="navigateTo('/organization/orgmainui')"
-                @keydown.enter="navigateTo('/organization/orgmainui')"
-                tabindex="0"
-                role="button"
-                :aria-label="`${organizationCounts.total} Total Organizations`"
-              >
-                <div class="metric-icon-compact metric-icon-blue">
-                  <i class="fas fa-building" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ organizationCounts.total }}
-                  </div>
-                  <div class="metric-label-compact">Total Organizations</div>
-                </div>
-              </div> -->
-
-              <!-- Tenant Organizations -->
-              <!-- <div
-                class="metric-card-compact"
-                @click="navigateTo('/organization/orgmainui?type=tenantorg')"
-                @keydown.enter="
-                  navigateTo('/organization/orgmainui?type=tenantorg')
-                "
-                tabindex="0"
-                role="button"
-                :aria-label="`${organizationCounts.tenantorg} Tenant Organizations`"
-              >
-                <div class="metric-icon-compact metric-icon-teal">
-                  <i class="fas fa-home" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ organizationCounts.tenantorg }}
-                  </div>
-                  <div class="metric-label-compact">Tenant Orgs</div>
-                </div>
-              </div> -->
-
-              <!-- Distributor Organizations -->
-              <!-- <div
-                class="metric-card-compact"
-                @click="
-                  navigateTo('/organization/orgmainui?type=distributororg')
-                "
-                @keydown.enter="
-                  navigateTo('/organization/orgmainui?type=distributororg')
-                "
-                tabindex="0"
-                role="button"
-                :aria-label="`${organizationCounts.distributororg} Distributor Organizations`"
-              >
-                <div class="metric-icon-compact metric-icon-orange">
-                  <i class="fas fa-truck" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ organizationCounts.distributororg }}
-                  </div>
-                  <div class="metric-label-compact">Distributor Orgs</div>
-                </div>
-              </div> -->
-
-              <!-- Client Organizations -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/organization/orgmainui?type=clientorg')"
-                @keydown.enter="
-                  navigateTo('/organization/orgmainui?type=clientorg')
-                "
-                tabindex="0"
-                role="button"
-                :aria-label="`${organizationCounts.clientorg} Client Organizations`"
-              >
-                <div class="metric-icon-compact metric-icon-green">
-                  <i class="fas fa-users" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ organizationCounts.clientorg }}
-                  </div>
-                  <div class="metric-label-compact">Client Orgs</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Fourth Card: Location Metrics -->
-        <div class="content-card">
-          <div class="card-header">
-            <h2 class="card-title">Branch&Department Overview</h2>
-            <BaseButton
-              color="primary"
-              @click="navigateTo('/organization/org_addlocation')"
-              :text="` Add Branch & Department`"
-            />
-          </div>
-          <div class="card-content">
-            <div class="metrics-grid-compact">
-              <!-- Total Locations -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/locationManagement')"
-                @keydown.enter="navigateTo('/locationManagement')"
-                tabindex="0"
-                role="button"
-                :aria-label="`${locationCounts.total} Total Locations`"
-              >
-                <div class="metric-icon-compact metric-icon-blue">
-                  <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ locationCounts.total }}
-                  </div>
-                  <div class="metric-label-compact">Total Locations</div>
-                </div>
-              </div>
-
-              <!-- Branch Locations -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/locationManagement?type=branch')"
-                @keydown.enter="navigateTo('/locationManagement?type=branch')"
-                tabindex="0"
-                role="button"
-                :aria-label="`${locationCounts.branch} Branch Locations`"
-              >
-                <div class="metric-icon-compact metric-icon-teal">
-                  <i class="fas fa-building" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ locationCounts.branch }}
-                  </div>
-                  <div class="metric-label-compact">Branch Locations</div>
-                </div>
-              </div>
-
-              <!-- Serviceable Area Locations -->
-              <div
-                class="metric-card-compact"
-                @click="navigateTo('/locationManagement?type=serviceable_area')"
-                @keydown.enter="
-                  navigateTo('/locationManagement?type=serviceable_area')
-                "
-                tabindex="0"
-                role="button"
-                :aria-label="`${locationCounts.serviceable_area} Serviceable Area Locations`"
-              >
-                <div class="metric-icon-compact metric-icon-orange">
-                  <i class="fas fa-map" aria-hidden="true"></i>
-                </div>
-                <div class="metric-content-compact">
-                  <div class="metric-number-compact">
-                    {{ locationCounts.serviceable_area }}
-                  </div>
-                  <div class="metric-label-compact">Serviceable Areas</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Requests Section -->
-        <div class="content-card">
-          <div class="tab-header">
-            <button
-              class="tab-btn"
-              :class="{ 'tab-btn-active': activeTab === 'leave-requests' }"
-              @click="switchTab('leave-requests')"
-              :aria-pressed="activeTab === 'leave-requests'"
-            >
-              Leave Requests
-              <span class="tab-count" v-if="leaveRequests.length > 0">
-                {{ leaveRequests.length }}
-              </span>
-            </button>
-            <button
-              class="tab-btn"
-              :class="{ 'tab-btn-active': activeTab === 'reimbursements' }"
-              @click="switchTab('reimbursements')"
-              :aria-pressed="activeTab === 'reimbursements'"
-            >
-              Reimbursements
-              <span class="tab-count" v-if="reimbursements.length > 0">
-                {{ reimbursements.length }}
-              </span>
-            </button>
-          </div>
-
-          <div class="card-content">
-            <!-- Leave Requests Tab -->
-            <div v-if="activeTab === 'leave-requests'">
-              <div class="requests-summary">
-                <div class="summary-stat">
-                  <span class="stat-number">{{ leaveRequests.length }}</span>
-                  <span class="stat-label">Total Requests</span>
-                </div>
-                <span class="pending-count" v-if="pendingLeaveCount > 0">
-                  {{ pendingLeaveCount }} Pending
-                </span>
-              </div>
-
-              <!-- Loading State -->
-              <div v-if="loadingLeaveRequests" class="loading-state">
-                <div class="skeleton-item" v-for="i in 3" :key="i">
-                  <div class="skeleton-icon"></div>
-                  <div class="skeleton-content">
-                    <div class="skeleton-line skeleton-line-title"></div>
-                    <div class="skeleton-line skeleton-line-subtitle"></div>
-                  </div>
-                  <div class="skeleton-badge"></div>
-                </div>
-              </div>
-
-              <!-- Requests List -->
-              <div v-else-if="leaveRequests.length > 0" class="items-list">
+            <div class="card-content">
+              <div class="metrics-grid-compact">
+                <!-- Total Employees -->
                 <div
-                  class="list-item"
-                  v-for="request in leaveRequests"
-                  :key="request.id"
+                  class="metric-card-compact"
+                  @click="navigateTo('/employee-details')"
+                  @keydown.enter="navigateTo('/employee-details')"
                   tabindex="0"
                   role="button"
-                  :aria-label="`Leave request from ${request.requestedBy?.assignedUser?.first_name || 'Unknown'}`"
+                  :aria-label="`${attendanceCounts.total} Total Employees`"
                 >
-                  <div class="item-indicator status-indicator-pending"></div>
-                  <div class="item-icon item-icon-blue">
+                  <div class="metric-content-compact">
+                    <div class="metric-number-compact total">
+                      {{ attendanceCounts.total }}
+                    </div>
+                    <div class="metric-label-compact">Total Employees</div>
+                  </div>
+                </div>
+
+                <!-- Present Employees -->
+                <div
+                  class="metric-card-compact"
+                  @click="navigateTo('/attendanceDeatils/daily?status=present')"
+                  @keydown.enter="
+                    navigateTo('/attendanceDeatils/daily?status=present')
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${attendanceCounts.present} Presents`"
+                >
+                  <div class="metric-content-compact">
+                    <div class="metric-number-compact present">
+                      {{ attendanceCounts.present }}
+                    </div>
+                    <div class="metric-label-compact">Presents</div>
+                  </div>
+                </div>
+
+                <!-- Absent Employees -->
+                <div
+                  class="metric-card-compact"
+                  @click="navigateTo('/attendanceDeatils/daily?status=absent')"
+                  @keydown.enter="
+                    navigateTo('/attendanceDeatils/daily?status=absent')
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${attendanceCounts.absent} Absents`"
+                >
+                  <div class="metric-content-compact">
+                    <div class="metric-number-compact absent">
+                      {{ attendanceCounts.absent }}
+                    </div>
+                    <div class="metric-label-compact">Absents</div>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="card-subtitle"
+                style="
+                  font-size: 14px;
+                  color: #000000;
+                  margin-bottom: 15px;
+                  padding: 0 1.5rem;
+                "
+              >
+                Today's Attendance {{ formatShortDate(currentDate) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Creators Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <i class="fas fa-plus-circle card-header-icon"></i>
+                <h2 class="card-title">Quick Creators</h2>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="quick-creators">
+                <div
+                  class="quick-creator"
+                  @click="navigateTo('/employee-details/employee/add/personal')"
+                  @keydown.enter="
+                    navigateTo('/employee-details/employee/add/personal')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="quick-icon pink">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                  </div>
+                  <span>Create Employee</span>
+                </div>
+                <div
+                  class="quick-creator"
+                  @click="
+                    navigateTo('/taskManagement/taskcomponents/workorder')
+                  "
+                  @keydown.enter="
+                    navigateTo('/taskManagement/taskcomponents/workorder')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="quick-icon white">
+                    <i class="fas fa-file-alt" aria-hidden="true"></i>
+                  </div>
+                  <span>Create Workorder</span>
+                </div>
+                <div
+                  class="quick-creator"
+                  @click="navigateTo('/organization/orgmainui')"
+                  @keydown.enter="navigateTo('/organization/orgmainui')"
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="quick-icon light-blue">
+                    <i class="fas fa-handshake" aria-hidden="true"></i>
+                  </div>
+                  <span>Create Clients</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configurators Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <i class="fas fa-cogs card-header-icon"></i>
+                <h2 class="card-title">Configurators</h2>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="configurators">
+                <div
+                  class="config-item"
+                  @click="navigateTo('/configuration/configuration')"
+                  @keydown.enter="navigateTo('/configuration/configuration')"
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="config-icon green">
+                    <i class="fas fa-sitemap" aria-hidden="true"></i>
+                  </div>
+                  <span>Organization<br />Configurator</span>
+                </div>
+                <div
+                  class="config-item"
+                  @click="navigateToWithName('ShiftSettings')"
+                  @keydown.enter="navigateToWithName('ShiftSettings')"
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="config-icon green">
                     <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                   </div>
-                  <div class="item-content">
-                    <h3 class="item-title">
-                      {{
-                        request.requestedBy?.assignedUser?.first_name ||
-                        "Unknown"
-                      }}
-                    </h3>
-                    <p class="item-subtitle">Leave Request</p>
-                  </div>
-                  <span
-                    class="status-badge"
-                    :class="getStatusClass(request.status)"
-                  >
-                    {{ formatStatus(request.status) }}
-                  </span>
+                  <span>Attendance<br />Configurator</span>
                 </div>
-              </div>
-
-              <!-- Empty State -->
-              <div v-else class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                </div>
-                <h3 class="empty-title">No Leave Requests</h3>
-                <p class="empty-description">
-                  All caught up! No pending leave requests.
-                </p>
-              </div>
-
-              <div class="card-footer">
-                <button class="view-all-btn" @click="viewAllKPI">
-                  View All KPI Reports
-                  <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Reimbursements Tab -->
-            <div v-if="activeTab === 'reimbursements'">
-              <div class="requests-summary">
-                <div class="summary-stat">
-                  <span class="stat-number">{{ reimbursements.length }}</span>
-                  <span class="stat-label">Total Reimbursements</span>
-                </div>
-                <span class="pending-count" v-if="reimbursements.length > 0">
-                  {{ reimbursements.length }} Submitted
-                </span>
-              </div>
-
-              <!-- Loading State -->
-              <div v-if="loadingReimbursements" class="loading-state">
-                <div class="skeleton-item" v-for="i in 3" :key="i">
-                  <div class="skeleton-icon"></div>
-                  <div class="skeleton-content">
-                    <div class="skeleton-line skeleton-line-title"></div>
-                    <div class="skeleton-line skeleton-line-subtitle"></div>
-                  </div>
-                  <div class="skeleton-badge"></div>
-                </div>
-              </div>
-
-              <!-- Reimbursements List -->
-              <div v-else-if="reimbursements.length > 0" class="items-list">
                 <div
-                  class="list-item"
-                  v-for="reimbursement in reimbursements"
-                  :key="reimbursement.id"
+                  class="config-item"
+                  @click="navigateToWithName('expense')"
+                  @keydown.enter="navigateToWithName('expense')"
                   tabindex="0"
                   role="button"
-                  :aria-label="`Reimbursement from ${reimbursement.reimbBy?.assignedUser?.first_name || 'Unknown'}`"
                 >
-                  <div class="item-indicator status-indicator-pending"></div>
-                  <div class="item-icon item-icon-green">
-                    <i class="fas fa-receipt" aria-hidden="true"></i>
+                  <div class="config-icon green">
+                    <i class="fas fa-wallet" aria-hidden="true"></i>
                   </div>
-                  <div class="item-content">
-                    <h3 class="item-title">
-                      {{
-                        reimbursement.reimbBy?.assignedUser?.first_name ||
-                        "Unknown"
-                      }}
-                    </h3>
-                    <p class="item-subtitle">
-                      {{ reimbursement.taskID?.title || "No Title" }} • ${{
-                        reimbursement.taskExpense || 0
-                      }}
-                    </p>
-                  </div>
-                  <span class="status-badge status-pending">Submitted</span>
+                  <span>Expense<br />Configurator</span>
                 </div>
-              </div>
-
-              <!-- Empty State -->
-              <div v-else class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-receipt" aria-hidden="true"></i>
-                </div>
-                <h3 class="empty-title">No Reimbursements</h3>
-                <p class="empty-description">
-                  No reimbursement requests at the moment.
-                </p>
-              </div>
-
-              <div class="card-footer">
-                <button
-                  class="view-all-btn"
-                  @click="navigateTo('/reimbursement/reimbursement_card')"
+                <!-- <div
+                  class="config-item"
+                  @click="navigateTo('/payroll-config')"
+                  @keydown.enter="navigateTo('/payroll-config')"
+                  tabindex="0"
+                  role="button"
                 >
-                  View All
-                  <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </button>
+                  <div class="config-icon green">
+                    <i class="fas fa-dollar-sign" aria-hidden="true"></i>
+                  </div>
+                  <span>Payroll<br />Configurator</span>
+                </div> -->
               </div>
             </div>
           </div>
         </div>
-        <!-- employee kpi sixth card -->
-        <div class="content-card">
-          <div class="card-header">
-            <h2 class="card-title">Employee KPI</h2>
-            <div class="kpi-period">
-              {{ formatMonthYear(currentDate) }}
+
+        <div class="right-column">
+          <!-- Workorder Overview Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <i class="fas fa-clipboard-list card-header-icon"></i>
+                <h2 class="card-title">Workorder Overview</h2>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="workorders-grid">
+                <!-- Total Workorders -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo('/taskManagement/taskcomponents/workorder')
+                  "
+                  @keydown.enter="
+                    navigateTo('/taskManagement/taskcomponents/workorder')
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${taskCounts.total} Total Workorders`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number total">
+                      {{ taskCounts.total }}
+                    </div>
+                    <div class="workorder-label">Total Workorders</div>
+                  </div>
+                </div>
+
+                <!-- Completed Workorders -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo(
+                      '/taskManagement/taskcomponents/workorder?status=completed',
+                    )
+                  "
+                  @keydown.enter="
+                    navigateTo(
+                      '/taskManagement/taskcomponents/workorder?status=completed',
+                    )
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${taskCounts.completed} Completed Workorders`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number completed">
+                      {{ taskCounts.completed }}
+                    </div>
+                    <div class="workorder-label">Completed</div>
+                  </div>
+                </div>
+
+                <!-- Overdue Workorders -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo(
+                      '/taskManagement/taskcomponents/workorder?status=overdue',
+                    )
+                  "
+                  @keydown.enter="
+                    navigateTo(
+                      '/taskManagement/taskcomponents/workorder?status=overdue',
+                    )
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${taskCounts.overdue} Overdue Workorders`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number overdue">
+                      {{ taskCounts.overdue }}
+                    </div>
+                    <div class="workorder-label">Overdue</div>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="card-subtitle"
+                style="
+                  font-size: 14px;
+                  color: #000000;
+                  margin-bottom: 15px;
+                  padding: 0 1.5rem;
+                "
+              >
+                Today's Workorder {{ formatShortDate(currentDate) }}
+              </div>
             </div>
           </div>
-          <div class="card-content">
-            <!-- Employee Selection Dropdown -->
-            <div class="kpi-selector">
-              <label for="employee-select" class="selector-label"
-                >Select Employee:</label
-              >
-              <select
-                id="employee-select"
-                v-model="selectedEmployeeId"
-                class="employee-dropdown"
-                @change="fetchEmployeeKPI"
-              >
-                <option value="" disabled>Select an employee</option>
-                <option
-                  v-for="employee in employees"
-                  :key="employee.id"
-                  :value="employee.id"
+
+          <!-- Today's Overview Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <h2 class="card-title">Today's Overview</h2>
+              </div>
+              <BaseButton
+                variant="primary"
+                @click="navigateToTabView"
+                :text="`View all ${activeTab === 'leave' ? 'leaves' : 'Expense'}`"
+                size="sm"
+              />
+            </div>
+            <div class="card-content">
+              <!-- Tab Navigation with Counts -->
+              <div class="tab-navigation">
+                <button
+                  class="tab-button"
+                  :class="{ active: activeTab === 'leave' }"
+                  @click="switchTab('leave')"
+                  @keydown.enter="switchTab('leave')"
+                  tabindex="0"
+                  role="button"
                 >
-                  {{ employee.name }} ({{ employee.employeeId }})
-                </option>
-              </select>
-            </div>
+                  Leave Requests
+                  <span class="tab-count">{{ leaveRequests.length }}</span>
+                </button>
+                <button
+                  class="tab-button"
+                  :class="{ active: activeTab === 'reimbursement' }"
+                  @click="switchTab('reimbursement')"
+                  @keydown.enter="switchTab('reimbursement')"
+                  tabindex="0"
+                  role="button"
+                >
+                  Expense
+                  <span class="tab-count">{{ reimbursements.length }}</span>
+                </button>
+              </div>
 
-            <!-- KPI Metrics -->
-            <div
-              v-if="selectedEmployeeId && employeeKPI"
-              class="kpi-metrics-simple"
-            >
-              <!-- Task Metrics -->
-              <div class="kpi-section">
-                <h3 class="kpi-section-title">Task Performance</h3>
-
-                <div class="kpi-row">
-                  <div class="kpi-item">
-                    <div class="kpi-count kpi-count-completed">
-                      {{ employeeKPI.tasks.completed }}
-                    </div>
-                    <div class="kpi-label">Completed</div>
+              <!-- Loading State -->
+              <div v-if="loadingOverview" class="loading-state">
+                <div class="skeleton-table">
+                  <div class="skeleton-row">
+                    <div class="skeleton-cell wide"></div>
+                    <div class="skeleton-cell"></div>
+                    <div class="skeleton-cell"></div>
+                    <div class="skeleton-cell"></div>
                   </div>
-
-                  <div class="kpi-item">
-                    <div class="kpi-count kpi-count-pending">
-                      {{ employeeKPI.tasks.pending }}
-                    </div>
-                    <div class="kpi-label">Pending</div>
-                  </div>
-
-                  <div class="kpi-item">
-                    <div class="kpi-count kpi-count-overdue">
-                      {{ employeeKPI.tasks.overdue }}
-                    </div>
-                    <div class="kpi-label">Overdue</div>
+                  <div class="skeleton-row">
+                    <div class="skeleton-cell wide"></div>
+                    <div class="skeleton-cell"></div>
+                    <div class="skeleton-cell"></div>
+                    <div class="skeleton-cell"></div>
                   </div>
                 </div>
               </div>
 
-              <!-- Attendance Metrics -->
-              <div class="kpi-section">
-                <h3 class="kpi-section-title">Attendance</h3>
-
-                <div class="kpi-row">
-                  <div class="kpi-item">
-                    <div class="kpi-count kpi-count-present">
-                      {{ employeeKPI.attendance.present }}
+              <!-- Content based on active tab -->
+              <div v-else>
+                <!-- Leave Requests Tab -->
+                <div v-if="activeTab === 'leave'">
+                  <div v-if="leaveRequests.length > 0" class="requests-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>Date</th>
+                          <th>Emp Name</th>
+                          <th>Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="request in leaveRequests.slice(0, 3)"
+                          :key="request.id"
+                        >
+                          <td>
+                            <span class="status-dot pending"></span>
+                          </td>
+                          <td>{{ formatShortDate(new Date(request.date)) }}</td>
+                          <td>{{ request.empName }}</td>
+                          <td>{{ request.type }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="table-navigation">
+                      <span>&laquo;&laquo;</span>
+                      <span>&raquo;&raquo;</span>
                     </div>
-                    <div class="kpi-label">Present</div>
                   </div>
 
-                  <div class="kpi-item">
-                    <div class="kpi-count kpi-count-absent">
-                      {{ employeeKPI.attendance.absent }}
+                  <div v-else class="empty-state">
+                    <div class="empty-icon">
+                      <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                     </div>
-                    <div class="kpi-label">Absent</div>
+                    <h3 class="empty-title">No Leave Requests</h3>
+                    <p class="empty-description">
+                      All caught up! No pending leave requests.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Reimbursements Tab -->
+                <div v-if="activeTab === 'reimbursement'">
+                  <div v-if="reimbursements.length > 0" class="requests-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>Date</th>
+                          <th>Emp Name</th>
+                          <th>Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="request in reimbursements.slice(0, 3)"
+                          :key="request.id"
+                        >
+                          <td>
+                            <span class="status-dot pending"></span>
+                          </td>
+                          <td>{{ formatShortDate(new Date(request.date)) }}</td>
+                          <td>{{ request.empName }}</td>
+                          <td>{{ request.type }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="table-navigation">
+                      <span>&laquo;&laquo;</span>
+                      <span>&raquo;&raquo;</span>
+                    </div>
                   </div>
 
-                  <div class="kpi-item">
-                    <div class="kpi-count kpi-count-total">
-                      {{ employeeKPI.attendance.totalDays }}
+                  <div v-else class="empty-state">
+                    <div class="empty-icon">
+                      <i class="fas fa-wallet" aria-hidden="true"></i>
                     </div>
-                    <div class="kpi-label">Total Days</div>
+                    <h3 class="empty-title">No Reimbursements</h3>
+                    <p class="empty-description">
+                      All caught up! No pending reimbursements.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Empty State -->
-            <div v-else-if="!selectedEmployeeId" class="kpi-empty">
-              <div class="empty-icon">
-                <i class="fas fa-chart-line" aria-hidden="true"></i>
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <h2 class="card-title">Employee KPI</h2>
               </div>
-              <h3 class="empty-title">Select an Employee</h3>
-              <p class="empty-description">
-                Choose an employee from the dropdown to view their KPI metrics
-                for {{ formatMonthYear(currentDate) }}.
-              </p>
+              <div class="kpi-period">{{ formatMonthYear(currentDate) }}</div>
             </div>
-
-            <!-- Loading State -->
-            <div v-else class="kpi-loading">
-              <div class="skeleton-item" v-for="i in 5" :key="i">
-                <div class="skeleton-content">
-                  <div class="skeleton-line skeleton-line-title"></div>
-                  <div class="skeleton-line skeleton-line-subtitle"></div>
+            <div class="card-content">
+              <div v-if="loadingKPI" class="kpi-loading">
+                <div class="skeleton-table">
+                  <div class="skeleton-row" v-for="n in 5" :key="n">
+                    <div class="skeleton-cell wide"></div>
+                    <div class="skeleton-cell"></div>
+                    <div class="skeleton-cell"></div>
+                    <div class="skeleton-cell"></div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- View All Button -->
-            <button class="view-all-btn" @click="viewAllKPI">
-              View All KPI Reports
-              <i class="fas fa-arrow-right" aria-hidden="true"></i>
-            </button>
+              <div
+                v-else-if="employeeKPIs.length > 0"
+                class="kpi-table-container"
+              >
+                <table class="kpi-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Workdone</th>
+                      <th>No. of Presents</th>
+                      <th>Absents</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="emp in employeeKPIs.slice(0, 3)" :key="emp.id">
+                      <td>{{ emp.name }}</td>
+                      <td>{{ emp.workDone }}</td>
+                      <td>{{ emp.presents }}</td>
+                      <td>{{ emp.absents }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div v-else class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-chart-line" aria-hidden="true"></i>
+                </div>
+                <h3 class="empty-title">No Employee Data</h3>
+                <p class="empty-description">
+                  No KPI data available for {{ formatMonthYear(currentDate) }}.
+                </p>
+              </div>
+
+              <button class="view-all-btn" @click="viewAllKPI">
+                View All KPI Reports
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -677,7 +519,7 @@ import { useRouter } from "vue-router";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
-import { User, User2Icon } from "lucide-vue-next";
+import { onMounted } from "vue";
 
 export default {
   name: "Dashboard",
@@ -688,17 +530,13 @@ export default {
   },
   data() {
     return {
-      // Configuration
       config: {
         apiBaseUrl: import.meta.env.VITE_API_URL,
         tenantId: null,
         authToken: null,
       },
-      // UI State
-      activeTab: "leave-requests",
-      // Data
       taskCounts: {
-        total: 0, // Added for total tasks
+        total: 0,
         inprogress: 0,
         completed: 0,
         overdue: 0,
@@ -714,77 +552,62 @@ export default {
         tenantorg: 0,
         distributororg: 0,
         clientorg: 0,
+        contact: 0,
       },
       locationCounts: {
         total: 0,
         branch: 0,
         serviceable_area: 0,
+        site: 0,
       },
       leaveRequests: [],
       reimbursements: [],
-      // Loading States
-      loadingLeaveRequests: true,
-      loadingReimbursements: true,
-      // Date
+
+      loadingOverview: true,
       currentDate: new Date(),
-      //employee kpi
       employees: [],
-      selectedEmployeeId: "",
-      employeeKPI: null,
+      employeeKPIs: [],
       loadingEmployees: true,
       loadingKPI: false,
+      activeTab: "leave",
     };
-  },
-  computed: {
-    pendingLeaveCount() {
-      return this.leaveRequests.filter(
-        (request) => request.status === "pending",
-      ).length;
-    },
-
-    absentCount() {
-      // <-- new
-      return Math.max(
-        0,
-        this.attendanceCounts.total - this.attendanceCounts.present,
-      );
-    },
   },
   async created() {
     try {
-      // Step 1: Fetch tenant ID
       this.config.tenantId = await currentUserTenant.getTenantIdAsync();
-      // Step 2: Fetch auth token
-      this.config.authToken = await authService.getToken();
+      this.config.authToken = authService.getToken();
       await this.fetchEmployees();
-      // Step 3: If token is invalid, redirect
       if (!this.config.authToken) {
         this.router.push("/login");
         return;
       }
-      // Step 4: Call dashboard data fetch
       await this.fetchDashboardData();
+      await this.fetchEmployeeKPIs();
     } catch (error) {
       console.error("Initialization error:", error);
       this.router.push("/login");
     }
   },
   methods: {
-    // In methods section of dashboard component
+    switchTab(tabName) {
+      this.activeTab = tabName;
+      // Optional: You can also navigate immediately when tab is clicked
+      // this.navigateToTabView();
+    },
+
+    navigateToTabView() {
+      if (this.activeTab === "leave") {
+        this.navigateTo("/leave/leavePermission");
+      } else if (this.activeTab === "reimbursement") {
+        this.navigateTo("/reimbursement/reimbursementtab/reimbursement_card"); // Make sure this route exists
+      }
+    },
     async viewAllKPI() {
-      const logId = Math.random().toString(36).substr(2, 9); // Unique ID for each call
+      const logId = Math.random().toString(36).substr(2, 9);
       console.log(`viewAllKPI called [${logId}]:`, {
-        employeeId: this.selectedEmployeeId,
         employees: this.employees,
       });
-      if (this.selectedEmployeeId) {
-        this.router.push({
-          path: "/taskManagement/kpi",
-          query: { employeeId: this.selectedEmployeeId },
-        });
-      } else {
-        this.router.push("/taskManagement/kpi");
-      }
+      this.router.push("/taskManagement/kpi");
     },
     formatDate(date) {
       return date.toLocaleDateString("en-US", {
@@ -792,6 +615,13 @@ export default {
         year: "numeric",
         month: "long",
         day: "numeric",
+      });
+    },
+    formatShortDate(date) {
+      return date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
       });
     },
     formatMonth(date) {
@@ -809,6 +639,10 @@ export default {
     navigateTo(route) {
       this.router.push(route);
     },
+    navigateToWithName(routeName) {
+      this.router.push({ name: routeName });
+    },
+
     getApiHeaders() {
       return {
         Authorization: `Bearer ${this.config.authToken}`,
@@ -827,14 +661,13 @@ export default {
       await Promise.all([
         this.fetchTaskCounts(),
         this.fetchAttendanceCounts(),
-        this.fetchTotalEmployees(),
         this.fetchOrganizationCounts(),
-        this.fetchLocationCounts(), // New method
+        this.fetchLocationCounts(),
         this.fetchLeaveRequests(),
         this.fetchReimbursements(),
       ]);
+      this.loadingOverview = false;
     },
-    //employee kpi
     async fetchEmployees() {
       try {
         this.loadingEmployees = true;
@@ -849,6 +682,7 @@ export default {
               name: `${employee.assignedUser?.first_name || ""} ${employee.assignedUser?.last_name || ""}`.trim(),
             }))
           : [];
+        this.attendanceCounts.total = data.data ? data.data.length : 0;
 
         this.loadingEmployees = false;
       } catch (error) {
@@ -856,133 +690,89 @@ export default {
         this.loadingEmployees = false;
       }
     },
-
-    async fetchEmployeeKPI() {
-      console.log(
-        "Selected employeeId in fetchEmployeeKPI:",
-        this.selectedEmployeeId,
-      );
-      if (!this.selectedEmployeeId) return;
+    async fetchEmployeeKPIs() {
+      if (this.employees.length === 0) return;
 
       try {
         this.loadingKPI = true;
 
-        // Get current month and year
         const currentMonth = this.currentDate.getMonth() + 1;
         const currentYear = this.currentDate.getFullYear();
 
-        // Fetch tasks data for the selected employee and current month/year
-        const tasksUrl = `${this.config.apiBaseUrl}/items/tasks?filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][employeeId][id][_eq]=${this.selectedEmployeeId}&filter[_and][0][_and][1][month(from)][_eq]=${currentMonth}&filter[_and][2][year(from)][_eq]=${currentYear}`;
+        // Fetch all tasks for the month
+        const tasksUrl = `${this.config.apiBaseUrl}/items/tasks?fields[]=id,status,employeeId.id&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][month(from)][_eq]=${currentMonth}&filter[_and][2][year(from)][_eq]=${currentYear}&limit=-1`;
         const tasksResponse = await fetch(tasksUrl, {
           headers: this.getApiHeaders(),
         });
         const tasksData = await tasksResponse.json();
         const tasks = tasksData.data || [];
 
-        // Calculate task metrics
-        const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(
-          (task) => task.status === "completed",
-        ).length;
-        const pendingTasks = tasks.filter(
-          (task) => task.status === "pending" || task.status === "inprogress",
-        ).length;
-        const overdueTasks = tasks.filter(
-          (task) => task.status === "overdue",
-        ).length;
+        // Group tasks by employee
+        const taskMap = {};
+        tasks.forEach((task) => {
+          const empId = task.employeeId?.id;
+          if (!taskMap[empId]) {
+            taskMap[empId] = { total: 0, completed: 0, pending: 0, overdue: 0 };
+          }
+          taskMap[empId].total++;
+          if (task.status === "completed") taskMap[empId].completed++;
+          else if (task.status === "pending" || task.status === "inprogress")
+            taskMap[empId].pending++;
+          else if (task.status === "overdue") taskMap[empId].overdue++;
+        });
 
-        const completedPercentage =
-          totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-        const pendingPercentage =
-          totalTasks > 0 ? Math.round((pendingTasks / totalTasks) * 100) : 0;
-        const overduePercentage =
-          totalTasks > 0 ? Math.round((overdueTasks / totalTasks) * 100) : 0;
-
-        // Fetch attendance data for the selected employee and current month/year
-        const attendanceUrl = `${this.config.apiBaseUrl}/items/attendance?filter[_and][0][employeeId][_eq]=${this.selectedEmployeeId}&filter[_and][1][month(date)][_eq]=${currentMonth}&filter[_and][2][year(date)][_eq]=${currentYear}`;
+        // Fetch all attendance for the month
+        const attendanceUrl = `${this.config.apiBaseUrl}/items/attendance?fields[]=employeeId,attendance&filter[_and][0][employeeId][assignedUser][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][month(date)][_eq]=${currentMonth}&filter[_and][2][year(date)][_eq]=${currentYear}&limit=-1`;
         const attendanceResponse = await fetch(attendanceUrl, {
           headers: this.getApiHeaders(),
         });
         const attendanceData = await attendanceResponse.json();
         const attendanceRecords = attendanceData.data || [];
 
-        // Aggregate attendance for the selected employee
-        const attendanceAggregate = {
-          present: 0,
-          absent: 0,
-          other: 0, // for any other statuses
-          total: attendanceRecords.length,
-        };
-
+        // Group attendance by employee
+        const attendanceMap = {};
         attendanceRecords.forEach((record) => {
-          if (record.attendance === "present") {
-            attendanceAggregate.present++;
-          } else if (record.attendance === "absent") {
-            attendanceAggregate.absent++;
-          } else {
-            attendanceAggregate.other++;
+          const empId = record.employeeId;
+          if (!attendanceMap[empId]) {
+            attendanceMap[empId] = { present: 0, absent: 0 };
           }
+          if (record.attendance === "present") attendanceMap[empId].present++;
+          else if (record.attendance === "absent")
+            attendanceMap[empId].absent++;
         });
 
-        console.log("Aggregated Attendance for Employee:", {
-          employeeId: this.selectedEmployeeId,
-          aggregate: attendanceAggregate,
-          rawRecords: attendanceRecords,
+        // Combine for each employee
+        this.employeeKPIs = this.employees.map((emp) => {
+          const taskData = taskMap[emp.id] || { total: 0 };
+          const attData = attendanceMap[emp.id] || { present: 0, absent: 0 };
+          return {
+            id: emp.id,
+            name: emp.name,
+            workDone: taskData.total,
+            presents: attData.present,
+            absents: attData.absent,
+          };
         });
-
-        const totalDays = new Date(currentYear, currentMonth, 0).getDate();
-        const presentDays = attendanceAggregate.present;
-        const absentDays = attendanceAggregate.absent;
-
-        const presentPercentage =
-          totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
-        const absentPercentage =
-          totalDays > 0 ? Math.round((absentDays / totalDays) * 100) : 0;
-
-        // Set the KPI data
-        this.employeeKPI = {
-          tasks: {
-            total: totalTasks,
-            completed: completedTasks,
-            pending: pendingTasks,
-            overdue: overdueTasks,
-            completedPercentage,
-            pendingPercentage,
-            overduePercentage,
-          },
-          attendance: {
-            totalDays,
-            present: presentDays,
-            absent: absentDays,
-            presentPercentage,
-            absentPercentage,
-            totalRecords: attendanceAggregate.total, // total attendance records found
-            otherStatus: attendanceAggregate.other, // any non-present/absent records
-          },
-        };
 
         this.loadingKPI = false;
       } catch (error) {
-        console.error("Error fetching employee KPI:", error);
+        console.error("Error fetching employee KPIs:", error);
         this.loadingKPI = false;
       }
     },
-
     async fetchTaskCounts() {
       try {
         const { day, month, year } = this.getCurrentDateParams();
-        // Fetch total tasks (no status filter)
-        const totalUrl = `${this.config.apiBaseUrl}/items/tasks?fields[]=id,title,taskType&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][0][_and][1][month(from)][_eq]=${month}&filter[_and][0][_and][2][year(from)][_eq]=${year}&limit=-1`;
+        const totalUrl = `${this.config.apiBaseUrl}/items/tasks?fields[]=id,title,taskType&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][day(from)][_eq]=${day}&filter[_and][2][month(from)][_eq]=${month}&filter[_and][3][year(from)][_eq]=${year}&limit=-1`;
         const totalResponse = await fetch(totalUrl, {
           headers: this.getApiHeaders(),
         });
         const totalData = await totalResponse.json();
         this.taskCounts.total = totalData.data ? totalData.data.length : 0;
 
-        // Fetch tasks by status
         const statuses = ["overdue", "completed", "inprogress", "pending"];
         for (const status of statuses) {
-          const url = `${this.config.apiBaseUrl}/items/tasks?fields[]=id,title,taskType&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][0][_and][1][month(from)][_eq]=${month}&filter[_and][0][_and][2][year(from)][_eq]=${year}&filter[_and][3][status][_eq]=${status}&limit=-1`;
+          const url = `${this.config.apiBaseUrl}/items/tasks?fields[]=id,title,taskType&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][day(from)][_eq]=${day}&filter[_and][2][month(from)][_eq]=${month}&filter[_and][3][year(from)][_eq]=${year}&filter[_and][4][status][_eq]=${status}&limit=-1`;
           const response = await fetch(url, { headers: this.getApiHeaders() });
           const data = await response.json();
           this.taskCounts[status] = data.data ? data.data.length : 0;
@@ -994,7 +784,7 @@ export default {
     async fetchAttendanceCounts() {
       try {
         const { day, month, year } = this.getCurrentDateParams();
-        const presentUrl = `${this.config.apiBaseUrl}/items/attendance?filter[_and][0][employeeId][assignedUser][tenant][_eq]=${this.config.tenantId}&filter[_and][1][day(date)][_eq]=${day}&filter[_and][2][month(date)][_eq]=${month}&filter[_and][3][year(date)][_eq]=${year}&filter[_and][4][attendance][_eq]=present`;
+        const presentUrl = `${this.config.apiBaseUrl}/items/attendance?filter[_and][0][employeeId][assignedUser][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][day(date)][_eq]=${day}&filter[_and][2][month(date)][_eq]=${month}&filter[_and][3][year(date)][_eq]=${year}&filter[_and][4][attendance][_eq]=present`;
         const presentResponse = await fetch(presentUrl, {
           headers: this.getApiHeaders(),
         });
@@ -1002,27 +792,12 @@ export default {
         this.attendanceCounts.present = presentData.data
           ? presentData.data.length
           : 0;
-
-        const absentUrl = `${this.config.apiBaseUrl}/items/attendance?filter[_and][0][employeeId][assignedUser][tenant][_eq]=${this.config.tenantId}&filter[_and][1][day(date)][_eq]=${day}&filter[_and][2][month(date)][_eq]=${month}&filter[_and][3][year(date)][_eq]=${year}&filter[_and][4][attendance][_eq]=absent`;
-        const absentResponse = await fetch(absentUrl, {
-          headers: this.getApiHeaders(),
-        });
-        const absentData = await absentResponse.json();
-        this.attendanceCounts.absent = absentData.data
-          ? presentData.data.length
-          : 0;
+        this.attendanceCounts.absent = Math.max(
+          0,
+          this.attendanceCounts.total - this.attendanceCounts.present,
+        );
       } catch (error) {
         console.error("Error fetching attendance counts:", error);
-      }
-    },
-    async fetchTotalEmployees() {
-      try {
-        const url = `${this.config.apiBaseUrl}/items/personalModule?filter[_and][0][assignedUser][tenant][tenantId][_eq]=${this.config.tenantId}&limit=-1`;
-        const response = await fetch(url, { headers: this.getApiHeaders() });
-        const data = await response.json();
-        this.attendanceCounts.total = data.data ? data.data.length : 0;
-      } catch (error) {
-        console.error("Error fetching total employees:", error);
       }
     },
     async fetchOrganizationCounts() {
@@ -1041,63 +816,99 @@ export default {
         this.organizationCounts.clientorg = organizations.filter(
           (org) => org.orgType.toLowerCase() === "clientorg",
         ).length;
+        this.organizationCounts.contact = organizations.filter(
+          (org) => org.orgType.toLowerCase() === "contact",
+        ).length;
       } catch (error) {
         console.error("Error fetching organization counts:", error);
         this.organizationCounts.total = 0;
         this.organizationCounts.tenantorg = 0;
         this.organizationCounts.distributororg = 0;
         this.organizationCounts.clientorg = 0;
+        this.organizationCounts.contact = 0;
       }
     },
     async fetchLocationCounts() {
       try {
-        const url = `${this.config.apiBaseUrl}/items/locationManagement?filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}`;
-        const response = await fetch(url, { headers: this.getApiHeaders() });
-        const locData = await response.json();
-        const locations = locData.data || [];
-        this.locationCounts.total = locations.length;
-        this.locationCounts.branch = locations.filter((loc) =>
-          loc.locType.toLowerCase().includes("branch"),
-        ).length;
-        this.locationCounts.serviceable_area = locations.filter((loc) =>
-          loc.locType.toLowerCase().includes("serviceable_area"),
-        ).length;
+        // Fetch counts for each type in separate API calls (or combine if your API supports it)
+        const baseUrl = `${this.config.apiBaseUrl}/items/locationManagement?filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}`;
+
+        // Total count (already filtered by tenant)
+        const totalResponse = await fetch(baseUrl, {
+          headers: this.getApiHeaders(),
+        });
+        const totalData = await totalResponse.json();
+        this.locationCounts.total = totalData.data?.length || 0;
+
+        // Branch count (filter by tenant and locType)
+        const branchResponse = await fetch(
+          `${baseUrl}&filter[_and][1][locType][_eq]=branch`,
+          { headers: this.getApiHeaders() },
+        );
+        const branchData = await branchResponse.json();
+        this.locationCounts.branch = branchData.data?.length || 0;
+
+        // Serviceable area count
+        const serviceableAreaResponse = await fetch(
+          `${baseUrl}&filter[_and][1][locType][_eq]=serviceable_area`,
+          { headers: this.getApiHeaders() },
+        );
+        const serviceableAreaData = await serviceableAreaResponse.json();
+        this.locationCounts.serviceable_area =
+          serviceableAreaData.data?.length || 0;
+
+        // Site count
+        const siteResponse = await fetch(
+          `${baseUrl}&filter[_and][1][locType][_null]=true`,
+          { headers: this.getApiHeaders() },
+        );
+        const siteData = await siteResponse.json();
+        this.locationCounts.site = siteData.data?.length || 0;
       } catch (error) {
         console.error("Error fetching location counts:", error);
         this.locationCounts.total = 0;
         this.locationCounts.branch = 0;
         this.locationCounts.serviceable_area = 0;
+        this.locationCounts.site = 0;
       }
     },
     async fetchLeaveRequests() {
       try {
-        const { day, month, year } = this.getCurrentDateParams();
-        const url = `${this.config.apiBaseUrl}/items/leaveRequest?fields[]=requestedBy.assignedUser.first_name,status&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][status][_eq]=pending&filter[_and][2][day(date_created)][_eq]=${day}&filter[_and][3][year(date_created)][_eq]=${year}&filter[_and][4][month(date_created)][_eq]=${month}&filter[_and][5][requestedBy][assignedUser][organization][_nnull]=true`;
+        const url = `${this.config.apiBaseUrl}/items/leaveRequest?fields[]=id,fromDate,leaveType,status,requestedBy.assignedUser.first_name,requestedBy.assignedUser.last_name&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][status][_eq]=pending&limit=10`;
         const response = await fetch(url, { headers: this.getApiHeaders() });
         const data = await response.json();
-        this.leaveRequests = data.data || [];
-        this.loadingLeaveRequests = false;
+        this.leaveRequests = (data.data || []).map((r) => ({
+          id: r.id,
+          date: r.fromDate,
+          type: r.leaveType || "Unknown",
+          status: r.status,
+          empName:
+            `${r.requestedBy?.assignedUser?.first_name || ""} ${r.requestedBy?.assignedUser?.last_name || ""}`.trim() ||
+            "Unknown",
+        }));
       } catch (error) {
         console.error("Error fetching leave requests:", error);
-        this.loadingLeaveRequests = false;
       }
     },
     async fetchReimbursements() {
       try {
-        const { day, month, year } = this.getCurrentDateParams();
-        const url = `${this.config.apiBaseUrl}/items/expenseReimbursement?fields[]=taskExpense&fields[]=reimbBy.assignedUser.first_name&fields[]=taskID.title&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][day(date_created)][_eq]=${day}&filter[_and][2][month(date_created)][_eq]=${month}&filter[_and][3][year(date_created)][_eq]=${year}&filter[_and][4][status][_eq]=submitted`;
+        const url = `${this.config.apiBaseUrl}/items/expenseReimbursement?fields[]=id,fromDate,status,reimbBy.assignedUser.first_name,taskID.title&filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}&filter[_and][1][status][_eq]=submitted&limit=10`;
         const response = await fetch(url, { headers: this.getApiHeaders() });
         const data = await response.json();
-        this.reimbursements = data.data || [];
-        this.loadingReimbursements = false;
+        this.reimbursements = (data.data || []).map((r) => ({
+          id: r.id,
+          date: r.fromDate,
+          type: r.reimbType || r.taskID?.title || "Unknown",
+          status: r.status,
+          empName:
+            `${r.reimbBy?.assignedUser?.first_name || ""} ${r.reimbBy?.assignedUser?.last_name || ""}`.trim() ||
+            "Unknown",
+        }));
       } catch (error) {
         console.error("Error fetching reimbursements:", error);
-        this.loadingReimbursements = false;
       }
     },
-    switchTab(tab) {
-      this.activeTab = tab;
-    },
+
     getStatusClass(status) {
       const statusMap = {
         completed: "status-completed",
@@ -1123,6 +934,9 @@ export default {
       return status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ");
     },
   },
+  mounted() {
+    this.fetchDashboardData();
+  },
 };
 </script>
 
@@ -1140,7 +954,6 @@ export default {
   color: #1e293b;
 }
 
-/* Main Content */
 .main-content {
   padding: 2rem;
   max-width: 100%;
@@ -1164,262 +977,37 @@ export default {
 }
 
 /* Content Grid */
-.content-grid {
+.content-gri {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-}
-/* employee kpi  */
-.kpi-period {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.kpi-selector {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.selector-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #334155;
-  font-size: 0.875rem;
-}
-
-.employee-dropdown {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background-color: #fff;
-  font-size: 0.875rem;
-  color: #1e293b;
-  transition: all 0.2s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748B'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  padding-right: 40px;
-}
-
-.employee-dropdown:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.kpi-section {
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.kpi-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.kpi-section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 15px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.kpi-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 15px;
-}
-
-.kpi-metric {
-  padding: 16px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #f1f5f9;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.kpi-metric:hover {
-  background-color: #f1f5f9;
-  border-color: #e2e8f0;
-}
-
-.kpi-label {
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 500;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.kpi-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 10px;
-}
-
-.kpi-progress {
-  height: 6px;
-  background-color: #e2e8f0;
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.kpi-progress-bar {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-.kpi-progress-completed {
-  background-color: #16a34a; /* Green for completed */
-}
-
-.kpi-progress-pending {
-  background-color: #f59e0b; /* Amber for pending */
-}
-
-.kpi-progress-overdue {
-  background-color: #dc2626; /* Red for overdue */
-}
-
-.kpi-progress-present {
-  background-color: #16a34a; /* Green for present */
-}
-
-.kpi-progress-absent {
-  background-color: #dc2626; /* Red for absent */
-}
-
-.kpi-percentage {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #475569;
-  text-align: right;
-}
-
-.kpi-empty,
-.kpi-loading {
-  padding: 40px 20px;
-  text-align: center;
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.kpi-empty .empty-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background-color: #f1f5f9;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  margin-bottom: 16px;
-}
-
-.kpi-empty .empty-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 8px 0;
-}
-
-.kpi-empty .empty-description {
-  font-size: 0.875rem;
-  color: #6b7280;
-  max-width: 300px;
-  margin: 0 auto;
-  line-height: 1.5;
-}
-
-.kpi-loading {
-  gap: 16px;
-}
-
-.kpi-loading .skeleton-item {
-  display: flex;
-  align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #f1f5f9;
-  width: 100%;
 }
 
-.kpi-loading .skeleton-content {
-  flex: 1;
+.left-column,
+.right-column {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
-.kpi-loading .skeleton-line {
-  height: 12px;
-  background-color: #e2e8f0;
-  border-radius: 6px;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.kpi-loading .skeleton-line-title {
-  width: 60%;
-}
-
-.kpi-loading .skeleton-line-subtitle {
-  width: 40%;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .kpi-metrics {
-    gap: 12px;
-  }
-
-  .kpi-metric {
-    padding: 12px;
-  }
-
-  .kpi-value {
-    font-size: 1.125rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .kpi-metric {
-    padding: 10px;
-  }
-
-  .kpi-value {
-    font-size: 1rem;
-  }
-}
-/* Content Card */
+/* Card Styles - Green Accents */
 .content-card {
   background: white;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  position: relative;
+}
+
+.content-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #10b981; /* Green accent bar at top */
 }
 
 .card-header {
@@ -1427,13 +1015,24 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 1;
+  background: white;
+  border-bottom: 5px solid #c6e4dc;
 }
 
-.card-header-workorders {
-  padding: 1.5rem;
+.card-header-left {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.25rem; /* Minimal gap for tight icon-title pairing */
+}
+
+.card-header-icon {
+  font-size: 1.25rem;
+  color: #10b981; /* Green color to match theme */
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
 }
 
 .card-title {
@@ -1442,34 +1041,505 @@ export default {
   color: #0f172a;
   margin: 0;
 }
+
 .card-subtitle {
   font-size: 0.875rem;
   color: #6b7280;
   font-weight: 500;
-  text-transform: uppercase;
+  /* text-transform: uppercase; */
   letter-spacing: 0.05em;
-  text-align: right;
+  text-align: left;
 }
-.workorder-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-right: auto;
-  margin-left: 15px;
-}
-.card-header-workorders {
-  display: flex;
-  align-items: center;
-}
+
 .card-content {
-  padding: 1.5rem;
+  padding: 0.4rem;
+  position: relative;
+  z-index: 1;
+  background: white;
 }
 
 .card-footer {
   padding: 0 1.5rem 1.5rem 1.5rem;
   text-align: center;
+}
+
+.kpi-period {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-table-container {
+  overflow-x: auto;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border: 1px solid #059367; /* Full border around the entire table matching screenshot */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kpi-table th,
+.kpi-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.kpi-table th {
+  background-color: #c6e4dc; /* Header background as specified */
+  font-weight: 600;
+  /* text-transform: uppercase; */
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  border-top: 1px solid #059367; /* Top border for header */
+  border-bottom: 1px solid #059367; /* Bottom border for header */
+}
+
+.kpi-table th:first-child {
+  border-left: 1px solid #059367; /* Left border for first header cell */
+  border-top-left-radius: 8px; /* Rounded top-left corner */
+}
+
+.kpi-table th:last-child {
+  border-right: 1px solid #059367; /* Right border for last header cell */
+  border-top-right-radius: 8px; /* Rounded top-right corner */
+}
+
+.kpi-table td {
+  color: #4a5568;
+  font-weight: 500;
+  background-color: white;
+  border-right: 1px solid #e2e8f0;
+}
+
+.kpi-table td:last-child {
+  border-right: none;
+}
+
+.kpi-table tr:hover td {
+  background-color: #f7fafc;
+}
+
+.kpi-table tr:last-child td {
+  border-bottom: none;
+}
+
+.kpi-table tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.kpi-table tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
+
+/* Empty state styling */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #f7fafc;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #718096;
+  max-width: 300px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Loading skeleton */
+.kpi-loading {
+  padding: 20px;
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.skeleton-cell {
+  height: 16px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: loading 1.5s infinite;
+}
+
+.skeleton-cell.wide {
+  flex: 2;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+/* View All button */
+.view-all-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.view-all-btn:hover {
+  background-color: #c6e4dc;
+  color: white;
+  border-color: #4caf50;
+}
+/* Quick Creators */
+.quick-creators {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.quick-creator {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* padding: 1rem; */
+  /* border: 1px solid #e2e8f0; */
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.quick-creator:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.quick-creator:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.quick-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  font-size: 20px;
+}
+
+.quick-icon.pink {
+  background-color: #fce7f3;
+  color: #be185d;
+}
+
+.quick-icon.white {
+  background-color: rgb(198, 193, 193);
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.quick-icon.light-blue {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.quick-creator span {
+  font-size: 0.75rem;
+  color: #000000;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Configurators */
+.configurators {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.config-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  /* border: 1px solid #e2e8f0; */
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.config-item:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.config-item:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.config-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-bottom: 0.5rem;
+}
+
+.config-icon.green {
+  background-color: #c6e4dc;
+  color: #059367;
+  border-color: #059367;
+}
+
+.config-item span {
+  font-size: 0.75rem;
+  color: #000000;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Today's Counts */
+.todays-counts {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.count-badge {
+  text-align: center;
+  flex: 1;
+}
+
+.badge-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: block;
+}
+
+.badge-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  display: block;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+  background: white;
+  gap: 0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.tab-button.active {
+  color: #10b981;
+  border-bottom-color: #10b981;
+  background-color: #f8fafc;
+}
+
+.tab-button:hover {
+  color: #374151;
+  background-color: #f8fafc;
+}
+
+.tab-count {
+  background-color: #10b981;
+  color: white;
+  border-radius: 12px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 24px;
+  text-align: center;
+}
+
+.tab-button.active .tab-count {
+  background-color: #059367;
+}
+
+.requests-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.requests-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border: 1px solid #059367;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.requests-table th,
+.requests-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.requests-table th {
+  background-color: #c6e4dc;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  /* text-transform: uppercase; */
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #059367;
+}
+
+.requests-table th:first-child {
+  border-left: none;
+}
+
+.requests-table th:last-child {
+  border-right: none;
+}
+
+.requests-table td {
+  font-size: 0.875rem;
+  color: #1e293b;
+  border-left: none;
+  border-right: none;
+}
+
+.requests-table tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.requests-table tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
+
+.requests-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.status-dot.pending {
+  background-color: #10b981;
+}
+
+.table-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.table-navigation span {
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.table-navigation span:hover {
+  background-color: #e5e7eb;
 }
 
 /* Employee Metrics */
@@ -1481,16 +1551,14 @@ export default {
 
 .metric-card-compact {
   background: white;
-  border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  position: relative;
+  justify-content: center; /* Center content horizontally */
+  text-align: center; /* Center text */
+  min-height: 100px; /* Ensure consistent height */
 }
 
 .metric-card-compact:hover {
@@ -1503,74 +1571,45 @@ export default {
   outline-offset: 2px;
 }
 
-.metric-icon-compact {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.metric-content-compact {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-.metric-icon-teal {
-  background-color: #ccfbf1;
-  color: #0d9488;
-}
-
-.metric-icon-red {
-  background-color: #fecaca;
-  color: #dc2626;
-}
-
-.metric-icon-blue {
-  background-color: #dbeafe;
-  color: #2563eb;
-}
-
-.metric-icon-orange {
-  background-color: #fed7aa;
-  color: #ea580c;
-}
-
-.metric-icon-green {
-  background-color: #dcfce7;
-  color: #16a34a;
+  flex-direction: column;
+  align-items: center; /* Center content */
+  justify-content: center; /* Center content vertically */
+  width: 100%;
 }
 
 .metric-number-compact {
-  font-size: 1.5rem;
+  font-size: 30px;
   font-weight: 800;
   color: #0f172a;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+/* Color for Present */
+.metric-number-compact.present {
+  color: #059669; /* Green color for present */
+}
+
+/* Color for Absent */
+.metric-number-compact.absent {
+  color: #dc2626; /* Red color for absent */
+}
+
+/* Color for Total (optional - keep original or set specific color) */
+.metric-number-compact.total {
+  color: #000000; /* Blue color for total (optional) */
 }
 
 .metric-label-compact {
-  font-size: 0.75rem;
+  font-size: 17px;
   color: #64748b;
   font-weight: 500;
+  text-align: center;
+  width: 100%;
 }
-
-/* Add User Button */
-.add-user-btn {
-  background: #28c457;
-  color: white;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.add-user-btn:hover {
-  background-color: #122f68;
-}
-
 /* Work Orders */
 .workorders-grid {
   display: grid;
@@ -1580,15 +1619,14 @@ export default {
 
 .workorder-metric {
   background: white;
-  border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center; /* Center content horizontally */
+  text-align: center; /* Center text */
+  min-height: 100px; /* Ensure consistent height */
 }
 
 .workorder-metric:hover {
@@ -1596,251 +1634,49 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-silly.workorder-metric:focus-visible {
+.workorder-metric:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
 
-.workorder-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.workorder-content {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-.workorder-icon-blue {
-  background-color: #dbeafe;
-  color: #122f68;
-}
-
-.workorder-icon-green {
-  background-color: #dcfce7;
-  color: #16a34a;
-}
-
-.workorder-icon-orange {
-  background-color: #fed7aa;
-  color: #ea580c;
+  flex-direction: column;
+  align-items: center; /* Center content */
+  justify-content: center; /* Center content vertically */
+  width: 100%;
 }
 
 .workorder-number {
-  font-size: 1.5rem;
+  font-size: 30px;
   font-weight: 800;
   color: #0f172a;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+/* Color for Completed */
+.workorder-number.completed {
+  color: #059669; /* Green color for completed */
+}
+
+/* Color for Overdue */
+.workorder-number.overdue {
+  color: #dc2626; /* Red color for overdue */
+}
+
+/* Color for Total */
+.workorder-number.total {
+  color: #000000; /* Blue color for total */
 }
 
 .workorder-label {
-  font-size: 0.75rem;
+  font-size: 17px;
   color: #64748b;
   font-weight: 500;
-}
-
-.add-workorder-btn {
-  background: #28c457;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.add-workorder-btn:hover {
-  background-color: #122f68;
-}
-
-/* Tab Header */
-.tab-header {
-  display: flex;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0 1.5rem;
-}
-
-.tab-btn {
-  padding: 1rem 1.5rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.tab-btn-active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
-}
-
-.tab-count {
-  background-color: #f1f5f9;
-  color: #475569;
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.tab-btn-active .tab-count {
-  background-color: #dbeafe;
-  color: #2563eb;
-}
-
-/* Requests Summary */
-.requests-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.summary-stat {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.stat-number {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.pending-count {
-  background-color: #fef3c7;
-  color: #92400e;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-/* Items List */
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #f1f5f9;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.list-item:hover {
-  background-color: #f1f5f9;
-  border-color: #e2e8f0;
-}
-
-.list-item:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-.item-indicator {
-  width: 3px;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  border-radius: 0 2px 2px 0;
-}
-
-.status-indicator-pending {
-  background-color: #ea580c;
-}
-
-.item-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-
-.item-icon-blue {
-  background-color: #dbeafe;
-  color: #2563eb;
-}
-
-.item-icon-green {
-  background-color: #dcfce7;
-  color: #16a34a;
-}
-
-.item-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 0.25rem 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-subtitle {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Status Badges */
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  border: 1px solid;
-}
-
-.status-pending {
-  background-color: #fed7aa;
-  color: #9a3412;
-  border-color: #fdba74;
-}
-
-.status-approved {
-  background-color: #dcfce7;
-  color: #166534;
-  border-color: #bbf7d0;
+  text-align: center;
+  width: 100%;
 }
 
 /* View All Button */
@@ -1857,6 +1693,9 @@ silly.workorder-metric:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+  margin-top: 1rem;
 }
 
 .view-all-btn:hover {
@@ -1907,54 +1746,6 @@ silly.workorder-metric:focus-visible {
   gap: 0.75rem;
 }
 
-.skeleton-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #f1f5f9;
-}
-
-.skeleton-icon {
-  width: 36px;
-  height: 36px;
-  background-color: #e2e8f0;
-  border-radius: 8px;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.skeleton-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.skeleton-line {
-  height: 12px;
-  background-color: #e2e8f0;
-  border-radius: 6px;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.skeleton-line-title {
-  width: 60%;
-}
-
-.skeleton-line-subtitle {
-  width: 40%;
-}
-
-.skeleton-badge {
-  width: 60px;
-  height: 24px;
-  background-color: #e2e8f0;
-  border-radius: 12px;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -1965,9 +1756,9 @@ silly.workorder-metric:focus-visible {
   }
 }
 
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 1024px) {
-  .content-grid {
+  .content-gri {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
@@ -1999,25 +1790,50 @@ silly.workorder-metric:focus-visible {
     padding: 0 1rem 1rem 1rem;
   }
 
-  .tab-header {
-    padding: 0 1rem;
+  .quick-creators,
+  .configurators {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
-  .tab-btn {
-    padding: 0.75rem 1rem;
+  .quick-creator,
+  .config-item {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .todays-counts {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .requests-table th,
+  .requests-table td,
+  .kpi-table th,
+  .kpi-table td {
+    padding: 0.5rem 0.75rem;
     font-size: 0.8125rem;
   }
 
-  .list-item {
-    padding: 0.75rem;
+  .tab-navigation {
+    flex-direction: column;
   }
 
-  .item-title {
-    font-size: 0.8125rem;
+  .tab-button {
+    border-bottom: none;
+    border-right: 1px solid #e2e8f0;
   }
 
-  .item-subtitle {
-    font-size: 0.6875rem;
+  .tab-button:last-child {
+    border-right: none;
+  }
+
+  .card-header-left {
+    gap: 0.125rem; /* Slightly tighter gap on mobile for better fit */
+  }
+
+  .card-header-icon {
+    font-size: 1.125rem; /* Slightly smaller icon on mobile */
   }
 }
 
@@ -2038,6 +1854,18 @@ silly.workorder-metric:focus-visible {
 
   .empty-state {
     padding: 2rem 0.5rem;
+  }
+
+  .badge-number {
+    font-size: 1.25rem;
+  }
+
+  .card-header {
+    padding: 1rem 1rem 0 1rem;
+  }
+
+  .card-header-left {
+    gap: 0.125rem;
   }
 }
 </style>

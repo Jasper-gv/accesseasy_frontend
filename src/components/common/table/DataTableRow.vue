@@ -94,13 +94,13 @@ const getColumnValue = (item, column) => {
 
 <style scoped>
 .table-row {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid#d9d9d9;
   transition: all 0.2s ease;
   min-width: max-content;
 }
-.table-row:last-child {
+/* .table-row:last-child {
   border-bottom: none;
-}
+} */
 .table-row:hover {
   background-color: #f8fafc;
 }
@@ -112,9 +112,13 @@ const getColumnValue = (item, column) => {
   display: flex;
   align-items: center;
   min-height: 60px;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  
-  font-size :0.85rem;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  font-size: 0.85rem;
 }
 .row-content.clickable {
   cursor: pointer;
@@ -126,8 +130,11 @@ const getColumnValue = (item, column) => {
   align-items: center;
   font-size: 0.995rem;
   color: #b31d98;
-font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif
-
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 /* <CHANGE> Sticky selection column in the body rows */
@@ -137,7 +144,7 @@ font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif
   position: sticky;
   left: 0;
   z-index: 15;
-  background: #fff;
+  background: #ffffff00;
   box-shadow: 1px 0 0 #e2e8f0;
 }
 

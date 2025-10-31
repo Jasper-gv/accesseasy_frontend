@@ -4,11 +4,12 @@
     temporary
     width="400"
     location="end"
-    class="loan-drawer"
+    no-overlay
+    :style="{ position: 'absolute', zIndex: 1000 }"
   >
     <v-card flat height="100%" class="loan-card">
       <v-card-title class="loan-header">
-        <span class="loan-header-title"> {{ "Employee" }} | August 2025 </span>
+        <span class="loan-header-title"> {{ "Employee" }} </span>
         <v-btn icon class="loan-close-btn" @click="closeDrawer">
           <v-icon>mdi-close</v-icon>
         </v-btn>
@@ -64,29 +65,33 @@
               </div>
 
               <div class="loan-actions">
-                <v-btn
-                  class="loan-btn-add"
+                <BaseButton
+                  variant="primary"
+                  size="md"
+                  text="Add Loan"
+                  :leftIcon="Plus"
+                  :loading="updatingBenefits"
+                  :disabled="!tempAmount || !tempDate"
                   @click="addLoan"
+                />
+
+                <BaseButton
+                  variant="danger"
+                  size="md"
+                  text="Deduct Loan"
+                  :leftIcon="Minus"
                   :loading="updatingBenefits"
                   :disabled="!tempAmount || !tempDate"
-                >
-                  ADD LOAN
-                </v-btn>
-                <v-btn
-                  class="loan-btn-deduct"
                   @click="deductLoan"
-                  :loading="updatingBenefits"
-                  :disabled="!tempAmount || !tempDate"
-                >
-                  - DEDUCT LOAN
-                </v-btn>
-                <v-btn
-                  class="loan-btn-cancel"
-                  variant="outlined"
+                />
+
+                <!-- <BaseButton
+                  variant="outline"
+                  size="md"
+                  text="Cancel"
+                  :leftIcon="X"
                   @click="cancelEdit"
-                >
-                  Cancel
-                </v-btn>
+                /> -->
               </div>
             </div>
 
@@ -190,7 +195,7 @@
                   />
                 </div>
 
-                <div class="d-flex justify-end mt-4">
+                <!-- <div class="d-flex justify-end mt-4">
                   <v-btn class="mr-2" variant="outlined" @click="cancelEdit">
                     Cancel
                   </v-btn>
@@ -205,7 +210,7 @@
                   >
                     Update Loan
                   </v-btn>
-                </div>
+                </div> -->
               </v-card-text>
             </v-card>
           </div>
@@ -218,7 +223,8 @@
 <script setup>
 import { ref, watch, onMounted } from "vue";
 import { authService } from "@/services/authService";
-
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { Plus, Minus, X } from "lucide-vue-next";
 const props = defineProps({
   employeeId: { type: String, required: true },
   show: { type: Boolean, default: false },
@@ -538,7 +544,7 @@ onMounted(() => {
 <style scoped>
 .loan-drawer {
   width: 350px;
-  z-index: 500;
+
   position: fixed;
 }
 

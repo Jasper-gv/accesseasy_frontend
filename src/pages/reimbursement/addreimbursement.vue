@@ -123,7 +123,7 @@
         <div class="drawer-tabs">
           <button
             :class="{ active: activeTab === 'withTask' }"
-            :disabled="!hasFieldProFeature"
+            disabled
             @click="activeTab = 'withTask'"
           >
             With work order
@@ -135,6 +135,7 @@
             Without work order
           </button>
         </div>
+        <!--
         <div
           v-if="!hasFieldProFeature && activeTab === 'withTask'"
           class="premium-message"
@@ -144,9 +145,11 @@
             your plan.
           </v-alert>
         </div>
+        -->
 
         <div class="drawer-content">
           <v-form @submit.prevent="handleAddReimbursement">
+            <!--
             <v-select
               v-if="activeTab === 'withTask' && hasFieldProFeature"
               v-model="newReimbursement.selectedTaskId"
@@ -160,6 +163,7 @@
               required
               @update:modelValue="updateDistanceKm"
             ></v-select>
+            -->
 
             <v-text-field
               v-model.number="newReimbursement.distanceKm"
@@ -191,7 +195,7 @@
               label="Sub Total"
               type="number"
               variant="outlined"
-              密="compact"
+              density="compact"
               class="mb-4"
               :prefix="currencySymbol"
               required
@@ -304,13 +308,13 @@ import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import { authService } from "@/services/authService";
 import { v4 as uuidv4 } from "uuid";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
-import DataTable from "@/components/common/table/DataTable.vue"; // Import DataTable
+import DataTable from "@/components/common/table/DataTable.vue";
 import { Plus } from "lucide-vue-next";
 
 // Reactive data
 const selected = ref([]);
 const items = ref([]);
-const expanded = ref([]); // Not used in DataTable; kept for compatibility
+const expanded = ref([]);
 const loading = ref(false);
 const search = ref("");
 const showAddDrawer = ref(false);
@@ -324,14 +328,14 @@ const userId = authService.getUserId();
 const page = ref(1);
 const itemsPerPage = ref(25);
 const totalItems = ref(0);
-const tasks = ref([]);
+// const tasks = ref([]);
 const transportOptions = ref([]);
 const transportLoading = ref(false);
 const plan = currentUserTenant.getTenantPlan();
 const accountSettings = currentUserTenant.getAccountSettings();
 const activeTab = ref("withoutTask");
-const sortBy = ref(""); // Added for DataTable sorting
-const sortDirection = ref("asc"); // Added for DataTable sorting
+const sortBy = ref("");
+const sortDirection = ref("asc");
 
 // Snackbar for notifications
 const snackbar = ref({
@@ -342,7 +346,7 @@ const snackbar = ref({
 
 // New reimbursement form data
 const newReimbursement = ref({
-  selectedTaskId: null,
+  // selectedTaskId: null,
   distanceKm: null,
   transportId: null,
   subTotal: null,
@@ -366,21 +370,19 @@ const newReimbursement = ref({
   },
 });
 
-// Columns for DataTable (mapped from headers)
+// Columns for DataTable
 const columns = ref([
   { key: "date", label: "Submitted On", width: "150px" },
   { key: "distanceKm", label: "Distance Travelled", width: "200px" },
   { key: "subTotal", label: "Sub Total", width: "120px" },
   { key: "totalReimbursement", label: "Total Reimbursement", width: "250px" },
   { key: "notes", label: "Notes", width: "100px" },
-
   {
     key: "ModeOfTransport.transportName",
     label: "Transport Mode",
     width: "200px",
   },
-  { key: "taskID.title", label: "Task Type", width: "200px" },
-
+  // { key: "taskID.title", label: "Task Type", width: "200px" },
   { key: "status", label: "Status", width: "100px" },
 ]);
 
@@ -391,6 +393,7 @@ const canApprove = computed(() => {
   );
 });
 
+/*
 const hasFieldProFeature = computed(() => {
   try {
     const planData = typeof plan === "string" ? JSON.parse(plan) : plan;
@@ -408,6 +411,7 @@ const hasFieldProFeature = computed(() => {
     return false;
   }
 });
+*/
 
 const currencySymbol = computed(() => {
   try {
@@ -503,13 +507,13 @@ const showNotification = (message, color = "success") => {
 const toggleAddDrawer = async () => {
   showAddDrawer.value = !showAddDrawer.value;
   if (showAddDrawer.value) {
-    if (hasFieldProFeature.value) {
-      await Promise.all([fetchTasks(), fetchTransportOptions()]);
-      activeTab.value = "withTask";
-    } else {
-      activeTab.value = "withoutTask";
-      await fetchTransportOptions();
-    }
+    // if (hasFieldProFeature.value) {
+    //   await Promise.all([fetchTasks(), fetchTransportOptions()]);
+    //   activeTab.value = "withTask";
+    // } else {
+    activeTab.value = "withoutTask";
+    await fetchTransportOptions();
+    // }
   } else {
     clearAddForm();
   }
@@ -518,7 +522,7 @@ const toggleAddDrawer = async () => {
 // Clear form
 const clearAddForm = () => {
   newReimbursement.value = {
-    selectedTaskId: null,
+    // selectedTaskId: null,
     distanceKm: null,
     transportId: null,
     subTotal: null,
@@ -532,16 +536,18 @@ const clearAddForm = () => {
       remarks: "",
     },
   };
-  activeTab.value = hasFieldProFeature.value ? "withTask" : "withoutTask";
+  // activeTab.value = hasFieldProFeature.value ? "withTask" : "withoutTask";
+  activeTab.value = "withoutTask";
 };
 
-// Update distanceKm
+/*
 const updateDistanceKm = (value) => {
   const selectedTask = tasks.value.find((task) => task.id === value);
   newReimbursement.value.distanceKm = selectedTask
     ? selectedTask.distanceKm
     : null;
 };
+*/
 
 // Fetch transport options
 const fetchTransportOptions = async () => {
@@ -592,10 +598,10 @@ const handleAddReimbursement = async () => {
       },
       date: new Date().toISOString().split("T")[0],
       distanceKm: newReimbursement.value.distanceKm,
-      taskID:
-        activeTab.value === "withTask"
-          ? newReimbursement.value.selectedTaskId
-          : null,
+      // taskID:
+      //   activeTab.value === "withTask"
+      //     ? newReimbursement.value.selectedTaskId
+      //     : null,
       ModeOfTransport: newReimbursement.value.transportId,
       subTotal: newReimbursement.value.subTotal,
       totalReimbursement: newReimbursement.value.totalReimbursement,
@@ -643,6 +649,7 @@ const getToken = () => {
   return localStorage.getItem("userToken");
 };
 
+/*
 const fetchTasks = async () => {
   try {
     const token = getToken();
@@ -670,6 +677,7 @@ const fetchTasks = async () => {
     console.error("Error fetching tasks:", error);
   }
 };
+*/
 
 const aggregateCount = async () => {
   try {
@@ -733,7 +741,7 @@ const fetchData = async () => {
         "date",
         "distanceKm",
         "toDate",
-        "taskID.title",
+        // "taskID.title",
         "subTotal",
         "totalReimbursement",
         "notes",
@@ -838,7 +846,6 @@ const handleItemsPerPageChange = (newItemsPerPage) => {
 
 const handleRowClick = (item) => {
   console.log("Row clicked:", item);
-  // Add logic for row click, e.g., expand or navigate
 };
 
 const handleSort = ({ field, direction }) => {
@@ -860,13 +867,14 @@ onMounted(async () => {
   await fetchData();
   console.log("Current Plan:", plan);
   console.log("Plan Type:", typeof plan);
-  console.log("Has FieldPro Feature:", hasFieldProFeature.value);
+  // console.log("Has FieldPro Feature:", hasFieldProFeature.value);
   console.log("Account Settings:", accountSettings);
   console.log("Currency Symbol:", currencySymbol.value);
 });
 </script>
 
 <style scoped>
+/* Unchanged styles */
 .employee-container {
   height: 100vh;
   display: flex;
@@ -1005,7 +1013,7 @@ onMounted(async () => {
 }
 
 .drawer-tabs button.active {
-  background-color: #68ade1;
+  background-color: #059367;
   color: white;
 }
 

@@ -15,26 +15,6 @@
         />
       </div>
     </div>
-    <button
-      v-if="tenantId && !tenantLoading"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
 
     <!-- Main Content -->
     <div
@@ -46,10 +26,31 @@
         v-model:searchQuery="search"
         :search-placeholder="'Search employees...'"
         :show-search="true"
-        :is-empty="items.length === 0 && !loading"
         :has-error="showError"
         wrapper-class="employee-table-wrapper"
       >
+        <template #before-search>
+          <button
+            v-if="tenantId && !tenantLoading"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Toolbar Actions Slot -->
         <template #toolbar-actions>
           <div class="d-flex align-center" style="gap: 8px">
@@ -98,26 +99,7 @@
           />
         </template>
 
-        <!-- Error State -->
-        <template v-else-if="showError">
-          <ErrorState
-            title="Unable to load attendance data"
-            :message="errorMessage"
-            @retry="fetchAttendance"
-          />
-        </template>
-
-        <!-- Empty State -->
-        <template v-else-if="items.length === 0 && !loading">
-          <EmptyState
-            title="No attendance data found"
-            message="Try adjusting your filters or check back later"
-            :primary-action="{ text: 'Clear Filters', icon: 'X' }"
-            @primaryAction="clearFilters"
-          />
-        </template>
-
-        <!-- Table Content -->
+        <!-- Data Table with Error/Empty State Handling -->
         <template v-else>
           <DataTable
             :items="items"
@@ -129,15 +111,52 @@
             @rowClick="handleRowClick"
             @sort="handleSort"
           >
+            <!-- Error State Slot -->
+            <template #error-state>
+              <ErrorState
+                v-if="showError"
+                title="Unable to load attendance data"
+                :message="errorMessage"
+                @retry="fetchAttendance"
+              />
+            </template>
+
+            <!-- Empty State Slot -->
+            <template #empty-state>
+              <EmptyState
+                v-if="items.length === 0 && !showError"
+                title="No attendance data found"
+                message="Try adjusting your filters or check back later"
+                :primary-action="{ text: 'Clear Filters', icon: 'X' }"
+                @primaryAction="clearFilters"
+              />
+            </template>
+            <template #cell-profile="{ item }">
+              <div class="profile-avatar">
+                <img
+                  v-if="item.avatarImage"
+                  :src="item.avatarImage"
+                  :alt="formatEmployeeName(item)"
+                  class="avatar-image"
+                />
+                <div v-else class="avatar-placeholder">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+              </div>
+            </template>
             <!-- Custom Cell for Employee Name -->
             <template #cell-employeeName="{ item }">
               <div class="employee-info">
-                <div
-                  class="employee-avatar"
-                  :style="{ backgroundColor: getAvatarColor(item) }"
-                >
-                  {{ getInitials(item) }}
-                </div>
                 <div class="employee-details">
                   <h3 class="employee-name">
                     {{ item.employeeId?.assignedUser?.first_name || "Unknown" }}
@@ -377,7 +396,6 @@
     />
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, watch, reactive, computed, onUnmounted } from "vue";
 import { authService } from "@/services/authService";
@@ -394,7 +412,7 @@ import ImportAttendance from "./attendanceImport/attendanceImport.vue";
 import ExcelJS from "exceljs";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
-import { format } from "date-fns";
+import { format, eachDayOfInterval, parseISO } from "date-fns";
 import debounce from "lodash/debounce";
 import { Download } from "lucide-vue-next";
 
@@ -407,7 +425,12 @@ const tenantId = ref(currentUserTenant.getTenantId());
 const role = ref(currentUserTenant.getRole());
 const token = authService.getToken();
 const userId = currentUserTenant.getUserId();
-const items = ref([]);
+const items = computed(() => {
+  const start = (page.value - 1) * itemsPerPage.value;
+  return sortedItems.value.slice(start, start + itemsPerPage.value);
+});
+const allPossibleItems = ref([]);
+const employees = ref([]);
 const loading = ref(false);
 const search = ref("");
 const showFilters = ref(true);
@@ -419,7 +442,7 @@ const selectedMonthIndex = ref(-1);
 const selectedYear = ref(new Date().getFullYear());
 const page = ref(1);
 const itemsPerPage = ref(25);
-const totalItems = ref(0);
+const totalItems = computed(() => filteredItems.value.length);
 const showSuccessMessage = ref(false);
 const successMessage = ref("");
 const showImportModal = ref(false);
@@ -466,6 +489,63 @@ const initialFilters = computed(() => ({
   cycleEndDate: filters.cycleEndDate,
 }));
 
+const isVirtualMode = computed(
+  () => filters.cycleStartDate && filters.cycleEndDate,
+);
+
+const filteredItems = computed(() => {
+  return allPossibleItems.value.filter((item) => {
+    let matchFilters = true;
+    if (filters.status)
+      matchFilters = matchFilters && item.status === filters.status;
+    if (filters.attendance)
+      matchFilters = matchFilters && item.attendance === filters.attendance;
+    if (filters.mode) matchFilters = matchFilters && item.mode === filters.mode;
+
+    const searchLower = search.value.toLowerCase();
+    const matchSearch =
+      !search.value ||
+      item.employeeId?.employeeId
+        ?.toString()
+        .toLowerCase()
+        .includes(searchLower) ||
+      item.employeeId?.assignedUser?.first_name
+        ?.toLowerCase()
+        .includes(searchLower) ||
+      item.employeeId?.branch?.branchName
+        ?.toLowerCase()
+        .includes(searchLower) ||
+      item.employeeId?.department?.departmentName
+        ?.toLowerCase()
+        .includes(searchLower) ||
+      item.status?.toLowerCase().includes(searchLower) ||
+      item.date?.includes(search.value) ||
+      item.attendance?.toLowerCase().includes(searchLower) ||
+      item.mode?.toLowerCase().includes(searchLower) ||
+      item.leaveType?.toLowerCase().includes(searchLower);
+
+    return matchFilters && matchSearch;
+  });
+});
+
+const sortedItems = computed(() => {
+  const sorted = [...filteredItems.value];
+  if (sortBy.value) {
+    const dir = sortDirection.value === "asc" ? 1 : -1;
+    sorted.sort((a, b) => {
+      const va = getValueByKey(a, sortBy.value);
+      const vb = getValueByKey(b, sortBy.value);
+      if (va === null || va === undefined) return dir;
+      if (vb === null || vb === undefined) return -dir;
+      if (typeof va === "number" && typeof vb === "number") {
+        return dir * (va - vb);
+      }
+      return dir * ("" + va).localeCompare("" + vb);
+    });
+  }
+  return sorted;
+});
+
 const pageFilters = [
   { key: "monthYear", label: "Month & Year", type: "month", show: true },
   {
@@ -477,8 +557,7 @@ const pageFilters = [
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 
-  { key: "status", label: "Check In-Outs", type: "select", show: true },
-  { key: "attendance", label: "Attendance type", type: "select", show: true },
+  // { key: "attendance", label: "Attendance type", type: "select", show: true },
   { key: "mode", label: " Attendance Mode", type: "select", show: true },
 ];
 
@@ -520,6 +599,7 @@ const exportOptions = ref([
 ]);
 
 const columns = ref([
+  { key: "profile", label: "Profile", width: "60px" },
   { key: "employeeId", label: "EmpID", sortable: true, width: "120px" },
   {
     key: "employeeName",
@@ -527,56 +607,24 @@ const columns = ref([
     sortable: true,
     width: "250px",
   },
-  { key: "status", label: "Current Status", sortable: true, width: "150px" },
+  // { key: "status", label: "Current Status", sortable: true, width: "150px" },
   { key: "date", label: "Date", sortable: true, width: "150px" },
   { key: "attendance", label: "Attendance", sortable: true, width: "150px" },
-  {
-    key: "attendanceContext",
-    label: "Context",
-    sortable: true,
-    width: "300px",
-  },
-  { key: "leaveType", label: "Leave Type", sortable: true, width: "120px" },
+  // {
+  //   key: "attendanceContext",
+  //   label: "Context",
+  //   sortable: true,
+  //   width: "300px",
+  // },
+  // { key: "leaveType", label: "Leave Type", sortable: true, width: "120px" },
   { key: "mode", label: "Mode", sortable: true, width: "150px" },
   { key: "inTime", label: "First Punch", sortable: true, width: "100px" },
   { key: "outTime", label: "Last Punch", sortable: true, width: "100px" },
   { key: "workHours", label: "Work Duration", sortable: true, width: "120px" },
-  { key: "breakTime", label: "Break Time", sortable: true, width: "120px" },
+  // { key: "breakTime", label: "Break Time", sortable: true, width: "120px" },
   { key: "lateBy", label: "Late By", sortable: true, width: "100px" },
   { key: "overTime", label: "Over Time", sortable: true, width: "100px" },
 ]);
-
-const getInitials = (item) => {
-  if (!item?.employeeId?.assignedUser?.first_name) return "";
-  return item.employeeId.assignedUser.first_name
-    .split(" ")
-    .map((word) => word.charAt(0))
-    .join("")
-    .toUpperCase()
-    .substring(0, 2);
-};
-
-const getAvatarColor = (item) => {
-  const colors = [
-    "#3b82f6",
-    "#8b5cf6",
-    "#ec4899",
-    "#06b6d4",
-    "#10b981",
-    "#f59e0b",
-    "#ef4444",
-    "#6366f1",
-  ];
-  const identifier = String(
-    item?.employeeId?.employeeId ||
-      item?.employeeId?.assignedUser?.first_name ||
-      "",
-  );
-  const sum = identifier
-    .split("")
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[sum % colors.length];
-};
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -693,6 +741,41 @@ const formatDuration24Hour = (duration) => {
   }
 };
 
+const getValueByKey = (item, key) => {
+  switch (key) {
+    case "employeeId":
+      return item.employeeId?.employeeId;
+    case "employeeName":
+      return item.employeeId?.assignedUser?.first_name;
+    case "status":
+      return item.status;
+    case "date":
+      return item.date;
+    case "attendance":
+      return item.attendance;
+    case "attendanceContext":
+      return item.attendanceContext;
+    case "leaveType":
+      return item.leaveType;
+    case "mode":
+      return item.mode;
+    case "inTime":
+      return item.inTime;
+    case "outTime":
+      return item.outTime;
+    case "workHours":
+      return item.workHours;
+    case "breakTime":
+      return item.breakTime;
+    case "lateBy":
+      return item.lateBy;
+    case "overTime":
+      return item.overTime;
+    default:
+      return null;
+  }
+};
+
 const handleRowClick = (item) => {
   selectedRecord.value = item;
   editMode.value = true;
@@ -724,20 +807,36 @@ const saveEdit = async () => {
       overTime: editForm.overtimeMinutes,
       earlyDeparture: editForm.earlyDepartureMinutes,
       workHours: editForm.workHours,
-      status: "in",
     };
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/attendance/${editForm.id}`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+    let response;
+    if (editForm.id) {
+      response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/attendance/${editForm.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
         },
-        body: JSON.stringify(updateData),
-      },
-    );
+      );
+    } else {
+      updateData.employeeId = selectedRecord.value.employeeId.id;
+      updateData.date = editForm.date;
+      response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/attendance`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        },
+      );
+    }
 
     if (response.ok) {
       await fetchAttendance();
@@ -804,103 +903,129 @@ const handleExportOption = (item) => {
 const handleDownload = async (format) => {
   try {
     loading.value = true;
-    await aggregateCount();
-    const batchSize = 100;
-    const total = totalItems.value;
-    const totalPages = Math.ceil(total / batchSize);
-    let allData = [];
+    let formattedData;
+    if (isVirtualMode.value) {
+      formattedData = filteredItems.value.map((item) => ({
+        "Employee ID": item.employeeId?.employeeId || "-",
+        "Employee Name": item.employeeId?.assignedUser?.first_name || "-",
+        Branch: item.employeeId?.branch?.branchName || "-",
+        Department: item.employeeId?.department?.departmentName || "-",
+        Status: item.status || "-",
+        Date: item.date || "-",
+        Attendance: item.attendance || "-",
+        "Attendance Context": item.attendanceContext || "-",
+        "Leave Type": item.leaveType || "-",
+        Mode: getModeDisplayName(item.mode) || "-",
+        "In Time": formatTime24Hour(item.inTime),
+        "Out Time": formatTime24Hour(item.outTime),
+        "Work Hours": formatDuration24Hour(item.workHours),
+        "Break Time": formatDuration24Hour(item.breakTime),
+        "Late By": formatDuration24Hour(item.lateBy),
+        "Over Time": formatDuration24Hour(item.overTime),
+        "On Time": formatDuration24Hour(item.onTime),
+      }));
+    } else {
+      await aggregateCount();
+      const batchSize = 100;
+      const total = totalItems.value;
+      const totalPages = Math.ceil(total / batchSize);
+      let allData = [];
 
-    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      const params = {
-        fields: [
-          "employeeId.employeeId",
-          "employeeId.branch.id",
-          "employeeId.branch.branchName",
-          "employeeId.department.id",
-          "employeeId.department.departmentName",
-          "employeeId.assignedUser.id",
-          "employeeId.assignedUser.first_name",
-          "status",
-          "date",
-          "attendance",
-          "id",
-          "mode",
-          "inTime",
-          "outTime",
-          "onTime",
-          "overTime",
-          "lateBy",
-          "workHours",
-          "breakTime",
-          "attendanceContext",
-          "leaveType",
-        ],
-        ...filterParams(),
-        sort: "-date",
-        page: pageNum,
-        limit: batchSize,
-      };
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        const params = {
+          fields: [
+            "employeeId.employeeId",
+            "employeeId.branch.id",
+            "employeeId.branch.branchName",
+            "employeeId.department.id",
+            "employeeId.department.departmentName",
+            "employeeId.assignedUser.id",
+            "employeeId.assignedUser.first_name",
+            "status",
+            "date",
+            "attendance",
+            "id",
+            "mode",
+            "inTime",
+            "outTime",
+            "onTime",
+            "overTime",
+            "lateBy",
+            "workHours",
+            "breakTime",
+            "attendanceContext",
+            "leaveType",
+          ],
+          ...filterParams(),
+          sort: "-date",
+          page: pageNum,
+          limit: batchSize,
+        };
 
-      const queryString = Object.keys(params)
-        .map((key) => {
-          if (key === "fields") {
-            return params[key].map((field) => `fields[]=${field}`).join("&");
-          } else if (typeof params[key] === "object" && params[key] !== null) {
-            return Object.keys(params[key])
-              .map((subKey) => {
-                if (
-                  typeof params[key][subKey] === "object" &&
-                  params[key][subKey] !== null
-                ) {
-                  return Object.keys(params[key][subKey])
-                    .map((opKey) => {
-                      return `${key}[${subKey}][${opKey}]=${encodeURIComponent(params[key][subKey][opKey])}`;
-                    })
-                    .join("&");
-                }
-                return `${key}[${subKey}]=${encodeURIComponent(params[key][subKey])}`;
-              })
-              .join("&");
-          }
-          return `${key}=${encodeURIComponent(params[key])}`;
-        })
-        .join("&");
+        const queryString = Object.keys(params)
+          .map((key) => {
+            if (key === "fields") {
+              return params[key].map((field) => `fields[]=${field}`).join("&");
+            } else if (
+              typeof params[key] === "object" &&
+              params[key] !== null
+            ) {
+              return Object.keys(params[key])
+                .map((subKey) => {
+                  if (
+                    typeof params[key][subKey] === "object" &&
+                    params[key][subKey] !== null
+                  ) {
+                    return Object.keys(params[key][subKey])
+                      .map((opKey) => {
+                        return `${key}[${subKey}][${opKey}]=${encodeURIComponent(params[key][subKey][opKey])}`;
+                      })
+                      .join("&");
+                  }
+                  return `${key}[${subKey}]=${encodeURIComponent(params[key][subKey])}`;
+                })
+                .join("&");
+            }
+            return `${key}=${encodeURIComponent(params[key])}`;
+          })
+          .join("&");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/items/attendance?${queryString}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/attendance?${queryString}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
+        );
 
-      if (!response.ok)
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      const data = await response.json();
-      allData = [...allData, ...data.data];
+        if (!response.ok)
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        allData = [...allData, ...data.data];
+      }
+
+      formattedData = allData.map((item) => ({
+        "Employee ID": item.employeeId?.employeeId || "-",
+        "Employee Name": item.employeeId?.assignedUser?.first_name || "-",
+        Branch: item.employeeId?.branch?.branchName || "-",
+        Department: item.employeeId?.department?.departmentName || "-",
+        Status: item.status || "-",
+        Date: item.date || "-",
+        Attendance: item.attendance || "-",
+        "Attendance Context": item.attendanceContext || "-",
+        "Leave Type": item.leaveType || "-",
+        Mode: getModeDisplayName(item.mode) || "-",
+        "In Time": formatTime24Hour(item.inTime),
+        "Out Time": formatTime24Hour(item.outTime),
+        "Work Hours": formatDuration24Hour(item.workHours),
+        "Break Time": formatDuration24Hour(item.breakTime),
+        "Late By": formatDuration24Hour(item.lateBy),
+        "Over Time": formatDuration24Hour(item.overTime),
+        "On Time": formatDuration24Hour(item.onTime),
+      }));
     }
-
-    const formattedData = allData.map((item) => ({
-      "Employee ID": item.employeeId?.employeeId || "-",
-      "Employee Name": item.employeeId?.assignedUser?.first_name || "-",
-      Branch: item.employeeId?.branch?.branchName || "-",
-      Department: item.employeeId?.department?.departmentName || "-",
-      Status: item.status || "-",
-      Date: item.date || "-",
-      Attendance: item.attendance || "-",
-      "Attendance Context": item.attendanceContext || "-",
-      "Leave Type": item.leaveType || "-",
-      Mode: getModeDisplayName(item.mode) || "-",
-      "In Time": formatTime24Hour(item.inTime),
-      "Out Time": formatTime24Hour(item.outTime),
-      "Work Hours": formatDuration24Hour(item.workHours),
-      "Break Time": formatDuration24Hour(item.breakTime),
-      "Late By": formatDuration24Hour(item.lateBy),
-      "Over Time": formatDuration24Hour(item.overTime),
-      "On Time": formatDuration24Hour(item.onTime),
-    }));
 
     switch (format) {
       case "excel":
@@ -1134,6 +1259,80 @@ const aggregateCount = async () => {
   }
 };
 
+// const fetchEmployees = async () => {
+//   try {
+//     const params = {
+//       ...filterParams(true, true, false),
+//       limit: -1,
+//       sort: "employeeId",
+//       fields: [
+//         "id",
+//         "employeeId",
+
+//         "department.id",
+//         "department.departmentName",
+//         "assignedUser.id",
+//         "assignedUser.first_name",
+//       ],
+//     };
+
+//     const queryString = Object.keys(params)
+//       .map((key) => {
+//         if (key === "fields") {
+//           return params[key].map((field) => `fields[]=${field}`).join("&");
+//         } else if (typeof params[key] === "object" && params[key] !== null) {
+//           return Object.keys(params[key])
+//             .map((subKey) => {
+//               if (
+//                 typeof params[key][subKey] === "object" &&
+//                 params[key][subKey] !== null
+//               ) {
+//                 return Object.keys(params[key][subKey])
+//                   .map((opKey) => {
+//                     return `${key}[${subKey}][${opKey}]=${encodeURIComponent(params[key][subKey][opKey])}`;
+//                   })
+//                   .join("&");
+//               }
+//               return `${key}[${subKey}]=${encodeURIComponent(params[key][subKey])}`;
+//             })
+//             .join("&");
+//         }
+//         return `${key}=${encodeURIComponent(params[key])}`;
+//       })
+//       .join("&");
+
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}/items/personalModule?${queryString}`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       },
+//     );
+
+//     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+//     const data = await response.json();
+//     employees.value = data.data;
+//   } catch (error) {
+//     console.error("Error fetching employees:", error);
+//   }
+// };
+const fetchAuthorizedImage = async (imageUrl) => {
+  try {
+    const response = await fetch(imageUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error("Failed to load image");
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error loading profile image:", error);
+    return null;
+  }
+};
 const fetchAttendance = async () => {
   if (!token) {
     setErrorMessage("Authentication required. Please login again.");
@@ -1142,80 +1341,257 @@ const fetchAttendance = async () => {
 
   try {
     loading.value = true;
-    await aggregateCount();
-    const params = {
-      fields: [
-        "employeeId.employeeId",
-        "employeeId.branch.id",
-        "employeeId.branch.branchName",
-        "employeeId.department.id",
-        "employeeId.department.departmentName",
-        "employeeId.assignedUser.id",
-        "employeeId.assignedUser.first_name",
-        "status",
-        "date",
-        "attendance",
-        "id",
-        "mode",
-        "inTime",
-        "outTime",
-        "onTime",
-        "overTime",
-        "lateBy",
-        "workHours",
-        "breakTime",
-        "attendanceContext",
-        "leaveType",
-      ],
-      ...filterParams(),
-      sort: sortDirection.value === "desc" ? `-${sortBy.value}` : sortBy.value,
-      page: page.value,
-      limit: itemsPerPage.value,
-    };
 
-    const queryString = Object.keys(params)
-      .map((key) => {
-        if (key === "fields") {
-          return params[key].map((field) => `fields[]=${field}`).join("&");
-        } else if (typeof params[key] === "object" && params[key] !== null) {
-          return Object.keys(params[key])
-            .map((subKey) => {
-              if (
-                typeof params[key][subKey] === "object" &&
-                params[key][subKey] !== null
-              ) {
-                return Object.keys(params[key][subKey])
-                  .map((opKey) => {
-                    return `${key}[${subKey}][${opKey}]=${encodeURIComponent(params[key][subKey][opKey])}`;
-                  })
-                  .join("&");
-              }
-              return `${key}[${subKey}]=${encodeURIComponent(params[key][subKey])}`;
-            })
-            .join("&");
-        }
-        return `${key}=${encodeURIComponent(params[key])}`;
-      })
-      .join("&");
+    if (isVirtualMode.value) {
+      // Generate date range based on cycle
+      const start = parseISO(filters.cycleStartDate);
+      const end = parseISO(filters.cycleEndDate);
+      const dates = eachDayOfInterval({ start, end }).map((d) =>
+        format(d, "yyyy-MM-dd"),
+      );
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/attendance?${queryString}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      // Fetch ALL existing attendance records for the date range and filters
+      const attParams = {
+        ...filterParams(true, false, true),
+        limit: -1,
+        fields: [
+          "employeeId.id",
+          "employeeId.employeeId",
+          "employeeId.department.id",
+          "employeeId.department.departmentName",
+          "employeeId.assignedUser.id",
+          "employeeId.assignedUser.first_name",
+          "status",
+          "date",
+          "attendance",
+          "id",
+          "mode",
+          "inTime",
+          "outTime",
+          "onTime",
+          "overTime",
+          "lateBy",
+          "workHours",
+          "breakTime",
+          "attendanceContext",
+          "leaveType",
+        ],
+      };
+
+      const queryString = Object.keys(attParams)
+        .map((key) => {
+          if (key === "fields") {
+            return attParams[key].map((field) => `fields[]=${field}`).join("&");
+          } else if (
+            typeof attParams[key] === "object" &&
+            attParams[key] !== null
+          ) {
+            return Object.keys(attParams[key])
+              .map((subKey) => {
+                if (
+                  typeof attParams[key][subKey] === "object" &&
+                  attParams[key][subKey] !== null
+                ) {
+                  return Object.keys(attParams[key][subKey])
+                    .map((opKey) => {
+                      return `${key}[${subKey}][${opKey}]=${encodeURIComponent(attParams[key][subKey][opKey])}`;
+                    })
+                    .join("&");
+                }
+                return `${key}[${subKey}]=${encodeURIComponent(attParams[key][subKey])}`;
+              })
+              .join("&");
+          }
+          return `${key}=${encodeURIComponent(attParams[key])}`;
+        })
+        .join("&");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/attendance?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      },
-    );
+      );
 
-    if (!response.ok) {
-      if (response.status === 401)
-        throw new Error("Unauthorized access. Token might be expired.");
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!response.ok)
+        throw new Error(`HTTP error! Status: ${response.status}`);
+
+      const data = await response.json();
+      const existingAttendances = data.data;
+
+      // Fetch avatars for existing records and mark them as not virtual
+      const attendancesWithAvatars = await Promise.all(
+        existingAttendances.map(async (attendance) => {
+          const attendanceWithAvatar = { ...attendance, isVirtual: false };
+          if (attendance.employeeId?.assignedUser?.avatar?.id) {
+            const avatarUrl = `${import.meta.env.VITE_API_URL}/assets/${
+              attendance.employeeId.assignedUser.avatar.id
+            }`;
+            attendanceWithAvatar.avatarImage =
+              await fetchAuthorizedImage(avatarUrl);
+          } else {
+            attendanceWithAvatar.avatarImage = null;
+          }
+          return attendanceWithAvatar;
+        }),
+      );
+
+      // Create a map of existing attendance records by employeeId_date
+      const existingAttendanceMap = new Map(
+        attendancesWithAvatars.map((a) => [`${a.employeeId.id}_${a.date}`, a]),
+      );
+
+      // Extract unique employee IDs from existing attendance data
+      const employeeIdsWithAttendance = new Set(
+        existingAttendances.map((a) => a.employeeId.id),
+      );
+
+      // Build final items array
+      const tempItems = [];
+
+      // Only process employees who have at least one attendance record
+      for (const employeeId of employeeIdsWithAttendance) {
+        // Get employee details from first attendance record
+        const sampleRecord = existingAttendances.find(
+          (a) => a.employeeId.id === employeeId,
+        );
+        const empData = sampleRecord.employeeId;
+
+        for (const date of dates) {
+          const key = `${employeeId}_${date}`;
+
+          if (existingAttendanceMap.has(key)) {
+            // Use existing record
+            tempItems.push(existingAttendanceMap.get(key));
+          } else {
+            // Generate virtual record ONLY for missing dates of employees with attendance
+            const virtualRecord = {
+              id: null,
+              isVirtual: true,
+              employeeId: {
+                id: empData.id,
+                employeeId: empData.employeeId,
+                branch: empData.branch || {},
+                department: empData.department || {},
+                assignedUser: empData.assignedUser || {},
+              },
+              date: date,
+              status: "notPunchedIn",
+              attendance: "absent",
+              mode: "manual",
+              inTime: null,
+              outTime: null,
+              workHours: null,
+              breakTime: null,
+              lateBy: null,
+              overTime: null,
+              onTime: null,
+              attendanceContext: null,
+              leaveType: null,
+              earlyDeparture: null,
+              avatarImage: null,
+            };
+            tempItems.push(virtualRecord);
+          }
+        }
+      }
+
+      allPossibleItems.value = tempItems;
+    } else {
+      await aggregateCount();
+      const params = {
+        fields: [
+          "employeeId.employeeId",
+          "employeeId.branch.id",
+          "employeeId.branch.branchName",
+          "employeeId.department.id",
+          "employeeId.department.departmentName",
+          "employeeId.assignedUser.id",
+          "employeeId.assignedUser.first_name",
+          "status",
+          "date",
+          "attendance",
+          "id",
+          "mode",
+          "inTime",
+          "outTime",
+          "onTime",
+          "overTime",
+          "lateBy",
+          "workHours",
+          "breakTime",
+          "attendanceContext",
+          "leaveType",
+        ],
+        ...filterParams(),
+        sort:
+          sortDirection.value === "desc" ? `-${sortBy.value}` : sortBy.value,
+        page: page.value,
+        limit: itemsPerPage.value,
+      };
+
+      const queryString = Object.keys(params)
+        .map((key) => {
+          if (key === "fields") {
+            return params[key].map((field) => `fields[]=${field}`).join("&");
+          } else if (typeof params[key] === "object" && params[key] !== null) {
+            return Object.keys(params[key])
+              .map((subKey) => {
+                if (
+                  typeof params[key][subKey] === "object" &&
+                  params[key][subKey] !== null
+                ) {
+                  return Object.keys(params[key][subKey])
+                    .map((opKey) => {
+                      return `${key}[${subKey}][${opKey}]=${encodeURIComponent(params[key][subKey][opKey])}`;
+                    })
+                    .join("&");
+                }
+                return `${key}[${subKey}]=${encodeURIComponent(params[key][subKey])}`;
+              })
+              .join("&");
+          }
+          return `${key}=${encodeURIComponent(params[key])}`;
+        })
+        .join("&");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/attendance?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 401)
+          throw new Error("Unauthorized access. Token might be expired.");
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const itemsWithAvatars = await Promise.all(
+        data.data.map(async (item) => {
+          const itemWithAvatar = { ...item, isVirtual: false };
+          if (item.employeeId?.assignedUser?.avatar?.id) {
+            const avatarUrl = `${import.meta.env.VITE_API_URL}/assets/${
+              item.employeeId.assignedUser.avatar.id
+            }`;
+            itemWithAvatar.avatarImage = await fetchAuthorizedImage(avatarUrl);
+          } else {
+            itemWithAvatar.avatarImage = null;
+          }
+          return itemWithAvatar;
+        }),
+      );
+
+      allPossibleItems.value = itemsWithAvatars;
     }
-
-    const data = await response.json();
-    items.value = data.data;
   } catch (error) {
     setErrorMessage(
       error.message || "Failed to fetch attendance data. Please try again.",
@@ -1224,130 +1600,142 @@ const fetchAttendance = async () => {
     loading.value = false;
   }
 };
-
-const filterParams = () => {
+const filterParams = (
+  skipAttFilters = false,
+  skipDate = false,
+  forAttendance = true,
+) => {
   const params = {};
   let filterCount = 0;
+  const prefix = forAttendance ? "[employeeId]" : "";
 
   if (role.value === "Admin" || role.value === "Dealer") {
-    params[`filter[_and][${filterCount}][tenant][tenantId][_eq]`] =
-      tenantId.value;
+    params[
+      `filter[_and][${filterCount}]${prefix}[assignedUser][tenant][tenantId][_eq]`
+    ] = tenantId.value;
     filterCount++;
   } else if (role.value === "Manager") {
-    // For managers, show their own records or records where they are the approver
-    params[`filter[_or][0][employeeId][assignedUser][id][_eq]`] = userId;
-    params[`filter[_or][1][employeeId][approver][id][_eq]`] = userId;
+    params[`filter[_or][0]${prefix}[assignedUser][id][_eq]`] = userId;
+    params[`filter[_or][1]${prefix}[approver][id][_eq]`] = userId;
   } else if (role.value === "Employee") {
-    params[`filter[_and][${filterCount}][employeeId][assignedUser][id][_eq]`] =
+    params[`filter[_and][${filterCount}]${prefix}[assignedUser][id][_eq]`] =
       userId;
     filterCount++;
   }
 
   if (filters.organization) {
     params[
-      `filter[_and][${filterCount}][employeeId][assignedUser][organization][id][_eq]`
+      `filter[_and][${filterCount}]${prefix}[assignedUser][organization][id][_eq]`
     ] = filters.organization;
     filterCount++;
   }
 
   if (filters.branch) {
-    params[
-      `filter[_and][${filterCount}][employeeId][branchLocation][id][_eq]`
-    ] = filters.branch;
+    params[`filter[_and][${filterCount}]${prefix}[branch][id][_eq]`] =
+      filters.branch;
     filterCount++;
   }
 
   if (filters.department) {
-    params[`filter[_and][${filterCount}][employeeId][department][id][_eq]`] =
+    params[`filter[_and][${filterCount}]${prefix}[department][id][_eq]`] =
       filters.department;
     filterCount++;
   }
 
   if (filters.attendanceCycle) {
-    params[`filter[_and][${filterCount}][employeeId][cycleType][_icontains]`] =
+    params[`filter[_and][${filterCount}]${prefix}[cycleType][_icontains]`] =
       filters.attendanceCycle;
     filterCount++;
   }
 
-  if (filters.status) {
-    params[`filter[_and][${filterCount}][status][_in]`] = filters.status;
-    filterCount++;
+  if (!skipAttFilters && forAttendance) {
+    if (filters.status) {
+      params[`filter[_and][${filterCount}][status][_in]`] = filters.status;
+      filterCount++;
+    }
+
+    if (filters.attendance) {
+      params[`filter[_and][${filterCount}][attendance][_in]`] =
+        filters.attendance;
+      filterCount++;
+    }
+
+    if (filters.mode) {
+      params[`filter[_and][${filterCount}][mode][_in]`] = filters.mode;
+      filterCount++;
+    }
   }
 
-  if (filters.attendance) {
-    params[`filter[_and][${filterCount}][attendance][_in]`] =
-      filters.attendance;
-    filterCount++;
-  }
+  if (!skipDate && forAttendance) {
+    if (filters.cycleStartDate) {
+      params[`filter[_and][${filterCount}][date][_gte]`] =
+        filters.cycleStartDate;
+      filterCount++;
+    }
 
-  if (filters.mode) {
-    params[`filter[_and][${filterCount}][mode][_in]`] = filters.mode;
-    filterCount++;
-  }
-
-  if (filters.cycleStartDate) {
-    params[`filter[_and][${filterCount}][date][_gte]`] = filters.cycleStartDate;
-    filterCount++;
-  }
-
-  if (filters.cycleEndDate) {
-    params[`filter[_and][${filterCount}][date][_lte]`] = filters.cycleEndDate;
-    filterCount++;
+    if (filters.cycleEndDate) {
+      params[`filter[_and][${filterCount}][date][_lte]`] = filters.cycleEndDate;
+      filterCount++;
+    }
   }
 
   if (search.value) {
     let searchOrIndex = 0;
     params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][employeeId][employeeId][_icontains]`
+      `filter[_and][${filterCount}][_or][${searchOrIndex}]${prefix}[employeeId][_icontains]`
     ] = search.value;
     searchOrIndex++;
     params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][employeeId][assignedUser][first_name][_icontains]`
+      `filter[_and][${filterCount}][_or][${searchOrIndex}]${prefix}[assignedUser][first_name][_icontains]`
     ] = search.value;
     searchOrIndex++;
     params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][employeeId][branch][branchName][_icontains]`
+      `filter[_and][${filterCount}][_or][${searchOrIndex}]${prefix}[branch][branchName][_icontains]`
     ] = search.value;
     searchOrIndex++;
     params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][employeeId][department][departmentName][_icontains]`
-    ] = search.value;
-    searchOrIndex++;
-    params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][status][_icontains]`
+      `filter[_and][${filterCount}][_or][${searchOrIndex}]${prefix}[department][departmentName][_icontains]`
     ] = search.value;
     searchOrIndex++;
 
-    const dateFormats = [
-      /^\d{4}-\d{2}-\d{2}$/,
-      /^\d{2}-\d{2}-\d{4}$/,
-      /^\d{2}\/\d{2}\/\d{4}$/,
-    ];
-    if (dateFormats.some((format) => format.test(search.value))) {
-      let dateValue = search.value;
-      if (/^\d{2}-\d{2}-\d{4}$/.test(dateValue)) {
-        const parts = dateValue.split("-");
-        dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
-        const parts = dateValue.split("/");
-        dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    if (forAttendance) {
+      params[
+        `filter[_and][${filterCount}][_or][${searchOrIndex}][status][_icontains]`
+      ] = search.value;
+      searchOrIndex++;
+
+      const dateFormats = [
+        /^\d{4}-\d{2}-\d{2}$/,
+        /^\d{2}-\d{2}-\d{4}$/,
+        /^\d{2}\/\d{2}\/\d{4}$/,
+      ];
+      if (dateFormats.some((format) => format.test(search.value))) {
+        let dateValue = search.value;
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateValue)) {
+          const parts = dateValue.split("-");
+          dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+          const parts = dateValue.split("/");
+          dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        params[
+          `filter[_and][${filterCount}][_or][${searchOrIndex}][date][_eq]`
+        ] = dateValue;
+        searchOrIndex++;
       }
-      params[`filter[_and][${filterCount}][_or][${searchOrIndex}][date][_eq]`] =
-        dateValue;
+      params[
+        `filter[_and][${filterCount}][_or][${searchOrIndex}][attendance][_icontains]`
+      ] = search.value;
+      searchOrIndex++;
+      params[
+        `filter[_and][${filterCount}][_or][${searchOrIndex}][mode][_icontains]`
+      ] = search.value;
+      searchOrIndex++;
+      params[
+        `filter[_and][${filterCount}][_or][${searchOrIndex}][leaveType][_icontains]`
+      ] = search.value;
       searchOrIndex++;
     }
-    params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][attendance][_icontains]`
-    ] = search.value;
-    searchOrIndex++;
-    params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][mode][_icontains]`
-    ] = search.value;
-    searchOrIndex++;
-    params[
-      `filter[_and][${filterCount}][_or][${searchOrIndex}][leaveType][_icontains]`
-    ] = search.value;
-    searchOrIndex++;
     filterCount++;
   }
 
@@ -1364,19 +1752,19 @@ const formatDateRange = (from, to) => {
 
 const handlePageChange = (newPage) => {
   page.value = newPage;
-  fetchAttendance();
+  if (!isVirtualMode.value) fetchAttendance();
 };
 
 const handleItemsPerPageChange = (newItemsPerPage) => {
   itemsPerPage.value = newItemsPerPage;
   page.value = 1;
-  fetchAttendance();
+  if (!isVirtualMode.value) fetchAttendance();
 };
 
 const handleSort = ({ field, direction }) => {
   sortBy.value = field;
   sortDirection.value = direction;
-  fetchAttendance();
+  if (!isVirtualMode.value) fetchAttendance();
 };
 
 const toggleFilters = () => {
@@ -1394,13 +1782,6 @@ const onFilterVisibilityChanged = (isVisible) => {
 
 const handleApplyFilters = (newFilters) => {
   Object.assign(filters, newFilters);
-  // if (newFilters.monthYear) {
-  //   const [year, month] = newFilters.monthYear.split("-").map(Number);
-  //   selectedYear.value = year;
-  //   selectedMonthIndex.value = month - 1;
-  // } else {
-  //   selectedMonthIndex.value = -1;
-  // }
   page.value = 1;
   fetchAttendance();
 };
@@ -1542,19 +1923,48 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.employee-avatar {
+.profile-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 0.75rem;
-  flex-shrink: 0;
+  background-color: #f3f4f6;
 }
 
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.employee-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.employee-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .employee-code {
   font-size: 0.75rem;
   color: #64748b;
@@ -1636,12 +2046,6 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-.filter-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
 }
 
 .edit-actions {

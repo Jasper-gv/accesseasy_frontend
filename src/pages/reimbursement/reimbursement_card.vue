@@ -23,7 +23,7 @@
       </div>
 
       <div v-if="tabLoading" class="d-flex justify-center align-center py-2">
-        <v-progress-linear indeterminate color="blue"></v-progress-linear>
+        <v-progress-linear indeterminate color="#059367"></v-progress-linear>
       </div>
 
       <!-- Main Content Area with proper spacing -->
@@ -739,9 +739,9 @@ onMounted(async () => {
 }
 
 .left-tabs button.active {
-  background-color: #1976d2;
+  background-color: #059367;
   color: white;
-  border-color: #1976d2;
+  border-color: #059367;
 }
 
 .left-tabs button:hover:not(.active) {

@@ -80,7 +80,7 @@ defineEmits(["close", "clear", "apply"]);
 
 <style scoped>
 .filter-panel {
-  width: 350px;
+  width: 400px;
   background: white;
   border-left: 1px solid #e2e8f0;
   position: fixed;

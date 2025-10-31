@@ -5,105 +5,133 @@
         <v-col cols="12" class="text-center">
           <v-progress-circular
             indeterminate
-            color="black"
+            color="#059367"
           ></v-progress-circular>
+          <p>Loading leave details...</p>
         </v-col>
       </v-row>
     </v-container>
     <v-container v-else class="pa-4">
       <div class="d-flex justify-space-between align-center mb-4">
-        <h3>Leave Details</h3>
-        <BaseButton
-          variant="primary"
-          text="Update"
-          :disabled="!hasChanges"
-          @click="updateLeavePolicy"
-        />
+        <h3></h3>
+        <div class="d-flex gap-2">
+          <BaseButton
+            v-if="!isEditMode"
+            variant="secondary"
+            text="Edit"
+            @click="enableEditMode"
+          />
+          <template v-else>
+            <BaseButton
+              variant="secondary"
+              text="Cancel"
+              @click="cancelEditMode"
+            />
+            <BaseButton
+              variant="primary"
+              text="Update"
+              :disabled="!hasChanges"
+              @click="updateLeavePolicy"
+            />
+          </template>
+        </div>
       </div>
       <br />
-      <v-table density="compact">
-        <thead
-          class="leave-table-header"
-          style="background: #f9fafb; color: #0f3b82"
-        >
-          <tr>
-            <th>Leave Type</th>
-            <th>Days</th>
-            <th>Month Limit</th>
-            <th>Carry Forward</th>
-            <th>Balance</th>
-            <th>Taken</th>
-            <th>Enable the leave</th>
-            <th>Edit</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(leave, index) in enabledLeaves"
-            :key="index"
-            :class="{ 'disabled-row': !leave.isAssigned }"
+      <DataTable
+        :items="enabledLeaves"
+        :columns="columns"
+        :selectedItems="selectedItems"
+        :showSelection="false"
+        :sortBy="sortBy"
+        :sortDirection="sortDirection"
+        :expandable="false"
+        itemKey="leaveName"
+        @update:sortBy="sortBy = $event"
+        @update:sortDirection="sortDirection = $event"
+        @sort="handleSort"
+      >
+        <!-- Custom Cell Content for leaveName -->
+        <template #cell-leaveName="{ item }">
+          <!-- <v-icon :color="getLeaveColor(item.leaveName)" size="18" class="mr-2">
+            {{ getLeaveIcon(item.leaveName).icon }}
+          </v-icon> -->
+          {{ formatLeaveType(item.leaveName) }}
+        </template>
+
+        <!-- Custom Cell Content for days -->
+        <template #cell-days="{ item }">
+          <v-text-field
+            v-if="item.isEditing"
+            v-model.number="item.leaveConfig.days"
+            type="number"
+            min="0"
+            density="compact"
+            variant="outlined"
+            hide-details
+            style="max-width: 80px"
+            @blur="finishEditing(item)"
+            :disabled="!item.isAssigned"
+          />
+          <span v-else>{{ item.leaveConfig?.days || 0 }}</span>
+        </template>
+
+        <!-- Custom Cell Content for monthLimit -->
+        <template #cell-monthLimit="{ item }">
+          {{ item.leaveConfig?.monthLimit || 0 }}
+        </template>
+
+        <!-- Custom Cell Content for limit -->
+        <template #cell-limit="{ item }">
+          {{ item.leaveConfig?.limit || 0 }}
+        </template>
+
+        <!-- Custom Cell Content for leaveBalance -->
+        <template #cell-leaveBalance="{ item }">
+          {{ item.leaveBalance || 0 }}
+        </template>
+
+        <!-- Custom Cell Content for leaveTaken -->
+        <template #cell-leaveTaken="{ item }">
+          {{ item.leaveTaken || 0 }}
+        </template>
+
+        <!-- Custom Cell Content for isAssigned -->
+        <template #cell-isAssigned="{ item }">
+          <v-switch
+            v-model="item.isAssigned"
+            color="#059367"
+            track-color="red"
+            true-icon="mdi-check"
+            false-icon="mdi-close"
+            inset
+            hide-details
+            :readonly="!isEditMode"
+            @change="handleLeaveToggle(item)"
+          />
+        </template>
+
+        <!-- Custom Cell Content for edit -->
+        <!-- <template #cell-edit="{ item }">
+          <v-btn
+            v-if="!item.isEditing"
+            icon
+            size="x-small"
+            @click="startEditing(item)"
+            :disabled="!item.isAssigned || !isEditMode"
           >
-            <td>
-              <v-icon
-                :color="getLeaveColor(leave.leaveName)"
-                size="18"
-                class="mr-2"
-              >
-                {{ getLeaveIcon(leave.leaveName).icon }}
-              </v-icon>
-              {{ formatLeaveType(leave.leaveName) }}
-            </td>
-            <td>
-              <v-text-field
-                v-if="leave.isEditing"
-                v-model.number="leave.leaveConfig.days"
-                type="number"
-                min="0"
-                density="compact"
-                variant="outlined"
-                hide-details
-                style="max-width: 80px"
-                @blur="finishEditing(leave)"
-                :disabled="!leave.isAssigned"
-              />
-              <span v-else>{{ leave.leaveConfig?.days || 0 }}</span>
-            </td>
-            <td>{{ leave.leaveConfig?.monthLimit || 0 }}</td>
-            <td>{{ leave.leaveConfig?.limit || 0 }}</td>
-            <td>{{ leave.leaveBalance || 0 }}</td>
-            <td>{{ leave.leaveTaken || 0 }}</td>
-            <td>
-              <v-switch
-                v-model="leave.isAssigned"
-                color="primary"
-                inset
-                hide-details
-                @change="handleLeaveToggle(leave)"
-              />
-            </td>
-            <td>
-              <v-btn
-                v-if="!leave.isEditing"
-                icon
-                size="x-small"
-                @click="startEditing(leave)"
-                :disabled="!leave.isAssigned"
-              >
-                <v-icon size="16">mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn
-                v-else
-                icon
-                size="x-small"
-                color="red"
-                @click="cancelEditing(leave)"
-              >
-                <v-icon size="16">mdi-close</v-icon>
-              </v-btn>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+            <v-icon size="16">mdi-pencil</v-icon>
+          </v-btn>
+          <v-btn
+            v-else
+            icon
+            size="x-small"
+            color="red"
+            @click="cancelEditing(item)"
+          >
+            <v-icon size="16">mdi-close</v-icon>
+          </v-btn>
+        </template> -->
+      </DataTable>
     </v-container>
     <v-snackbar
       v-model="showSuccessSnackbar"
@@ -136,6 +164,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
 
 const props = defineProps({
   employeeData: {
@@ -158,6 +187,21 @@ const showSuccessSnackbar = ref(false);
 const showErrorSnackbar = ref(false);
 const successMessage = ref("");
 const errorMessage = ref("");
+const sortBy = ref("leaveName");
+const sortDirection = ref("asc");
+const selectedItems = ref([]);
+const isEditMode = ref(false);
+
+const columns = ref([
+  { key: "leaveName", label: "Leave Type", width: "20px" },
+  { key: "days", label: "Days", width: "20px" },
+  { key: "monthLimit", label: "Month Limit", width: "20px" },
+  { key: "limit", label: "Carry Forward", width: "20px" },
+  { key: "leaveBalance", label: "Balance", width: "20px" },
+  { key: "leaveTaken", label: "Taken", width: "20px" },
+  { key: "isAssigned", label: "Enable the leave", width: "20px" },
+  // { key: "edit", label: "Edit" },
+]);
 
 const getLeaveColor = (leaveName) => {
   return leaveName === "Annual" ? "blue" : "green";
@@ -171,7 +215,24 @@ const formatLeaveType = (leaveName) => {
   return leaveName.replace(/([A-Z])/g, " $1").trim();
 };
 
+const enableEditMode = () => {
+  isEditMode.value = true;
+};
+
+const cancelEditMode = () => {
+  // Revert all changes
+  enabledLeaves.value = JSON.parse(JSON.stringify(originalLeaves.value));
+  // Close all editing fields
+  enabledLeaves.value.forEach((leave) => {
+    leave.isEditing = false;
+  });
+  isEditMode.value = false;
+  hasChanges.value = false;
+};
+
 const handleLeaveToggle = (leave) => {
+  if (!isEditMode.value) return;
+
   if (!leave.isAssigned && leave.isEditing) {
     leave.isEditing = false;
   }
@@ -179,7 +240,7 @@ const handleLeaveToggle = (leave) => {
 };
 
 const startEditing = (leave) => {
-  if (leave.isAssigned) {
+  if (leave.isAssigned && isEditMode.value) {
     leave.isEditing = true;
   }
 };
@@ -216,6 +277,30 @@ const showErrorMessage = (message) => {
   showErrorSnackbar.value = true;
 };
 
+const handleSort = ({ field, direction }) => {
+  enabledLeaves.value.sort((a, b) => {
+    let aValue, bValue;
+    if (field === "days" || field === "monthLimit" || field === "limit") {
+      aValue = a.leaveConfig[field] || 0;
+      bValue = b.leaveConfig[field] || 0;
+    } else if (field === "leaveBalance" || field === "leaveTaken") {
+      aValue = a[field] || 0;
+      bValue = b[field] || 0;
+    } else if (field === "isAssigned") {
+      aValue = a[field] ? 1 : 0;
+      bValue = b[field] ? 1 : 0;
+    } else {
+      aValue = a[field] || "";
+      bValue = b[field] || "";
+    }
+    if (direction === "asc") {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+};
+
 const fetchLeavePolicies = async () => {
   try {
     const tenantId = currentUserTenant.getTenantId();
@@ -232,12 +317,11 @@ const fetchLeavePolicies = async () => {
       throw new Error("Failed to fetch leave policies");
     }
     const data = await response.json();
-    // Initialize enabledLeaves with default leave policies
     enabledLeaves.value = data.data
       .filter((leave) => leave.leaveConfig?.isEnabled)
       .map((leave) => ({
         ...leave,
-        isAssigned: false, // Default to false until employee-specific data is loaded
+        isAssigned: false,
         isEditing: false,
         leaveConfig: {
           ...leave.leaveConfig,
@@ -281,7 +365,6 @@ const getLeavePolicy = async () => {
     if (data.data && data.data.length > 0 && data.data[0].leaves) {
       const leavesData = data.data[0].leaves;
       leaveId = leavesData.id;
-      // Update enabledLeaves with employee-specific data
       enabledLeaves.value = enabledLeaves.value.map((leave) => {
         const normalizedLeaveName = leave.leaveName
           .toLowerCase()
@@ -319,7 +402,6 @@ const getLeavePolicy = async () => {
       });
       originalLeaves.value = JSON.parse(JSON.stringify(enabledLeaves.value));
       hasChanges.value = false;
-      // Do NOT emit update here to prevent overwriting employeeData
     } else {
       throw new Error("Leaves data not found in response");
     }
@@ -384,7 +466,7 @@ const updateLeavePolicy = async () => {
     }
     originalLeaves.value = JSON.parse(JSON.stringify(enabledLeaves.value));
     hasChanges.value = false;
-    // Only emit update when the user explicitly saves changes
+    isEditMode.value = false;
     emit("update:employeeData", {
       ...props.employeeData,
       leaves: leavesPayload,
@@ -405,12 +487,10 @@ const hasChangesComputed = computed(() => {
 onMounted(async () => {
   await fetchLeavePolicies();
   await getLeavePolicy();
-  // Watch enabledLeaves but don't emit updates automatically
   watch(
     enabledLeaves,
     () => {
       hasChanges.value = hasChangesComputed.value;
-      // Do NOT emit update here to prevent overwriting employeeData
     },
     { deep: true },
   );
@@ -428,19 +508,7 @@ onMounted(async () => {
   background-color: #ececec !important;
   color: #666;
 }
-.leave-table-header th {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 14px;
-  padding: 12px 8px;
-  color: inherit;
+.gap-2 {
+  gap: 8px;
 }
 </style>

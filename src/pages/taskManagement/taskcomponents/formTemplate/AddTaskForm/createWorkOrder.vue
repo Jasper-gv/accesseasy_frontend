@@ -1,102 +1,72 @@
-<!-- /senzrfieldopsfrontend/src/pages/taskManagement/taskcomponents/formTemplate/AddTaskForm/createWorkOrder.vue -->
+<!-- /senzrGo/senzrfieldopsfrontend/src/components/WorkOrdeForm_Components/createWorkOrder.vue -->
 <template>
-  <!-- Right drawer that sits beside page content -->
-  <v-navigation-drawer
-    v-if="!embedded"
-    :model-value="open"
-    @update:model-value="onDrawerUpdate"
-    location="right"
-    width="460"
-    :temporary="false"
-    :scrim="false"
-    class="cwo-drawer"
-  >
-    <div class="drawer-root">
-      <!-- Header (sticky) -->
-      <header class="drawer-header">
-        <div class="title-wrap">
-          <v-icon color="primary" class="mr-2">mdi-file-document-plus</v-icon>
-          <h3 class="title">Create Work Order</h3>
-        </div>
-        <v-btn icon variant="text" @click="emit('update:open', false)">
-          <v-icon>mdi-close</v-icon>
+  <div class="cwo-wrapper">
+    <!-- Combined header with template selector and Create Task button -->
+    <div class="form-header">
+      <div class="header-row">
+        <v-select
+          v-model="selectedTemplateId"
+          :items="formOptions"
+          :loading="loadingForms"
+          :disabled="loadingForms"
+          item-title="formName"
+          item-value="id"
+          variant="outlined"
+          density="compact"
+          prepend-inner-icon="mdi-format-list-bulleted"
+          hide-details
+          clearable
+          placeholder="Select work order template"
+          @update:model-value="onSelectTemplate"
+          class="template-selector"
+        />
+        <v-btn
+          class="createtask"
+          size="large"
+          :disabled="!canSubmit"
+          :loading="isSubmitting"
+          @click="handleSubmit"
+        >
+          Create Task
         </v-btn>
-      </header>
+      </div>
+    </div>
 
-      <!-- Body (scrollable) -->
-      <section class="drawer-body" ref="bodyEl">
-        <!-- Global toast -->
-        <ToastNotification
-          :show="showToast"
-          :message="toastMessage"
-          :type="toastType"
-        />
+    <!-- Main content area -->
+    <section class="form-body" ref="bodyEl">
+      <!-- Global toast -->
+      <ToastNotification
+        :show="showToast"
+        :message="toastMessage"
+        :type="toastType"
+      />
 
-        <!-- 1) Choose form -->
-        <v-card elevation="2" rounded="lg" class="mb-4">
-          <v-card-text>
-            <v-row dense>
-              <v-col cols="12">
-                <v-select
-                  v-model="selectedTemplateId"
-                  :items="formOptions"
-                  :loading="loadingForms"
-                  :disabled="loadingForms"
-                  item-title="formName"
-                  item-value="id"
-                  variant="outlined"
-                  prepend-inner-icon="mdi-format-list-bulleted"
-                  hide-details="auto"
-                  clearable
-                  @update:model-value="onSelectTemplate"
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+      <!-- Loading / Error -->
+      <LoadingState
+        v-if="selectedTemplateId && loading"
+        title="Loading form..."
+        message="Please wait while we fetch the form details."
+        :full-height="false"
+      />
+      <ErrorState v-else-if="selectedTemplateId && error" :error="error" />
 
-        <!-- 2) Loading / Error -->
-        <LoadingState
-          v-if="selectedTemplateId && loading"
-          title="Loading form..."
-          message="Please wait while we fetch the form details."
-          :full-height="false"
-        />
-        <ErrorState v-else-if="selectedTemplateId && error" :error="error" />
-
-        <!-- 3) Dynamic Form (tabs for core fields and job sheets) -->
-        <div v-else-if="formDetails">
-          <v-tabs
-            v-model="activeTab"
-            bg-color="transparent"
-            color="primary"
-            class="custom-tabs mb-4"
-            slider-color="primary"
+      <!-- Form Content -->
+      <div v-else-if="formDetails" class="form-content">
+        <v-row class="sections-grid">
+          <!-- Client Details Box -->
+          <div
+            v-if="clientFields.length > 0"
+            class="section-box client-details-box"
           >
-            <v-tab value="core" :disabled="true" class="custom-tab">
-              <v-icon class="mr-2" size="20">mdi-file-document</v-icon>
-              Task details
-            </v-tab>
-            <v-tab
-              v-for="jobSheet in visibleJobSheets"
-              :key="jobSheet.job_id"
-              :value="jobSheet.job_id"
-              :disabled="true"
-              class="custom-tab"
-            >
-              <v-icon class="mr-2" size="20">mdi-clipboard-text</v-icon>
-              {{ jobSheet.job_name }}
-            </v-tab>
-          </v-tabs>
-
-          <v-window v-model="activeTab">
-            <!-- Core Fields Tab -->
-            <v-window-item value="core">
+            <div class="section-title client-details-title">
+              Client's Details
+            </div>
+            <div class="section-content">
               <FormStep
                 :form-details="formDetails"
-                :current-step="currentFormStep"
-                :total-steps="totalFormSteps"
-                :current-step-fields="currentStepFields"
+                :current-step="1"
+                :total-steps="1"
+                :current-step-fields="clientFields"
                 :form-data="workOrderFormData"
                 :form-valid="formValid"
                 :clients="clients"
@@ -110,10 +80,10 @@
                 :selected-days="selectedDays"
                 :from-date="fromDate"
                 :due-date="dueDate"
-                :show-priority-reschedule="activeTab === 'core'"
+                :show-priority-reschedule="false"
                 :loading="loading"
-                @next-step="nextFormStep"
-                @prev-step="prevFormStep"
+                :hide-navigation="true"
+                :contact-details="contactDetails"
                 @open-qr-scanner="openQrScanner"
                 @open-location-selector="openLocationSelector"
                 @generate-code="generateCode"
@@ -124,22 +94,23 @@
                 @update-selected-days="updateSelectedDays"
                 @update-from-date="updateFromDate"
                 @update-due-date="updateDueDate"
-                @submit-form="handleSubmit"
+                @update-contact-details="updateClientContactDetails"
               />
-            </v-window-item>
+            </div>
+          </div>
 
-            <!-- Job Sheet Tabs -->
-            <v-window-item
-              v-for="jobSheet in visibleJobSheets"
-              :key="jobSheet.job_id"
-              :value="jobSheet.job_id"
-            >
+          <!-- Assign Workorder Box -->
+          <div class="section-box assign-workorder-box">
+            <div class="section-title assign-workorder-title">
+              Assign Workorder
+            </div>
+            <div class="section-content">
               <FormStep
                 :form-details="formDetails"
-                :current-step="currentFormStep"
-                :total-steps="totalFormSteps"
-                :current-step-fields="currentStepFields"
-                :form-data="workOrderFormData[jobSheet.job_id] || {}"
+                :current-step="1"
+                :total-steps="1"
+                :current-step-fields="assignWorkorderFields"
+                :form-data="workOrderFormData"
                 :form-valid="formValid"
                 :clients="clients"
                 :users="users"
@@ -152,10 +123,9 @@
                 :selected-days="selectedDays"
                 :from-date="fromDate"
                 :due-date="dueDate"
-                :show-priority-reschedule="activeTab === 'core'"
+                :show-priority-reschedule="true"
                 :loading="loading"
-                @next-step="nextFormStep"
-                @prev-step="prevFormStep"
+                :hide-navigation="true"
                 @open-qr-scanner="openQrScanner"
                 @open-location-selector="openLocationSelector"
                 @generate-code="generateCode"
@@ -166,28 +136,110 @@
                 @update-selected-days="updateSelectedDays"
                 @update-from-date="updateFromDate"
                 @update-due-date="updateDueDate"
-                @submit-form="handleSubmit"
               />
-            </v-window-item>
-          </v-window>
+            </div>
+          </div>
 
-          <div class="pb-safe" />
-        </div>
+          <!-- Jobsheets Box -->
+          <div
+            v-if="visibleJobSheets.length > 0"
+            class="section-box jobsheet-box"
+          >
+            <div class="section-title jobsheet-title">
+              Jobsheets
+              <v-btn
+                :color="allJobSheetsEnabled ? 'error' : 'success'"
+                variant="tonal"
+                size="small"
+                class="expand-all-btn"
+                @click="toggleAllJobSheets"
+              >
+                {{ allJobSheetsEnabled ? "Disable All" : "Enable All" }}
+              </v-btn>
+            </div>
+            <div class="section-content">
+              <div class="jobsheets-list">
+                <v-expansion-panels v-model="expandedJobSheets" multiple>
+                  <v-expansion-panel
+                    v-for="jobSheet in visibleJobSheets"
+                    :key="jobSheet.job_id"
+                    class="jobsheet-item"
+                  >
+                    <v-expansion-panel-title>
+                      <div class="jobsheet-title-row">
+                        <span class="jobsheet-name">{{
+                          jobSheet.job_name
+                        }}</span>
+                        <v-switch
+                          v-model="enabledJobSheets[jobSheet.job_id]"
+                          color="success"
+                          inset
+                          hide-details
+                          class="jobsheet-toggle"
+                          @click.stop
+                          @update:model-value="
+                            onToggleJobSheet(jobSheet.job_id, $event)
+                          "
+                        />
+                      </div>
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text
+                      v-if="enabledJobSheets[jobSheet.job_id]"
+                    >
+                      <div
+                        v-if="
+                          jobSheet && getCreationFields(jobSheet).length === 0
+                        "
+                        class="no-fields-message"
+                      >
+                        <!-- <v-alert type="info" variant="tonal" density="compact">
+                          <v-icon class="mr-2">mdi-information-outline</v-icon>
+                          No fields available for creation in this job sheet.
+                        </v-alert> -->
+                      </div>
+                      <FormStep
+                        v-else
+                        :form-details="formDetails"
+                        :current-step="1"
+                        :total-steps="1"
+                        :current-step-fields="getCreationFields(jobSheet)"
+                        :form-data="workOrderFormData[jobSheet.job_id] || {}"
+                        :form-valid="formValid"
+                        :clients="clients"
+                        :users="users"
+                        :departments="departments"
+                        :shared-properties="sharedProperties"
+                        :user-role="userRole"
+                        :priority="priority"
+                        :reschedule-enabled="rescheduleEnabled"
+                        :schedule-end-date="scheduleEndDate"
+                        :selected-days="selectedDays"
+                        :from-date="fromDate"
+                        :due-date="dueDate"
+                        :show-priority-reschedule="false"
+                        :loading="loading"
+                        :hide-navigation="true"
+                        @open-qr-scanner="openQrScanner"
+                        @open-location-selector="openLocationSelector"
+                        @generate-code="generateCode"
+                        @field-action="handleFieldAction"
+                      />
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </div>
+            </div>
+          </div>
+        </v-row>
 
-        <!-- 4) Empty hint -->
-        <v-alert v-else type="info" variant="tonal">
-          Select a form to start creating a work order.
-        </v-alert>
-      </section>
+        <div class="pb-safe" />
+      </div>
 
-      <!-- Footer note (sticky gap only; actions live inside FormStep) -->
-      <footer class="drawer-footer">
-        <small class="muted">
-          All changes validate in-place. Scroll the form to access the Create
-          Task button.
-        </small>
-      </footer>
-    </div>
+      <!-- Empty hint -->
+      <v-alert v-else type="info" variant="tonal">
+        Select a form to start creating a work order.
+      </v-alert>
+    </section>
 
     <!-- Dialogs / Overlays -->
     <EmailDialog
@@ -211,206 +263,6 @@
       @update:decoded-content="decodedQrContent = $event"
       @update:scan-error="qrScanError = $event"
     />
-
-    <LocationSelector
-      :key="showLocationSelectorDialog ? 'ls-open' : 'ls-closed'"
-      :show="showLocationSelectorDialog"
-      :location-types="locationTypes"
-      :selected-loc-type="selectedLocType"
-      :display-location-details="displayLocationDetails"
-      :reverse-geocoded-address="reverseGeocodedAddress"
-      :location-error="locationError"
-      @close="closeLocationSelector"
-      @apply="onApplyLocation"
-      @update:selected-loc-type="selectedLocType = $event"
-    />
-  </v-navigation-drawer>
-
-  <!-- Embedded mode -->
-  <div v-else>
-    <section class="drawer-body" ref="bodyEl">
-      <ToastNotification
-        :show="showToast"
-        :message="toastMessage"
-        :type="toastType"
-      />
-
-      <v-card elevation="2" rounded="lg" class="mb-4">
-        <v-card-text>
-          <v-row dense>
-            <v-col cols="12">
-              <v-select
-                v-model="selectedTemplateId"
-                :items="formOptions"
-                :loading="loadingForms"
-                :disabled="loadingForms"
-                item-title="formName"
-                item-value="id"
-                variant="outlined"
-                prepend-inner-icon="mdi-format-list-bulleted"
-                hide-details="auto"
-                clearable
-                @update:model-value="onSelectTemplate"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
-
-      <LoadingState
-        v-if="selectedTemplateId && loading"
-        title="Loading form..."
-        message="Please wait while we fetch the form details."
-        :full-height="false"
-      />
-      <ErrorState v-else-if="selectedTemplateId && error" :error="error" />
-
-      <div v-else-if="formDetails">
-        <v-tabs
-          v-model="activeTab"
-          bg-color="transparent"
-          color="primary"
-          class="custom-tabs mb-4"
-          slider-color="primary"
-        >
-          <v-tab value="core" :disabled="true" class="custom-tab">
-            <v-icon class="mr-2" size="20">mdi-file-document</v-icon>
-            Task details
-          </v-tab>
-          <v-tab
-            v-for="jobSheet in visibleJobSheets"
-            :key="jobSheet.job_id"
-            :value="jobSheet.job_id"
-            :disabled="true"
-            class="custom-tab"
-          >
-            <v-icon class="mr-2" size="20">mdi-clipboard-text</v-icon>
-            {{ jobSheet.job_name }}
-          </v-tab>
-        </v-tabs>
-
-        <v-window v-model="activeTab">
-          <v-window-item value="core">
-            <FormStep
-              :form-details="formDetails"
-              :current-step="currentFormStep"
-              :total-steps="totalFormSteps"
-              :current-step-fields="currentStepFields"
-              :form-data="workOrderFormData"
-              :form-valid="formValid"
-              :clients="clients"
-              :users="users"
-              :departments="departments"
-              :shared-properties="sharedProperties"
-              :user-role="userRole"
-              :priority="priority"
-              :reschedule-enabled="rescheduleEnabled"
-              :schedule-end-date="scheduleEndDate"
-              :selected-days="selectedDays"
-              :from-date="fromDate"
-              :due-date="dueDate"
-              :show-priority-reschedule="activeTab === 'core'"
-              :loading="loading"
-              @next-step="nextFormStep"
-              @prev-step="prevFormStep"
-              @open-qr-scanner="openQrScanner"
-              @open-location-selector="openLocationSelector"
-              @generate-code="generateCode"
-              @field-action="handleFieldAction"
-              @update-priority="updatePriority"
-              @update-reschedule-enabled="updateRescheduleEnabled"
-              @update-schedule-end-date="updateScheduleEndDate"
-              @update-selected-days="updateSelectedDays"
-              @update-from-date="updateFromDate"
-              @update-due-date="updateDueDate"
-              @submit-form="handleSubmit"
-            />
-          </v-window-item>
-
-          <v-window-item
-            v-for="jobSheet in visibleJobSheets"
-            :key="jobSheet.job_id"
-            :value="jobSheet.job_id"
-          >
-            <FormStep
-              :form-details="formDetails"
-              :current-step="currentFormStep"
-              :total-steps="totalFormSteps"
-              :current-step-fields="currentStepFields"
-              :form-data="workOrderFormData[jobSheet.job_id] || {}"
-              :form-valid="formValid"
-              :clients="clients"
-              :users="users"
-              :departments="departments"
-              :shared-properties="sharedProperties"
-              :user-role="userRole"
-              :priority="priority"
-              :reschedule-enabled="rescheduleEnabled"
-              :schedule-end-date="scheduleEndDate"
-              :selected-days="selectedDays"
-              :from-date="fromDate"
-              :due-date="dueDate"
-              :show-priority-reschedule="activeTab === 'core'"
-              :loading="loading"
-              @next-step="nextFormStep"
-              @prev-step="prevFormStep"
-              @open-qr-scanner="openQrScanner"
-              @open-location-selector="openLocationSelector"
-              @generate-code="generateCode"
-              @field-action="handleFieldAction"
-              @update-priority="updatePriority"
-              @update-reschedule-enabled="updateRescheduleEnabled"
-              @update-schedule-end-date="updateScheduleEndDate"
-              @update-selected-days="updateSelectedDays"
-              @update-from-date="updateFromDate"
-              @update-due-date="updateDueDate"
-              @submit-form="handleSubmit"
-            />
-          </v-window-item>
-        </v-window>
-
-        <div class="pb-safe" />
-      </div>
-
-      <v-alert v-else type="info" variant="tonal">
-        Select a form to start creating a work order.
-      </v-alert>
-    </section>
-
-    <EmailDialog
-      :show="showEmailDialog"
-      :client-email="clientEmail"
-      :email-rules="emailRules"
-      @update-and-submit="updateClientEmailAndSubmit"
-      @skip="skipEmailProcess"
-      @update:show="showEmailDialog = $event"
-      @update:client-email="clientEmail = $event"
-    />
-
-    <QrScanner
-      :show="showQrScannerDialog"
-      :qr-image-file="qrImageFile"
-      :decoded-content="decodedQrContent"
-      :scan-error="qrScanError"
-      @close="closeQrScanner"
-      @apply="applyQrContent"
-      @update:qr-image-file="qrImageFile = $event"
-      @update:decoded-content="decodedQrContent = $event"
-      @update:scan-error="qrScanError = $event"
-    />
-
-    <LocationSelector
-      :key="showLocationSelectorDialog ? 'ls-open' : 'ls-closed'"
-      :show="showLocationSelectorDialog"
-      :location-types="locationTypes"
-      :selected-loc-type="selectedLocType"
-      :display-location-details="displayLocationDetails"
-      :reverse-geocoded-address="reverseGeocodedAddress"
-      :location-error="locationError"
-      @close="closeLocationSelector"
-      @apply="onApplyLocation"
-      @update:selected-loc-type="selectedLocType = $event"
-    />
   </div>
 </template>
 
@@ -428,16 +280,14 @@ import EmailDialog from "@/components/WorkOrdeForm_Components/form/EmailDialog.v
 import LoadingState from "@/components/common/states/LoadingState.vue";
 import ErrorState from "@/components/WorkOrdeForm_Components/form/ErrorState.vue";
 import QrScanner from "@/components/WorkOrdeForm_Components/form/QrScanner.vue";
-import LocationSelector from "@/components/WorkOrdeForm_Components/form/LocationSelector.vue";
+import { getFieldTypeString } from "@/utils/createWOF/fieldUtils";
 
-// Props / Emits
 const props = defineProps({
   open: { type: Boolean, default: false },
   embedded: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:open", "created"]);
 
-// API + Stores
 const {
   formDetails,
   clients,
@@ -471,43 +321,40 @@ const {
 
 const { showToast, toastMessage, toastType, showValidationToast } = toastApi();
 
-// Sidebar-scoped state
 const userRole = computed(() => currentUserTenant.getRole());
 const tenantId = computed(() => currentUserTenant.getTenantId());
 const token = ref(authService.getToken());
 
-// Form selection
 const formOptions = ref([]);
 const loadingForms = ref(false);
 const selectedTemplateId = ref(null);
-const activeTab = ref("core"); // Default to core fields
 
-// Form runtime state
-const currentFormStep = ref(1);
 const workOrderFormData = reactive({});
 const formValid = ref(false);
+const isSubmitting = ref(false);
 
-// QR dialog
 const showQrScannerDialog = ref(false);
 const qrImageFile = ref([]);
 const decodedQrContent = ref("");
 const qrScanError = ref("");
 const currentQrFieldKey = ref("");
 
-// Email dialog
 const showEmailDialog = ref(false);
 const clientEmail = ref("");
 let resolveEmailPrompt = null;
 
-// Priority and rescheduling state variables
 const priority = ref(null);
 const rescheduleEnabled = ref(false);
 const scheduleEndDate = ref(null);
 const selectedDays = ref([]);
 const fromDate = ref(null);
 const dueDate = ref(null);
+const contactDetails = ref(null);
 
-// Priority items and weekdays configuration
+// Track enabled job sheets
+const enabledJobSheets = reactive({});
+const expandedJobSheets = ref([]);
+
 const priorityItems = [
   { label: "Low", value: "low", icon: "mdi-flag-outline", color: "green" },
   { label: "Medium", value: "medium", icon: "mdi-flag", color: "orange" },
@@ -524,53 +371,57 @@ const weekdays = [
   { label: "S", value: "Sun", js: 0 },
 ];
 
-// Computed properties for core fields and job sheets
 const coreFields = computed(
   () => formDetails.value?.custom_FormTemplate?.corefields || [],
 );
+
+const clientFields = computed(() => {
+  return coreFields.value.filter(
+    (field) =>
+      (field.key === "orgId" ||
+        field.key === "clientLocation" ||
+        field.key === "gps" ||
+        getFieldTypeString(field.type) === "orgId" ||
+        getFieldTypeString(field.type) === "clientLocation" ||
+        getFieldTypeString(field.type) === "gps") &&
+      isFieldVisible(field),
+  );
+});
+
+const assignWorkorderFields = computed(() => {
+  return coreFields.value.filter(
+    (field) =>
+      field.key === "from" ||
+      field.key === "dueTime" ||
+      field.key === "team" ||
+      getFieldTypeString(field.type) === "date" ||
+      getFieldTypeString(field.type) === "dropdown",
+  );
+});
+
+const nonClientCoreFields = computed(() => {
+  return coreFieldsWithTeam.value.filter(
+    (field) =>
+      !["orgId", "clientLocation", "gps", "from", "dueTime", "team"].includes(
+        field.key,
+      ) &&
+      !["orgId", "clientLocation", "gps"].includes(
+        getFieldTypeString(field.type),
+      ),
+  );
+});
+
 const jobSheets = computed(
   () => formDetails.value?.custom_FormTemplate?.jobSheet || [],
 );
-
-const visibleJobSheets = computed(() =>
-  jobSheets.value.filter((js) =>
-    js.fields.some(
-      (f) =>
-        f.field_type === "creation" || f.field_type === "creation/completion",
-    ),
-  ),
-);
-
-const totalFormSteps = computed(() => 1 + visibleJobSheets.value.length); // Core fields + visible job sheets
-
-const currentStepFields = computed(() => {
-  let fields = [];
-  if (activeTab.value === "core") {
-    fields = [...coreFields.value];
-
-    // Add team field to core fields if enabled
-    if (sharedProperties.value?.booleans?.team) {
-      fields.push({
-        key: "team",
-        label: "Department",
-        type: "dropdown",
-        field_type: "creation",
-      });
-    }
-  } else {
-    const jobSheet = jobSheets.value.find(
-      (js) => js.job_id === activeTab.value,
-    );
-    fields = jobSheet?.fields || [];
-  }
-  const filteredFields = fields.filter(
-    (f) =>
-      f.field_type === "creation" || f.field_type === "creation/completion",
-  );
-  return filteredFields;
+const visibleJobSheets = computed(() => {
+  return jobSheets.value;
 });
 
-// IMPROVED Date normalization helper
+const showContactDetails = computed(() => {
+  return !!workOrderFormData.gps && contactDetails.value;
+});
+
 const normalizeDateString = (v) => {
   if (!v) return null;
   if (v instanceof Date) return v.toISOString().slice(0, 10);
@@ -591,13 +442,6 @@ const canEnableReschedule = computed(() => {
   return !!f && !!d && f === d;
 });
 
-// Helper function to get day name for logging
-const getDayName = (dayNumber) => {
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return days[dayNumber] || "Unknown";
-};
-
-// ENHANCED Date range iteration function with detailed logging
 const datesInRangeByWeekdays = (startStr, endStr, dayValues) => {
   if (!startStr || !endStr || !dayValues.length) {
     console.error("❌ Invalid inputs:", { startStr, endStr, dayValues });
@@ -645,7 +489,6 @@ const datesInRangeByWeekdays = (startStr, endStr, dayValues) => {
   return resultDates;
 };
 
-// Helper function to get date from formData with multiple key possibilities
 const getDateFromFormData = (formData, fieldNames) => {
   for (const field of fieldNames) {
     if (formData[field]) {
@@ -655,7 +498,6 @@ const getDateFromFormData = (formData, fieldNames) => {
   return null;
 };
 
-// Watchers for date changes to update reactive state
 const fromDateTime = computed(() =>
   getDateFromFormData(workOrderFormData, [
     "from",
@@ -683,7 +525,6 @@ watch([fromDateTime, dueDateTime], ([newFrom, newDue]) => {
   dueDate.value = newDue;
 });
 
-// Watcher for date changes to adjust reschedule settings
 watch([normalizedFromDate, normalizedDueDate], () => {
   if (!canEnableReschedule.value) {
     rescheduleEnabled.value = false;
@@ -694,7 +535,6 @@ watch([normalizedFromDate, normalizedDueDate], () => {
   }
 });
 
-// Visibility by role helper
 const isFieldVisible = (field) => {
   const roleBasedRequired = field.roleBasedRequired;
   if (roleBasedRequired && typeof roleBasedRequired === "object") {
@@ -708,7 +548,18 @@ const isFieldVisible = (field) => {
   return true;
 };
 
-// Select a form: fetch details + dropdown data and init form model
+// Define getCreationFields function to fix ReferenceError
+const getCreationFields = (jobSheet) => {
+  if (!jobSheet || !jobSheet.fields) return [];
+
+  return jobSheet.fields.filter(
+    (field) =>
+      (field.field_type === "creation" ||
+        field.field_type === "creation/completion") &&
+      isFieldVisible(field),
+  );
+};
+
 const onSelectTemplate = async (id) => {
   if (!id) {
     resetFormRuntime();
@@ -717,11 +568,8 @@ const onSelectTemplate = async (id) => {
   await fetchFormDetails(id);
   await fetchDropdownData();
   initFormData();
-  currentFormStep.value = 1;
-  activeTab.value = "core";
 };
 
-// Fetch available forms for dropdown
 const loadForms = async () => {
   if (!token.value || !tenantId.value) return;
 
@@ -763,12 +611,13 @@ const loadForms = async () => {
   }
 };
 
-// Init model values based on template
 const initFormData = () => {
   Object.keys(workOrderFormData).forEach((k) => delete workOrderFormData[k]);
+  Object.keys(enabledJobSheets).forEach((k) => delete enabledJobSheets[k]);
 
-  const coreFields = formDetails.value?.custom_FormTemplate?.corefields || [];
-  coreFields
+  const coreFieldsData =
+    formDetails.value?.custom_FormTemplate?.corefields || [];
+  coreFieldsData
     .filter(
       (f) =>
         f.field_type === "creation" || f.field_type === "creation/completion",
@@ -784,9 +633,10 @@ const initFormData = () => {
             : "";
     });
 
-  const jobSheets = formDetails.value?.custom_FormTemplate?.jobSheet || [];
-  jobSheets.forEach((jobSheet) => {
+  const jobSheetsData = formDetails.value?.custom_FormTemplate?.jobSheet || [];
+  jobSheetsData.forEach((jobSheet) => {
     workOrderFormData[jobSheet.job_id] = reactive({});
+    enabledJobSheets[jobSheet.job_id] = false;
     jobSheet.fields
       .filter(
         (f) =>
@@ -810,62 +660,253 @@ const initFormData = () => {
   workOrderFormData.rescheduleEnabled = false;
   workOrderFormData.scheduleEndDate = null;
   workOrderFormData.selectedDays = [];
-
-  console.log("[v0] Form data initialized:", workOrderFormData);
 };
 
-// Navigation across steps
-const nextFormStep = async () => {
-  if (currentFormStep.value < totalFormSteps.value) {
-    currentFormStep.value++;
-    activeTab.value = tabKeys.value[currentFormStep.value - 1];
-    if (activeTab.value !== "core" && !workOrderFormData[activeTab.value]) {
-      workOrderFormData[activeTab.value] = reactive({});
+// Computed property to check if all job sheets are enabled
+const allJobSheetsEnabled = computed(() => {
+  return visibleJobSheets.value.every(
+    (jobSheet) => enabledJobSheets[jobSheet.job_id],
+  );
+});
 
-      const jobSheet = jobSheets.value.find(
-        (js) => js.job_id === activeTab.value,
-      );
-      if (jobSheet) {
-        jobSheet.fields
-          .filter(
-            (f) =>
-              f.field_type === "creation" ||
-              f.field_type === "creation/completion",
-          )
-          .forEach((f) => {
-            const type =
-              typeof f.type === "object" && f.type.date === true
-                ? "date"
-                : f.type;
-            workOrderFormData[activeTab.value][f.key] =
-              type === "boolean"
-                ? false
-                : type === "date" || type === "number"
-                  ? null
-                  : "";
-          });
+const onToggleJobSheet = (jobId, value) => {
+  console.log(`[v0] Toggle job sheet ${jobId} to ${value}`);
+  enabledJobSheets[jobId] = value;
+
+  // Initialize form data for this job sheet if enabling
+  if (value && !workOrderFormData[jobId]) {
+    const jobSheet = jobSheets.value.find((js) => js.job_id === jobId);
+    if (jobSheet && jobSheet.fields) {
+      workOrderFormData[jobId] = reactive({});
+      jobSheet.fields
+        .filter(
+          (f) =>
+            f.field_type === "creation" ||
+            f.field_type === "creation/completion",
+        )
+        .forEach((f) => {
+          const type =
+            typeof f.type === "object" && f.type.date === true
+              ? "date"
+              : f.type;
+          workOrderFormData[jobId][f.key] =
+            type === "boolean"
+              ? false
+              : type === "date" || type === "number"
+                ? null
+                : "";
+        });
+    }
+  }
+
+  // If disabling the job sheet, ensure it's collapsed
+  if (!value) {
+    const index = expandedJobSheets.value.indexOf(jobId);
+    if (index !== -1) {
+      expandedJobSheets.value.splice(index, 1); // Collapse the panel
+    }
+  }
+
+  console.log("[v0] Enabled job sheets:", enabledJobSheets);
+  console.log("[v0] Expanded job sheets:", expandedJobSheets.value);
+};
+
+const toggleAllJobSheets = () => {
+  if (allJobSheetsEnabled.value) {
+    // Disable all job sheets and collapse panels
+    visibleJobSheets.value.forEach((jobSheet) => {
+      enabledJobSheets[jobSheet.job_id] = false;
+      const index = expandedJobSheets.value.indexOf(jobSheet.job_id);
+      if (index !== -1) {
+        expandedJobSheets.value.splice(index, 1);
+      }
+    });
+  } else {
+    // Enable all job sheets and expand panels
+    expandedJobSheets.value = visibleJobSheets.value.map(
+      (jobSheet) => jobSheet.job_id,
+    );
+
+    visibleJobSheets.value.forEach((jobSheet) => {
+      enabledJobSheets[jobSheet.job_id] = true;
+      // Initialize form data for enabled job sheets
+      if (!workOrderFormData[jobSheet.job_id]) {
+        const jobSheetData = jobSheets.value.find(
+          (js) => js.job_id === jobSheet.job_id,
+        );
+        if (jobSheetData && jobSheetData.fields) {
+          workOrderFormData[jobSheet.job_id] = reactive({});
+          jobSheetData.fields
+            .filter(
+              (f) =>
+                f.field_type === "creation" ||
+                f.field_type === "creation/completion",
+            )
+            .forEach((f) => {
+              const type =
+                typeof f.type === "object" && f.type.date === true
+                  ? "date"
+                  : f.type;
+              workOrderFormData[jobSheet.job_id][f.key] =
+                type === "boolean"
+                  ? false
+                  : type === "date" || type === "number"
+                    ? null
+                    : "";
+            });
+        }
+      }
+    });
+  }
+
+  console.log("[v0] Toggled all job sheets, enabled state:", enabledJobSheets);
+  console.log("[v0] Expanded job sheets array:", expandedJobSheets.value);
+};
+
+const isJobSheetCompleted = (jobSheetId) => {
+  if (!enabledJobSheets[jobSheetId]) return true;
+
+  const jobSheet = jobSheets.value.find((js) => js.job_id === jobSheetId);
+  if (!jobSheet) return false;
+
+  const creationFields = getCreationFields(jobSheet);
+
+  if (creationFields.length === 0) {
+    return true;
+  }
+
+  const jobSheetData = workOrderFormData[jobSheetId];
+  if (!jobSheetData) return false;
+
+  const requiredFields = creationFields.filter((f) => {
+    const rbMandatory = f.roleBasedMandatory;
+    if (rbMandatory && typeof rbMandatory === "object") {
+      if (rbMandatory[userRole.value] !== undefined) {
+        return rbMandatory[userRole.value] === true;
       }
     }
 
-    scrollTop();
-    showValidationToast("Step completed successfully!", "success");
-  } else {
-    await handleSubmit();
+    const rbRequired = f.roleBasedRequired;
+    if (rbRequired && typeof rbRequired === "object") {
+      if (rbRequired[userRole.value] !== undefined) {
+        return rbRequired[userRole.value] === true;
+      }
+    }
+
+    return f.validations?.required === true;
+  });
+
+  if (requiredFields.length === 0) {
+    return true;
   }
+
+  return requiredFields.every((field) => {
+    const value = jobSheetData[field.key];
+
+    if (value === undefined || value === null || value === "") {
+      return false;
+    }
+
+    if (Array.isArray(value) && value.length === 0) {
+      return false;
+    }
+
+    return true;
+  });
 };
 
-const prevFormStep = () => {
-  if (currentFormStep.value > 1) {
-    currentFormStep.value--;
-    activeTab.value = tabKeys.value[currentFormStep.value - 1];
-    scrollTop();
-  }
-};
+const completedJobSheetsCount = computed(() => {
+  return visibleJobSheets.value.filter((js) => isJobSheetCompleted(js.job_id))
+    .length;
+});
 
-const tabKeys = computed(() => {
-  const keys = ["core"];
-  visibleJobSheets.value.forEach((js) => keys.push(js.job_id));
-  return keys;
+const isOverviewComplete = computed(() => {
+  if (!formDetails.value?.custom_FormTemplate?.corefields) return true;
+
+  const coreFields = formDetails.value.custom_FormTemplate.corefields;
+
+  const mandatoryFields = coreFields.filter((field) => {
+    if (!isFieldVisible(field)) return false;
+
+    const rbMandatory = field.roleBasedMandatory;
+    if (rbMandatory && typeof rbMandatory === "object") {
+      if (rbMandatory[userRole.value] !== undefined) {
+        return rbMandatory[userRole.value] === true;
+      }
+    }
+
+    const rbRequired = field.roleBasedRequired;
+    if (rbRequired && typeof rbRequired === "object") {
+      if (rbRequired[userRole.value] !== undefined) {
+        return rbRequired[userRole.value] === true;
+      }
+    }
+
+    return field.validations?.required === true;
+  });
+
+  if (mandatoryFields.length === 0) {
+    return true;
+  }
+
+  return mandatoryFields.every((field) => {
+    const value = workOrderFormData[field.key];
+
+    if (value === undefined || value === null || value === "") {
+      return false;
+    }
+
+    if (Array.isArray(value) && value.length === 0) {
+      return false;
+    }
+
+    return true;
+  });
+});
+
+const canSubmit = computed(() => {
+  if (dateValidationError.value) {
+    return false;
+  }
+
+  // If no job sheets are enabled, only check overview completion
+  if (Object.values(enabledJobSheets).every((enabled) => !enabled)) {
+    return isOverviewComplete.value;
+  }
+
+  // Check overview and all enabled job sheets
+  return (
+    isOverviewComplete.value &&
+    visibleJobSheets.value.every(
+      (js) => !enabledJobSheets[js.job_id] || isJobSheetCompleted(js.job_id),
+    )
+  );
+});
+
+const dateValidationError = computed(() => {
+  const fromDateTimeRaw =
+    workOrderFormData.from ||
+    workOrderFormData.fromDate ||
+    workOrderFormData.startDate;
+  const dueDateRaw =
+    workOrderFormData.dueTime ||
+    workOrderFormData.dueDate ||
+    workOrderFormData.endDate;
+
+  if (fromDateTimeRaw && dueDateRaw) {
+    const from = new Date(fromDateTimeRaw);
+    const due = new Date(dueDateRaw);
+
+    if (isNaN(from.getTime()) || isNaN(due.getTime())) {
+      return "Invalid date format provided.";
+    }
+
+    if (from > due) {
+      return "Start date/time cannot be after end date/time";
+    }
+  }
+
+  return null;
 });
 
 const bodyEl = ref(null);
@@ -874,14 +915,13 @@ const scrollTop = () => {
   if (bodyEl.value && typeof bodyEl.value.scrollTo === "function") {
     bodyEl.value.scrollTo({ top: 0, behavior: "smooth" });
   } else {
-    const el = document.querySelector(".cwo-drawer .drawer-body");
+    const el = document.querySelector(".cwo-wrapper .form-body");
     if (el && typeof el.scrollTo === "function") {
       el.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 };
 
-// QR helpers
 const openQrScanner = (fieldKey) => {
   currentQrFieldKey.value = fieldKey;
   showQrScannerDialog.value = true;
@@ -900,14 +940,25 @@ const closeQrScanner = () => {
 
 const applyQrContent = () => {
   if (decodedQrContent.value && currentQrFieldKey.value) {
-    workOrderFormData[currentQrFieldKey.value] = decodedQrContent.value;
+    const targetFormData =
+      currentQrFieldKey.value.includes("_") &&
+      jobSheets.value.some((js) =>
+        currentQrFieldKey.value.startsWith(js.job_id + "_"),
+      )
+        ? workOrderFormData[currentQrFieldKey.value.split("_")[0]]
+        : workOrderFormData;
+
+    const fieldKey = currentQrFieldKey.value.includes("_")
+      ? currentQrFieldKey.value.split("_")[1]
+      : currentQrFieldKey.value;
+
+    targetFormData[fieldKey] = decodedQrContent.value;
     closeQrScanner();
   } else {
     qrScanError.value = "No QR content to apply or target field not set.";
   }
 };
 
-// Field-specific actions
 const handleFieldAction = (field) => {
   const fieldType =
     typeof field.type === "object" && field.type.date === true
@@ -929,7 +980,6 @@ const handleFieldAction = (field) => {
   }
 };
 
-// Random code generator for otp/happy-code
 const generateCode = (field) => {
   const length = field.validations?.length || (field.type === "otp" ? 6 : 4);
   const isNumeric = field.input_modes?.number !== false;
@@ -941,10 +991,19 @@ const generateCode = (field) => {
   for (let i = 0; i < length; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  workOrderFormData[field.key] = code;
+  const targetFormData =
+    field.key.includes("_") &&
+    jobSheets.value.some((js) => field.key.startsWith(js.job_id + "_"))
+      ? workOrderFormData[field.key.split("_")[0]]
+      : workOrderFormData;
+
+  const fieldKey = field.key.includes("_")
+    ? field.key.split("_")[1]
+    : field.key;
+
+  targetFormData[fieldKey] = code;
 };
 
-// Email prompt used by maybeSendCodes
 const emailRules = [
   (v) => !!v || "Email is required",
   (v) => /.+@.+\..+/.test(v) || "Email must be valid",
@@ -974,7 +1033,6 @@ const skipEmailProcess = () => {
   clientEmail.value = "";
 };
 
-// Update priority and rescheduling functions
 const updatePriority = (newPriority) => {
   priority.value = newPriority;
   workOrderFormData.priority = newPriority;
@@ -1005,8 +1063,12 @@ const updateDueDate = (newDueDate) => {
   workOrderFormData.dueDate = newDueDate;
 };
 
-// ENHANCED Submission with detailed debugging
+const updateClientContactDetails = (details) => {
+  contactDetails.value = details;
+};
+
 const handleSubmit = async () => {
+  isSubmitting.value = true;
   try {
     if (!formDetails.value || !formDetails.value.custom_FormTemplate) {
       showValidationToast(
@@ -1027,28 +1089,27 @@ const handleSubmit = async () => {
 
     const dynamicFields = [];
 
-    // Main task fields (core)
-    const mainFields = {};
-    const coreFields = formDetails.value?.custom_FormTemplate?.corefields || [];
-    for (const f of coreFields) {
+    // Process core fields
+    const coreFieldsForSubmit =
+      formDetails.value?.custom_FormTemplate?.corefields || [];
+    for (const f of coreFieldsForSubmit) {
+      if (!isFieldVisible(f)) continue;
+
       const key = f.key;
       if (submissionData[key] !== undefined) {
         if (key === "user_location") {
-          mainFields[key] = {
+          submissionData[key] = {
             lat: submissionData.lat,
             lng: submissionData.lng,
           };
         } else if (key === "taskimage" && submissionData[key]) {
-          // Check if it's already an array of IDs (from FieldRenderer multi-upload)
           if (
             Array.isArray(submissionData[key]) &&
             typeof submissionData[key][0] === "string"
           ) {
-            // Already uploaded, use the array of IDs directly
-            mainFields[key] = submissionData[key];
+            submissionData[key] = submissionData[key];
           } else if (submissionData[key].length > 0) {
-            // Legacy single file upload
-            mainFields[key] = await uploadImage(submissionData[key][0]);
+            submissionData[key] = await uploadImages(submissionData[key]);
           }
         } else if (
           ![
@@ -1060,10 +1121,11 @@ const handleSubmit = async () => {
             "task_priority",
           ].includes(key)
         ) {
-          mainFields[key] = submissionData[key];
+          submissionData[key] = submissionData[key];
         }
       }
     }
+
     const employeeIdAlt = getFirstPresent(submissionData, [
       "UsersId",
       "employeeId",
@@ -1071,64 +1133,108 @@ const handleSubmit = async () => {
       "assignedEmployee",
       "assignedUserId",
     ]);
-    mainFields.UsersId = employeeIdAlt;
+    if (employeeIdAlt) submissionData.UsersId = employeeIdAlt;
 
     if (sharedProperties.value?.booleans?.team && submissionData.team) {
-      mainFields.team = submissionData.team;
+      submissionData.team = submissionData.team;
     }
 
-    dynamicFields.push({ fields: mainFields });
-
-    // Job sheets
-    const jobSheetsValue =
+    // Process job sheets
+    const jobSheetsForSubmit =
       formDetails.value?.custom_FormTemplate?.jobSheet || [];
-    for (const jobSheet of jobSheetsValue) {
-      const jobSheetData = submissionData[jobSheet.job_id] || {};
+    console.log("[DEBUG] enabledJobSheets state:", enabledJobSheets);
+    for (const jobSheet of jobSheetsForSubmit) {
+      console.log(
+        `[DEBUG] Processing job sheet ${jobSheet.job_id}, isVisible: ${!!enabledJobSheets[jobSheet.job_id]}`,
+      );
+
       const jobFields = {};
-      Object.keys(jobSheetData).forEach((key) => {
-        if (
-          jobSheetData[key] !== undefined &&
-          jobSheetData[key] !== null &&
-          jobSheetData[key] !== ""
-        ) {
-          jobFields[key] = jobSheetData[key];
+      const isJobSheetEnabled = !!enabledJobSheets[jobSheet.job_id];
+
+      // Only process fields for enabled job sheets
+      if (isJobSheetEnabled) {
+        const jobSheetData = submissionData[jobSheet.job_id] || {};
+        console.log(
+          `[DEBUG] jobSheetData for ${jobSheet.job_id}:`,
+          JSON.stringify(jobSheetData, null, 2),
+        );
+
+        const fieldsToProcess = jobSheet.fields.filter(
+          (f) =>
+            f.field_type === "creation" ||
+            f.field_type === "creation/completion",
+        );
+
+        for (const field of fieldsToProcess) {
+          if (!isFieldVisible(field)) continue;
+          const key = field.key;
+          if (
+            jobSheetData[key] !== undefined &&
+            jobSheetData[key] !== null &&
+            jobSheetData[key] !== ""
+          ) {
+            if (key === "taskimage" && jobSheetData[key]) {
+              if (
+                Array.isArray(jobSheetData[key]) &&
+                typeof jobSheetData[key][0] === "string"
+              ) {
+                jobFields[key] = jobSheetData[key];
+              } else if (jobSheetData[key].length > 0) {
+                jobFields[key] = await uploadImages(jobSheetData[key]);
+              }
+            } else {
+              jobFields[key] = jobSheetData[key];
+            }
+          }
         }
+
+        if (jobSheet.requires_location) {
+          const latKey = jobSheet.location_field_key?.lat || "lat";
+          const lngKey = jobSheet.location_field_key?.lng || "lng";
+          if (jobSheetData[latKey] || jobSheetData[lngKey]) {
+            jobFields["user_location"] = {
+              lat: jobSheetData[latKey],
+              lng: jobSheetData[lngKey],
+            };
+          }
+        }
+
+        if (employeeIdAlt) jobFields.UsersId = employeeIdAlt;
+      }
+
+      console.log(
+        `[DEBUG] jobFields for ${jobSheet.job_id}:`,
+        JSON.stringify(jobFields, null, 2),
+      );
+
+      dynamicFields.push({
+        taskId: jobSheet.job_id,
+        job_name: jobSheet.job_name,
+        isVisible: isJobSheetEnabled,
+        fields: jobFields,
       });
-      if (jobSheet.requires_location) {
-        const latKey = jobSheet.location_field_key?.lat || "lat";
-        const lngKey = jobSheet.location_field_key?.lng || "lng";
-        if (jobSheetData[latKey] || jobSheetData[lngKey]) {
-          jobFields["user_location"] = {
-            lat: jobSheetData[latKey],
-            lng: jobSheetData[lngKey],
-          };
-        }
-      }
-      if (jobSheetData.taskimage) {
-        // Check if already uploaded (array of IDs)
-        if (
-          Array.isArray(jobSheetData.taskimage) &&
-          typeof jobSheetData.taskimage[0] === "string"
-        ) {
-          jobFields.taskimage = jobSheetData.taskimage;
-        } else if (jobSheetData.taskimage.length > 0) {
-          // Legacy single file upload
-          jobFields.taskimage = await uploadImage(jobSheetData.taskimage[0]);
-        }
-      }
-      jobFields.UsersId = employeeIdAlt;
-      dynamicFields.push({ fields: jobFields });
     }
 
-    submissionData.dynamicFields = dynamicFields;
+    console.log(
+      "[DEBUG] dynamicFields after processing:",
+      JSON.stringify(dynamicFields, null, 2),
+    );
+
+    submissionData.dynamicFields = { tasks: dynamicFields };
 
     if (priority.value) {
       submissionData.task_priority = priority.value;
     }
 
+    console.log(
+      "[DEBUG] Final submissionData:",
+      JSON.stringify(submissionData, null, 2),
+    );
+
     const rescheduleConditionMet =
       rescheduleEnabled.value && fromDate.value && scheduleEndDate.value;
 
+    let taskResponse;
     if (rescheduleConditionMet) {
       const start = normalizedFromDate.value;
       const end = normalizeDateString(scheduleEndDate.value);
@@ -1172,19 +1278,24 @@ const handleSubmit = async () => {
         ...submissionData,
         from: `${day}T${fromTime}:00`,
         dueTime: `${day}T${dueTime}:00`,
+        dynamicFields: submissionData.dynamicFields,
       }));
 
-      console.log("FINAL BATCH PAYLOAD:", batchPayload);
+      console.log(
+        "FINAL BATCH PAYLOAD:",
+        JSON.stringify(batchPayload, null, 2),
+      );
       console.log(
         `Creating ${days.length} tasks for dates: ${days.join(", ")}`,
       );
 
-      await submitForm(batchPayload, formDetails.value, clients.value);
-
-      showValidationToast(
-        `${days.length} tasks created successfully for: ${days.join(", ")}!`,
-        "success",
+      taskResponse = await submitForm(
+        batchPayload,
+        formDetails.value,
+        clients.value,
       );
+
+      showValidationToast(`Task created successfully!`, "success");
     } else if (fromDate.value && dueDate.value) {
       console.log(">>> ENTERING SINGLE TASK LOGIC <<<");
 
@@ -1208,21 +1319,28 @@ const handleSubmit = async () => {
       submissionData.from = `${normalizedFromDate.value}T${fromTime}:00`;
       submissionData.dueTime = `${normalizedDueDate.value}T${dueTime}:00`;
 
-      console.log("Single task payload:", submissionData);
-      await submitForm(submissionData, formDetails.value, clients.value);
+      console.log(
+        "Single task payload:",
+        JSON.stringify(submissionData, null, 2),
+      );
+      taskResponse = await submitForm(
+        submissionData,
+        formDetails.value,
+        clients.value,
+      );
 
       showValidationToast("Task created successfully!", "success");
     } else {
       console.log(">>> ENTERING FALLBACK LOGIC (no dates) <<<");
-      await submitForm(submissionData, formDetails.value, clients.value);
+      taskResponse = await submitForm(
+        submissionData,
+        formDetails.value,
+        clients.value,
+      );
       showValidationToast("Task created successfully!", "success");
     }
 
-    console.log("formDetails:", formDetails.value);
-    console.log("custom_FormTemplate:", formDetails.value?.custom_FormTemplate);
-    console.log("jobSheets:", jobSheets.value);
-
-    const allFields = [
+    const allFieldsForMeta = [
       ...(formDetails.value?.custom_FormTemplate?.corefields || []),
       ...(Array.isArray(jobSheets.value)
         ? jobSheets.value.reduce(
@@ -1231,12 +1349,16 @@ const handleSubmit = async () => {
           )
         : []),
     ];
-    const formMeta = { fields: allFields };
+    const formMeta = { fields: allFieldsForMeta };
     const selectedOrgId = getSelectedClientOrgId();
 
     if (selectedOrgId) {
+      console.log(
+        "[DEBUG] Passing taskResponse to maybeSendCodes:",
+        JSON.stringify(taskResponse, null, 2),
+      );
       await maybeSendCodes({
-        createdTask: submissionData,
+        createdTask: taskResponse,
         formMeta,
         selectedOrgId,
         options: {
@@ -1254,19 +1376,18 @@ const handleSubmit = async () => {
   } catch (err) {
     console.error("SUBMISSION ERROR:", err);
     showValidationToast(err.message || "Failed to submit form", "error");
+  } finally {
+    isSubmitting.value = false;
   }
-
-  console.log("=== SUBMISSION DEBUG END ===");
 };
 
-// Helpers
 const getSelectedClientOrgId = () => {
   const fields = formDetails.value?.custom_FormTemplate?.corefields || [];
 
   const clientField = fields.find((f) => {
     const type =
       typeof f.type === "object" && f.type?.date === true ? "date" : f.type;
-    return type === "clientSelector";
+    return type === "clientSelector" || f.key === "orgId";
   });
 
   if (clientField) {
@@ -1294,15 +1415,23 @@ const onApplyLocation = () => {
       const latNum = Number(lat);
       const lngNum = Number(lng);
 
-      const targetFormData = currentGpsFieldKey.value.includes("job-")
-        ? workOrderFormData[currentGpsFieldKey.value.split("_")[0]]
-        : workOrderFormData;
+      const targetFormData =
+        currentGpsFieldKey.value.includes("_") &&
+        jobSheets.value.some((js) =>
+          currentGpsFieldKey.value.startsWith(js.job_id + "_"),
+        )
+          ? workOrderFormData[currentGpsFieldKey.value.split("_")[0]]
+          : workOrderFormData;
 
-      targetFormData[currentGpsFieldKey.value] = `${
+      const fieldKey = currentGpsFieldKey.value.includes("_")
+        ? currentGpsFieldKey.value.split("_")[1]
+        : currentGpsFieldKey.value;
+
+      targetFormData[fieldKey] = `${
         isFinite(latNum) ? latNum.toFixed(6) : lat
       },${isFinite(lngNum) ? lngNum.toFixed(6) : lng}`;
 
-      const fields = [
+      const allFields = [
         ...(formDetails.value?.custom_FormTemplate?.corefields || []),
         ...(Array.isArray(jobSheets.value)
           ? jobSheets.value.reduce(
@@ -1311,21 +1440,13 @@ const onApplyLocation = () => {
             )
           : []),
       ];
-      const keys = fields.map((f) => f.key);
+      const allFieldKeys = allFields.map((f) => f.key);
 
-      const latCandidates = [
-        `${currentGpsFieldKey.value}_lat`,
-        "latitude",
-        "lat",
-      ];
-      const lngCandidates = [
-        `${currentGpsFieldKey.value}_lng`,
-        "longitude",
-        "lng",
-      ];
+      const latCandidates = [`${fieldKey}_lat`, "latitude", "lat"];
+      const lngCandidates = [`${fieldKey}_lng`, "longitude", "lng"];
 
-      const latKey = latCandidates.find((k) => keys.includes(k));
-      const lngKey = lngCandidates.find((k) => keys.includes(k));
+      const latKey = latCandidates.find((k) => allFieldKeys.includes(k));
+      const lngKey = lngCandidates.find((k) => allFieldKeys.includes(k));
 
       if (latKey)
         targetFormData[latKey] = isFinite(Number(lat))
@@ -1336,18 +1457,36 @@ const onApplyLocation = () => {
           ? Number(lng).toFixed(6)
           : lng;
     }
+    // Update contact details when location is applied
+    contactDetails.value = displayLocationDetails.value?.contactDetails || null;
   }
   applyLocation();
 };
 
+const coreFieldsWithTeam = computed(() => {
+  let fields = [...coreFields.value];
+
+  if (sharedProperties.value?.booleans?.team) {
+    fields.push({
+      key: "team",
+      label: "Department",
+      type: "dropdown",
+      field_type: "creation",
+    });
+  }
+
+  return fields.filter(
+    (f) =>
+      f.field_type === "creation" || f.field_type === "creation/completion",
+  );
+});
+
 const resetFormRuntime = () => {
   formDetails.value = null;
   Object.keys(workOrderFormData).forEach((k) => delete workOrderFormData[k]);
-  currentFormStep.value = 1;
-  activeTab.value = "core";
+  Object.keys(enabledJobSheets).forEach((k) => delete enabledJobSheets[k]);
 };
 
-// Load forms and set default when drawer opens
 const onDrawerUpdate = async (v) => {
   emit("update:open", v);
   if (v) {
@@ -1359,12 +1498,10 @@ const onDrawerUpdate = async (v) => {
   }
 };
 
-// Trigger initial load immediately
 const loadFormsImmediate = async () => {
   await loadForms();
 };
 
-// Watch for mode change in parent to reset and select default form
 watch(
   () => props.open,
   async (newVal) => {
@@ -1380,145 +1517,205 @@ loadFormsImmediate();
 </script>
 
 <style scoped>
-.cwo-drawer {
-  z-index: 2050;
-  right: 0px;
-  position: fixed !important;
-  right: 0;
-  top: 0 !important;
-  bottom: 0 !important;
-  height: 100% !important;
-  width: 460px !important;
-  z-index: 904 !important;
-}
-
-.drawer-root {
+.cwo-wrapper {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  margin: 0 auto;
 }
 
-.drawer-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #fff;
+.form-header {
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  margin-top: 60px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.title-wrap {
-  display: flex;
-  align-items: center;
+.template-selector {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
 }
 
-.title {
-  font-weight: 700;
-  font-size: 1.05rem;
-  margin: 0;
+.template-selector :deep(.v-field) {
+  font-size: medium;
+  border-radius: 8px;
+  font-family: "Inter";
 }
 
-.drawer-body {
-  flex: 1 1 auto;
-  overflow: auto;
+.template-selector :deep(.v-field__input) {
+  min-height: 40px;
+  padding: 8px;
+}
+
+.createtask {
+  background: linear-gradient(135deg, #059367 0%, #047857 100%) !important;
+  color: #ffffff !important;
+  min-width: 140px;
+  height: 42px !important;
+  font-size: medium !important;
+  font-family: "Inter";
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+}
+
+.createtask:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.form-body {
+  flex: 1;
+  overflow-y: auto;
   background: #fafbff;
 }
 
-.drawer-footer {
-  position: sticky;
-  bottom: 0;
-  background: #fff;
-  padding: 10px 16px 14px 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-width: thin;
+  height: 80vh;
+  padding: 24px;
+}
+.section-box {
+  border-radius: 20px;
+  width: 100%;
+  max-width: 1100px;
+  border: 2px solid #c5c5c5;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}
+
+.section-title {
+  font-size: large;
+  font-family: "Inter";
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #059669;
+  padding: 20px;
+  border-bottom: 2px solid #c5c5c5 !important;
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+.jobsheet-item {
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+/* Ensure proper alignment and spacing for the title row */
+.jobsheet-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 16px;
+}
+
+.jobsheet-name {
+  color: #059669;
+  font-size: medium;
+  font-family: "Inter";
+  font-weight: 600;
+  flex: 1;
+  padding-right: 16px;
+}
+
+.jobsheet-toggle {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+.jobsheet-toggle :deep(.v-input__control) {
+  min-height: unset !important;
+}
+
+.jobsheet-toggle :deep(.v-selection-control) {
+  min-height: unset !important;
+}
+
+.v-expansion-panel-title {
+  padding: 16px;
+  background: transparent;
+}
+
+.jobsheets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .pb-safe {
   height: 24px;
 }
 
-.muted {
-  color: #6b7280;
-}
-
-/* Enhanced tab styling for maximum visibility */
-.custom-tabs {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.custom-tab {
-  text-transform: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-radius: 8px;
-  margin: 0 4px;
-  transition: all 0.3s ease;
-  min-height: 48px;
-  cursor: not-allowed !important;
-  opacity: 0.7;
-  position: relative;
-}
-
-/* Super visible active tab with border and shadow */
-.custom-tab.v-tab--selected {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.5) !important;
-  opacity: 1 !important;
-  transform: scale(1.05);
-  border: 2px solid #0d47a1 !important;
-  z-index: 2;
-}
-
-.custom-tab.v-tab--selected .v-icon {
-  color: #ffffff !important;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-/* Non-active tabs with clear distinction */
-.custom-tab:not(.v-tab--selected) {
-  background: #f5f5f5;
-  color: #757575;
-  border: 1px solid #e0e0e0;
-}
-
-.custom-tab:not(.v-tab--selected) .v-icon {
-  color: #9e9e9e;
-}
-
-/* Disabled state - prevent hover effects */
-.custom-tab:disabled,
-.custom-tab[disabled] {
-  pointer-events: none;
-  cursor: not-allowed !important;
-}
-
-/* Add indicator line under active tab */
-.custom-tab.v-tab--selected::after {
-  content: "";
+.expand-all-btn {
   position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 3px;
-  background: #1976d2;
-  border-radius: 2px;
+  top: 16px;
+  right: 16px;
+  font-weight: 600;
+  text-transform: none;
+  transition: all 0.3s ease;
+  font-family: "Inter";
 }
 
-@media (max-width: 768px) {
-  .cwo-drawer {
-    width: 100% !important;
+.expand-all-btn:hover {
+  transform: translateY(-2px);
+}
+
+.section-title.jobsheet-title {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 960px) {
+  .cwo-wrapper {
+    max-width: 100%;
+    border-radius: 0;
   }
 
-  .custom-tab {
-    font-size: 0.85rem;
-    min-height: 44px;
+  .form-body {
+    padding: 16px;
+  }
+
+  .header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .template-selector {
+    max-width: 100%;
+  }
+
+  .createtask {
+    width: 100%;
+  }
+
+  .section-box {
+    padding: 16px;
   }
 }
 </style>

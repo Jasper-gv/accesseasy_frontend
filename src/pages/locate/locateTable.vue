@@ -15,47 +15,48 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      v-if="tenantId"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <!-- Main Content -->
     <div class="main-content" :class="{ 'full-width': !showFilters }">
       <!-- Export Dropdown -->
-      <div class="export-dropdown d-flex justify-end mb-4">
-        <DropdownButton
-          text="Export"
-          :items="exportItems"
-          placement="bottom-right"
-          @itemClick="handleExportClick"
-        />
-      </div>
-
       <data-table-wrapper
         v-model:searchQuery="search"
-        :search-placeholder="'Search Attendance...'"
+        :search-placeholder="'Search ...'"
         :show-search="true"
         :has-error="showError"
         wrapper-class="logs-table-wrapper"
       >
+        <template #before-search>
+          <button
+            v-if="tenantId"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
+        <template #toolbar-actions>
+          <div class="export-dropdown d-flex justify-end mb-4">
+            <DropdownButton
+              text="Export"
+              :items="exportItems"
+              placement="bottom-right"
+              @itemClick="handleExportClick"
+            />
+          </div>
+        </template>
         <!-- Loading State -->
         <template v-if="loading">
           <SkeletonLoader
@@ -91,9 +92,9 @@
             :columns="columns"
             :sort-by="sortBy.key"
             :sort-direction="sortBy.order"
-            :row-clickable="false"
-            item-key="id"
+            :row-clickable="true"
             @sort="handleSort"
+            @rowClick="handleRowClick"
           >
             <!-- Custom Cell for Employee ID -->
             <template #cell-employeeId="{ item }">
@@ -131,14 +132,16 @@
               <span>{{ item.attendance?.workHours || "-" }}</span>
             </template>
 
-            <!-- Custom Cell for Actions -->
+            <!-- Action Button -->
             <template #cell-actions="{ item }">
               <ActionBtn
+                class="action-btn"
+                data-action="view-logs"
                 :icon="CheckCircle"
                 variant="ghost"
                 size="sm"
                 tooltip="View Logs"
-                @click="openLogsPopup(item)"
+                @click.stop="openLogsPopup(item)"
               />
             </template>
           </DataTable>
@@ -286,30 +289,6 @@ const initialFilters = computed(() => ({
 
 const pageFilters = ref([
   { key: "dateFrom", label: "Date", type: "date", show: true },
-  {
-    key: "status",
-    label: "Status",
-    type: "select",
-    show: true,
-    options: [
-      { value: "", title: "All" },
-      { value: "present", title: "Present" },
-      { value: "absent", title: "Absent" },
-    ],
-  },
-  {
-    key: "mode",
-    label: "Mode",
-    type: "select",
-    show: true,
-    options: [
-      { value: "", title: "All" },
-      { value: "face", title: "AI Face" },
-      { value: "manual", title: "Manual Entry" },
-      { value: "rfid", title: "Card Entry" },
-      { value: "fingerprint", title: "Fingerprint" },
-    ],
-  },
 ]);
 
 const columns = ref([
@@ -324,7 +303,7 @@ const columns = ref([
     sortable: true,
     width: "150px",
   },
-  { key: "actions", label: "Action", sortable: false, width: "100px" },
+  // { key: "actions", label: "Action", sortable: false, width: "100px" },
 ]);
 
 const getActionColor = (action) => {
@@ -414,7 +393,7 @@ const fetchPersonalModules = async (restrictedIds = []) => {
       "filter[_and][0][assignedUser][tenant][tenantId][_eq]",
       tenantId.value,
     );
-    params.append("filter[_and][1][accessOn][_eq]", "true");
+    // params.append("filter[_and][1][accessOn][_eq]", "true");
 
     let filterIndex = 2;
     if (restrictedIds.length > 0) {
@@ -670,6 +649,20 @@ const handleSort = ({ field, direction }) => {
   fetchData();
 };
 
+// ✅ NEW: Row Click Handler (SAME as taskTable.vue)
+const handleRowClick = (item, event) => {
+  // 1. Skip if clicking on button
+  if (
+    event &&
+    (event.target.closest(".action-btn") ||
+      event.target.closest('[data-action="view-logs"]'))
+  ) {
+    return; // Let button handle it
+  }
+
+  // 2. ✅ OPEN EmployeeLogsPopup on ROW CLICK
+  openLogsPopup(item);
+};
 const getStatusCount = (status) => {
   if (status === "all") return items.value.length;
   return items.value.filter((item) => item.attendance?.status === status)

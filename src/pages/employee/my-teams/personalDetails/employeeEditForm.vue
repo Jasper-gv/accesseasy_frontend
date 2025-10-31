@@ -1,104 +1,89 @@
-<!-- emploeeEditForm.vue -->
 <template>
   <div class="employee-form-container">
     <!-- Header -->
-    <div class="form-header">
+    <div class="form-heade">
       <div class="header-left">
-        <v-btn
-          v-if="!isDialog"
-          icon
-          variant="text"
-          @click="$router.push('/employee-details')"
-          class="back-button"
-        >
-          <v-icon>mdi-arrow-left</v-icon>
-        </v-btn>
-        <div class="employee-name-container">
-          <v-icon left color="primary">mdi-account</v-icon>
-          <span class="employee-name">{{
+        <div class="breadcrumb">
+          <span class="crumb" @click="$router.push('/employee-details')"
+            >All Employees</span
+          >
+          <v-icon size="small">mdi-chevron-right</v-icon>
+          <span class="crumb active">{{
             employeeData.assignedUser?.first_name || "New Employee"
           }}</span>
         </div>
       </div>
-
-      <div class="header-center">
-        <h2 class="form-title">
-          {{ isEditing ? "Edit Employee" : "Add Employee" }}
-        </h2>
-      </div>
-
-      <div class="header-right">
-        <v-btn color="error" variant="text" @click="cancelForm"> CANCEL </v-btn>
-      </div>
     </div>
 
-    <!-- Main Content with Sidebar -->
+    <!-- Main Content -->
     <div class="form-content-wrapper">
-      <!-- Left Sidebar with Tabs -->
-      <div class="sidebar">
-        <v-list>
-          <v-list-item
-            v-for="tab in filteredTabs"
-            :key="tab.path"
-            :to="getTabRoute(tab.path)"
+      <!-- Top Tabs Section with v-tabs -->
+      <div class="tab-section">
+        <v-tabs
+          v-model="currentTabIndex"
+          bg-color="transparent"
+          color="#059367"
+          class="custom-tab"
+          align-tabs="center"
+          @update:model-value="handleTabChange"
+          v-if="isTabReady"
+        >
+          <v-tab
+            v-for="(tab, index) in filteredTabs"
+            :key="index"
+            :value="index"
+            class="tab-item"
             :class="{
-              'has-error': tabHasError(tab.id),
-              'v-list-item--active': currentModule === tab.path,
-            }"
-            :style="{
-              minHeight: '54px !important',
-              borderRight: '1px solid #e0e0e0',
+              'tab-item--active': currentTabIndex === index,
+              'tab-item--error': tabHasError(tab.id),
             }"
           >
-            <template v-slot:prepend>
-              <!-- Always show icon -->
-              <v-tooltip location="right">
-                <template v-slot:activator="{ props }">
-                  <v-icon
-                    v-bind="props"
-                    :color="tabHasError(tab.id) ? 'error' : 'default'"
-                    class="sidebar-icon"
-                  >
-                    {{ tab.icon }}
-                  </v-icon>
-                </template>
-                <span>{{ tab.title }}</span>
-              </v-tooltip>
-            </template>
-
-            <!-- Show text only on desktop -->
-            <v-list-item-title class="sidebar-title">
-              {{ tab.title }}
+            <div class="tab-contet">
+              <v-icon class="tab-icon" size="20">
+                {{ tab.icon }}
+              </v-icon>
+              <span class="tab-text">{{ tab.title }}</span>
               <v-icon
                 v-if="tabHasError(tab.id)"
                 color="error"
-                size="small"
-                class="ms-2"
+                size="16"
+                class="tab-error-icon"
               >
                 mdi-alert-circle
               </v-icon>
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
+            </div>
+          </v-tab>
+        </v-tabs>
       </div>
 
-      <!-- Right Content Area -->
+      <!-- Content Area -->
       <div class="form-content">
-        <component
-          :is="currentTabComponent"
-          :employee-data="currentTabData"
-          :id="id"
-          @update:employee-data="updateTempData"
-          :tenant-id="tenantId"
-          ref="currentTabRef"
-        ></component>
+        <transition name="fade" mode="out-in">
+          <div :key="currentModule" class="content-wrapper">
+            <component
+              :is="currentTabComponent"
+              :employee-data="currentTabData"
+              :id="id"
+              @update:employee-data="updateTempData"
+              :tenant-id="tenantId"
+              ref="currentTabRef"
+            ></component>
+          </div>
+        </transition>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  watch,
+  nextTick,
+  onBeforeUnmount,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
@@ -106,12 +91,9 @@ import PersonalDetails from "@/pages/employee/my-teams/personalDetails/employeeE
 import CompanyDetails from "@/pages/employee/my-teams/personalDetails/employeeEditform/companyDetails.vue";
 import GovernmentIds from "@/pages/employee/my-teams/personalDetails/employeeEditform/governmentIDs.vue";
 import AttendancePolicy from "@/pages/employee/my-teams/personalDetails/employeeEditform/attendance/attendancePolicy.vue";
-//import PayrollCategory from "@/pages/employee/my-teams/personalDetails/employeeEditform/payrollCategory.vue";
 import AccessManagement from "@/pages/employee/my-teams/personalDetails/employeeEditform/accessManagement.vue";
 import PastExperience from "@/pages/employee/my-teams/personalDetails/employeeEditform/pastExperience.vue";
 import BackgroundVerification from "@/pages/employee/my-teams/personalDetails/employeeEditform/backgroundVerification.vue";
-//import BankDetails from "@/pages/employee/my-teams/personalDetails/employeeEditform/bankForm.vue";
-// import EmployeeAddress from "@/pages/employee/my-teams/personalDetails/employeeEditform/employeeAddress.vue";
 import EmergencyContact from "@/pages/employee/my-teams/personalDetails/employeeEditform/emergencyContact.vue";
 import LeavePolicy from "@/pages/employee/my-teams/personalDetails/employeeEditform/leavePolicy.vue";
 import Appaccess from "./employeeEditform/appaccess.vue";
@@ -128,7 +110,7 @@ const emit = defineEmits(["close", "save-success"]);
 const route = useRoute();
 const router = useRouter();
 const id = computed(() => route.params.id);
-const currentModule = computed(() => route.params.module || "personalmodule");
+const currentModule = computed(() => route.params.module);
 const employeeData = ref({});
 const modifiedEmployeeData = ref({});
 const hasChanges = ref(false);
@@ -136,38 +118,42 @@ const isEditing = computed(() => !!id.value);
 const userRole = ref("");
 const isInitialized = ref(false);
 const errorTabs = ref({});
-const tenantId = ref(null); // Added tenantId ref
-const currentTabRef = ref(null); // Ref to the currently active tab component
+const tenantId = ref(null);
+const currentTabRef = ref(null);
 const showErrorIcon = ref(false);
+
+const currentTabIndex = ref(0);
 
 const tabs = [
   {
-    id: "personal",
-    title: "Personal Details",
-    icon: "mdi-account",
-    path: "personalmodule",
+    id: "overview",
+    title: "Overview",
+    icon: "mdi-view-dashboard",
+    path: "overviewmodule",
     component: PersonalDetails,
     roles: ["Admin", "Manager", "accessManager", "Dealer"],
   },
-  {
-    id: "company",
-    title: "Company Details",
-    icon: "mdi-domain",
-    path: "companymodule",
-    component: CompanyDetails,
-    roles: ["Admin", "Manager", "accessManager", "Dealer"],
-  },
-  {
-    id: "government",
-    title: "Government IDs",
-    icon: "mdi-card-account-details",
-    path: "governmentmodule",
-    component: GovernmentIds,
-    roles: ["Admin", "Manager", "accessManager", "Employee", "Dealer"],
-  },
+
+  // {
+  //   id: "company",
+  //   title: "Company Details",
+  //   icon: "mdi-domain",
+  //   path: "companymodule",
+  //   component: CompanyDetails,
+  //   roles: ["Admin", "Manager", "accessManager", "Dealer"],
+  // },
+  // {
+  //   id: "government",
+  //   title: "Government IDs",
+  //   icon: "mdi-card-account-details",
+  //   path: "governmentmodule",
+  //   component: GovernmentIds,
+  //   roles: ["Admin", "Manager", "accessManager", "Employee", "Dealer"],
+  // },
+
   {
     id: "attendance",
-    title: "Attendance Settings",
+    title: "Assign Shifts",
     icon: "mdi-calendar-check",
     path: "attendancemodule",
     component: AttendancePolicy,
@@ -181,14 +167,14 @@ const tabs = [
     component: LeavePolicy,
     roles: ["Admin", "Manager", "accessManager", "Dealers"],
   },
-
+  /*
   {
     id: "access",
     title: "Access Management",
     icon: "mdi-key",
     path: "accessmodule",
     component: AccessManagement,
-    roles: ["Admin", "Dealer", "Manager", "accessManager"],
+    roles: ["Admin", "Dealer", "Manager",'accessManager'],
   },
   {
     id: "experience",
@@ -207,19 +193,20 @@ const tabs = [
     component: EmergencyContact,
     roles: ["Admin", "Manager", "accessManager", "Dealer"],
   },
-  // {
-  //   id: "Employee Address",
-  //   title: "Employee Address",
-  //   icon: "mdi-map-marker",
-  //   path: "employeeAddress",
-  //   component: EmployeeAddress,
-  //   roles: ["Admin", "Manager",'accessManager', "Employee", "Dealer"],
-  // },
+  {
+    id: "Employee Address",
+    title: "Employee Address",
+    icon: "mdi-map-marker",
+    path: "employeeAddress",
+    component: EmployeeAddress,
+    roles: ["Admin", "Manager",'accessManager', "Employee", "Dealer"],
+  },
+  */
   {
     id: "Appaccess",
-    title: "App Access Settings",
+    title: "Mobile App Access",
     icon: "mdi-shield-check",
-    path: "appacess",
+    path: "appaccess",
     component: Appaccess,
     roles: ["Admin", "Manager", "accessManager", "Employee", "Dealer"],
   },
@@ -228,7 +215,7 @@ const tabs = [
 // Filter tabs based on user role
 const filteredTabs = computed(() => {
   const filtered = tabs.filter((tab) =>
-    tab.roles.includes(userRole.value || "Employee")
+    tab.roles.includes(userRole.value || "Employee"),
   );
   return filtered;
 });
@@ -254,6 +241,49 @@ const getTabRoute = (tabPath) => {
 
 const tabHasError = (tabId) => {
   return !!errorTabs.value[tabId];
+};
+
+// Handle tab change
+const handleTabChange = async (newIndex) => {
+  const newTab = filteredTabs.value[newIndex];
+  if (!newTab) return;
+
+  // Prevent handling if we're already on this tab
+  if (
+    currentTabIndex.value === newIndex &&
+    currentModule.value === newTab.path
+  ) {
+    return;
+  }
+
+  // Save current tab data before switching
+  if (
+    currentTabRef.value &&
+    typeof currentTabRef.value.validateAndSave === "function"
+  ) {
+    try {
+      await currentTabRef.value.validateAndSave();
+    } catch (error) {
+      console.warn("Error saving current tab data:", error);
+    }
+  }
+
+  // Navigate to new tab
+  try {
+    if (props.isDialog) {
+      await router.push({
+        name: "AddEmployeeForm",
+        params: { module: newTab.path },
+      });
+    } else {
+      await router.push(
+        `/employee-details/employee/${id.value}/${newTab.path}`,
+      );
+    }
+  } catch (error) {
+    // Handle navigation errors (e.g., navigating to the same route)
+    console.warn("Navigation error:", error);
+  }
 };
 
 const updateTempData = (newData) => {
@@ -311,11 +341,9 @@ async function fetchEmployeeDetails(employeeId) {
   }
 }
 
-// Updated getUserRole function to use currentUserTenant
 const getUserRole = async () => {
   try {
     await currentUserTenant.initialize();
-
     const role = await currentUserTenant.getRoleAsync();
 
     if (role) {
@@ -329,44 +357,6 @@ const getUserRole = async () => {
   }
 };
 
-const fetchUserProfile = async () => {
-  const token = authService.getToken();
-  try {
-    const phone = localStorage.getItem("userPhone");
-    const formattedPhone = phone?.startsWith("+91") ? phone : `+91${phone}`;
-
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/personalModule`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        params: {
-          fields: ["assignedUser.role.name"],
-          filter: {
-            _and: [{ assignedUser: { phone: { _contains: formattedPhone } } }],
-          },
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.data && data.data.length > 0) {
-      return { role: data.data[0].assignedUser.role?.name || "Employee" };
-    }
-    return { role: "Employee" };
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
-    return { role: "Employee" };
-  }
-};
-
 const cancelForm = () => {
   if (props.isDialog) {
     emit("close");
@@ -375,43 +365,32 @@ const cancelForm = () => {
   }
 };
 
-// Removed the saveForm function as requested.
-// Each tab component will handle its own update logic.
-
 const validateAndRedirectIfNeeded = () => {
   if (!isInitialized.value) return;
 
   const currentModuleValue = currentModule.value;
-  const isValidModule = filteredTabs.value.some(
-    (tab) => tab.path === currentModuleValue
+  const tabIndex = filteredTabs.value.findIndex(
+    (tab) => tab.path === currentModuleValue,
   );
 
-  if (
-    userRole.value === "Employee" &&
-    currentModuleValue !== "governmentmodule"
-  ) {
+  if (tabIndex !== -1) {
+    currentTabIndex.value = tabIndex; // Update tab index based on route
+  } else {
+    // Redirect to default tab (overview) if module is invalid
+    const defaultTab = filteredTabs.value[0]?.path || "overviewmodule";
     if (props.isDialog) {
       router.replace({
         name: "AddEmployeeForm",
-        params: { module: "governmentmodule" },
+        params: { module: defaultTab },
       });
     } else {
-      router.replace(`/employee-details/employee/${id.value}/governmentmodule`);
+      router.replace(`/employee-details/employee/${id.value}/${defaultTab}`);
     }
-  } else if (!isValidModule && currentModuleValue !== "personalmodule") {
-    if (props.isDialog) {
-      router.replace({
-        name: "AddEmployeeForm",
-        params: { module: "personalmodule" },
-      });
-    } else {
-      router.replace(`/employee-details/employee/${id.value}/personalmodule`);
-    }
+    currentTabIndex.value = 0;
   }
 };
 
 onMounted(async () => {
-  // Get user role first
   await getUserRole();
 
   if (id.value) {
@@ -424,33 +403,73 @@ onMounted(async () => {
     }
   }
 
-  // Mark as initialized after everything is loaded
+  // Wait for next tick before setting initial state
   await nextTick();
+
+  // Set initial tab index based on current route
+  const currentModuleValue = currentModule.value;
+  const tabIndex = filteredTabs.value.findIndex(
+    (tab) => tab.path === currentModuleValue,
+  );
+
+  if (tabIndex !== -1) {
+    currentTabIndex.value = tabIndex;
+  } else {
+    // Redirect to default tab if current module is invalid
+    const defaultTab = filteredTabs.value[0]?.path || "overviewmodule";
+    currentTabIndex.value = 0;
+
+    if (props.isDialog) {
+      await router.replace({
+        name: "AddEmployeeForm",
+        params: { module: defaultTab },
+      });
+    } else {
+      await router.replace(
+        `/employee-details/employee/${id.value}/${defaultTab}`,
+      );
+    }
+  }
+
   isInitialized.value = true;
-
-  // Only validate after initialization
-  validateAndRedirectIfNeeded();
 });
-
-// Watch for route changes, but only validate if initialized
+const isTabReady = computed(() => {
+  return (
+    isInitialized.value &&
+    filteredTabs.value.some((tab) => tab.path === currentModule.value)
+  );
+});
+// Watch for route changes
 watch(
   () => route.params.module,
   (newModule) => {
-    if (isInitialized.value) {
-      validateAndRedirectIfNeeded();
+    if (!isInitialized.value || !newModule) return;
+
+    const tabIndex = filteredTabs.value.findIndex(
+      (tab) => tab.path === newModule,
+    );
+
+    if (tabIndex !== -1 && currentTabIndex.value !== tabIndex) {
+      // Use nextTick to ensure DOM is ready before updating
+      nextTick(() => {
+        currentTabIndex.value = tabIndex;
+      });
     }
-  }
+  },
+  { immediate: true },
 );
 
-// Watch for role changes
 watch(
   () => userRole.value,
   (newRole) => {
     if (isInitialized.value) {
       validateAndRedirectIfNeeded();
     }
-  }
+  },
 );
+
+// Cleanup on unmount
+onBeforeUnmount(() => {});
 </script>
 
 <style scoped>
@@ -461,9 +480,10 @@ watch(
   background: #fff;
   width: 100%;
   max-width: 100%;
+  font-family: "Inter", sans-serif;
 }
 
-/* Improved Header Styles */
+/* Header Styles */
 .form-header {
   position: sticky;
   top: 0;
@@ -474,7 +494,7 @@ watch(
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  border-bottom: 1px solid #e0e0e0;
+
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -485,90 +505,227 @@ watch(
   flex: 1;
 }
 
-.header-center {
-  flex: 2;
-  display: flex;
-  justify-content: center;
-}
-
-.header-right {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.employee-name-container {
+.breadcrumb {
   display: flex;
   align-items: center;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background-color: #f5f8ff;
-  border: 1px solid #e0e0e0;
+  gap: 4px;
+  font-size: 14px;
 }
 
-.employee-name {
-  font-weight: 600;
-  color: #1976d2;
+.crumb {
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
-.form-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
+.crumb:hover {
+  color: #059367;
+  text-decoration: underline;
 }
 
-/* Rest of the styles remain the same */
+.crumb.active {
+  color: #059367;
+  font-weight: 500;
+  cursor: default;
+}
+
+/* Form Content Wrapper */
 .form-content-wrapper {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
 }
 
-.sidebar {
-  width: 280px;
-  border-right: 1px solid #e0e0e0;
-  overflow-y: auto;
+/* Tab Section */
+.tab-section {
+  font-family: "Inter", sans-serif;
+  background: #f8f9fa;
 }
 
+.custom-tab {
+  background: transparent !important;
+}
+
+.custom-tab :deep(.v-slide-group__container) {
+  background: transparent !important;
+}
+
+.custom-tab :deep(.v-slide-group__content) {
+  background: white !important;
+  padding: 0 !important;
+  gap: 12px !important;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+/* Individual tab as separate column with gaps */
+.tab-item {
+  background: #e8f5f0 !important;
+  /* border: 1px solid #d1e7dd !important; */
+  border-radius: 8px !important;
+  min-height: 48px !important;
+  min-width: 200px !important;
+  padding: 0 20px !important;
+  margin: 0 !important;
+  text-transform: none !important;
+  font-family: "Inter", sans-serif !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Selected tab state */
+.tab-item--active {
+  background: #059367 !important;
+  border-color: #059367 !important;
+  box-shadow: 0 2px 8px rgba(5, 147, 103, 0.3);
+}
+
+/* Hover state for unselected tabs */
+.tab-item:not(.tab-item--active):hover {
+  background: #d1e7dd !important;
+  border-color: #a3cfbb !important;
+  transform: translateY(-1px);
+}
+
+.tab-contet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.tab-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-item--active .tab-text {
+  color: white !important;
+}
+
+/* Unselected tab - black text and green icon */
+.tab-item:not(.tab-item--active) .tab-icon {
+  color: #059367 !important;
+}
+
+.tab-item:not(.tab-item--active) .tab-text {
+  color: #000000 !important;
+  font-weight: 500;
+}
+
+/* Selected tab - white text and white icon */
+.tab-item--active .tab-icon {
+  color: white !important;
+}
+
+.tab-item--active .tab-text {
+  color: white !important;
+  font-weight: 600;
+}
+
+.tab-text {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: -0.1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-error-icon {
+  position: relative;
+  z-index: 2;
+}
+
+/* Error state styles */
+.tab-item--error:not(.tab-item--active) .tab-text {
+  color: #d32f2f !important;
+}
+
+.tab-item--error:not(.tab-item--active) .tab-icon {
+  color: #d32f2f !important;
+}
+
+.tab-item--error.tab-item--active .tab-error-icon {
+  color: white !important;
+}
+
+/* Remove default Vuetify tab styles */
+.custom-tab:deep(.v-tab--selected) {
+  color: transparent !important;
+}
+
+.custom-tab :deep(.v-tab__slider) {
+  display: none !important;
+}
+
+/* Content Area */
 .form-content {
   flex: 1;
-  padding: 24px;
-  overflow-y: auto;
+  /* overflow-y: auto; */
+  background: #fff;
 }
 
-:deep(.v-list-item--active) {
-  background-color: #f5f5f5 !important;
-  color: #1976d2 !important;
+.content-wrapper {
+  min-height: 100%;
 }
 
-:deep(.v-list-item:hover) {
-  background-color: #f0f0f0;
+/* Fade Transition for Content */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-.has-error {
-  color: rgb(var(--v-theme-error));
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-:deep(.v-list-item.has-error:not(.v-list-item--active)) {
-  background-color: rgb(var(--v-theme-error), 0.1);
-}
-
-.sidebar-title {
-  font-weight: 400;
-  font-family: sans-serif;
-}
+/* Responsive design */
 @media (max-width: 768px) {
-  .sidebar-title {
-    display: none;
+  .custom-tab :deep(.v-slide-group__content) {
+    gap: 8px !important;
   }
 
-  .sidebar {
-    width: 80px;
+  .tab-item {
+    min-width: 160px !important;
+    padding: 0 16px !important;
+    min-height: 44px !important;
   }
 
-  .sidebar-icon {
-    margin: auto;
+  .tab-text {
+    font-size: 13px;
   }
+
+  .tab-icon {
+    font-size: 18px;
+  }
+
+  .form-header {
+    padding: 8px 16px;
+  }
+
+  .tab-section {
+    padding: 12px 16px;
+  }
+
+  .content-wrapper {
+    padding: 16px;
+  }
+}
+
+/* Focus states for accessibility */
+.tab-item:focus-visible {
+  outline: 2px solid #059367;
+  outline-offset: 2px;
+}
+
+.tab-item--active:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 </style>

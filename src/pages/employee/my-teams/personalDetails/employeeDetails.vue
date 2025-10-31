@@ -166,6 +166,9 @@
                 item.assignedUser?.first_name || "Unknown"
               }}</span>
             </template>
+            <template #cell-locationName="{ item }">
+              <span class="location-name">{{ item.locationName || "-" }}</span>
+            </template>
             <template #cell-department="{ item }">
               <span class="department-name">{{
                 item.department?.departmentName || "No department"
@@ -471,20 +474,6 @@ const hasActiveFilters = computed(() => {
 // Columns Configuration
 const columns = [
   {
-    key: "profile",
-    label: "Profile",
-    sortable: false,
-    class: "profile-col",
-    width: 80,
-  },
-  {
-    key: "employeeId",
-    label: "EmpID",
-    sortable: false,
-    class: "id-col",
-    width: 120,
-  },
-  {
     key: "name",
     label: "Name",
     sortable: false,
@@ -492,6 +481,22 @@ const columns = [
     class: "name-col",
     width: 150,
   },
+
+  // {
+  //   key: "profile",
+  //   label: "Profile",
+  //   sortable: false,
+  //   class: "profile-col",
+  //   width: 80,
+  // },
+  {
+    key: "employeeId",
+    label: "EmpID",
+    sortable: false,
+    class: "id-col",
+    width: 120,
+  },
+
   {
     key: "department",
     label: "Department",
@@ -500,6 +505,13 @@ const columns = [
     class: "department-col",
     width: 150,
   },
+  // {
+  //   key: "locationName",
+  //   label: "Branch",
+  //   sortable: false,
+  //   class: "location-col",
+  //   width: 180,
+  // },
   // {
   //   key: "orgType",
   //   label: "Organization Type",
@@ -525,22 +537,6 @@ const columns = [
     width: 120,
   },
   {
-    key: "contact",
-    label: "Contact",
-    sortable: false,
-    sortKey: "assignedUser.phone",
-    class: "contact-col",
-    width: 150,
-  },
-  {
-    key: "email",
-    label: "Email",
-    sortable: false,
-    sortKey: "assignedUser.email",
-    class: "email-col",
-    width: 200,
-  },
-  {
     key: "approverName",
     label: "Approver",
     sortable: false,
@@ -548,6 +544,22 @@ const columns = [
     class: "approver-col",
     width: 150,
   },
+  {
+    key: "contact",
+    label: "Contact",
+    sortable: false,
+    sortKey: "assignedUser.phone",
+    class: "contact-col",
+    width: 150,
+  },
+  // {
+  //   key: "email",
+  //   label: "Email",
+  //   sortable: false,
+  //   sortKey: "assignedUser.email",
+  //   class: "email-col",
+  //   width: 200,
+  // },
 ];
 
 // Helper Functions
@@ -720,13 +732,12 @@ const fetchEmployeeData = async () => {
         "assignedUser.role.name",
         "assignedUser.phone",
         "assignedUser.email",
-        "assignedUser.organization.id",
-        "assignedUser.organization.orgName",
-        "assignedUser.organization.orgType",
+        "branchLocation.id",
+        "branchLocation.locdetail",
+
         "department.id",
         "department.departmentName",
-        "assignedUser.aadhar",
-        "assignedUser.pan",
+
         "approver.id",
         "approver.first_name",
       ],
@@ -764,6 +775,8 @@ const fetchEmployeeData = async () => {
     items.value = await Promise.all(
       employeeData.map(async (employee) => {
         const employeeWithAvatar = { ...employee };
+        employeeWithAvatar.locationName =
+          employee.branchLocation?.locdetail?.locationName || "-";
         if (employee.assignedUser?.avatar?.id) {
           const avatarUrl = `${import.meta.env.VITE_API_URL}/assets/${
             employee.assignedUser.avatar.id
@@ -838,27 +851,59 @@ const showDeleteConfirmation = () => {
 const confirmDelete = async () => {
   if (!isAdmin.value) return;
   const employeeIds = selectedEmployees.value.map((employee) => employee.id);
+  const userIds = selectedEmployees.value
+    .map((employee) => employee.assignedUser?.id)
+    .filter((id) => id); // Filter out any undefined/null IDs
+
   try {
     deleting.value = true;
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/personalModule`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          keys: employeeIds,
-        }),
-      },
-    );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `HTTP error! status: ${response.status}, message: ${errorData.errors?.[0]?.message || "Unknown error"}`,
+    // First, delete the assigned users from the 'users' collection
+    if (userIds.length > 0) {
+      const usersResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/users`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            keys: userIds,
+          }),
+        },
       );
+
+      if (!usersResponse.ok) {
+        const errorData = await usersResponse.json();
+        throw new Error(
+          `Failed to delete users: ${errorData.errors?.[0]?.message || "Unknown error"} (Status: ${usersResponse.status})`,
+        );
+      }
+    }
+
+    // Then, delete the personalModule entries
+    if (employeeIds.length > 0) {
+      const personalResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/personalModule`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            keys: employeeIds,
+          }),
+        },
+      );
+
+      if (!personalResponse.ok) {
+        const errorData = await personalResponse.json();
+        throw new Error(
+          `Failed to delete employees: ${errorData.errors?.[0]?.message || "Unknown error"} (Status: ${personalResponse.status})`,
+        );
+      }
     }
 
     showToast.value = true;
@@ -870,7 +915,7 @@ const confirmDelete = async () => {
   } catch (err) {
     console.error("Error deleting employees:", err);
     showToast.value = true;
-    toastMessage.value = `Failed to delete employees: ${err.message}. Please try again.`;
+    toastMessage.value = `Failed to delete: ${err.message}. Please try again.`;
     toastType.value = "error";
   } finally {
     deleting.value = false;
@@ -1217,11 +1262,6 @@ watch(
   white-space: nowrap;
 }
 
-.employee-id {
-  font-weight: 500;
-  color: #3b82f6;
-}
-
 /* Organization Info */
 .org-type-badge {
   display: flex;
@@ -1233,26 +1273,6 @@ watch(
   font-weight: 500;
   white-space: nowrap;
   width: fit-content;
-}
-
-.main-org-badge {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.sub-org-badge {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.distributor-org-badge {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.client-org-badge {
-  background: #fce7f3;
-  color: #be185d;
 }
 
 .default-org-badge {

@@ -14,28 +14,6 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      v-if="!showForm"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <div
       v-if="!showForm"
       class="main-content"
@@ -49,6 +27,30 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
+        <!-- Filter Toggle Button -->
+        <template #before-search>
+          <button
+            v-if="!showForm"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
+
         <div v-if="loading">
           <SkeletonLoader
             variant="table-body-only"
@@ -170,11 +172,9 @@
         :bank-data="editedItem"
         :tenant-id="tenantId"
         :first-name="editedItem.assignedUser?.first_name"
-        @save-success="handleSaveSuccess"
-        @cancel="showForm = false"
       />
     </div>
-    <router-view />
+    <router-view @close="handleClose" />
   </div>
 </template>
 
@@ -241,6 +241,12 @@ const columns = computed(() => [
   {
     key: "configName",
     label: "Penality Category",
+    sortable: true,
+    width: "200px",
+  },
+  {
+    key: "AttendanceCycle",
+    label: "Attendance Cycle Type",
     sortable: true,
     width: "200px",
   },
@@ -340,7 +346,7 @@ const fetchBankData = async (
 
         "assignedUser.role.name",
         "assignedUser.avatar.id",
-
+        "cycleType",
         "salaryConfig.configName",
         "config.configName",
       ],
@@ -444,6 +450,7 @@ const fetchBankData = async (
           const avatarUrl = `${import.meta.env.VITE_API_URL}/assets/${employee.assignedUser.avatar.id}`;
           employee.avatarImage = await fetchAuthorizedImage(avatarUrl);
         }
+
         return employee;
       }),
     );
@@ -617,7 +624,10 @@ const deleteItem = async (item) => {
 const debouncedSearch = debounce(() => {
   fetchBankData(1, itemsPerPage.value, search.value);
 }, 300);
-
+const handleClose = async () => {
+  showForm.value = false;
+  await fetchBankData();
+};
 // Lifecycle Hooks
 onMounted(async () => {
   await fetchManagerBranch();

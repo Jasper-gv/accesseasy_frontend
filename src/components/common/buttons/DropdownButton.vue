@@ -113,14 +113,18 @@ onUnmounted(() => {
 
 .dropdown-menu {
   position: absolute;
-  z-index: 1000;
+  z-index: 10000;
   margin-top: 0.5rem;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   min-width: 200px;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.dropdown-container * {
+  overflow: visible;
 }
 
 .dropdown-bottom-left {
@@ -178,6 +182,7 @@ onUnmounted(() => {
 .dropdown-item-text {
   flex: 1;
   font-size: 0.875rem;
+  font-family: "Inter";
   color: #1e293b;
 }
 
@@ -185,6 +190,7 @@ onUnmounted(() => {
   background: #f1f5f9;
   color: #64748b;
   font-size: 0.75rem;
+  font-family: "Inter";
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
 }

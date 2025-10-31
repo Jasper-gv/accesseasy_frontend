@@ -1,7 +1,12 @@
 <template>
   <v-card class="deduction-manager">
-     <!-- Snackbar for notifications -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="2000" location="top">
+    <!-- Snackbar for notifications -->
+    <v-snackbar
+      v-model="snackbar"
+      :color="snackbarColor"
+      :timeout="2000"
+      location="top"
+    >
       {{ snackbarText }}
       <template v-slot:actions>
         <v-btn color="white" variant="text" @click="snackbar = false">
@@ -341,7 +346,7 @@ export default {
         if (response.ok) {
           this.isEditing = false; // Changed to update overall editing state
         }
-        this.showSnackbar("Changes saved successfully")
+        this.showSnackbar("Changes saved successfully");
       } catch (error) {
         console.error("Error:", error);
         this.showSnackbar("Failed to save changes", "error");

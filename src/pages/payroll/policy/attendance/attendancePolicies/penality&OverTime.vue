@@ -29,7 +29,7 @@
               @click="toggleEditing"
               v-if="!isEditing"
             >
-              Edi
+              Edit
             </BaseButton>
 
             <template v-else>
@@ -177,7 +177,7 @@
                   :disabled="!isEditing"
                   type="time"
                   variant="outlined"
-                  suffix="minutes"
+                  suffix="hours"
                   hide-details
                 ></v-text-field>
               </div>
@@ -313,7 +313,7 @@
                   :disabled="!isEditing"
                   type="time"
                   variant="outlined"
-                  suffix="minutes"
+                  suffix="hours"
                   hide-details
                 ></v-text-field>
               </div>
@@ -495,7 +495,7 @@
                 v-model="lateComing.gracePeriod"
                 :disabled="!isEditing"
                 type="time"
-                suffix="minutes"
+                suffix="hours"
                 variant="outlined"
                 hide-details
               ></v-text-field>
@@ -648,7 +648,7 @@
                 v-model="earlyLeaving.gracePeriod"
                 :disabled="!isEditing"
                 type="time"
-                suffix="minutes"
+                suffix="hours"
                 variant="outlined"
                 hide-details
               ></v-text-field>
@@ -1079,39 +1079,48 @@ const waiveOffDaysRule = (v) => {
   return true;
 };
 
-const convertToHHMMSS = (minutes) => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:00`;
+const convertToHHMMSS = (timeStr) => {
+  const parts = timeStr.split(":").map(Number);
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
+  const s = parts[2] || 0;
+
+  return `${h.toString().padStart(2, "0")}:${m
+    .toString()
+    .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 };
 
 const convertToMinutes = (hhmmss) => {
-  const [hours, minutes] = hhmmss.split(":");
-  return parseInt(hours) * 60 + parseInt(minutes);
+  const parts = hhmmss.split(":").map(Number);
+  const hours = parts[0] || 0;
+  const minutes = parts[1] || 0;
+
+  const totalMinutes = hours * 60 + minutes;
+  return totalMinutes;
 };
 
 const saveChanges = async () => {
-  const isValid = [
-    validateTotalWorkingHours(), // always validate totalWorkingHours, since always present
-    !lateComing.enabled ||
-      validateGracePeriod(lateComing.gracePeriod, "lateGracePeriod"),
-    !lateComing.enabled ||
-      validateWaiveOffDays(lateComing.waiveOffDays, "lateWaiveOffDays"),
-    !earlyLeaving.enabled ||
-      validateGracePeriod(earlyLeaving.gracePeriod, "earlyGracePeriod"),
-    !earlyLeaving.enabled ||
-      validateWaiveOffDays(earlyLeaving.waiveOffDays, "earlyWaiveOffDays"),
-    !workingHours.enabled ||
-      validateWaiveOffDays(
-        workingHours.workinghrsDaysLimit,
-        "workingHoursDaysLimit",
-      ),
-  ].every(Boolean);
+  // const isValid = [
+  //   validateTotalWorkingHours(), // always validate totalWorkingHours, since always present
+  //   !lateComing.enabled ||
+  //     validateGracePeriod(lateComing.gracePeriod, "lateGracePeriod"),
+  //   !lateComing.enabled ||
+  //     validateWaiveOffDays(lateComing.waiveOffDays, "lateWaiveOffDays"),
+  //   !earlyLeaving.enabled ||
+  //     validateGracePeriod(earlyLeaving.gracePeriod, "earlyGracePeriod"),
+  //   !earlyLeaving.enabled ||
+  //     validateWaiveOffDays(earlyLeaving.waiveOffDays, "earlyWaiveOffDays"),
+  //   !workingHours.enabled ||
+  //     validateWaiveOffDays(
+  //       workingHours.workinghrsDaysLimit,
+  //       "workingHoursDaysLimit",
+  //     ),
+  // ].every(Boolean);
 
-  if (!isValid) {
-    showLocalToast("Please fix validation errors before saving", "error");
-    return;
-  }
+  // if (!isValid) {
+  //   showLocalToast("Please fix validation errors before saving", "error");
+  //   return;
+  // }
 
   try {
     const payload = {
@@ -1288,9 +1297,7 @@ onMounted(async () => {
       policyData.value.lateComingType === "amount"
         ? "fixed"
         : policyData.value.lateComingType || "fixed";
-    lateComing.gracePeriod = convertToMinutes(
-      policyData.value.setEntryTimeLimit,
-    );
+    lateComing.gracePeriod = policyData.value.setEntryTimeLimit;
     lateComing.fineAmount = policyData.value.lateEntryPenaltyAmt;
     lateComing.waiveOffDays = policyData.value.lateEntryAllowed;
     lateComing.deductionType = policyData.value.LateCommingDayMode;
@@ -1301,16 +1308,14 @@ onMounted(async () => {
       policyData.value.earlyLeavingType === "amount"
         ? "fixed"
         : policyData.value.earlyLeavingType || "fixed";
-    earlyLeaving.gracePeriod = convertToMinutes(
-      policyData.value.setExitTimeLimit,
-    );
+    earlyLeaving.gracePeriod = policyData.value.setExitTimeLimit;
     earlyLeaving.fineAmount = policyData.value.earlyExitPenaltyAmt;
     earlyLeaving.waiveOffDays = policyData.value.earlyExitAllowed;
     earlyLeaving.deductionType = policyData.value.earlyLeavingDayMode;
     earlyLeaving.leaveType = policyData.value.earlyLeavingLeave;
 
     overtime.enabled = policyData.value.isOverTime;
-    overtime.gracePeriod = convertToMinutes(policyData.value.setOverTimeLimit);
+    overtime.gracePeriod = policyData.value.setOverTimeLimit;
     overtime.extraHoursType = policyData.value.extraHoursType;
     overtime.extraHoursPay = policyData.value.extraHoursPay;
     overtime.weekOffPayType = policyData.value.weekOffType;

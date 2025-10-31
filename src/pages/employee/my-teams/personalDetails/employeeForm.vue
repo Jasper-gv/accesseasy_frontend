@@ -1,4 +1,3 @@
-<!-- employeeForm.vue -->
 <template>
   <div class="employee-form-container">
     <!-- Success message notification -->
@@ -26,1461 +25,1014 @@
       </div>
     </v-snackbar>
 
-    <!-- Header -->
-    <div class="form-header">
-      <div class="header-content">
-        <v-btn icon variant="text" @click="$emit('cancel')" class="back-button">
-          <v-icon>mdi-arrow-left</v-icon>
-        </v-btn>
-        <h2 class="text-h6">Add Employee</h2>
-        <div class="first-name-container">
-          <v-icon left>mdi-account</v-icon>
-          <span class="first-name">{{ props.firstName }}</span>
-          <v-tooltip bottom>
-            <span>{{ props.titleAttachment }}</span>
-          </v-tooltip>
-        </div>
+    <!-- Breadcrumb and Action Buttons -->
+    <div class="form-heade">
+      <div class="header-conten">
+        <v-breadcrumbs :items="breadcrumbs" class="pa-0">
+          <template v-slot:prepend>
+            <!-- <v-btn
+              icon
+              variant="text"
+              @click="$emit('cancel')"
+              class="back-button"
+            >
+              <v-icon>mdi-arrow-left</v-icon>
+            </v-btn> -->
+          </template>
+          <template v-slot:item="{ item }">
+            <v-breadcrumbs-item
+              @click="$router.push('/employee-details')"
+              :disabled="item.disabled"
+              class="breadcrum"
+            >
+              {{ item.text }}
+            </v-breadcrumbs-item>
+          </template>
+        </v-breadcrumbs>
       </div>
       <div class="action-buttons">
         <v-btn color="error" variant="text" @click="$emit('cancel')"
           >CANCEL</v-btn
         >
-        <v-btn color="black" @click="saveEmployee">SAVE</v-btn>
+        <BaseButton
+          color="black"
+          @click="saveEmployee"
+          :text="`SAVE`"
+        ></BaseButton>
       </div>
     </div>
 
-    <!-- Main Content with Sidebar -->
-    <div class="form-content-wrapper">
-      <!-- Left Sidebar with Tabs -->
-      <div class="sidebar">
-        <v-list>
-          <v-list-item
-            v-for="(tab, index) in filteredTabs"
-            :key="index"
-            :value="tab"
-            :active="currentTab === tab.id"
-            @click="currentTab = tab.id"
-            :class="{ 'has-error': tabHasError(tab.id) }"
-          >
-            <template v-slot:prepend>
-              <v-icon
-                :color="tabHasErrorComputed(tab.id) ? 'error' : 'default'"
-              >
-                {{ tab.icon }}
-              </v-icon>
-            </template>
+    <!-- Tab Bar -->
 
-            <v-list-item-title>
-              {{ tab.title }}
-              <v-icon
-                v-if="tabHasErrorComputed(tab.id)"
-                color="error"
-                size="small"
-                class="ms-2"
-              >
-                mdi-alert-circle
-              </v-icon>
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </div>
-
-      <!-- Right Content Area -->
-      <div class="form-content">
-        <v-form ref="form" v-model="valid" @submit.prevent="saveEmployee">
-          <!-- Personal Details Section -->
-          <div v-show="currentTab === 'personal'" class="form-section">
-            <h3>Employee Details</h3>
-            <br />
-            <v-row>
-              <!-- Avatar Input -->
-              <v-col cols="12" class="d-flex justify-center align-center mb-4">
-                <div class="avatar-container">
-                  <v-avatar size="150">
-                    <v-img
-                      v-if="avatarImage"
-                      :src="avatarImage"
-                      alt="Avatar"
-                    ></v-img>
-                    <v-icon
-                      v-else
-                      size="150"
-                      color="grey lighten-1"
-                      style="
-                        border: 2px solid gray;
-                        border-radius: 50%;
-                        padding: 5px;
-                      "
-                      >mdi-account-circle</v-icon
-                    >
-                  </v-avatar>
-                  <v-btn
-                    icon
-                    class="edit-avatar-btn"
-                    @click="triggerFileInput"
-                    color="white"
-                    style="background-color: black"
-                  >
-                    <v-icon>mdi-camera</v-icon>
-                  </v-btn>
-                </div>
-                <input
-                  type="file"
-                  ref="fileInput"
-                  style="display: none"
-                  accept="image/*"
-                  @change="handleAvatarChange"
-                />
-              </v-col>
-              <!-- First Name -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.firstName"
-                  label="First Name *"
-                  required
-                  :error-messages="getFieldErrorMessage('firstName')"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="markFieldAsTouched('firstName')"
-                  @input="capitalizeFirstLetterEachWord('firstName')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Middle Name -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.middleName"
-                  label="Middle Name"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="capitalizeFirstLetterEachWord('middleName')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Last Name -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.lastName"
-                  label="Last Name"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="capitalizeFirstLetterEachWord('lastName')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Employee ID  -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.employeeId"
-                  label="Employee ID *"
-                  required
-                  :error-messages="getFieldErrorMessage('employeeId')"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="markFieldAsTouched('employeeId')"
-                ></v-text-field>
-              </v-col>
-              <!-- Gender -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.gender"
-                  :items="['Female', 'Male', 'Other']"
-                  label="Gender *"
-                  required
-                  :error-messages="getFieldErrorMessage('gender')"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="markFieldAsTouched('gender')"
-                ></v-select>
-              </v-col>
-
-              <!-- Phone -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.phone"
-                  label="Phone"
-                  type="number"
-                  :error-messages="phoneErrorMessage"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="validatePhone"
-                  @input="clearPhoneError"
-                  maxlength="10"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Email -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.email"
-                  label="Email"
-                  :error-messages="emailErrorMessage"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="validateEmail"
-                  @input="
-                    clearEmailError();
-                    toLowerCase('email');
-                  "
-                ></v-text-field>
-              </v-col>
-
-              <!-- Office Email -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.officeEmail"
-                  label="Office Email"
-                  :error-messages="getFieldErrorMessage('officeEmail')"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="markFieldAsTouched('officeEmail')"
-                  @input="toLowerCase('officeEmail')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Role -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.role"
-                  :items="roleOptions"
-                  item-title="name"
-                  item-value="name"
-                  label="Role"
-                  :error-messages="getFieldErrorMessage('role')"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="markFieldAsTouched('role')"
-                ></v-select>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.skilled"
-                  :items="[
-                    'Skilled',
-                    'HighlySkilled',
-                    'UnSkilled',
-                    'SemiSkilled',
-                    'Drivers',
-                    'OfficeStaffs',
-                    'Others',
-                  ]"
-                  label="Skill Type"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-
-              <!-- App Access Switch -->
-
-              <!-- Working Range Slider -->
-              <!-- <v-col cols="12" md="6">
-                <v-slider
-                  v-model="formData.workingRange"
-                  label="Location Range"
-                  min="0"
-                  max="500"
-                  step="1"
-                  thumb-label="always"
-                  color="black"
-                  track-color="grey-lighten-2"
-                  class="mt-4"
-                >
-                  <template v-slot:append>
-                    <v-text-field
-                      v-model="formData.workingRange"
-                      density="compact"
-                      style="width: 70px"
-                      variant="outlined"
-                      hide-details
-                      single-line
-                      class="ml-2"
-                      readonly
-                    ></v-text-field>
-                  </template>
-                </v-slider>
-              </v-col> -->
-
-              <v-col cols="12">
-                <h3>Other Details</h3>
-                <br />
-              </v-col>
-
-              <!-- Date of Birth -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.assignedUser.DOB"
-                  label="Date of Birth"
-                  type="date"
-                  variant="outlined"
-                  density="comfortable"
-                  :error-messages="getFieldErrorMessage('DOB')"
-                  :max="maxDate"
-                  :min="minDate"
-                  @input="handleInputChange('assignedUser.DOB')"
-                  @blur="markFieldAsTouched('DOB')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Marital Status -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.maritalStatus"
-                  :items="['Married', `unMarried`]"
-                  label="Marital Status"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-
-              <!-- Blood Group -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.bloodGroup"
-                  :items="['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']"
-                  label="Blood Group"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-select>
-              </v-col>
-            </v-row>
+    <div class="tab-section">
+      <v-tabs
+        v-model="currentTab"
+        bg-color="transparent"
+        color="#059367"
+        class="custom-tabs mb-6"
+        align-tabs="center"
+      >
+        <v-tab
+          v-for="(tab, index) in filteredTabs"
+          :key="index"
+          :value="tab.id"
+          class="tab-item"
+          :class="{
+            'tab-item--active': currentTab === tab.id,
+            'tab-item--error': tabHasErrorComputed(tab.id),
+            'tab-item--loading': loadingStates[tab.id],
+          }"
+        >
+          <div class="tab-conten">
+            <v-icon
+              v-if="loadingStates[tab.id]"
+              class="tab-loading-icon"
+              size="16"
+            >
+              mdi-loading
+            </v-icon>
+            <!-- <v-icon class="tab-icon" size="20">
+              {{ tab.icon }}
+            </v-icon> -->
+            <span class="tab-text">{{ tab.title }}</span>
+            <v-icon
+              v-if="tabHasErrorComputed(tab.id) && !loadingStates[tab.id]"
+              color="error"
+              size="16"
+              class="tab-error-icon"
+            >
+              mdi-alert-circle
+            </v-icon>
           </div>
+        </v-tab>
+      </v-tabs>
+    </div>
 
-          <!-- Government IDs Section -->
-          <div v-show="currentTab === 'government'" class="form-section">
-            <h3>Government IDs</h3>
-            <br />
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.voterID"
-                  label="Voter ID"
-                  :rules="[rules.voterIdFormat]"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="toUpperCase('voterID')"
-                ></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.drivingLicense"
-                  :rules="[rules.drivingLicenseFormat]"
-                  label="Driving License"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="toUpperCase('drivingLicense')"
-                ></v-text-field>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.uan"
-                  :rules="[rules.uanFormat]"
-                  label="UAN"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="toUpperCase('uan')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- pan -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.pan"
-                  label="PAN"
-                  :rules="[rules.panFormat]"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="toUpperCase('pan')"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Aadhar -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.aadhar"
-                  label="Aadhar"
-                  type="number"
-                  :rules="[rules.aadharFormat]"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-text-field>
-              </v-col>
-            </v-row>
+    <!-- Main Content Area -->
+    <div class="form-content">
+      <v-form ref="form" v-model="valid" @submit.prevent="saveEmployee">
+        <!-- Personal Details Section -->
+        <div v-show="currentTab === 'personal'" class="form-section">
+          <div v-if="loadingStates.personal" class="tab-loading-container">
+            <v-progress-circular
+              indeterminate
+              color="#059367"
+              size="32"
+            ></v-progress-circular>
+            <p>Loading personal details...</p>
           </div>
-
-          <!-- Company Details Section -->
-          <div v-show="currentTab === 'company'" class="form-section">
-            <h3>Company Details</h3>
-            <br />
-            <v-row>
-              <!-- Organization Field -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.organization"
-                  :items="orgOptions"
-                  item-title="orgName"
-                  item-value="id"
-                  label="Organization *"
-                  required
-                  :error-messages="getFieldErrorMessage('organization')"
-                  variant="outlined"
-                  density="comfortable"
-                  @blur="markFieldAsTouched('organization')"
-                  @update:model-value="handleOrganizationChange"
-                ></v-select>
-              </v-col>
-              <!-- Designation -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.designation"
-                  label="Designation"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="handleInputChange('designation')"
-                ></v-text-field>
-              </v-col>
-              <!-- Department -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.department"
-                  :items="departmentOptions"
-                  item-title="name"
-                  item-value="id"
-                  label="Department"
-                  :error-messages="getFieldErrorMessage('department')"
-                  variant="outlined"
-                  density="comfortable"
-                  :disabled="!formData.organization"
-                  @update:model-value="handleDepartmentChange"
-                  @blur="markFieldAsTouched('department')"
-                ></v-select>
-                <p
-                  v-if="!formData.organization"
-                  class="text-caption text-black mt-1 d-flex align-center"
-                >
-                  <v-icon size="16" color="blue-darken-2" class="mr-1">
-                    mdi-information
-                  </v-icon>
-                  <strong>Note:</strong>&nbsp;Please select an organization to
-                  enable department selection.
-                </p>
-              </v-col>
-              <!-- Branch Location -->
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.branchLocation"
-                  :items="locationOptions"
-                  item-title="name"
-                  item-value="id"
-                  label="Branch Location"
-                  variant="outlined"
-                  density="comfortable"
-                  :disabled="!formData.organization"
-                  @update:model-value="handleBranchLocationChange"
-                  @blur="markFieldAsTouched('branchLocation')"
-                ></v-select>
-                <p
-                  v-if="!formData.organization"
-                  class="text-caption text-black mt-1 d-flex align-center"
-                >
-                  <v-icon size="16" color="blue-darken-2" class="mr-1">
-                    mdi-information
-                  </v-icon>
-                  <strong>Note:</strong>&nbsp;Please select an organization to
-                  enable branch location selection.
-                </p>
-              </v-col>
-              <!-- Date of Joining -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.dateOfJoining"
-                  label="Date of Joining"
-                  type="date"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-text-field>
-              </v-col>
-              <!-- Date of Leaving -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.dateOfLeaving"
-                  label="Date of Leaving"
-                  type="date"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.cycleType"
-                  :items="cycleTypeOptions"
-                  item-title="cycleName"
-                  item-value="cycleId"
-                  label="Attendance Cycle Type"
-                  variant="outlined"
-                  density="comfortable"
-                  @update:model-value="handleCycleTypeChange"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.approver"
-                  :items="filteredApproverOptions"
-                  item-title="name"
-                  item-value="id"
-                  label="Approver"
-                  variant="outlined"
-                  density="comfortable"
-                  clearable
-                >
-                  <template v-slot:prepend-item>
-                    <div class="d-flex align-center">
-                      <v-text-field
-                        v-model="searchApprover"
-                        label="Search by name"
-                        variant="outlined"
-                        density="compact"
-                        prepend-inner-icon="mdi-magnify"
-                        hide-details
-                        class="flex-grow-1 mr-2"
-                        @input="debounceFilterApprover"
-                      ></v-text-field>
-                      <v-btn
-                        variant="text"
-                        density="compact"
-                        :icon="
-                          showApproverFilters ? 'mdi-chevron-up' : 'mdi-filter'
-                        "
-                        @click.stop="showApproverFilters = !showApproverFilters"
-                      ></v-btn>
-                    </div>
-                    <v-expand-transition>
-                      <v-card
-                        v-if="showApproverFilters"
-                        class="filter-dropdown mt-2"
-                        elevation="4"
-                      >
-                        <v-card-text class="pa-2">
-                          <v-select
-                            v-model="selectedApproverDepartmentFilter"
-                            :items="[
-                              { id: 'all', name: 'All Departments' },
-                              ...departmentOptions,
-                            ]"
-                            item-title="name"
-                            item-value="id"
-                            label="Department"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            @update:modelValue="filterApprovers"
-                          ></v-select>
-                        </v-card-text>
-                      </v-card>
-                    </v-expand-transition>
-                    <v-divider class="mt-2"></v-divider>
-                  </template>
-                </v-select>
-              </v-col>
-              <!-- <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.reportingManager"
-                  :items="reportingManagerOptions"
-                  item-title="name"
-                  item-value="id"
-                  label="Reporting Manager"
-                  variant="outlined"
-                  density="comfortable"
-                  multiple
-                  chips
-                  clearable
-                  closable-chips
-                >
-                  <template v-slot:prepend-item>
-                    <div class="d-flex align-center">
-                    
-                      <v-text-field
-                        v-model="searchReportingManager"
-                        label="Search by name"
-                        variant="outlined"
-                        density="compact"
-                        prepend-inner-icon="mdi-magnify"
-                        hide-details
-                        class="flex-grow-1 mr-2"
-                        @input="debounceFilter"
-                      ></v-text-field>
-
-                   
-                      <v-btn
-                        variant="text"
-                        density="compact"
-                        :icon="showFilters ? 'mdi-chevron-up' : 'mdi-filter'"
-                        @click.stop="showFilters = !showFilters"
-                      ></v-btn>
-                    </div>
-
-                  
-                    <v-expand-transition>
-                      <v-card
-                        v-if="showFilters"
-                        class="filter-dropdown mt-2"
-                        elevation="4"
-                      >
-                        <v-card-text class="pa-2">
-                          <v-select
-                            v-model="selectedBranchFilter"
-                            :items="[
-                              { id: 'all', name: 'All Branches' },
-                              ...branchOptions,
-                            ]"
-                            item-title="name"
-                            item-value="id"
-                            label="Branch"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            @update:modelValue="filterReportingManagers"
-                          ></v-select>
-                          <v-select
-                            v-model="selectedDepartmentFilter"
-                            :items="[
-                              { id: 'all', name: 'All Departments' },
-                              ...departmentOptions,
-                            ]"
-                            item-title="name"
-                            item-value="id"
-                            label="Department"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="mt-2"
-                            @update:modelValue="filterReportingManagers"
-                          ></v-select>
-                        </v-card-text>
-                      </v-card>
-                    </v-expand-transition>
-
-                    <v-divider class="mt-2"></v-divider>
-                  </template>
-                </v-select>
-              </v-col> -->
-              <!-- Manages Employee -->
-              <!-- <v-col cols="12" md="6">
-                <v-select
-                  v-model="formData.managesEmployees"
-                  :items="managesEmployeeOptions"
-                  item-title="name"
-                  item-value="id"
-                  label="Manages Employee"
-                  variant="outlined"
-                  density="comfortable"
-                  multiple
-                  chips
-                  clearable
-                  closable-chips
-                >
-                  <template v-slot:prepend-item>
-                    <div class="d-flex align-center">
-                      <v-text-field
-                        v-model="searchManagesEmployee"
-                        label="Search by name"
-                        variant="outlined"
-                        density="compact"
-                        prepend-inner-icon="mdi-magnify"
-                        hide-details
-                        class="flex-grow-1 mr-2"
-                        @input="debounceFilterManagesEmployee"
-                      ></v-text-field>
-                      <v-btn
-                        variant="text"
-                        density="compact"
-                        :icon="
-                          showManagesEmployeeFilters
-                            ? 'mdi-chevron-up'
-                            : 'mdi-filter'
-                        "
-                        @click.stop="
-                          showManagesEmployeeFilters =
-                            !showManagesEmployeeFilters
-                        "
-                      ></v-btn>
-                    </div>
-                    <v-expand-transition>
-                      <v-card
-                        v-if="showManagesEmployeeFilters"
-                        class="filter-dropdown mt-2"
-                        elevation="4"
-                      >
-                        <v-card-text class="pa-2">
-                          <v-select
-                            v-model="selectedManagesEmployeeBranchFilter"
-                            :items="[
-                              { id: 'all', name: 'All Branches' },
-                              ...branchOptions,
-                            ]"
-                            item-title="name"
-                            item-value="id"
-                            label="Branch"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            @update:modelValue="filterManagesEmployee"
-                          ></v-select>
-                          <v-select
-                            v-model="selectedManagesEmployeeDepartmentFilter"
-                            :items="[
-                              { id: 'all', name: 'All Departments' },
-                              ...departmentOptions,
-                            ]"
-                            item-title="name"
-                            item-value="id"
-                            label="Department"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="mt-2"
-                            @update:modelValue="filterManagesEmployee"
-                          ></v-select>
-                        </v-card-text>
-                      </v-card>
-                    </v-expand-transition>
-                    <v-divider class="mt-2"></v-divider>
-                  </template>
-                </v-select>
-              </v-col> -->
-
-              <v-col cols="12">
-                <h3>PF and ESI Account</h3>
-                <br />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.ESIAccountNumber"
-                  type="number"
-                  label="ESI Account Number"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.PFAccountNumber"
-                  type="string"
-                  label="UAN PF AccountNumber"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-          </div>
-
-          <div v-show="currentTab === 'access'" class="form-section">
-            <AccessManagement
-              :initial-data="{
-                accessLevel: formData.accessLevel,
-                accessOn: formData.accessOn,
-              }"
-              :access-level-options="accessLevelOptions"
-              :tenant-id="tenantId"
-              @update:accessLevel="(value) => (formData.accessLevel = value)"
-              @update:accessOn="(value) => (formData.accessOn = value)"
-              @update:assignedCards="(cards) => (assignedCards = cards)"
-              ref="accessManagementRef"
-            />
-          </div>
-
-          <!-- Attendance Category Section -->
-          <div
-            v-show="currentTab === 'attendanceCategory'"
-            class="form-section"
-          >
-            <v-row>
-              <v-col cols="12">
-                <AttendanceSettingsEditor
-                  v-model="formData.attendanceCategory"
-                  :tenant-id="tenantId"
-                  @update:workingHoursData="
-                    (data) => (formData.employeeWorkingHours = data)
-                  "
-                  @update:holidayIds="
-                    (ids) => (formData.employeeHolidays = ids)
-                  "
-                />
-              </v-col>
-            </v-row>
-          </div>
-
-          <!-- previous record section  -->
-          <div v-show="currentTab === 'previousRecord'" class="form-section">
-            <PastExperienceForm v-model="formData.previousRecords" />
-          </div>
-
-          <!-- bank details section -->
-          <div v-show="currentTab === 'BankDetails'" class="form-section">
-            <h3>Bank Details</h3>
-            <BankDetails
-              :initial-data="formData"
-              @update:model-value="updateBankDetails"
-            />
-          </div>
-
-          <!-- Verification Form Content -->
-          <div
-            v-show="currentTab === 'backgroundVerification'"
-            class="form-section"
-          >
-            <h3>Background Verification</h3>
-            <br />
-            <BackgroundVerification
-              :initial-data="{
-                phone: formData.phone,
-                aadhaar: formData.aadhar,
-                pan: formData.pan,
-                voterId: formData.voterID,
-                uan: formData.uan,
-                gst: formData.gst,
-              }"
-              :verification="formData.verification"
-              @update:verification="
-                (newVerification) => (formData.verification = newVerification)
-              "
-              @verification-complete="handleVerificationComplete"
-            />
-          </div>
-
-          <!-- payroll category -->
-          <div v-show="currentTab === 'salary'" class="form-section">
-            <div class="payroll-category">
-              <v-container class="pa-0">
-                <h3>Payroll Category</h3>
-                <br />
-                <!-- Employee Profile Card -->
-                <v-card class="profile-card mb-6">
-                  <div class="salary-config pa-4">
-                    <v-row>
-                      <!-- Payroll Category -->
-                      <v-col cols="12" md="4">
-                        <label class="config-label">Payroll Category</label>
-                        <div class="input-wrapper">
-                          <v-icon color="primary" class="field-icon"
-                            >mdi-cash-multiple</v-icon
+          <div v-else>
+            <!-- Employee Details Card -->
+            <div class="detail-card">
+              <div class="card-header">
+                <h3 class="section-title">Employee Details</h3>
+              </div>
+              <div class="card-body">
+                <!-- Top Row: Avatar + Fields -->
+                <div class="form-row">
+                  <!-- Avatar Section -->
+                  <div class="avatar-section">
+                    <div class="avatar-wrapper-large">
+                      <div class="avatar-large square-avatar">
+                        <v-img
+                          v-if="avatarImage"
+                          :src="avatarImage"
+                          alt="Avatar"
+                        ></v-img>
+                        <div v-else class="avatar-placeholder-large">
+                          <v-icon size="120" color="grey lighten-1"
+                            >mdi-account-tie</v-icon
                           >
-                          <v-select
-                            v-model="selectedSalarySetting"
-                            :label="'select Category'"
-                            :items="salarySettingsArray"
-                            item-title="name"
-                            item-value="id"
-                            variant="outlined"
-                            density="comfortable"
-                            class="salary-select"
-                            @update:model-value="onSalarySettingChange"
-                            style="max-width: 350px; height: 56px"
-                          />
                         </div>
-                      </v-col>
-
-                      <!-- Annual CTC -->
-                      <v-col cols="6" md="2">
-                        <label class="config-label">Annual CTC</label>
-                        <div class="input-wrapper">
-                          <v-icon color="success" class="field-icon"
-                            >mdi-currency-inr</v-icon
-                          >
-                          <v-text-field
-                            v-model="annualCTC"
-                            :label="'annualCTC'"
-                            :disabled="!selectedSalarySetting"
-                            @input="calculateMonthlyCTC"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            type="number"
-                            class="ctc-input"
-                            prefix="₹"
-                            style="max-width: 150px; height: 36px"
-                          />
-                        </div>
-                      </v-col>
-
-                      <!-- MONTHLY CTC -->
-                      <v-col cols="6" md="2">
-                        <label class="config-label">Monthly CTC</label>
-                        <div class="inline-salary">
-                          <v-icon color="success" class="field-icon"
-                            >mdi-wallet</v-icon
-                          >
-                          <span class="salary-amount">₹{{ monthlyCTC }}</span>
-                        </div>
-                      </v-col>
-
-                      <!-- Net Salary -->
-                      <v-col cols="6" md="2">
-                        <label class="config-label">Net Salary</label>
-                        <div class="input-wrapper">
-                          <v-icon color="success" class="field-icon"
-                            >mdi-wallet</v-icon
-                          >
-                          <span class="salary-amount">₹{{ netSalary }}</span>
-                        </div>
-                      </v-col>
-                    </v-row>
-                  </div>
-                </v-card>
-
-                <!-- Salary Breakdown Section -->
-                <div v-if="selectedSalarySetting" class="salary-breakdown">
-                  <v-row>
-                    <v-col cols="12" lg="6">
-                      <!-- Earnings Card -->
-                      <v-card class="mb-4 earnings-card">
-                        <div class="card-header earnings">
-                          <div class="header-content">
-                            <v-icon size="28" color="white"
-                              >mdi-cash-plus</v-icon
-                            >
-                            <div class="header-text">
-                              <h3>Earnings</h3>
-                              <span class="amount">₹ {{ totalEarnings }}</span>
-                            </div>
-                            <v-icon
-                              color="error"
-                              class="mr-2"
-                              v-if="basicPayValue < 0"
-                              @click="showData"
-                              >mdi-information</v-icon
-                            >
-                          </div>
-                        </div>
-                        <v-card-text>
-                          <v-list>
-                            <!-- Basic Pay -->
-                            <v-list-item>
-                              <template v-slot:prepend>
-                                <v-icon color="primary">mdi-cash</v-icon>
-                              </template>
-                              <v-list-item-title>Basic Pay</v-list-item-title>
-                              <template v-slot:append>
-                                <div class="d-flex align-center">
-                                  <span class="percentage mr-2"
-                                    >{{ basicPay }}%</span
-                                  >
-                                  <span class="amount"
-                                    >₹ {{ basicPayValue }}</span
-                                  >
-                                </div>
-                              </template>
-                            </v-list-item>
-
-                            <!-- Other Earnings -->
-                            <v-list-item
-                              v-for="(item, index) in earnings"
-                              :key="index"
-                            >
-                              <template v-slot:prepend>
-                                <v-icon color="success">mdi-plus-circle</v-icon>
-                              </template>
-                              <v-list-item-title>{{
-                                item.name
-                              }}</v-list-item-title>
-                              <template v-slot:append>
-                                <div class="d-flex align-center">
-                                  <span
-                                    class="percentage mr-2"
-                                    v-if="item.percentage"
-                                    >{{ item.percentage }}%</span
-                                  >
-                                  <span class="amount"
-                                    >₹ {{ item.amount }}</span
-                                  >
-                                </div>
-                              </template>
-                            </v-list-item>
-                          </v-list>
-                        </v-card-text>
-                      </v-card>
-                      <!-- Employer Contributions Card -->
-                      <v-card class="mb-4 employer-card">
-                        <div class="card-header employer">
-                          <div class="header-content">
-                            <v-icon size="28" color="white"
-                              >mdi-office-building</v-icon
-                            >
-                            <div class="header-text">
-                              <h3>Employer Contributions</h3>
-                              <span class="amount">₹ {{ totalEmployer }}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <v-card-text>
-                          <v-list>
-                            <v-list-item
-                              v-for="(item, index) in employerContributions"
-                              :key="index"
-                            >
-                              <template v-slot:prepend>
-                                <v-icon color="info">mdi-bank</v-icon>
-                              </template>
-                              <v-list-item-title>{{
-                                item.name
-                              }}</v-list-item-title>
-                              <template v-slot:append>
-                                <v-chip
-                                  size="small"
-                                  color="grey"
-                                  variant="flat"
-                                  class="mr-2"
-                                  >{{ item.amount }}</v-chip
-                                >
-                                <v-chip
-                                  size="small"
-                                  color="success"
-                                  variant="flat"
-                                  class="mr-2"
-                                  v-if="item.includedInCTC"
-                                >
-                                  In CTC
-                                </v-chip>
-                                <span class="amount">₹ {{ item.rupee }}</span>
-                              </template>
-                              <v-chip
-                                size="small"
-                                color="grey"
-                                variant="flat"
-                                class="mr-2"
-                                >{{ item.component }}</v-chip
-                              >
-                            </v-list-item>
-                            <v-list-item v-if="adminCharges.enable">
-                              <template v-slot:prepend>
-                                <v-icon color="warning"
-                                  >mdi-account-arrow-left</v-icon
-                                >
-                              </template>
-                              <v-list-item-title
-                                >Admin Charges</v-list-item-title
-                              >
-                              <template v-slot:append>
-                                <v-chip
-                                  size="small"
-                                  color="grey"
-                                  variant="flat"
-                                  class="mr-2"
-                                  >{{ adminCharges.charge }}</v-chip
-                                >
-                                <span class="amount">{{ adminAmount }}</span>
-                              </template>
-                            </v-list-item>
-                            <v-list-item>
-                              <template v-slot:prepend>
-                                <v-icon color="warning"
-                                  >mdi-account-arrow-left</v-icon
-                                >
-                              </template>
-                              <v-list-item-title>LWF</v-list-item-title>
-                              <template v-slot:append>
-                                <v-list-item-title v-if="lwfDeduction"
-                                  >DeductionOn:</v-list-item-title
-                                >
-                                <v-chip
-                                  v-if="lwfDeduction"
-                                  size="small"
-                                  color="grey"
-                                  variant="flat"
-                                  class="mr-2"
-                                  >{{ lwfDeduction }}</v-chip
-                                >
-                                <span class="amount">{{ employerLWF }}</span>
-                              </template>
-                            </v-list-item>
-                          </v-list>
-                        </v-card-text>
-                      </v-card>
-                    </v-col>
-
-                    <v-col cols="12" lg="6">
-                      <div class="right-cards">
-                        <!-- Employee Contributions Card -->
-                        <v-card class="mb-4 employee-card">
-                          <div class="card-header employee">
-                            <div class="header-content">
-                              <v-icon size="28" color="white"
-                                >mdi-account-cash</v-icon
-                              >
-                              <div class="header-text">
-                                <h3>Employee Contributions</h3>
-                                <span class="amount"
-                                  >₹ {{ totalEmployee }}</span
-                                >
-                              </div>
-                            </div>
-                          </div>
-                          <v-card-text>
-                            <v-list>
-                              <v-list-item
-                                v-for="(item, index) in employeeContributions"
-                                :key="index"
-                              >
-                                <template v-slot:prepend>
-                                  <v-icon color="warning"
-                                    >mdi-account-arrow-left</v-icon
-                                  >
-                                </template>
-                                <v-list-item-title>{{
-                                  item.name
-                                }}</v-list-item-title>
-                                <template v-slot:append>
-                                  <v-chip
-                                    size="small"
-                                    color="grey"
-                                    variant="flat"
-                                    class="mr-2"
-                                    >{{ item.amount }}</v-chip
-                                  >
-                                  <span class="amount">₹ {{ item.rupee }}</span>
-                                </template>
-                                <v-chip
-                                  size="small"
-                                  color="grey"
-                                  variant="flat"
-                                  class="mr-2"
-                                  >{{ item.component }}</v-chip
-                                >
-                              </v-list-item>
-                            </v-list>
-
-                            <v-list-item>
-                              <template v-slot:prepend>
-                                <v-icon color="warning"
-                                  >mdi-account-arrow-left</v-icon
-                                >
-                              </template>
-                              <v-list-item-title>LWF</v-list-item-title>
-                              <template v-slot:append>
-                                <v-list-item-title v-if="lwfDeduction"
-                                  >DeductionOn:</v-list-item-title
-                                >
-                                <v-chip
-                                  v-if="lwfDeduction"
-                                  size="small"
-                                  color="grey"
-                                  variant="flat"
-                                  class="mr-2"
-                                  >{{ lwfDeduction }}</v-chip
-                                >
-                                <span class="amount">{{ employeeLWF }}</span>
-                              </template>
-                            </v-list-item>
-                            <v-list-item>
-                              <template v-slot:prepend>
-                                <v-icon color="warning"
-                                  >mdi-account-arrow-left</v-icon
-                                >
-                              </template>
-                              <v-list-item-title>PT</v-list-item-title>
-                              <template v-slot:append>
-                                <span class="amount">{{
-                                  professionalTaxAmount
-                                }}</span>
-                              </template>
-                            </v-list-item>
-                          </v-card-text>
-                        </v-card>
-
-                        <!-- Deductions Card -->
-                        <v-card class="mb-4 deductions-card">
-                          <div class="card-header deductions">
-                            <div class="header-content">
-                              <v-icon size="28" color="white"
-                                >mdi-cash-minus</v-icon
-                              >
-                              <div class="header-text">
-                                <h3>Deductions</h3>
-                                <span class="amount"
-                                  >₹ {{ totalDeductions }}</span
-                                >
-                              </div>
-                            </div>
-                          </div>
-                          <v-card-text>
-                            <v-list>
-                              <v-list-item
-                                v-for="(item, index) in deductions"
-                                :key="index"
-                              >
-                                <template v-slot:prepend>
-                                  <v-icon color="error"
-                                    >mdi-minus-circle</v-icon
-                                  >
-                                </template>
-                                <v-list-item-title>{{
-                                  item.name
-                                }}</v-list-item-title>
-                                <template v-slot:append>
-                                  <div class="d-flex align-center">
-                                    <span
-                                      class="percentage mr-2"
-                                      v-if="item.percentage"
-                                    >
-                                      {{ item.percentage }}%
-                                    </span>
-                                    <span class="amount"
-                                      >₹ {{ item.amount }}</span
-                                    >
-                                  </div>
-                                </template>
-                              </v-list-item>
-                            </v-list>
-                          </v-card-text>
-                        </v-card>
                       </div>
-                    </v-col>
-                  </v-row>
+                      <v-btn
+                        icon
+                        class="edit-avatar-btn-large"
+                        @click="triggerFileInput"
+                        color="white"
+                      >
+                        <v-icon>mdi-camera</v-icon>
+                      </v-btn>
+                    </div>
+                    <input
+                      type="file"
+                      ref="fileInput"
+                      style="display: none"
+                      accept="image/*"
+                      @change="handleAvatarChange"
+                    />
+                  </div>
+                  <!-- Fields Container -->
+                  <div class="fields-container">
+                    <!-- Name and Role Row -->
+                    <div class="form-row name-role-row">
+                      <div class="field-group">
+                        <label>First Name *</label>
+                        <v-text-field
+                          v-model="formData.firstName"
+                          required
+                          :error-messages="getFieldErrorMessage('firstName')"
+                          variant="outlined"
+                          density="comfortable"
+                          @blur="markFieldAsTouched('firstName')"
+                          @input="capitalizeFirstLetterEachWord('firstName')"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                      <div class="field-group">
+                        <label>Middle Name</label>
+                        <v-text-field
+                          v-model="formData.middleName"
+                          variant="outlined"
+                          density="comfortable"
+                          @input="capitalizeFirstLetterEachWord('middleName')"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                      <div class="field-group">
+                        <label>Last Name</label>
+                        <v-text-field
+                          v-model="formData.lastName"
+                          variant="outlined"
+                          density="comfortable"
+                          @input="capitalizeFirstLetterEachWord('lastName')"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                      <div class="field-group">
+                        <label>Role *</label>
+                        <v-select
+                          v-model="formData.role"
+                          :items="roleOptions"
+                          item-title="name"
+                          item-value="name"
+                          :error-messages="getFieldErrorMessage('role')"
+                          variant="outlined"
+                          density="comfortable"
+                          @blur="markFieldAsTouched('role')"
+                          hide-details="auto"
+                        ></v-select>
+                      </div>
+                    </div>
+                    <!-- Employee ID, Designation, Phone, Email Row -->
+                    <div class="form-row contact-row">
+                      <div class="field-group">
+                        <label>Employee ID *</label>
+                        <v-text-field
+                          v-model="formData.employeeId"
+                          required
+                          :error-messages="getFieldErrorMessage('employeeId')"
+                          variant="outlined"
+                          density="comfortable"
+                          @blur="markFieldAsTouched('employeeId')"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                      <div class="field-group">
+                        <label>Designation</label>
+                        <v-text-field
+                          v-model="formData.designation"
+                          variant="outlined"
+                          density="comfortable"
+                          @input="handleInputChange('designation')"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                      <div class="field-group">
+                        <label>Phone</label>
+                        <v-text-field
+                          v-model="formData.phone"
+                          type="number"
+                          :error-messages="phoneErrorMessage"
+                          variant="outlined"
+                          density="comfortable"
+                          @blur="validatePhone"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                      <div class="field-group">
+                        <label>Email</label>
+                        <v-text-field
+                          v-model="formData.email"
+                          :error-messages="emailErrorMessage"
+                          variant="outlined"
+                          density="comfortable"
+                          @blur="validateEmail"
+                          @input="
+                            clearEmailError();
+                            toLowerCase('email');
+                          "
+                          hide-details="auto"
+                        ></v-text-field>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Details Card -->
+            <div class="detail-card">
+              <div class="card-header">
+                <h3 class="section-title">Details</h3>
+              </div>
+              <div class="card-body">
+                <!-- Details Row 1: Blood Group, Marital Status, DOB, Gender -->
+                <div class="form-row">
+                  <div class="field-group-column">
+                    <div class="field-group">
+                      <label>Blood Group</label>
+                      <v-select
+                        v-model="formData.bloodGroup"
+                        :items="[
+                          'O+',
+                          'O-',
+                          'A+',
+                          'A-',
+                          'B+',
+                          'B-',
+                          'AB+',
+                          'AB-',
+                        ]"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
+                      ></v-select>
+                    </div>
+                    <div class="field-group">
+                      <label>Marital Status</label>
+                      <v-select
+                        v-model="formData.maritalStatus"
+                        :items="['Married', 'Unmarried']"
+                        variant="outlined"
+                        density="comfortable"
+                        hide-details="auto"
+                      ></v-select>
+                    </div>
+                  </div>
+                  <div class="field-group dob-gender-column">
+                    <div class="sub-field">
+                      <label>Date of Birth</label>
+                      <v-text-field
+                        v-model="formData.assignedUser.DOB"
+                        type="date"
+                        variant="outlined"
+                        density="comfortable"
+                        :error-messages="getFieldErrorMessage('DOB')"
+                        :max="maxDate"
+                        :min="minDate"
+                        @input="handleInputChange('assignedUser.DOB')"
+                        @blur="markFieldAsTouched('DOB')"
+                        hide-details="auto"
+                      ></v-text-field>
+                    </div>
+                    <div class="sub-field">
+                      <label>Gender *</label>
+                      <v-select
+                        v-model="formData.gender"
+                        :items="['Female', 'Male', 'Other']"
+                        required
+                        :error-messages="getFieldErrorMessage('gender')"
+                        variant="outlined"
+                        density="comfortable"
+                        @blur="markFieldAsTouched('gender')"
+                        hide-details="auto"
+                      ></v-select>
+                    </div>
+                  </div>
+                  <div class="field-group address-field">
+                    <label>Permanent Address</label>
+                    <v-textarea
+                      v-model="formData.permanentAddress"
+                      variant="outlined"
+                      density="comfortable"
+                      rows="3"
+                      auto-grow
+                      hide-details="auto"
+                    ></v-textarea>
+                  </div>
+                  <div class="field-group address-field">
+                    <label>Communication Address</label>
+                    <v-textarea
+                      v-model="formData.communicationAddress"
+                      variant="outlined"
+                      density="comfortable"
+                      rows="3"
+                      auto-grow
+                      hide-details="auto"
+                    ></v-textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Company Details Card -->
+            <div class="detail-card">
+              <div class="card-header">
+                <h3 class="section-title">Company Details</h3>
+              </div>
+              <div class="card-body">
+                <!-- Company Row 1: Organization, Date of Joining, Attendance Cycle -->
+                <div class="form-row">
+                  <div class="field-group">
+                    <label>Branch</label>
+                    <v-select
+                      v-model="formData.branchLocation"
+                      :items="locationOptions"
+                      item-title="name"
+                      item-value="id"
+                      variant="outlined"
+                      density="comfortable"
+                      @update:model-value="handleBranchLocationChange"
+                      hide-details="auto"
+                    ></v-select>
+                  </div>
+                  <div class="field-group">
+                    <label>Department</label>
+                    <v-select
+                      v-model="formData.department"
+                      :items="departmentOptions"
+                      item-title="name"
+                      item-value="id"
+                      :error-messages="getFieldErrorMessage('department')"
+                      variant="outlined"
+                      density="comfortable"
+                      @update:model-value="handleDepartmentChange"
+                      hide-details="auto"
+                    ></v-select>
+                  </div>
+                  <div class="field-group">
+                    <label>Attendance Cycle</label>
+                    <v-select
+                      v-model="formData.cycleType"
+                      :items="cycleTypeOptions"
+                      item-title="cycleName"
+                      item-value="cycleId"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                    ></v-select>
+                  </div>
                 </div>
 
-                <!-- Action Footer -->
-                <v-card-text>
-                  <div class="d-flex align-center justify-space-between">
-                    <div class="d-flex align-center">
-                      <v-icon color="info" class="mr-2">mdi-information</v-icon>
-                      <span class="text-info"
-                        >Want to modify the payroll configuration?</span
-                      >
-                    </div>
-                    <v-btn
-                      color="primary"
-                      variant="elevated"
-                      @click="redirectToPayrollConfig"
-                      prepend-icon="mdi-cog"
+                <!-- Company Row 2: Branch, Department, Date of Leaving, Approver -->
+                <div class="form-row">
+                  <div class="field-group">
+                    <label>Approver</label>
+                    <v-select
+                      v-model="formData.approver"
+                      :items="filteredApproverOptions"
+                      item-title="name"
+                      item-value="id"
+                      variant="outlined"
+                      density="comfortable"
+                      clearable
+                      hide-details="auto"
                     >
-                      Payroll Category Settings
-                    </v-btn>
+                      <template v-slot:prepend-item>
+                        <div class="approver-search">
+                          <v-text-field
+                            v-model="searchApprover"
+                            label="Search by name"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-magnify"
+                            hide-details
+                            @input="debounceFilterApprover"
+                          ></v-text-field>
+                          <v-btn
+                            variant="text"
+                            density="compact"
+                            :icon="
+                              showApproverFilters
+                                ? 'mdi-chevron-up'
+                                : 'mdi-filter'
+                            "
+                            @click.stop="
+                              showApproverFilters = !showApproverFilters
+                            "
+                          ></v-btn>
+                        </div>
+                        <v-expand-transition>
+                          <div
+                            v-if="showApproverFilters"
+                            class="filter-dropdown"
+                          >
+                            <v-select
+                              v-model="selectedApproverDepartmentFilter"
+                              :items="[
+                                { id: 'all', name: 'All Departments' },
+                                ...departmentOptions,
+                              ]"
+                              item-title="name"
+                              item-value="id"
+                              label="Department"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              @update:modelValue="filterApprovers"
+                            ></v-select>
+                          </div>
+                        </v-expand-transition>
+                        <v-divider class="mt-2"></v-divider>
+                      </template>
+                    </v-select>
                   </div>
-                </v-card-text>
-              </v-container>
+                  <div class="field-group">
+                    <label>Date of Joining</label>
+                    <v-text-field
+                      v-model="formData.dateOfJoining"
+                      type="date"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                    ></v-text-field>
+                  </div>
+
+                  <div class="field-group">
+                    <label>Date of Leaving</label>
+                    <v-text-field
+                      v-model="formData.dateOfLeaving"
+                      type="date"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                    ></v-text-field>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <!-- Add this section to your template where the other tabs are defined -->
-          <div v-show="currentTab === 'LeavePolicy'" class="form-section">
-            <h3>Leave Policy</h3>
-            <br />
+        </div>
+
+        <!-- Government IDs Section -->
+        <!-- <div v-show="currentTab === 'government'" class="form-section">
+          <h3>Government IDs</h3>
+          <br />
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.voterID"
+                label="Voter ID"
+                :rules="[rules.voterIdFormat]"
+                variant="outlined"
+                density="comfortable"
+                @input="toUpperCase('voterID')"
+              ></v-text-field>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.drivingLicense"
+                :rules="[rules.drivingLicenseFormat]"
+                label="Driving License"
+                variant="outlined"
+                density="comfortable"
+                @input="toUpperCase('drivingLicense')"
+              ></v-text-field>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.uan"
+                :rules="[rules.uanFormat]"
+                label="UAN"
+                variant="outlined"
+                density="comfortable"
+                @input="toUpperCase('uan')"
+              ></v-text-field>
+            </v-col>
+
+          
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.pan"
+                label="PAN"
+                :rules="[rules.panFormat]"
+                variant="outlined"
+                density="comfortable"
+                @input="toUpperCase('pan')"
+              ></v-text-field>
+            </v-col>
+
+           
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.aadhar"
+                label="Aadhar"
+                type="number"
+                :rules="[rules.aadharFormat]"
+                variant="outlined"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+        </div> -->
+
+        <!-- Company Details Section -->
+        <div v-show="currentTab === 'company'" class="form-section">
+          <h3>Company Details</h3>
+          <br />
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.designation"
+                label="Designation"
+                variant="outlined"
+                density="comfortable"
+                @input="handleInputChange('designation')"
+              ></v-text-field>
+            </v-col>
+            <!-- Department -->
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="formData.department"
+                :items="departmentOptions"
+                item-title="name"
+                item-value="id"
+                label="Department"
+                :error-messages="getFieldErrorMessage('department')"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleDepartmentChange"
+              ></v-select>
+            </v-col>
+            <!-- Branch Location -->
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="formData.branchLocation"
+                :items="locationOptions"
+                item-title="name"
+                item-value="id"
+                label="Branch Location"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleBranchLocationChange"
+              ></v-select>
+            </v-col>
+            <!-- Date of Joining -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.dateOfJoining"
+                label="Date of Joining"
+                type="date"
+                variant="outlined"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <!-- Date of Leaving -->
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="formData.cycleType"
+                :items="cycleTypeOptions"
+                item-title="cycleName"
+                item-value="cycleId"
+                label="Attendance Cycle Type"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleCycleTypeChange"
+              ></v-select>
+            </v-col>
+
+            <v-col cols="12">
+              <h3>PF and ESI Account</h3>
+              <br />
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.ESIAccountNumber"
+                type="number"
+                label="ESI Account Number"
+                variant="outlined"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.PFAccountNumber"
+                type="string"
+                label="UAN PF AccountNumber"
+                variant="outlined"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Attendance Category Section -->
+        <div v-show="currentTab === 'attendanceCategory'" class="form-section">
+          <v-row>
+            <v-col cols="12">
+              <AttendanceSettingsEditor
+                v-model="formData.attendanceCategory"
+                :tenant-id="tenantId"
+                @update:workingHoursData="
+                  (data) => (formData.employeeWorkingHours = data)
+                "
+                @update:holidayIds="(ids) => (formData.employeeHolidays = ids)"
+              />
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Previous Record Section -->
+        <!-- <div v-show="currentTab === 'previousRecord'" class="form-section">
+          <PastExperienceForm v-model="formData.previousRecords" />
+        </div> -->
+
+        <!-- Verification Form Content -->
+        <!-- <div
+          v-show="currentTab === 'backgroundVerification'"
+          class="form-section"
+        >
+          <h3>Background Verification</h3>
+          <br />
+          <BackgroundVerification
+            :initial-data="{
+              phone: formData.phone,
+              aadhaar: formData.aadhar,
+              pan: formData.pan,
+              voterId: formData.voterID,
+              uan: formData.uan,
+              gst: formData.gst,
+            }"
+            :verification="formData.verification"
+            @update:verification="
+              (newVerification) => (formData.verification = newVerification)
+            "
+            @verification-complete="handleVerificationComplete"
+          />
+        </div> -->
+
+        <!-- Leave Policy Section -->
+        <div v-show="currentTab === 'LeavePolicy'" class="form-section">
+          <div v-if="loadingStates.LeavePolicy" class="tab-loading-container">
+            <v-progress-circular
+              indeterminate
+              color="#059367"
+              size="32"
+            ></v-progress-circular>
+            <p>Loading leave policies...</p>
+          </div>
+          <div v-else>
             <v-row>
               <v-col cols="12">
-                <v-card v-if="enabledLeaves.length > 0">
+                <v-card>
                   <v-card-title>Available Leave Policies</v-card-title>
                   <v-card-text>
-                    <v-list>
-                      <v-list-item
-                        v-for="(leave, index) in enabledLeaves"
-                        :key="index"
-                      >
-                        <template v-slot:prepend>
-                          <v-icon
-                            :color="getLeaveColor(leave.leaveName)"
-                            size="24"
-                          >
-                            {{ getLeaveIcon(leave.leaveName).icon }}
-                          </v-icon>
-                        </template>
+                    <DataTable
+                      :items="processedLeaves"
+                      :columns="leaveColumns"
+                      :show-selection="false"
+                      item-key="id"
+                      :expandable="false"
+                    >
+                      <template #cell-leaveName="{ item }">
+                        <div class="d-flex align-center">
+                          <span class="ml-2">{{
+                            formatLeaveType(item.leaveName)
+                          }}</span>
+                        </div>
+                      </template>
 
-                        <v-list-item-title>
-                          {{ formatLeaveType(leave.leaveName) }}
-                        </v-list-item-title>
+                      <template #cell-isAssigned="{ item }">
+                        <v-switch
+                          v-model="item.isAssigned"
+                          color="#059367"
+                          hide-details
+                          inset
+                          @change="handleLeaveToggle(item)"
+                        ></v-switch>
+                      </template>
 
-                        <template v-slot:append>
-                          <v-switch
-                            v-model="leave.isAssigned"
-                            color="primary"
-                            hide-details
-                            class="mr-3"
-                          ></v-switch>
-                          <v-btn
-                            icon
-                            size="small"
-                            class="mr-3"
-                            @click="leave.isEditing = !leave.isEditing"
-                          >
-                            <v-icon>mdi-pencil</v-icon>
-                          </v-btn>
+                      <template #cell-days="{ item }">
+                        <div class="d-flex align-center">
                           <v-text-field
-                            v-if="leave.isEditing"
-                            v-model="leave.leaveConfig.days"
+                            v-if="item.isEditing"
+                            v-model.number="item.leaveConfig.days"
                             type="number"
                             min="0"
                             dense
                             outlined
                             hide-details
-                            class="mr-2 days-input"
-                            style="max-width: 100px"
-                            @change="updateLeaveBalance(leave)"
+                            @blur="saveLeaveEdit(item)"
+                            @keyup.enter="saveLeaveEdit(item)"
                             label="Days"
                           ></v-text-field>
-                          <v-chip
-                            color="primary"
-                            variant="outlined"
-                            class="mr-2"
-                          >
-                            {{ leave.leaveConfig?.days || 0 }} Days
-                          </v-chip>
-                          <v-chip color="primary" variant="outlined">
-                            {{ leave.leaveConfig?.monthLimit || 0 }} Month limit
-                          </v-chip>
-                          <v-chip color="primary" variant="outlined">
-                            {{ leave.leaveConfig?.limit || 0 }} Carry Forward
-                          </v-chip>
-                        </template>
-                      </v-list-item>
-                    </v-list>
+                          <span v-else class="text-body-1">
+                            {{ item.leaveConfig?.days || 0 }}
+                          </span>
+                          <!-- <v-btn
+                          icon
+                          size="small"
+                          class="ml-2"
+                          @click="toggleLeaveEdit(item)"
+                        >
+                          <v-icon>{{
+                            item.isEditing ? "mdi-check" : "mdi-pencil"
+                          }}</v-icon>
+                        </v-btn> -->
+                        </div>
+                      </template>
+
+                      <template #cell-monthLimit="{ item }">
+                        <span class="text-body-1">
+                          {{ item.leaveConfig?.monthLimit || 0 }}
+                        </span>
+                      </template>
+
+                      <template #cell-carryForward="{ item }">
+                        <span class="text-body-1">
+                          {{ item.leaveConfig?.limit || 0 }}
+                        </span>
+                      </template>
+
+                      <template #empty-state>
+                        <v-alert type="info" variant="tonal">
+                          No active leave policies found for the current year.
+                        </v-alert>
+                      </template>
+                    </DataTable>
+
+                    <!-- Save indicator -->
+                    <v-alert
+                      v-if="hasUnsavedLeaveChanges"
+                      type="warning"
+                      variant="tonal"
+                      class="mt-3"
+                    >
+                      You have unsaved leave policy changes. Please save the
+                      employee to apply these changes.
+                    </v-alert>
                   </v-card-text>
                 </v-card>
-
-                <v-alert v-else type="info" variant="tonal">
-                  No active leave policies found for the current year.
-                </v-alert>
               </v-col>
             </v-row>
           </div>
-          <!-- emergency Contact -->
-          <div
-            v-show="currentTab === 'EmergencyContactDetails'"
-            class="form-section"
-          >
-            <h3>Emergency Contact Details</h3>
-            <br />
-            <v-row>
-              <!-- Emergency Contact Section -->
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.emergencyContactName"
-                  label="Emergency Contact Name"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="capitalizeFirstLetterEachWord('emergencyContactName')"
-                ></v-text-field>
-              </v-col>
+        </div>
 
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.emergencyContactMobileNumber"
-                  label="Emergency Contact Mobile Number"
-                  type="number"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-text-field>
-              </v-col>
+        <!-- Emergency Contact -->
+        <!-- <div
+          v-show="currentTab === 'EmergencyContactDetails'"
+          class="form-section"
+        >
+          <h3>Emergency Contact Details</h3>
+          <br />
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.emergencyContactName"
+                label="Emergency Contact Name"
+                variant="outlined"
+                density="comfortable"
+                @input="capitalizeFirstLetterEachWord('emergencyContactName')"
+              ></v-text-field>
+            </v-col>
 
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.emergencyContactRelationship"
-                  label="Emergency Contact Relationship"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="
-                    capitalizeFirstLetterEachWord(
-                      'emergencyContactRelationship'
-                    )
-                  "
-                ></v-text-field>
-              </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.emergencyContactMobileNumber"
+                label="Emergency Contact Mobile Number"
+                type="number"
+                variant="outlined"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
 
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.guardiansName"
-                  label="Guardian's Name"
-                  variant="outlined"
-                  density="comfortable"
-                  @input="capitalizeFirstLetterEachWord('guardiansName')"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-textarea
-                  v-model="formData.emergencyContactAddress"
-                  label="Emergency Contact Address"
-                  rows="3"
-                  variant="outlined"
-                  density="comfortable"
-                ></v-textarea>
-              </v-col>
-            </v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.emergencyContactRelationship"
+                label="Emergency Contact Relationship"
+                variant="outlined"
+                density="comfortable"
+                @input="
+                  capitalizeFirstLetterEachWord('emergencyContactRelationship')
+                "
+              ></v-text-field>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="formData.guardiansName"
+                label="Guardian's Name"
+                variant="outlined"
+                density="comfortable"
+                @input="capitalizeFirstLetterEachWord('guardiansName')"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12">
+              <v-textarea
+                v-model="formData.emergencyContactAddress"
+                label="Emergency Contact Address"
+                rows="3"
+                variant="outlined"
+                density="comfortable"
+              ></v-textarea>
+            </v-col>
+          </v-row>
+        </div> -->
+
+        <!-- App Access -->
+
+        <div v-show="currentTab === 'Appaccess'" class="form-section">
+          <div v-if="loadingStates.Appaccess" class="tab-loading-container">
+            <v-progress-circular
+              indeterminate
+              color="#059367"
+              size="32"
+            ></v-progress-circular>
+            <p>Loading app access settings...</p>
           </div>
+          <div v-else>
+            <v-card class="app-access-card mb-6 pa-6" elevation="0" outlined>
+              <div class="d-flex justify-space-between align-start">
+                <div>
+                  <div class="d-flex align-center mb-2">
+                    <h2 class="text-h6 font-weight-bold me-4">App Access</h2>
+                    <div class="d-flex align-center">
+                      <!-- <span class="text-body-1 font-weight-medium me-2">
+                        {{ formData.appAccess ? "Enabled" : "Disabled" }}
+                      </span> -->
+                      <v-switch
+                        v-model="formData.appAccess"
+                        color="#059367"
+                        hide-details
+                        inset
+                        class="app-access-switch"
+                        :true-value="true"
+                        :false-value="false"
+                      ></v-switch>
+                    </div>
+                  </div>
+                  <p class="text-body-2 text-grey-darken-1 mb-0">
+                    Enable or disable mobile application access for this
+                    employee
+                  </p>
+                </div>
+              </div>
+            </v-card>
 
-          <!-- employee Address -->
-          <div v-show="currentTab === 'Appaccess'" class="form-section">
-            <!-- App Access Section -->
-            <h3>App Access Settings</h3>
-            <br />
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-switch
-                  v-model="formData.appAccess"
-                  label="FieldOps App Access"
-                  color="primary"
-                  inset
-                  hide-details
-                  :true-value="true"
-                  :false-value="false"
-                ></v-switch>
-              </v-col>
-            </v-row>
+            <!-- Attendance Mode Toggles -->
+            <v-card class="attendance-modes-card pa-6" elevation="0" outlined>
+              <div class="mb-6">
+                <h2 class="text-h6 font-weight-bold mb-1">Attendance Modes</h2>
+                <p class="text-body-2 text-grey-darken-1">
+                  Select the attendance tracking methods for this employee
+                </p>
+              </div>
 
-            <!-- Attendance Mode Section -->
-            <h3 class="mt-6">Attendance Mode Settings</h3>
-            <br />
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-switch
-                  v-model="formData.GeoAttendance"
-                  label="GEO Attendance Mode"
-                  color="primary"
-                  inset
-                  hide-details
-                  :true-value="true"
-                  :false-value="false"
-                ></v-switch>
-              </v-col>
+              <v-row>
+                <v-col cols="12" sm="6" md="3">
+                  <div class="attendance-option">
+                    <div
+                      class="attendance-icon-wrapper"
+                      :class="formData.GeoAttendance ? 'enabled' : 'disabled'"
+                    >
+                      <v-icon size="32" color="white"
+                        >mdi-crosshairs-gps</v-icon
+                      >
+                    </div>
+                    <div class="text-center mt-3 mb-2">
+                      <span class="text-body-1 font-weight-medium"
+                        >Geo Attendance</span
+                      >
+                    </div>
+                    <v-switch
+                      v-model="formData.GeoAttendance"
+                      color="#059367"
+                      hide-details
+                      inset
+                      class="attendance-switch"
+                      :true-value="true"
+                      :false-value="false"
+                    ></v-switch>
+                  </div>
+                </v-col>
 
-              <v-col cols="12" md="6">
-                <v-switch
-                  v-model="formData.QrAttendance"
-                  label="QR Code Attendance Mode"
-                  color="primary"
-                  inset
-                  hide-details
-                  :true-value="true"
-                  :false-value="false"
-                  hint="Enable or disable QR Code attendance mode"
-                ></v-switch>
-              </v-col>
+                <v-col cols="12" sm="6" md="3">
+                  <div class="attendance-option">
+                    <div
+                      class="attendance-icon-wrapper"
+                      :class="formData.faceAttendance ? 'enabled' : 'disabled'"
+                    >
+                      <v-icon size="32" color="white"
+                        >mdi-account-circle</v-icon
+                      >
+                    </div>
+                    <div class="text-center mt-3 mb-2">
+                      <span class="text-body-1 font-weight-medium"
+                        >Face Attendance</span
+                      >
+                    </div>
+                    <v-switch
+                      v-model="formData.faceAttendance"
+                      color="#059367"
+                      hide-details
+                      inset
+                      class="attendance-switch"
+                      :true-value="true"
+                      :false-value="false"
+                    ></v-switch>
+                  </div>
+                </v-col>
 
-              <v-col cols="12" md="6">
-                <v-switch
-                  v-model="formData.selfieAttendance"
-                  label="SelfieAttendance Mode"
-                  color="primary"
-                  inset
-                  hide-details
-                  :true-value="true"
-                  :false-value="false"
-                ></v-switch>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-switch
-                  v-model="formData.faceAttendance"
-                  label="Face Attendance Mode"
-                  color="primary"
-                  inset
-                  hide-details
-                  :true-value="true"
-                  :false-value="false"
-                ></v-switch>
-              </v-col>
-            </v-row>
+                <v-col cols="12" sm="6" md="3">
+                  <div class="attendance-option">
+                    <div
+                      class="attendance-icon-wrapper"
+                      :class="
+                        formData.selfieAttendance ? 'enabled' : 'disabled'
+                      "
+                    >
+                      <v-icon size="32" color="white">mdi-camera</v-icon>
+                    </div>
+                    <div class="text-center mt-3 mb-2">
+                      <span class="text-body-1 font-weight-medium"
+                        >Selfie Attendance</span
+                      >
+                    </div>
+                    <v-switch
+                      v-model="formData.selfieAttendance"
+                      color="#059367"
+                      hide-details
+                      inset
+                      class="attendance-switch"
+                      :true-value="true"
+                      :false-value="false"
+                    ></v-switch>
+                  </div>
+                </v-col>
+
+                <v-col cols="12" sm="6" md="3">
+                  <div class="attendance-option">
+                    <div
+                      class="attendance-icon-wrapper"
+                      :class="formData.QrAttendance ? 'enabled' : 'disabled'"
+                    >
+                      <v-icon size="32" color="white">mdi-qrcode-scan</v-icon>
+                    </div>
+                    <div class="text-center mt-3 mb-2">
+                      <span class="text-body-1 font-weight-medium"
+                        >QR Attendance</span
+                      >
+                    </div>
+                    <v-switch
+                      v-model="formData.QrAttendance"
+                      color="#059367"
+                      hide-details
+                      inset
+                      class="attendance-switch"
+                      :true-value="true"
+                      :false-value="false"
+                    ></v-switch>
+                  </div>
+                </v-col>
+              </v-row>
+            </v-card>
           </div>
-        </v-form>
-      </div>
+        </div>
+      </v-form>
     </div>
   </div>
 </template>
@@ -1492,21 +1044,17 @@ import BackgroundVerification from "./backdround.vue";
 import BankDetails from "./bank.vue";
 import AccessManagement from "./employeeAddForm/accessManagement.vue";
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import AttendanceSettingsEditor from "./employeeAddForm/attendance/attendanceManagement.vue"; // Updated import path
+import AttendanceSettingsEditor from "./employeeAddForm/attendance/attendanceManagement.vue";
 import { useRouter } from "vue-router";
 import PastExperienceForm from "./employeeAddForm/pastExperience.vue";
-const bankDetails = ref({});
 import { debounce } from "lodash";
-
-// Redirect functions
-const redirectToAttendanceConfig = () => {
-  router.push("/settings/attendanceCatagory");
-};
-
-const redirectToPayrollConfig = () => {
-  router.push("/settings/payrollCatagory");
-};
-
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
+const bankDetails = ref({});
+const branchOptions = ref([]);
+const leaveChanges = ref(new Map());
+const hasUnsavedLeaveChanges = ref(false);
+const verifications = ref([]);
 const capitalizeFirstLetterEachWord = (field) => {
   formData[field] = formData[field]
     .split(" ")
@@ -1521,11 +1069,22 @@ const toLowerCase = (field) => {
 const toUpperCase = (field) => {
   formData[field] = formData[field].toUpperCase();
 };
+const processedLeaves = computed(() => {
+  return enabledLeaves.value.map((leave) => {
+    // Check if we have unsaved changes for this leave
+    const leaveChange = leaveChanges.value.get(leave.id);
 
-const updateBankDetails = (newBankDetails) => {
-  bankDetails.value = newBankDetails;
-};
-
+    return {
+      ...leave,
+      isAssigned: leaveChange?.isAssigned ?? leave.isAssigned ?? false,
+      leaveConfig: {
+        ...leave.leaveConfig,
+        days: leaveChange?.days ?? leave.leaveConfig?.days ?? 0,
+      },
+      isEditing: leaveChange?.isEditing ?? false,
+    };
+  });
+});
 const phoneErrorMessage = ref("");
 const emailErrorMessage = ref("");
 
@@ -1544,7 +1103,7 @@ const validatePhone = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -1567,24 +1126,7 @@ const validatePhone = async () => {
     return false;
   }
 };
-const filteredApproverOptions = computed(() => {
-  if (!formData.role) return [];
 
-  // Filter approvers based on the selected role
-  return approverOptions.value.filter((approver) => {
-    if (formData.role === "Admin") {
-      // For Admin role, show only Managers
-      return approver.role === "Manager";
-    } else if (formData.role === "Employee") {
-      // For Employee role, show only Managers
-      return approver.role === "Manager";
-    } else if (formData.role === "Manager") {
-      // For Manager role, show only Admins
-      return approver.role === "Admin";
-    }
-    return false;
-  });
-});
 const validateEmail = async () => {
   const email = formData.email;
 
@@ -1600,7 +1142,7 @@ const validateEmail = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -1637,9 +1179,19 @@ const props = defineProps({
   tenantId: String,
   titleAttachment: String,
 });
+
 const emit = defineEmits(["save-success", "cancel"]);
 
-// Initialize other reactive references
+// Breadcrumb items
+const breadcrumbs = ref([
+  { text: "Employee", href: "/employee-details", disabled: false },
+  {
+    text: "Create Employee",
+    href: "/employee-details",
+    disabled: true,
+  },
+]);
+
 const router = useRouter();
 const currentTab = ref("personal");
 const formSubmitAttempted = ref(false);
@@ -1677,39 +1229,54 @@ const selectedApproverDepartmentFilter = ref("all");
 const searchApprover = ref("");
 const showApproverFilters = ref(false);
 const approverOptions = ref([]);
-
-// Define tabs with role-based access
 const userRole = ref(authService.getUserRole() || "Employee");
 
-// Filter tabs based on user role - exact role matching
+const leaveColumns = ref([
+  { key: "leaveName", label: "Leave Type", width: "200px" },
+
+  { key: "days", label: "Days", width: "200px" },
+  { key: "monthLimit", label: "Month Limit", width: "200px" },
+  { key: "carryForward", label: "Carry Forward", width: "200px" },
+  { key: "isAssigned", label: "Status", width: "200px" },
+]);
+
 const filteredTabs = computed(() => {
   const currentRole = userRole.value;
   return tabs.filter((tab) => tab.roles.includes(currentRole));
 });
 
-// Define tabs with role-based access - exact role names
+const filteredApproverOptions = computed(() => {
+  if (!formData.role) return [];
+
+  return approverOptions.value.filter((approver) => {
+    if (formData.role === "Employee") {
+      return approver.role === "Employee";
+    } else if (formData.role === "Employee") {
+      return approver.role === "Employee";
+    }
+    //  else if (formData.role === "Employee") {
+    //   return approver.role === "Employee";
+    // }
+    return false;
+  });
+});
+
 const tabs = [
   {
     id: "personal",
-    title: "Employee Details",
+    title: "Overview",
     icon: "mdi-account",
     roles: ["Admin", "Manager", "Employee", "Dealer"],
   },
-  {
-    id: "company",
-    title: "Company Details",
-    icon: "mdi-domain",
-    roles: ["Admin", "Manager", "Employee", "Dealer"],
-  },
-  {
-    id: "government",
-    title: "Government IDs",
-    icon: "mdi-card-account-details",
-    roles: ["Admin", "Manager", "Employee", "Dealer"],
-  },
+  // {
+  //   id: "company",
+  //   title: "Company Details",
+  //   icon: "mdi-domain",
+  //   roles: ["Admin", "Manager", "Employee", "Dealer"],
+  // },
   {
     id: "attendanceCategory",
-    title: "Attendance Settings",
+    title: "Assign shifts",
     icon: "mdi-calendar-check",
     roles: ["Admin", "Dealer", "Manager"],
   },
@@ -1719,39 +1286,9 @@ const tabs = [
     icon: "mdi-calendar-account",
     roles: ["Admin", "Manager", "Employee", "Dealer"],
   },
-  // {
-  //   id: "salary",
-  //   title: "Payroll Category",
-  //   icon: "mdi-cash",
-  //   roles: ["Admin", "Dealer"],
-  // },
-  {
-    id: "access",
-    title: "Access Management",
-    icon: "mdi-key",
-    roles: ["Admin", "Dealer", "Manager"],
-  },
-  {
-    id: "previousRecord",
-    title: "Past Experience",
-    icon: "mdi-history",
-    roles: ["Admin", "Manager", "Employee", "Dealer"],
-  },
-  // {
-  //   id: "BankDetails",
-  //   title: "Bank Details",
-  //   icon: "mdi-bank",
-  //   roles: ["Admin", "Manager", "Employee", "Dealer"],
-  // },
-  {
-    id: "EmergencyContactDetails",
-    title: "Emergency Contact Details",
-    icon: "mdi-phone-in-talk",
-    roles: ["Admin", "Manager", "Employee", "Dealer"],
-  },
   {
     id: "Appaccess",
-    title: "App access settings",
+    title: " Mobile App access",
     icon: "mdi-map-marker",
     roles: ["Admin", "Manager", "Employee", "Dealer"],
   },
@@ -1759,20 +1296,144 @@ const tabs = [
 
 const tabRequiredFields = {
   personal: ["firstName", "gender", "employeeId"],
-  government: [],
-  company: ["organization"],
-  access: [],
-  previousRecord: [],
-  backgroundVerification: [],
-  BankDetails: [],
-  salary: [],
+  // company: [],
   attendanceCategory: [],
-  EmergencyContactDetails: [],
-  EmployeeAddress: [],
   LeavePolicy: [],
+  Appaccess: [],
+};
+const loadingStates = reactive({
+  personal: false,
+  attendanceCategory: false,
+  LeavePolicy: false,
+  Appaccess: false,
+  government: false,
+  company: false,
+  previousRecord: false,
+  backgroundVerification: false,
+});
+const tabDataLoaded = reactive({
+  personal: false,
+  attendanceCategory: false,
+  LeavePolicy: false,
+  Appaccess: false,
+  government: false,
+  company: false,
+  previousRecord: false,
+  backgroundVerification: false,
+});
+const loadTabData = async (tabId) => {
+  if (tabDataLoaded[tabId] || loadingStates[tabId]) return;
+
+  loadingStates[tabId] = true;
+
+  try {
+    switch (tabId) {
+      case "personal":
+        await loadPersonalTabData();
+        break;
+      case "attendanceCategory":
+        await loadAttendanceTabData();
+        break;
+      case "LeavePolicy":
+        await loadLeavePolicyTabData();
+        break;
+      case "Appaccess":
+        await loadAppAccessTabData();
+        break;
+      case "government":
+        await loadGovernmentTabData();
+        break;
+      case "company":
+        await loadCompanyTabData();
+        break;
+      case "previousRecord":
+        await loadPreviousRecordTabData();
+        break;
+      case "backgroundVerification":
+        await loadVerificationTabData();
+        break;
+    }
+    tabDataLoaded[tabId] = true;
+  } catch (error) {
+    console.error(`Error loading ${tabId} tab:`, error);
+    showErrorMessage(`Failed to load ${tabId} data`);
+  } finally {
+    loadingStates[tabId] = false;
+  }
 };
 
-// Initialize form data with empty values
+// Individual tab loading methods
+const loadPersonalTabData = async () => {
+  // Load personal tab specific data
+  await Promise.all([
+    fetchDepartments(),
+    fetchLocations(),
+    fetchRoles(),
+    fetchCycleTypes(),
+    filterApprovers(),
+  ]);
+};
+
+const loadAttendanceTabData = async () => {
+  // Load attendance tab specific data
+  // Add any attendance-specific API calls here
+  console.log("Loading attendance data...");
+};
+
+const loadLeavePolicyTabData = async () => {
+  // Load leave policy data
+  await fetchLeavePolicies();
+};
+
+const loadAppAccessTabData = async () => {
+  // Load app access specific data
+  console.log("Loading app access data...");
+};
+
+const loadGovernmentTabData = async () => {
+  // Load government IDs data
+  console.log("Loading government data...");
+};
+
+const loadCompanyTabData = async () => {
+  // Load company details data
+  await Promise.all([
+    filterReportingManagers(),
+    filterManagesEmployee(),
+    filterApprovers(),
+  ]);
+};
+
+const loadPreviousRecordTabData = async () => {
+  // Load previous record data
+  console.log("Loading previous record data...");
+};
+
+const loadVerificationTabData = async () => {
+  // Load verification data
+  console.log("Loading verification data...");
+};
+watch(
+  currentTab,
+  async (newTab, oldTab) => {
+    // Validate previous tab before switching
+    if (oldTab && tabRequiredFields[oldTab]) {
+      const mandatoryFields = tabRequiredFields[oldTab];
+      if (Array.isArray(mandatoryFields)) {
+        mandatoryFields.forEach((field) => {
+          if (!formData[field]) {
+            touchedFields.value[field] = true;
+            formErrors.value[field] = "This field is required";
+          }
+        });
+      }
+    }
+
+    // Load data for the new tab
+    await loadTabData(newTab);
+  },
+  { immediate: true },
+);
 const formData = reactive({
   avatar: null,
   avatarFile: null,
@@ -1790,17 +1451,12 @@ const formData = reactive({
   maritalStatus: "",
   bloodGroup: "",
   status: "active",
-  pan: "",
-  aadhar: "",
-  gst: "",
-  organization: "",
   skilled: "",
   employeeId: "",
   department: "",
   branchLocation: "",
   role: "",
   designation: "",
-  accessLevel: "",
   tenantName: "",
   dateOfJoining: "",
   dateOfLeaving: "",
@@ -1824,11 +1480,11 @@ const formData = reactive({
   QrAttendance: true,
   GeoAttendance: true,
   faceAttendance: true,
-  selfieAttendance: true,
+  selfieAttendance: false,
   workingRange: 100,
-  attendanceCategory: null, // This will hold the selected policy ID (config ID)
-  employeeWorkingHours: [], // New field for employee-specific working hours data
-  employeeHolidays: [], // New field for employee-specific selected holiday IDs
+  attendanceCategory: null,
+  employeeWorkingHours: [],
+  employeeHolidays: [],
   reportingManager: [],
   managesEmployees: [],
   cycleType: null,
@@ -1845,20 +1501,8 @@ const showSuccessMessage = (message) => {
   showSuccessSnackbar.value = true;
 };
 
-const accessLevelOptions = ref([]);
 const roleOptions = ref([]);
-const attendanceCategoryOptions = ref([]);
-const holidayOptions = ref([]); // New ref for holidays
 const reportingManagerOptions = ref([]);
-
-const debounceFilterManagesEmployee = debounce(filterManagesEmployee, 300);
-const components = {
-  BackgroundVerification,
-  BankDetails,
-  AccessManagement,
-  PastExperienceForm,
-  AttendanceSettingsEditor,
-};
 
 const handleVerificationUpdate = (data) => {
   formData.aadhar = data.aadhaar;
@@ -1872,35 +1516,148 @@ const handleVerificationComplete = (data) => {
   handleVerificationUpdate(data);
   alert("Verification completed successfully!");
 };
+async function fetchLeavePolicies() {
+  try {
+    const resolvedTenantId = await resolveTenantId();
+    const currentYear = new Date().getFullYear();
 
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/leaveSetting?filter[_and][0][_and][0][tenant][tenantId][_eq]=${resolvedTenantId}&filter[_and][0][_and][1][year(yearOfPolicy)][_eq]=${currentYear}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch leave policies");
+    }
+
+    const data = await response.json();
+
+    // Preserve existing changes when refreshing data
+    const currentChanges = new Map(leaveChanges.value);
+
+    enabledLeaves.value = data.data
+      .filter((leave) => leave.leaveConfig?.isEnabled)
+      .map((leave) => {
+        const existingChange = currentChanges.get(leave.id);
+        return {
+          ...leave,
+          isAssigned: existingChange?.isAssigned ?? leave.isAssigned ?? false,
+          leaveConfig: {
+            ...leave.leaveConfig,
+            days: existingChange?.days ?? leave.leaveConfig?.days ?? 0,
+          },
+        };
+      });
+  } catch (error) {
+    console.error("Error fetching leave policies:", error);
+    enabledLeaves.value = [];
+  }
+}
 const handleLeaveToggle = (leave) => {
-  // You can add any logic needed when toggle changes
+  // Store the change locally
+  const existingChange = leaveChanges.value.get(leave.id) || {};
+  leaveChanges.value.set(leave.id, {
+    ...existingChange,
+    isAssigned: leave.isAssigned,
+    days: leave.isAssigned
+      ? (existingChange.days ?? leave.leaveConfig?.days ?? 0)
+      : 0,
+  });
+
+  hasUnsavedLeaveChanges.value = true;
   console.log(`Leave ${leave.leaveName} toggled to ${leave.isAssigned}`);
 };
-
+const toggleLeaveEdit = (leave) => {
+  if (leave.isEditing) {
+    saveLeaveEdit(leave);
+  } else {
+    const existingChange = leaveChanges.value.get(leave.id) || {};
+    leaveChanges.value.set(leave.id, {
+      ...existingChange,
+      isEditing: true,
+    });
+  }
+};
+const saveLeaveEdit = (leave) => {
+  const existingChange = leaveChanges.value.get(leave.id) || {};
+  leaveChanges.value.set(leave.id, {
+    ...existingChange,
+    isEditing: false,
+    days: leave.leaveConfig.days,
+  });
+  hasUnsavedLeaveChanges.value = true;
+};
 const updateLeaveBalance = (leave) => {
   if (leave.isAssigned && leave.leaveConfig?.days !== undefined) {
     console.log(
-      `Updating ${leave.leaveName} balance to ${leave.leaveConfig.days} days`
+      `Updating ${leave.leaveName} balance to ${leave.leaveConfig.days} days`,
     );
-    leave.leaveBalance = leave.leaveConfig.days;
-    leave.isEditing = false;
+
+    const existingChange = leaveChanges.value.get(leave.id) || {};
+    leaveChanges.value.set(leave.id, {
+      ...existingChange,
+      days: leave.leaveConfig.days,
+    });
+    hasUnsavedLeaveChanges.value = true;
   }
 };
+const getLeavesPayload = () => {
+  const leavesPayload = {
+    leaveBalance: {},
+    CarryForwardleave: {},
+    leaveTaken: {},
+    monthLimit: {},
+    assignedLeave: [],
+    year: null,
+  };
 
+  if (processedLeaves.value && processedLeaves.value.length > 0) {
+    leavesPayload.year = new Date(processedLeaves.value[0].yearOfPolicy)
+      .getFullYear()
+      .toString();
+
+    processedLeaves.value.forEach((leave) => {
+      const leaveType = leave.leaveName.toLowerCase().replace(/\s+/g, "");
+
+      // Use the changed values if they exist, otherwise use original
+      const leaveChange = leaveChanges.value.get(leave.id);
+      const isAssigned = leaveChange?.isAssigned ?? leave.isAssigned;
+      const days = leaveChange?.days ?? leave.leaveConfig?.days;
+
+      leavesPayload.leaveBalance[leaveType] = days || 0;
+      leavesPayload.CarryForwardleave[leaveType] =
+        leave.leaveConfig?.limit || 0;
+      leavesPayload.leaveTaken[`t${leaveType}`] = leave.leaveConfig?.taken || 0;
+      leavesPayload.monthLimit[leaveType] = leave.leaveConfig?.monthLimit || 0;
+
+      if (isAssigned === true) {
+        leavesPayload.assignedLeave.push(leave.leaveName);
+      }
+    });
+
+    // Clear changes after successful save
+    leaveChanges.value.clear();
+    hasUnsavedLeaveChanges.value = false;
+  }
+
+  return leavesPayload;
+};
 const currentYear = new Date().getFullYear();
-// Computed property for maxDate (18 years ago from current year)
 const maxDate = computed(() => {
   const currentYear = new Date().getFullYear();
   const maxYear = currentYear - 18;
   return `${maxYear}-12-31`;
 });
 
-// Computed property for minDate (100 years ago for reasonable range)
 const minDate = computed(() => {
   const currentYear = new Date().getFullYear();
   return `${currentYear - 100}-01-01`;
 });
+
 const rules = {
   required: (value) => !!value || "This field is required",
   panFormat: (value) => {
@@ -1940,7 +1697,7 @@ const tabHasError = (tabId) => {
   return tabRequiredFields[tabId].some(
     (field) =>
       touchedFields.value[field] &&
-      (!formData[field] || formErrors.value[field])
+      (!formData[field] || formErrors.value[field]),
   );
 };
 
@@ -1949,7 +1706,7 @@ const tabHasErrorComputed = computed(() => (tabId) => {
   return tabRequiredFields[tabId].some(
     (field) =>
       touchedFields.value[field] &&
-      (!formData[field] || formErrors.value[field])
+      (!formData[field] || formErrors.value[field]),
   );
 });
 
@@ -1964,12 +1721,10 @@ const getFieldErrorMessage = (field) => {
   return "";
 };
 
-// Function to handle input change for designation
 const handleInputChange = (field) => {
   if (field === "designation") {
     capitalizeFirstLetterEachWord(field);
   } else if (field === "assignedUser.DOB") {
-    // Clear DOB error when input changes
     if (formData.assignedUser.DOB) {
       formErrors.value.DOB = "";
     }
@@ -1981,7 +1736,7 @@ async function fetchDepartments(orgId = null) {
     const resolvedTenantId = await resolveTenantId();
     let filterQuery = `filter[tenant][tenantId][_eq]=${resolvedTenantId}`;
     if (orgId) {
-      filterQuery = `filter[_and][0][tenant][tenantId][_eq]=${resolvedTenantId}&filter[_and][1][orgId][id][_eq]=${orgId}`;
+      filterQuery = `filter[_and][0][tenant][tenantId][_eq]=${resolvedTenantId}`;
     }
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/department?${filterQuery}`,
@@ -1989,7 +1744,7 @@ async function fetchDepartments(orgId = null) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
     const data = await response.json();
     departmentOptions.value = data.data.map((dept) => ({
@@ -2002,50 +1757,17 @@ async function fetchDepartments(orgId = null) {
   }
 }
 
-async function fetchOrganizations() {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/organization?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch organizations");
-    }
-
-    const data = await response.json();
-    orgOptions.value = data.data.map((org) => ({
-      id: org.id,
-      orgName: `${org.orgName} (${org.orgType})`, // Combine orgName and orgType for display
-      name: `${org.orgName} (${org.orgType})`, // For compatibility
-    }));
-
-    console.log("Organizations fetched:", orgOptions.value); // Debug log
-  } catch (error) {
-    console.error("Error fetching organizations:", error);
-    showErrorMessage("Failed to load organizations. Please try again.");
-  }
-}
-
 async function fetchLocations(orgId = null) {
   try {
     const resolvedTenantId = await resolveTenantId();
-    let filterQuery = `filter[tenant][tenantId][_eq]=${resolvedTenantId}`;
-    if (orgId) {
-      filterQuery += `&filter[orgLocation][id][_eq]=${orgId}`;
-    }
+    let filterQuery = `filter[tenant][tenantId][_eq]=${resolvedTenantId}&filter[locType][_eq]=branch`;
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/locationManagement?${filterQuery}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
     const data = await response.json();
     locationOptions.value = data.data.map((loc) => ({
@@ -2058,32 +1780,6 @@ async function fetchLocations(orgId = null) {
   }
 }
 
-async function fetchAccessLevels() {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const response = await fetch(
-      `${
-        import.meta.env.VITE_API_URL
-      }/items/accesslevels?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      }
-    );
-    const data = await response.json();
-    accessLevelOptions.value = data.data.map((level) => ({
-      id: level.id,
-      accessLevelName: level.accessLevelName,
-      accessLevelNumber: level.accessLevelNumber,
-      accessType: level.accessType,
-      name: level.accessLevelName,
-      label: level.accessLevelName,
-    }));
-  } catch (error) {
-    console.error("Error fetching access levels:", error);
-  }
-}
 async function fetchCycleTypes() {
   try {
     const resolvedTenantId = await resolveTenantId();
@@ -2093,7 +1789,7 @@ async function fetchCycleTypes() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -2102,655 +1798,32 @@ async function fetchCycleTypes() {
 
     const data = await response.json();
 
-    // Extract cycle types from multi_attendance_cycle field
-    if (data.data && data.data.length > 0) {
-      const multiAttendanceCycle = data.data[0].multi_attendance_cycle;
-
-      // Check if multi_attendance_cycle has a cycles array
-      if (
-        multiAttendanceCycle &&
-        multiAttendanceCycle.cycles &&
-        Array.isArray(multiAttendanceCycle.cycles)
-      ) {
-        cycleTypeOptions.value = multiAttendanceCycle.cycles.map((cycle) => ({
+    if (
+      data.data &&
+      data.data.length > 0 &&
+      data.data[0].multi_attendance_cycle &&
+      Array.isArray(data.data[0].multi_attendance_cycle.cycles)
+    ) {
+      cycleTypeOptions.value = data.data[0].multi_attendance_cycle.cycles.map(
+        (cycle) => ({
           cycleId: cycle.cycleId,
           cycleName: cycle.cycleName,
-        }));
-
-        console.log("Cycle options:", cycleTypeOptions.value); // For debugging
-      } else {
-        console.warn("No cycles found in multi_attendance_cycle");
-      }
+        }),
+      );
+      console.log("cycletypesformat", cycleTypeOptions);
+    } else {
+      console.warn("No cycles found in multi_attendance_cycle");
     }
   } catch (error) {
     console.error("Error fetching attendance cycles:", error);
     showErrorMessage("Failed to load attendance cycle options");
   }
 }
-const earnings = ref([]);
-const deductions = ref([]);
-const basicPayValue = ref(0);
-const employerContributions = ref([]);
-const employeeContributions = ref([]);
-
-const salarySettings = ref([]);
-const annualCTC = ref(null);
-const monthlyCTC = ref(null);
-const showSalaryBreakdown = ref(false);
-
-const selectedSalarySetting = ref(null);
-
-const salarySettingsArray = computed(() => {
-  return salarySettings.value.map((setting) => ({
-    id: setting.id,
-    name: setting.configName,
-  }));
-});
-
-async function fetchSalarySettings() {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/salarySetting?fields=basicPay&fields=earnings&fields=deductions&fields=employerContribution&fields=allowances&fields=deduction&fields=professionalTax&fields=LWF&fields[]=LWF.state&fields[]=LWF.stateTaxRules&fields[]=professionalTax.state&fields[]=professionalTax.stateTaxRules&fields=employersContributions&fields=employeeDeductions&fields=configName&fields=adminCharges&fields=stateTaxes&fields=deductions&fields=id&fields=professionalTax.id&fields=professionalTax.state&fields=professionalTax.stateTaxRules&fields=LWF.id&fields=LWF.state&fields=LWF.stateTaxRules&fields=advancedMode&fields=employerContribution&filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      }
-    );
-
-    if (!response.ok) throw new Error("Failed to fetch salary settings");
-
-    const data = await response.json();
-    salarySettings.value = data.data || [];
-  } catch (error) {
-    console.error("Error fetching salary settings:", error);
-  }
-}
-
-let lwfDeduction = 0;
-let lwfReturns = 0;
-
-const onSalarySettingChange = async (value) => {
-  const settingId = typeof value === "object" ? value.id : value;
-  if (!settingId) return;
-
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/salarySetting/${settingId}?fields=basicPay&fields=earnings&fields=deductions&fields=employerContribution&fields=allowances&fields=deduction&fields=professionalTax&fields=LWF&fields[]=LWF.state&fields[]=LWF.stateTaxRules&fields[]=professionalTax.state&fields[]=professionalTax.stateTaxRules&fields=employersContributions&fields=employeeDeductions&fields=configName&fields=adminCharges&fields=stateTaxes&fields=deductions&fields=id&fields=professionalTax.id&fields=professionalTax.state&fields=professionalTax.stateTaxRules&fields=LWF.id&fields=LWF.state&fields=LWF.stateTaxRules`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      }
-    );
-
-    if (!response.ok) throw new Error("Failed to fetch salary setting details");
-
-    const data = await response.json();
-    const setting = data.data;
-
-    // Set basic pay
-    basicPay.value = setting.basicPay || 0;
-    basicPayOption.value = "On Attendance";
-
-    // Set earnings
-    earnings.value = (setting.earnings || []).map((item) => ({
-      name: item.name,
-      calculation: item.calculations,
-      [item.calculations.toLowerCase()]: item[item.calculations] ?? null,
-    }));
-
-    // Set deductions
-    deductions.value = (setting.deductions || []).map((item) => ({
-      name: item.name,
-      calculation: item.calculation,
-      percentage: item.percentage || 0,
-      amount: item.amount || 0,
-    }));
-
-    // Set employer contributions
-    employerContributions.value = setting.employersContributions
-      ? Object.entries(setting.employersContributions).map(([key, value]) => ({
-          name: key,
-          calculations: value.Calculations || [],
-          component: value.Calculations.map((item) => item.name).join(", "),
-          amount: value.selectedOption || 0,
-          includedInCTC: true,
-          rupee: 0,
-          options: value.options
-            ? value.options.map((opt) => ({
-                label: opt.label,
-                value: opt.value,
-              }))
-            : [],
-        }))
-      : [];
-
-    // Set employee contributions
-    employeeContributions.value = setting.employeeDeductions
-      ? Object.entries(setting.employeeDeductions).map(([key, value]) => ({
-          name: key,
-          calculations: value.Calculations || [],
-          component: value.Calculations.map((item) => item.name).join(", "),
-          amount: value.selectedOption || 0,
-          rupee: 0,
-          options: value.options
-            ? value.options.map((opt) => ({
-                label: opt.label,
-                value: opt.value,
-              }))
-            : [],
-        }))
-      : [];
-
-    //admin charge
-    adminCharges.value = setting.adminCharges || {};
-
-    // lwf
-    lwf.value = setting.LWF?.stateTaxRules;
-    lwfDeduction = lwf.value?.LWF?.Deduction?.join(", ");
-    lwfReturns = lwf.value?.LWF?.Returns;
-
-    calculateMonthlyCTC();
-  } catch (error) {
-    console.error("Error fetching salary setting details:", error);
-  }
-};
-
-const basicPay = ref(0);
-const basicPayOption = ref(0);
-let totalEmployer = ref(0);
-let totalEmployee = ref(0);
-let totalEarnings = ref(0);
-let totalDeductions = ref(0);
-const lwf = ref(0);
-const pt = ref(0);
-const adminCharges = ref({ enable: false, charge: "" });
-const laborWelfareFundAmount = ref(0);
-const professionalTaxAmount = ref(0);
-const adminAmount = ref(0);
-const employerLWF = ref(0);
-const employeeLWF = ref(0);
-const gender = ref(null);
-const totalAmount = ref(0);
-
-const calculateMonthlyCTC = () => {
-  if (
-    !annualCTC.value ||
-    isNaN(annualCTC.value) ||
-    Number(annualCTC.value) === 0
-  ) {
-    // Reset all values to 0
-    monthlyCTC.value = 0;
-    basicPayValue.value = 0;
-    totalEarnings.value = 0;
-    totalEmployer.value = 0;
-    totalEmployee.value = 0;
-    totalDeductions.value = 0;
-    adminAmount.value = 0;
-    employerLWF.value = 0;
-    employeeLWF.value = 0;
-    professionalTaxAmount.value = 0;
-    netSalary.value = 0;
-
-    earnings.value = earnings.value.map((item) => ({ ...item, amount: 0 }));
-    employerContributions.value = employerContributions.value.map((item) => ({
-      ...item,
-      rupee: 0,
-    }));
-    employeeContributions.value = employeeContributions.value.map((item) => ({
-      ...item,
-      rupee: 0,
-    }));
-
-    return;
-  }
-
-  // Constants for calculations
-  const EMPLOYER_PF_RATE = 0.12;
-  const EMPLOYER_ESI_RATE = 0.0325;
-  const EMPLOYEE_PF_RATE = 0.12;
-  const EMPLOYEE_ESI_RATE = 0.0075;
-  const EPF_ADMIN_RATE = 0.01;
-  const ESI_THRESHOLD = 21000;
-
-  // Step 1: Calculate Monthly CTC
-  monthlyCTC.value = Math.round(annualCTC.value / 12);
-
-  let fixedEarningsTotal = 0;
-
-  earnings.value.forEach((item) => {
-    if (item.calculation === "Fixed") {
-      let fixedAmount = Number(item.fixed || 0);
-      fixedEarningsTotal += fixedAmount;
-      item.amount = fixedAmount;
-    }
-  });
-
-  let remainingCTC = monthlyCTC.value - fixedEarningsTotal;
-
-  let totalPercentageEarnings = 0;
-
-  earnings.value.forEach((item) => {
-    if (item.calculation === "Percentage") {
-      if (item.name === "HRA" || item.name === "Dearness Allowance") {
-        return;
-      } else {
-        let percentageAmount =
-          (Number(item.percentage || 0) / 100) * remainingCTC;
-        totalPercentageEarnings += percentageAmount;
-        item.amount = percentageAmount;
-      }
-    }
-  });
-
-  // Now update the fixed earnings total
-  fixedEarningsTotal += totalPercentageEarnings;
-
-  employerLWF.value = lwf.value?.LWF?.EmployerLWF || 0;
-  employeeLWF.value = lwf.value?.LWF?.EmployeeLWF || 0;
-
-  // Step 3: Initialize components based on percentages
-  const basicSalaryTarget = (basicPay.value / 100) * remainingCTC;
-
-  const hraEntry = earnings.value.find((e) => e.name === "HRA");
-  const daEntry = earnings.value.find((e) => e.name === "Dearness Allowance");
-
-  const hraPercentage = hraEntry?.percentage || 0;
-  const daPercentage = daEntry?.percentage || 0;
-
-  const hraTarget = (hraPercentage / 100) * remainingCTC;
-  const daTarget = (daPercentage / 100) * remainingCTC;
-
-  basicPayValue.value = basicSalaryTarget;
-
-  if (hraEntry) {
-    hraEntry.amount = hraTarget;
-  }
-
-  if (daEntry) {
-    daEntry.amount = daTarget;
-  }
-
-  // step 3: declare
-  let pfCalculation = 0;
-  let esiCalculation = 0;
-
-  let employerPfTotal = 0,
-    employeresiTotal = 0;
-
-  // Step 4: Iterative approach to reach target CTC
-  for (let iteration = 0; iteration < 5; iteration++) {
-    // Calculate Gross Salary
-    const grossSalary = Math.round(
-      basicPayValue.value +
-        (hraEntry ? hraEntry.amount : 0) +
-        (daEntry ? daEntry.amount : 0) +
-        fixedEarningsTotal
-    );
-
-    // Find Employer Contributions
-    const employerPF = employerContributions.value.find(
-      (item) => item.name === "EmployerPF"
-    );
-    const employerESI = employerContributions.value.find(
-      (item) => item.name === "EmployerESI"
-    );
-
-    if (employerPF) {
-      pfCalculation = employerPF.calculations.reduce((sum, calc) => {
-        const earningName = earnings.value.find(
-          (earn) => earn.name === calc.name
-        );
-        const earningAmount = earningName ? earningAmount : 0;
-        return sum + earningAmount;
-      }, 0);
-    }
-    if (employerESI) {
-      esiCalculation = employerESI.calculations.reduce((sum, calc) => {
-        const earningName = earnings.value.find(
-          (earn) => earn.name === calc.name
-        );
-        const earningAmount = earningName ? earningAmount : 0;
-        return sum + earningAmount;
-      }, 0);
-    }
-
-    let pfBaseAmount = basicPayValue.value + pfCalculation;
-    let esiBaseAmount = basicPayValue.value + esiCalculation;
-
-    let employerPfTotal = 0,
-      employeresiTotal = 0;
-
-    if (employerPF) {
-      if (Number(employerPF.amount) === 1800) {
-        employerPfTotal = Math.min(Math.round(pfBaseAmount * (12 / 100)), 1800);
-      } else {
-        employerPfTotal = Math.round(pfBaseAmount * (employerPF.amount / 100));
-      }
-    }
-
-    if (employerESI) {
-      employeresiTotal =
-        monthlyCTC.value <= ESI_THRESHOLD
-          ? Math.round(esiBaseAmount * (employerESI.amount / 100))
-          : 0;
-    }
-
-    const epfAdmin = Math.min(
-      Math.round(adminCharges.value?.enable ? 0.01 * pfBaseAmount : 0),
-      150
-    );
-
-    const employerContributionsTotal =
-      employerPfTotal + epfAdmin + employeresiTotal;
-
-    const currentCTC = grossSalary + employerContributionsTotal;
-
-    if (Math.abs(currentCTC - monthlyCTC.value) < 0) {
-      break;
-    }
-
-    if (currentCTC > monthlyCTC.value) {
-      const excess = currentCTC - monthlyCTC.value;
-
-      const hraImpact = Math.round(
-        1 +
-          (monthlyCTC.value <= ESI_THRESHOLD ? EMPLOYER_ESI_RATE : 0) +
-          EMPLOYER_PF_RATE +
-          (adminCharges.value?.enable ? EPF_ADMIN_RATE : 0)
-      );
-      const daImpact = hraImpact;
-      const basicImpact = hraImpact;
-
-      let remainingExcess = excess;
-
-      if (hraEntry && hraEntry.amount > 0 && remainingExcess > 0) {
-        const hraAvailable = hraEntry.amount;
-        const reductionNeeded = remainingExcess / hraImpact;
-        const hraReduction = Math.min(hraAvailable, reductionNeeded);
-
-        hraEntry.amount -= hraReduction;
-        remainingExcess -= hraReduction * hraImpact;
-      }
-
-      if (daEntry && daEntry.amount > 0 && remainingExcess > 0) {
-        const daReduction = Math.min(
-          daEntry.amount,
-          remainingExcess / daImpact
-        );
-
-        daEntry.amount -= daReduction;
-        remainingExcess -= daReduction * daImpact;
-      }
-
-      if (basicPayValue.value > 0 && remainingExcess > 0) {
-        const basicReduction = Math.min(
-          basicPayValue.value,
-          Math.round(remainingExcess / basicImpact)
-        );
-
-        basicPayValue.value -= basicReduction;
-        remainingExcess -= basicReduction * basicImpact;
-      }
-    } else {
-      const shortage = monthlyCTC.value - currentCTC;
-
-      if (shortage > 0) {
-        const basicImpact =
-          1 +
-          (monthlyCTC.value <= ESI_THRESHOLD ? EMPLOYER_ESI_RATE : 0) +
-          EMPLOYER_PF_RATE +
-          (adminCharges.value?.enable ? EPF_ADMIN_RATE : 0);
-
-        const basicIncrease = Math.min(
-          Math.round(shortage / basicImpact),
-          basicSalaryTarget - basicPayValue.value
-        );
-
-        basicPayValue.value += basicIncrease;
-
-        let remainingShortageCovered = basicIncrease * basicImpact;
-        let daIncrease = 0,
-          hraIncrease = 0;
-
-        // ✅ If DA exists and is below target, increase DA
-        if (
-          daEntry &&
-          daEntry.amount < daTarget &&
-          remainingShortageCovered < shortage
-        ) {
-          const remainingShortageToCover = shortage - remainingShortageCovered;
-
-          daIncrease = Math.min(
-            Math.round(remainingShortageToCover / basicImpact),
-            daTarget - daEntry.amount
-          );
-
-          if (daIncrease > 0) {
-            daEntry.amount += daIncrease;
-            remainingShortageCovered += daIncrease * basicImpact;
-          }
-        }
-
-        // ✅ If DA does not exist OR DA is already maxed out, increase HRA
-        if (
-          (!daEntry || daEntry.amount >= daTarget) &&
-          remainingShortageCovered < shortage
-        ) {
-          const remainingShortageToCover = shortage - remainingShortageCovered;
-
-          if (hraEntry && hraEntry.amount < hraTarget) {
-            hraIncrease = Math.min(
-              Math.round(remainingShortageToCover / basicImpact),
-              hraTarget - hraEntry.amount
-            );
-
-            if (hraIncrease > 0) {
-              hraEntry.amount += hraIncrease;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Step 5: Final adjustment to match CTC and deductions (aligned with Python)
-  const finalGrossSalary =
-    basicPayValue.value +
-    (hraEntry ? hraEntry.amount : 0) +
-    (daEntry ? daEntry.amount : 0) +
-    fixedEarningsTotal;
-  const finalpfBaseAmount = basicPayValue.value + pfCalculation;
-  const finalesiBaseAmount = basicPayValue.value + esiCalculation;
-  const finalEmployerPf = EMPLOYER_PF_RATE * finalpfBaseAmount;
-  const finalEpfAdmin = adminCharges.value?.enable
-    ? EPF_ADMIN_RATE * finalpfBaseAmount
-    : 0;
-  const finalEmployerEsi =
-    monthlyCTC.value <= ESI_THRESHOLD
-      ? EMPLOYER_ESI_RATE * finalesiBaseAmount
-      : 0;
-  const finalEmployerTotal = finalEmployerPf + finalEpfAdmin + finalEmployerEsi;
-  const finalEmployeePf = EMPLOYEE_PF_RATE * finalpfBaseAmount;
-  const finalEmployeeEsi =
-    monthlyCTC.value <= ESI_THRESHOLD
-      ? EMPLOYEE_ESI_RATE * finalesiBaseAmount
-      : 0;
-  const finalDeductions =
-    finalEmployeePf +
-    finalEmployeeEsi +
-    employeeLWF.value +
-    professionalTaxAmount.value;
-  const finalCTC = finalGrossSalary + finalEmployerTotal;
-
-  // Step 6: Calculate Professional Tax (unchanged, set to 0 for consistency)
-  professionalTaxAmount.value = 0;
-  if (lwf.value?.PT) {
-    const hasGender = lwf.value.PT.some((entry) => entry.gender !== undefined);
-    let filteredData = lwf.value.PT;
-    if (hasGender) {
-      filteredData = lwf.value.PT.filter(
-        (entry) => entry.gender === formData.gender
-      );
-    }
-    const taxEntry = filteredData.find((entry) => {
-      if (entry.salaryRange.includes("and above")) {
-        return monthlyCTC.value >= parseInt(entry.salaryRange);
-      }
-      const [min, max] = entry.salaryRange.split("-").map(Number);
-      return monthlyCTC.value >= min && monthlyCTC.value <= (max || Infinity);
-    });
-    professionalTaxAmount.value = taxEntry
-      ? Number(taxEntry.professionalTax)
-      : 0;
-  }
-
-  // Step 7: Calculate final values for display
-  totalEarnings.value =
-    earnings.value.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) +
-    basicPayValue.value;
-
-  employerContributions.value = employerContributions.value.map((item) => {
-    const calculations = Array.isArray(item.Calculations)
-      ? item.Calculations
-      : item.calculations || [];
-    if (item.amount === 0 || item.amount === undefined) {
-      return { ...item, rupee: 0 };
-    }
-    const totalAmount = calculations.reduce((sum, calc) => {
-      const earningName = earnings.value.find(
-        (earn) => earn.name === calc.name
-      );
-      const earningAmount = earningName ? earningAmount : 0;
-      return sum + earningAmount;
-    }, 0);
-    let finalValue = 0;
-
-    if (item.name === "EmployerPF") {
-      if (Number(item.amount) === 1800) {
-        finalValue = Math.min(
-          (totalAmount + basicPayValue.value) * (12 / 100),
-          1800
-        );
-      } else {
-        finalValue = (totalAmount + basicPayValue.value) * (item.amount / 100);
-      }
-    }
-
-    if (item.name === "EmployerESI") {
-      finalValue =
-        monthlyCTC.value <= ESI_THRESHOLD
-          ? (totalAmount + basicPayValue.value) * (item.amount / 100)
-          : 0;
-    }
-
-    return { ...item, rupee: Math.round(finalValue) };
-  });
-  if (adminCharges.value?.enable === true) {
-    adminAmount.value = Math.min(
-      Math.round((pfCalculation + basicPayValue.value) * 0.01),
-      150
-    );
-  } else {
-    adminAmount.value = 0;
-  }
-  employeeContributions.value = employeeContributions.value.map((item) => {
-    const calculations = Array.isArray(item.Calculations)
-      ? item.Calculations
-      : item.calculations || [];
-    if (item.amount === 0 || item.amount === undefined) {
-      return { ...item, rupee: 0 };
-    }
-    const totalAmount = calculations.reduce((sum, calc) => {
-      const earningName = earnings.value.find(
-        (earn) => earn.name === calc.name
-      );
-      const earningAmount = earningName ? earningAmount : 0;
-      return sum + earningAmount;
-    }, 0);
-    let finalValue;
-    if (Number(item.amount) === 1800) {
-      const percentageOption = item.options?.find(
-        (opt) => opt.label === "percentage"
-      );
-      if (percentageOption) {
-        finalValue = Math.min(
-          (totalAmount + basicPayValue.value) * (percentageOption.value / 100),
-          1800
-        );
-      } else {
-        finalValue = Math.min((totalAmount + basicPayValue.value) * 0.12, 1800);
-      }
-    } else if (item.name === "EmployeeESI") {
-      finalValue =
-        monthlyCTC.value <= ESI_THRESHOLD
-          ? (totalAmount + basicPayValue.value) * (item.amount / 100)
-          : 0;
-    } else {
-      finalValue =
-        (totalAmount + basicPayValue.value) * (item.amount / 100 || 1);
-    }
-    return { ...item, rupee: Math.round(finalValue) };
-  });
-
-  totalEmployer.value =
-    employerContributions.value.reduce(
-      (sum, item) => sum + (Number(item.rupee) || 0),
-      0
-    ) + adminAmount.value;
-
-  totalEmployee.value =
-    employeeContributions.value.reduce(
-      (sum, item) => sum + (Number(item.rupee) || 0),
-      0
-    ) + professionalTaxAmount.value;
-
-  totalDeductions.value = deductions.value.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0
-  );
-
-  netSalary.value =
-    totalEarnings.value - totalEmployee.value - totalDeductions.value;
-
-  // Step 8: Round only for display
-  basicPayValue.value = Math.round(basicPayValue.value);
-  if (hraEntry) hraEntry.amount = Math.round(hraEntry.amount);
-  if (daEntry) daEntry.amount = Math.round(daEntry.amount);
-  totalEarnings.value = Math.round(totalEarnings.value);
-  totalEmployer.value = Math.round(totalEmployer.value);
-  totalEmployee.value = Math.round(totalEmployee.value);
-  totalDeductions.value = Math.round(totalDeductions.value);
-  adminAmount.value = Math.round(adminAmount.value);
-  employerLWF.value = Math.round(employerLWF.value);
-  employeeLWF.value = Math.round(employeeLWF.value);
-  professionalTaxAmount.value = Math.round(professionalTaxAmount.value);
-  netSalary.value = Math.round(netSalary.value);
-};
-
-const netSalary = computed(() => {
-  return (
-    totalEmployer.value +
-    totalEarnings.value -
-    (totalDeductions.value + totalEmployee.value + totalEmployer.value)
-  );
-});
-const getLeaveColor = (leaveName) => {
-  // Example implementation
-  return leaveName === "Annual" ? "blue" : "green";
-};
-
-const getLeaveIcon = (leaveName) => {
-  // Example implementation
-  return { icon: leaveName === "Annual" ? "mdi-calendar" : "mdi-medical-bag" };
-};
 
 const formatLeaveType = (leaveName) => {
-  // Example implementation
   return leaveName.replace(/([A-Z])/g, " $1").trim();
 };
+
 async function fetchRoles() {
   try {
     const response = await fetch(
@@ -2759,7 +1832,7 @@ async function fetchRoles() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
     const data = await response.json();
     roleOptions.value = data.data.map((role) => ({
@@ -2771,38 +1844,13 @@ async function fetchRoles() {
   }
 }
 
-async function fetchAttendanceCategories() {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/config?filter[tenant][tenantId][_eq]=${resolvedTenantId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      }
-    );
-    const data = await response.json();
-    attendanceCategoryOptions.value = data.data.map((config) => ({
-      id: config.id,
-      name: config.configName, // Ensure proper field mapping
-    }));
-  } catch (error) {
-    console.error("Error fetching attendance categories:", error);
-  }
-}
-
-async function fetchHolidays() {
-  // This function is no longer needed here as HolidaySettings.vue fetches its own data
-  // and qadd form.vue will directly manage the selected holiday IDs.
-}
-
 async function resolveTenantId() {
   if (props.tenantId instanceof Promise) {
     return await props.tenantId;
   }
   return props.tenantId;
 }
+
 const debounceFilter = debounce(filterReportingManagers, 300);
 
 async function filterReportingManagers() {
@@ -2810,47 +1858,42 @@ async function filterReportingManagers() {
     const resolvedTenantId = await resolveTenantId();
     let allManagers = [];
     let page = 1;
-    const limit = 100; // Number of items per page
-    let hasMore = true;
+    const limit = 100;
 
-    while (hasMore) {
+    while (true) {
       let filters = [];
 
-      // Add branch filter only if a specific branch is selected (not "all")
       if (selectedBranchFilter.value && selectedBranchFilter.value !== "all") {
         const selectedBranch = branchOptions.value.find(
-          (branch) => branch.id === selectedBranchFilter.value
+          (branch) => branch.id === selectedBranchFilter.value,
         );
         if (selectedBranch) {
           filters.push(
-            `filter[_and][0][branch][branchName][_icontains]=${encodeURIComponent(selectedBranch.name)}`
+            `filter[_and][0][branch][branchName][_icontains]=${encodeURIComponent(selectedBranch.name)}`,
           );
         }
       }
 
-      // Add department filter only if a specific department is selected (not "all")
       if (
         selectedDepartmentFilter.value &&
         selectedDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedDepartmentFilter.value
+          (dept) => dept.id === selectedDepartmentFilter.value,
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][1][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`
+            `filter[_and][1][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`,
           );
         }
       }
 
-      // Add search filter if text entered
       if (searchReportingManager.value) {
         filters.push(
-          `filter[_and][2][assignedUser][first_name][_icontains]=${encodeURIComponent(searchReportingManager.value)}`
+          `filter[_and][2][assignedUser][first_name][_icontains]=${encodeURIComponent(searchReportingManager.value)}`,
         );
       }
 
-      // Base filter for tenant and role
       const currentUserRole = authService.getUserRole();
       let roleFilter = "";
 
@@ -2858,7 +1901,7 @@ async function filterReportingManagers() {
         roleFilter = `&filter[assignedUser][role][name][_eq]=Manager`;
       } else if (currentUserRole === "Manager") {
         roleFilter = `&filter[_or][0][assignedUser][role][name][_eq]=Employee`;
-        roleFilter = `&filter[_or][1][assignedUser][role][name][_eq]=Manager`;
+        roleFilter += `&filter[_or][1][assignedUser][role][name][_eq]=Manager`;
       }
 
       const baseFilter = `filter[assignedUser][tenant][tenantId][_eq]=${resolvedTenantId}${roleFilter}`;
@@ -2875,7 +1918,6 @@ async function filterReportingManagers() {
         "department.departmentName",
       ].join(",");
 
-      // Add pagination parameters
       const pagination = `&limit=${limit}&page=${page}`;
       const url = `${import.meta.env.VITE_API_URL}/items/personalModule?${fullFilter}&fields=${fields}${pagination}`;
 
@@ -2887,25 +1929,20 @@ async function filterReportingManagers() {
 
       if (!response.ok) {
         throw new Error(
-          `Failed to fetch reporting managers: ${response.statusText}`
+          `Failed to fetch reporting managers: ${response.statusText}`,
         );
       }
 
       const data = await response.json();
-
-      // Add current page results to allManagers
       const currentPageManagers = data.data || [];
       allManagers = [...allManagers, ...currentPageManagers];
 
-      // Check if we've fetched all available data
       if (currentPageManagers.length < limit) {
-        hasMore = false;
-      } else {
-        page++;
+        break;
       }
+      page++;
     }
 
-    // Validate and map the response, ensuring id and name are present
     reportingManagerOptions.value = allManagers
       .filter((item) => item.assignedUser?.id && item.assignedUser?.first_name)
       .map((item) => ({
@@ -2917,11 +1954,6 @@ async function filterReportingManagers() {
         branchId: item.branch?.id || null,
         branchName: item.branch?.branchName || "",
       }));
-
-    // Log for debugging
-    if (reportingManagerOptions.value.length === 0) {
-      console.warn("No valid reporting managers found in the API response.");
-    }
   } catch (error) {
     console.error("Error filtering reporting managers:", error);
     reportingManagerOptions.value = [];
@@ -2934,10 +1966,9 @@ async function filterManagesEmployee() {
     const resolvedTenantId = await resolveTenantId();
     let allEmployees = [];
     let page = 1;
-    const limit = 100; // Number of items per page
-    let hasMore = true;
+    const limit = 100;
 
-    while (hasMore) {
+    while (true) {
       let filters = [];
 
       if (
@@ -2945,11 +1976,11 @@ async function filterManagesEmployee() {
         selectedManagesEmployeeBranchFilter.value !== "all"
       ) {
         const selectedEmployeesBranch = branchOptions.value.find(
-          (branch) => branch.id === selectedManagesEmployeeBranchFilter.value
+          (branch) => branch.id === selectedManagesEmployeeBranchFilter.value,
         );
         if (selectedEmployeesBranch) {
           filters.push(
-            `filter[_and][0][branch][branchName][_icontains]=${selectedEmployeesBranch.name}`
+            `filter[_and][0][branch][branchName][_icontains]=${selectedEmployeesBranch.name}`,
           );
         }
       }
@@ -2959,18 +1990,18 @@ async function filterManagesEmployee() {
         selectedManagesEmployeeDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value
+          (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value,
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][1][department][departmentName][_icontains]=${selectedDept.name}`
+            `filter[_and][1][department][departmentName][_icontains]=${selectedDept.name}`,
           );
         }
       }
 
       if (searchManagesEmployee.value) {
         filters.push(
-          `filter[_and][2][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`
+          `filter[_and][2][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`,
         );
       }
 
@@ -2997,7 +2028,6 @@ async function filterManagesEmployee() {
         "department.departmentName",
       ].join(",");
 
-      // Add pagination parameters
       const pagination = `&limit=${limit}&page=${page}`;
       const url = `${import.meta.env.VITE_API_URL}/items/personalModule?${fullFilter}&fields=${fields}${pagination}`;
 
@@ -3008,17 +2038,13 @@ async function filterManagesEmployee() {
       });
 
       const data = await response.json();
-
-      // Add current page results to allEmployees
       const currentPageEmployees = data.data || [];
       allEmployees = [...allEmployees, ...currentPageEmployees];
 
-      // Check if we've fetched all available data
       if (currentPageEmployees.length < limit) {
-        hasMore = false;
-      } else {
-        page++;
+        break;
       }
+      page++;
     }
 
     managesEmployeeOptions.value = allEmployees.map((item) => ({
@@ -3035,53 +2061,41 @@ async function filterManagesEmployee() {
     managesEmployeeOptions.value = [];
   }
 }
+
 async function filterApprovers() {
   try {
-    console.log("▶ Starting filterApprovers function...");
-
     const resolvedTenantId = await resolveTenantId();
-    console.log("✅ Tenant ID resolved:", resolvedTenantId);
-
     let allApprovers = [];
     let page = 1;
     const limit = 100;
-    let hasMore = true;
 
-    while (hasMore) {
-      console.log(`\n🔄 Fetching page: ${page}`);
+    while (true) {
       let filters = [];
 
-      // Department filter
       if (
         selectedApproverDepartmentFilter.value &&
         selectedApproverDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedApproverDepartmentFilter.value
+          (dept) => dept.id === selectedApproverDepartmentFilter.value,
         );
         if (selectedDept) {
-          const deptFilter = `filter[_and][0][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`;
-          filters.push(deptFilter);
-          console.log("📌 Department filter applied:", deptFilter);
+          filters.push(
+            `filter[_and][0][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`,
+          );
         }
       }
 
-      // Search filter
       if (searchApprover.value) {
-        const searchFilter = `filter[_and][1][assignedUser][first_name][_icontains]=${encodeURIComponent(searchApprover.value)}`;
-        filters.push(searchFilter);
-        console.log("🔍 Search filter applied:", searchFilter);
+        filters.push(
+          `filter[_and][1][assignedUser][first_name][_icontains]=${encodeURIComponent(searchApprover.value)}`,
+        );
       }
 
-      // Exclude Admin role filter
-      const excludeAdminFilter = `filter[_and][2][assignedUser][role][name][_neq]=Admin`;
-      filters.push(excludeAdminFilter);
-      console.log("🚫 Exclude Admin filter applied:", excludeAdminFilter);
+      filters.push(`filter[_and][2][assignedUser][role][name][_neq]=Admin`);
 
-      // Base filter for tenant
       const baseFilter = `filter[assignedUser][tenant][tenantId][_eq]=${resolvedTenantId}`;
       const fullFilter = `${baseFilter}${filters.length > 0 ? "&" + filters.join("&") : ""}`;
-      console.log("🛠 Full Filter Query:", fullFilter);
 
       const fields = [
         "id",
@@ -3092,11 +2106,9 @@ async function filterApprovers() {
         "department.departmentName",
         "accessOn",
       ].join(",");
-      console.log("📋 Fields requested:", fields);
 
       const pagination = `&limit=${limit}&page=${page}`;
       const url = `${import.meta.env.VITE_API_URL}/items/personalModule?${fullFilter}&fields=${fields}${pagination}`;
-      console.log("🌐 API URL:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -3104,27 +2116,18 @@ async function filterApprovers() {
         },
       });
 
-      console.log("📡 Response status:", response.status);
-
       if (!response.ok) {
         throw new Error(`Failed to fetch approvers: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log("📥 Data received:", data);
-
       const currentPageApprovers = data.data || [];
-      console.log(`✅ Approvers in page ${page}:`, currentPageApprovers);
-
       allApprovers = [...allApprovers, ...currentPageApprovers];
-      console.log("📊 Total approvers collected so far:", allApprovers.length);
-
+      console.log("approvers", allApprovers);
       if (currentPageApprovers.length < limit) {
-        hasMore = false;
-        console.log("⏹ No more pages to fetch.");
-      } else {
-        page++;
+        break;
       }
+      page++;
     }
 
     approverOptions.value = allApprovers
@@ -3136,10 +2139,8 @@ async function filterApprovers() {
         departmentId: item.department?.id || null,
         departmentName: item.department?.departmentName || "",
       }));
-
-    console.log("🎯 Final approver options:", approverOptions.value);
   } catch (error) {
-    console.error("❌ Error filtering approvers:", error);
+    console.error("Error filtering approvers:", error);
     approverOptions.value = [];
     showErrorMessage("Failed to load approvers. Please try again.");
   }
@@ -3153,47 +2154,28 @@ const markFieldAsTouched = (field) => {
 };
 
 const generateDefaultEmail = () => {
-  const firstName = formData.firstName?.toLowerCase() || "";
+  const firstName = formData.firstName?.toLowerCase() || "user";
   const lastName = formData.lastName?.toLowerCase() || "";
-  const employeeId = formData.employeeId || "";
+  const employeeId = formData.employeeId || "001";
 
-  if (lastName) {
-    return `${firstName}${lastName}${employeeId}@fieldops.com`;
+  // Clean the names and ID to ensure valid email format
+  const cleanFirstName = firstName.replace(/[^a-z0-9]/g, "");
+  const cleanLastName = lastName.replace(/[^a-z0-9]/g, "");
+  const cleanEmployeeId = employeeId.replace(/[^a-z0-9]/g, "");
+
+  if (cleanLastName) {
+    return `${cleanFirstName}.${cleanLastName}.${cleanEmployeeId}@fieldops.com`;
   } else {
-    return `${firstName}${employeeId}@fieldops.com`;
+    return `${cleanFirstName}.${cleanEmployeeId}@fieldops.com`;
   }
-};
-
-const handleOrganizationChange = async (newValue) => {
-  formData.department = "";
-  formData.branchLocation = "";
-  if (newValue) {
-    await fetchDepartments(newValue);
-    await fetchLocations(newValue);
-  } else {
-    departmentOptions.value = [];
-    locationOptions.value = [];
-  }
-};
-const handleDepartmentChange = (newValue) => {
-  // Handle department selection logic if needed
-};
-
-const handleBranchLocationChange = (newValue) => {
-  // Handle branch location selection logic if needed
-};
-
-const handleCycleTypeChange = (newValue) => {
-  // Handle cycle type selection logic if needed
 };
 
 async function saveEmployee() {
   formSubmitAttempted.value = true;
 
-  const mandatoryFields = ["firstName", "gender", "employeeId", "organization"];
+  const mandatoryFields = ["firstName", "gender", "employeeId"];
   let hasErrors = false;
 
-  // Validate mandatory fields
   mandatoryFields.forEach((field) => {
     if (!formData[field]) {
       hasErrors = true;
@@ -3202,14 +2184,21 @@ async function saveEmployee() {
     }
   });
 
-  // Validate phone and email
-  const isPhoneValid = await validatePhone();
-  const isEmailValid = await validateEmail();
+  let isPhoneValid = true;
+  if (formData.phone && formData.phone.trim() !== "") {
+    isPhoneValid = await validatePhone();
+  }
+
+  // Only validate email if it has a value
+  let isEmailValid = true;
+  if (formData.email && formData.email.trim() !== "") {
+    isEmailValid = await validateEmail();
+  }
+
   if (!isPhoneValid || !isEmailValid) {
     hasErrors = true;
   }
 
-  // Validate DOB (if provided, ensure age >= 18)
   if (formData.assignedUser.DOB) {
     const selectedDate = new Date(formData.assignedUser.DOB);
     const today = new Date();
@@ -3229,7 +2218,6 @@ async function saveEmployee() {
     }
   }
 
-  // Existing validations for PAN, Aadhar, etc.
   if (
     formData.pan &&
     formData.pan.trim() !== "" &&
@@ -3288,119 +2276,42 @@ async function saveEmployee() {
 
   await createNewEmployee();
 }
-// async function fetchLeaveSettings() {
-//   try {
-//     const resolvedTenantId = await resolveTenantId();
-//     const response = await fetch(
-//       `${
-//         import.meta.env.VITE_API_URL
-//       }/items/leaveSetting?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=id,leaveName,leaveConfig,assignedLeave`,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${authService.getToken()}`,
-//         },
-//       },
-//     );
 
-//     if (!response.ok) {
-//       throw new Error("Failed to fetch leave settings");
-//     }
-
-//     const data = await response.json();
-//     leaveSettings.value = data.data || [];
-//   } catch (error) {
-//     console.error("Error fetching leave settings:", error);
-//   }
-// }
-
-async function fetchLeavePolicies() {
-  try {
-    const resolvedTenantId = await resolveTenantId();
-    const currentYear = new Date().getFullYear();
-
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/leaveSetting?filter[_and][0][_and][0][tenant][tenantId][_eq]=${resolvedTenantId}&filter[_and][0][_and][1][year(yearOfPolicy)][_eq]=${currentYear}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch leave policies");
-    }
-
-    const data = await response.json();
-    // Filter and initialize isAssigned if not present
-    enabledLeaves.value = data.data
-      .filter((leave) => leave.leaveConfig?.isEnabled)
-      .map((leave) => ({
-        ...leave,
-        isAssigned: leave.isAssigned ?? false, // Initialize if undefined
-      }));
-  } catch (error) {
-    console.error("Error fetching leave policies:", error);
-    enabledLeaves.value = [];
-  }
-}
-// Add this before the payload construction in createNewEmployee
 const reportingManagerIds = Array.isArray(formData.reportingManager)
   ? formData.reportingManager
       .map((manager) => (typeof manager === "object" ? manager.id : manager))
       .filter((id) => id)
   : [];
 
-console.log("Processed Reporting Manager IDs:", reportingManagerIds);
-
 async function createNewEmployee() {
   try {
+    console.log("Starting createNewEmployee function");
+
     const resolvedTenantId = await resolveTenantId();
+    console.log("Resolved Tenant ID:", resolvedTenantId);
+
     const cycleTypeToSave = formData.cycleType || 1;
+    console.log("Cycle Type to Save:", cycleTypeToSave);
+
     const selectedDepartment = departmentOptions.value.find(
-      (dept) => dept.id === formData.department
+      (dept) => dept.id === formData.department,
     );
+    console.log("Selected Department:", selectedDepartment);
+
     const selectedBranchLocation = locationOptions.value.find(
-      (loc) => loc.id === formData.branchLocation
+      (loc) => loc.id === formData.branchLocation,
     );
+    console.log("Selected Branch Location:", selectedBranchLocation);
+
     const selectedRole = roleOptions.value.find(
-      (role) => role.name === formData.role
+      (role) => role.name === formData.role,
     ) || { id: "f667b169-c66c-4ec1-bef9-1831c1647c0d" };
-    const selectedAccessLevel = accessLevelOptions.value.find(
-      (level) => level.name === formData.accessLevel
-    );
-    const accessLevelNumber = selectedAccessLevel?.accessLevelNumber || 0;
-    const assignedCardsFromComponent =
-      accessManagementRef.value?.getAssignedCards() || [];
-    const leavesPayload = {
-      leaveBalance: {},
-      CarryForwardleave: {},
-      leaveTaken: {},
-      monthLimit: {},
-      assignedLeave: [],
-      year: null,
-    };
-    if (enabledLeaves.value && enabledLeaves.value.length > 0) {
-      leavesPayload.year = new Date(enabledLeaves.value[0].yearOfPolicy)
-        .getFullYear()
-        .toString();
-      enabledLeaves.value.forEach((leave) => {
-        const leaveType = leave.leaveName.toLowerCase().replace(/\s+/g, "");
-        leavesPayload.leaveBalance[leaveType] = leave.leaveConfig?.days || 0;
-        leavesPayload.CarryForwardleave[leaveType] =
-          leave.leaveConfig?.limit || 0;
-        leavesPayload.leaveTaken[`t${leaveType}`] =
-          leave.leaveConfig?.taken || 0;
-        leavesPayload.monthLimit[leaveType] =
-          leave.leaveConfig?.monthLimit || 0;
-        if (leave.isAssigned === true) {
-          leavesPayload.assignedLeave.push(leave.leaveName);
-        }
-      });
-    }
+    console.log("Selected Role:", selectedRole);
+    const leavesPayload = getLeavesPayload();
     const reportingManagerIds = Array.isArray(formData.reportingManager)
       ? formData.reportingManager
-          .map((manager) => {
+          .map((manager, index) => {
+            console.log(`Processing Reporting Manager ${index + 1}:`, manager);
             if (typeof manager === "object") return manager.id;
             if (typeof manager === "string" && manager.trim() !== "")
               return manager;
@@ -3408,8 +2319,7 @@ async function createNewEmployee() {
           })
           .filter((id) => id && typeof id === "string")
       : [];
-
-    console.log("Final Reporting Manager IDs:", reportingManagerIds);
+    console.log("Reporting Manager IDs:", reportingManagerIds);
 
     const payload = {
       status: formData.status,
@@ -3421,53 +2331,58 @@ async function createNewEmployee() {
       selfieAttendance: formData.selfieAttendance,
       uniqueId: `${resolvedTenantId}-${formData.employeeId}`,
       config: formData.attendanceCategory,
-      salaryConfig: selectedSalarySetting.value,
       attendancePolicyHistory: { status: "published" },
       workingRange: formData.workingRange,
       leaves: leavesPayload,
       reportingManager: reportingManagerIds,
       managesEmployees: Array.isArray(formData.managesEmployees)
         ? formData.managesEmployees
-            .map((employee) =>
-              typeof employee === "object" ? employee.id : employee
-            )
+            .map((employee, index) => {
+              console.log(
+                `Processing Managed Employee ${index + 1}:`,
+                employee,
+              );
+              return typeof employee === "object" ? employee.id : employee;
+            })
             .filter((id) => id)
         : [],
       cycleType: cycleTypeToSave,
       approver: formData.approver,
     };
+    console.log("Main Payload:", payload);
+
     if (
       formData.employeeWorkingHours &&
       formData.employeeWorkingHours.length > 0
     ) {
       const attendanceSettingsData = { tenant: resolvedTenantId };
-      formData.employeeWorkingHours.forEach((day) => {
+      formData.employeeWorkingHours.forEach((day, index) => {
+        console.log(`Processing Working Hour Day ${index + 1}:`, day);
         attendanceSettingsData[`is${day.name}`] = !day.isWorking;
         if (day.isWorking && day.shifts && day.shifts.length > 0) {
           attendanceSettingsData[`${day.key}J`] = {
-            shifts: day.shifts.map((s) => s.id.toString()),
+            shifts: day.shifts.map((s) => {
+              console.log(`Processing Shift for ${day.name}:`, s);
+              return s.id.toString();
+            }),
           };
         } else {
           attendanceSettingsData[`${day.key}J`] = { shifts: [] };
         }
       });
       payload.attendanceSettings = attendanceSettingsData;
+      console.log("Attendance Settings Data:", attendanceSettingsData);
     }
-    if (formData.employeeHolidays && formData.employeeHolidays.length > 0) {
-      payload.holidaySettingsJ = {
-        holidays: formData.employeeHolidays.map((id) => id.toString()),
-      };
-    }
-    if (selectedBranchLocation?.id)
+
+    if (selectedBranchLocation?.id) {
       payload.branchLocation = selectedBranchLocation.id;
-    if (selectedDepartment?.id) payload.department = selectedDepartment.id;
-    if (selectedAccessLevel?.id) payload.accessLevel = selectedAccessLevel.id;
-    const verifications = [];
-    if (formData.voterID) verifications.push("voterID");
-    if (formData.gst) verifications.push("GST");
-    if (formData.uan) verifications.push("UAN");
-    if (formData.aadhar) verifications.push("aadhar");
-    if (formData.pan) verifications.push("PAN");
+      console.log("Added Branch Location to Payload:", payload.branchLocation);
+    }
+    if (selectedDepartment?.id) {
+      payload.department = selectedDepartment.id;
+      console.log("Added Department to Payload:", payload.department);
+    }
+
     const userData = {
       first_name: formData.firstName,
       middle_name: formData.middleName,
@@ -3477,7 +2392,6 @@ async function createNewEmployee() {
       appAccess: formData.appAccess,
       password: `${formData.phone}`,
       role: selectedRole?.id,
-
       userApp: "fieldeasy",
       tenant: resolvedTenantId,
       officeEmail: formData.officeEmail,
@@ -3495,27 +2409,53 @@ async function createNewEmployee() {
       ESIAccountNumber: formData.ESIAccountNumber,
       PFAccountNumber: formData.PFAccountNumber,
       shopAccount: formData.shopAccount,
-      verification: verifications,
+      verification: [], // Assuming verifications array is still needed
       previousExperiences:
         formData.previousRecords.length > 0 ? formData.previousRecords : [],
       reportingManager: reportingManagerIds,
       approver: formData.approver,
-      cycleType: formData.cycleType,
-      DOB: formData.assignedUser.DOB,
-      organization: formData.organization,
+
+      DOB: formData.assignedUser?.DOB || formData.DOB,
     };
-    if (currentAvatarId.value) userData.avatar = currentAvatarId.value;
-    if (formData.gender) userData.gender = formData.gender;
-    if (formData.DOB) userData.DOB = formData.DOB;
-    if (formData.maritalStatus) userData.maritalStatus = formData.maritalStatus;
-    if (formData.bloodGroup) userData.bloodGroup = formData.bloodGroup;
-    if (formData.pan) userData.pan = formData.pan;
-    if (formData.aadhar) userData.aadhar = formData.aadhar;
-    if (formData.gst) userData.gst = formData.gst;
-    if (formData.dateOfJoining) userData.dateOfJoining = formData.dateOfJoining;
-    if (formData.dateOfLeaving) userData.dateOfLeaving = formData.dateOfLeaving;
-    payload.assignedUser = { ...userData, ...bankDetails.value };
-    console.log("Reporting Manager IDs in Payload:", payload.reportingManager);
+    console.log("User Data:", userData);
+
+    if (currentAvatarId.value) {
+      userData.avatar = currentAvatarId.value;
+      console.log("Added Avatar ID to User Data:", userData.avatar);
+    }
+    if (formData.gender) {
+      userData.gender = formData.gender;
+      console.log("Added Gender to User Data:", userData.gender);
+    }
+    if (formData.DOB) {
+      userData.DOB = formData.DOB;
+      console.log("Added DOB to User Data:", userData.DOB);
+    }
+    if (formData.maritalStatus) {
+      userData.maritalStatus = formData.maritalStatus;
+      console.log("Added Marital Status to User Data:", userData.maritalStatus);
+    }
+    if (formData.bloodGroup) {
+      userData.bloodGroup = formData.bloodGroup;
+      console.log("Added Blood Group to User Data:", userData.bloodGroup);
+    }
+    if (formData.dateOfJoining) {
+      userData.dateOfJoining = formData.dateOfJoining;
+      console.log(
+        "Added Date of Joining to User Data:",
+        userData.dateOfJoining,
+      );
+    }
+    if (formData.dateOfLeaving) {
+      userData.dateOfLeaving = formData.dateOfLeaving;
+      console.log(
+        "Added Date of Leaving to User Data:",
+        userData.dateOfLeaving,
+      );
+    }
+    payload.assignedUser = { ...userData };
+    console.log("Final Payload before API call:", payload);
+
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/personalModule`,
       {
@@ -3525,20 +2465,66 @@ async function createNewEmployee() {
           Authorization: `Bearer ${authService.getToken()}`,
         },
         body: JSON.stringify(payload),
-      }
+      },
     );
-    console.log(payload);
+    console.log("API Response Status:", response.status, response.statusText);
+
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("API Error Response:", errorData);
       throw new Error(
-        errorData.errors?.[0]?.message || "Failed to save employee data"
+        errorData.errors?.[0]?.message || "Failed to save employee data",
       );
     }
+
     const responseData = await response.json();
     const createdEmployeeId = responseData.data.id;
+    console.log("Created Employee ID:", createdEmployeeId);
+
+    // Additional POST call to SalaryBreakdown using createdEmployeeId
+    const salaryBreakdownPayload = {
+      // TODO: Populate with actual salary breakdown data from formData or other sources
+      // For example: basicSalary: formData.basicSalary, allowances: formData.allowances, etc.
+      employee: createdEmployeeId, // Assuming this links to the employee
+      // Add other required fields here based on your SalaryBreakdown schema
+    };
+    console.log("Salary Breakdown Payload:", salaryBreakdownPayload);
+
+    const salaryResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/SalaryBreakdown`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+        body: JSON.stringify(salaryBreakdownPayload),
+      },
+    );
+    console.log(
+      "Salary Breakdown API Response Status:",
+      salaryResponse.status,
+      salaryResponse.statusText,
+    );
+
+    if (!salaryResponse.ok) {
+      const salaryErrorData = await salaryResponse.json();
+      console.error("Salary Breakdown API Error Response:", salaryErrorData);
+      // Optionally, decide whether to throw or continue (e.g., if salary is optional)
+      // throw new Error(salaryErrorData.errors?.[0]?.message || "Failed to save salary breakdown");
+      console.warn(
+        "Salary breakdown creation failed, but continuing with employee creation.",
+      );
+    } else {
+      const salaryResponseData = await salaryResponse.json();
+      console.log("Salary Breakdown Created Successfully:", salaryResponseData);
+    }
+
     if (selectedAvatarFile.value) {
+      console.log("Starting Avatar Upload for Employee ID:", createdEmployeeId);
       try {
         const avatarId = await handleAvatarUpload(createdEmployeeId);
+        console.log("Avatar Upload Result - Avatar ID:", avatarId);
         if (avatarId) {
           const personalModuleResponse = await fetch(
             `${import.meta.env.VITE_API_URL}/items/personalModule/${createdEmployeeId}?fields[]=assignedUser.id`,
@@ -3546,13 +2532,19 @@ async function createNewEmployee() {
               headers: {
                 Authorization: `Bearer ${authService.getToken()}`,
               },
-            }
+            },
+          );
+          console.log(
+            "Personal Module Response Status:",
+            personalModuleResponse.status,
           );
           if (!personalModuleResponse.ok) {
             throw new Error("Failed to fetch personal module data");
           }
           const personalModuleData = await personalModuleResponse.json();
+          console.log("Personal Module Data:", personalModuleData);
           const userId = personalModuleData.data.assignedUser.id;
+          console.log("User ID from Personal Module:", userId);
           if (!userId) {
             throw new Error("User ID not found in personal module data");
           }
@@ -3565,98 +2557,35 @@ async function createNewEmployee() {
                 Authorization: `Bearer ${authService.getToken()}`,
               },
               body: JSON.stringify({ avatar: avatarId }),
-            }
+            },
+          );
+          console.log(
+            "Avatar Update Response Status:",
+            avatarUpdateResponse.status,
           );
           if (!avatarUpdateResponse.ok) {
             throw new Error("Failed to update user with avatar ID");
           }
+          console.log("Avatar successfully updated for User ID:", userId);
         }
       } catch (error) {
         console.error("Error handling avatar upload:", error);
         showErrorMessage(
-          `Avatar upload completed, but couldn't update profile picture: ${error.message}`
+          `Avatar upload completed, but couldn't update profile picture: ${error.message}`,
         );
       }
     }
-    if (assignedCardsFromComponent.length > 0) {
-      for (const card of assignedCardsFromComponent) {
-        const cardPayload = {
-          rfidCard: card.rfidCard,
-          type: card.type.toLowerCase(),
-          enabled: card.enabled,
-          tenant: resolvedTenantId,
-          accessLevelsId: accessLevelNumber,
-          cardAccess: card.enabled,
-          cardAccessLevelArray: `${card.rfidCard}:${card.enabled ? 1 : 0}:${accessLevelNumber}`,
-          cardAccessLevelHex: convertToCardAccessHex(
-            card.rfidCard,
-            card.enabled,
-            accessLevelNumber
-          ),
-          employeeId: createdEmployeeId,
-        };
-        const cardResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/cardManagement`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authService.getToken()}`,
-            },
-            body: JSON.stringify(cardPayload),
-          }
-        );
-        if (!cardResponse.ok) {
-          console.error("Failed to create card:", await cardResponse.json());
-        }
-      }
-    }
-    const earningsPayload = earnings.value.reduce((acc, item) => {
-      acc[item.name] = item.amount;
-      return acc;
-    }, {});
-    const salaryBreakdownResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/SalaryBreakdown`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-        body: JSON.stringify({
-          ctc: annualCTC.value || 0,
-          employee: createdEmployeeId,
-          tenant: resolvedTenantId,
-          earnings: earningsPayload,
-          basicPay: basicPayValue.value,
-          basicSalary: monthlyCTC.value,
-          netSalary: netSalary.value,
-          totalDeductions: totalDeductions.value,
-          totalEarnings: totalEarnings.value,
-          uniqueId: `${resolvedTenantId}-${formData.employeeId}`,
-        }),
-      }
-    );
-    if (annualCTC.value) {
-      if (totalAmount.value > monthlyCTC.value) {
-        alert("Cannot update! Fixed earnings exceed Monthly CTC.");
-        return;
-      }
-    }
-    if (!salaryBreakdownResponse.ok) {
-      const errorData = await salaryBreakdownResponse.json();
-      throw new Error(
-        errorData.errors?.[0]?.message || "Failed to create salary breakdown"
-      );
-    }
+
+    console.log("Employee Creation Successful");
     showSuccessMessage("Employee added successfully!");
     setTimeout(() => {
+      console.log("Emitting save-success event");
       emit("save-success");
     }, 2000);
   } catch (error) {
-    console.error("Error saving employee data:", error);
+    console.error("Error in createNewEmployee:", error);
     showErrorMessage(
-      `An error occurred while saving the employee data: ${error.message}`
+      `An error occurred while saving the employee data: ${error.message}`,
     );
   }
 }
@@ -3685,21 +2614,15 @@ const handleAvatarUpload = async (personalModuleId) => {
   try {
     const file = selectedAvatarFile.value;
     const tenantId = await resolveTenantId();
-
-    // Get the tenant's profile folder ID
     const profileFolderId = await getProfileFolderId(tenantId);
 
     const formData = new FormData();
-
-    // If we have a profile folder ID, use it
     if (profileFolderId) {
       formData.append("folder", profileFolderId);
     }
 
-    // Use personalModuleId-tenantId as the filename
     const fileExtension = file.name.split(".").pop();
     const customFileName = `${personalModuleId}-${tenantId}.${fileExtension}`;
-
     formData.append("file", file, customFileName);
 
     const response = await fetch(`${import.meta.env.VITE_API_URL}/files`, {
@@ -3730,7 +2653,7 @@ async function getProfileFolderId(tenantId) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -3739,14 +2662,10 @@ async function getProfileFolderId(tenantId) {
 
     const data = await response.json();
     if (data.data && data.data.length > 0 && data.data[0].foldersId) {
-      // Find the Profiles folder
       const profilesFolder = data.data[0].foldersId.find(
-        (folder) => folder.name === "Profiles"
+        (folder) => folder.name === "Profiles",
       );
-
-      if (profilesFolder) {
-        return profilesFolder.id;
-      }
+      return profilesFolder ? profilesFolder.id : null;
     }
 
     return null;
@@ -3762,70 +2681,56 @@ const weekDays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 onMounted(async () => {
   userRole.value = authService.getUserRole() || "Employee";
 
-  // await fetchHolidays(); // No longer needed here
-  await fetchOrganizations();
-  await fetchDepartments();
-  await fetchLocations();
-  await fetchAccessLevels();
-  await fetchRoles();
-  await fetchSalarySettings();
-  fetchAttendanceCategories();
-  await filterReportingManagers();
-  await filterManagesEmployee();
-  await filterApprovers();
-  // await fetchLeaveSettings();
-  await fetchLeavePolicies();
-  await fetchCycleTypes();
+  // Load initial data for the first tab
+  await loadTabData(currentTab.value);
   formData.tenantName = authService.getTenantName();
 });
 
-// Watch for organization changes to fetch dependent options
-watch(
-  () => formData.organization,
-  async (newOrgId) => {
-    formData.department = "";
-    formData.branchLocation = "";
-    if (newOrgId) {
-      await fetchDepartments(newOrgId);
-      await fetchLocations(newOrgId);
-    } else {
-      departmentOptions.value = [];
-      locationOptions.value = [];
-    }
-  }
-);
 watch(
   () => formData.accessOn,
   (newValue) => {
-    if (!newValue) {
-      formData.status = "false";
-    } else {
-      formData.status = "true";
+    formData.status = newValue ? "true" : "false";
+  },
+  { immediate: true },
+);
+
+watch(
+  [() => formData.faceAttendance, () => formData.selfieAttendance],
+  ([faceValue, selfieValue], [prevFaceValue, prevSelfieValue]) => {
+    if (faceValue && selfieValue) {
+      // If both became true, revert the one that just changed
+      if (faceValue !== prevFaceValue) {
+        formData.selfieAttendance = false;
+      } else if (selfieValue !== prevSelfieValue) {
+        formData.faceAttendance = false;
+      }
     }
   },
-  { immediate: true }
+  { deep: true },
 );
 
 watch(
   formData,
-  (newVal, oldVal) => {
+  (newVal) => {
     Object.keys(newVal).forEach((field) => {
       if (newVal[field] && formErrors.value[field]) {
         formErrors.value[field] = "";
       }
     });
   },
-  { deep: true }
+  { deep: true },
 );
+
 watch(
   () => formData.role,
   (newRole, oldRole) => {
     if (newRole !== oldRole) {
-      formData.approver = null; // Reset approver when role changes
-      filterApprovers(); // Refresh the approver list
+      formData.approver = null;
+      filterApprovers();
     }
-  }
+  },
 );
+
 watch(currentTab, (newTab, oldTab) => {
   if (oldTab && tabRequiredFields[oldTab]) {
     const mandatoryFields = tabRequiredFields[oldTab];
@@ -3840,14 +2745,11 @@ watch(currentTab, (newTab, oldTab) => {
   }
 
   if (newTab === "company") {
-    filterReportingManagers(); // Trigger API call when company tab is selected
+    filterReportingManagers();
     filterManagesEmployee();
     filterApprovers();
   }
 
-  if (newTab === "salary") {
-    fetchSalarySettings();
-  }
   if (newTab === "LeavePolicy") {
     fetchLeavePolicies();
   }
@@ -3859,28 +2761,168 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.filter-dropdown {
-  position: absolute;
-  right: 0;
-  width: 300px;
-  z-index: 100;
-  background: white;
+.tab-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
 }
-.first-name-container,
-.config-name-container {
+
+.tab-loading-container p {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.tab-loading-icon {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tab-item--loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.breadcrum {
+  cursor: pointer;
+}
+.detail-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 24px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  background: #f8f9fa;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.card-body {
+  padding: 24px;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.avatar-section {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-wrapper-large {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+/* Square Avatar Styles */
+.avatar-large.square-avatar {
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #e0e0e0;
   display: flex;
   align-items: center;
-  padding: 4px 8px;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-placeholder-large {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+.edit-avatar-btn-large {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.fields-container {
+  flex: 1;
+  margin-left: 24px;
+}
+
+.name-role-row,
+.contact-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.field-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.field-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #333;
+  font-size: 0.875rem;
+}
+
+.field-group-column {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dob-gender-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sub-field {
+  flex: 1;
+}
+
+.address-field {
+  min-width: 250px;
+}
+
+.filter-dropdown {
+  background: white;
+  padding: 12px;
   border-radius: 4px;
-  background-color: #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  margin-top: 8px;
 }
 
-.first-name-container {
-  margin-left: 16px;
-}
-
+/* Rest of your existing styles remain the same */
 .employee-form-container {
-  height: 100vh;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   background: #fff;
@@ -3888,7 +2930,13 @@ onUnmounted(() => {
   max-width: 100%;
 }
 
-.form-header {
+.approver-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-heade {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -3911,190 +2959,142 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.form-content-wrapper {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  margin-left: 1rem;
-}
-
-.sidebar {
-  width: 280px;
-  border-right: 1px solid #e0e0e0;
-  overflow-y: auto;
-  padding: 1rem;
-}
-
 .form-content {
   flex: 1;
-  padding: 24px;
-  height: calc(80vh - 70px);
-  overflow-y: auto;
+  /* height: calc(80vh - 70px); */
+  /* overflow-y: auto; */
   overflow-x: hidden;
   border-radius: 8px;
 }
 
-.form-section {
-  margin-bottom: 24px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .has-error {
   color: rgb(var(--v-theme-error));
 }
-
-:deep(.v-list-item--active) {
-  background-color: #f5f5f5 !important;
-  color: #1976d2 !important;
+tab-section {
+  font-family: "Inter", sans-serif;
 }
 
-:deep(.v-list-item:hover) {
-  background-color: #f0f0f0;
+.custom-tabs {
+  background: transparent !important;
 }
 
-.v-list-item.has-error:not(.v-list-item--active) {
-  background-color: rgb(var(--v-theme-error), 0.1);
+.custom-tabs :deep(.v-slide-group__container) {
+  background: transparent !important;
 }
 
-:deep(.v-list-item--active) {
-  background-color: #f5f5f5 !important;
-  color: #1976d2 !important;
+.custom-tabs :deep(.v-slide-group__content) {
+  background: transparent !important;
+  padding: 0 !important;
+  gap: 12px !important;
+  width: fit-content;
+  margin: 0 auto;
 }
 
-:deep(.v-list-item:hover) {
-  background-color: #f0f0f0;
-}
-
-.avatar-container {
+/* Individual tab as separate column with gaps */
+.tab-item {
+  background: #e8f5f0 !important; /* Light green background for unselected */
+  /* border: 1px solid #d1e7dd !important; */
+  border-radius: 8px !important;
+  min-height: 48px !important;
+  min-width: 200px !important;
+  padding: 0 20px !important;
+  margin: 0 !important;
+  text-transform: none !important;
+  font-family: "Inter", sans-serif !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
-  display: inline-block;
+  overflow: hidden;
 }
 
-.edit-avatar-btn {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  z-index: 1;
-  background-color: white !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+/* Selected tab state */
+.tab-item--active {
+  background: #059367 !important; /* Your existing green */
+  border-color: #059367 !important;
+  box-shadow: 0 2px 8px rgba(5, 147, 103, 0.3);
 }
 
-.payroll-category {
-  padding: 20px;
-  overflow-y: auto;
-  height: calc(100vh - 64px);
-  overflow-x: hidden;
-  border-radius: 8px;
+/* Hover state for unselected tabs */
+.tab-item:not(.tab-item--active):hover {
+  background: #d1e7dd !important;
+  border-color: #a3cfbb !important;
+  transform: translateY(-1px);
 }
 
-.config-label {
-  font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
-  margin-bottom: 8px;
-  display: block;
-}
-
-.input-wrapper {
+.tab-conten {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
 }
 
-.field-icon {
-  margin-top: 4px;
+.tab-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tab-item--active .tab-text {
+  color: white !important; /* White text for selected */
+}
+/* Unselected tab - black text and green icon */
+.tab-item:not(.tab-item--active) .tab-icon {
+  color: #059367 !important; /* Green icon for unselected */
 }
 
-.salary-select,
-.ctc-input,
-.net-salary-input {
-  flex: 1;
-  background-color: white;
-  border-radius: 8px;
+.tab-item:not(.tab-item--active) .tab-text {
+  color: #000000 !important; /* Black text for unselected */
 }
 
-.card-header {
-  padding: 20px;
-  color: white;
-}
+/* Selected tab - white text and white icon */
 
-.card-header.earnings {
-  background: linear-gradient(135deg, #66cdaa 0%, #c4e17f 100%);
-}
-
-.card-header.employer {
-  background: linear-gradient(135deg, #6faedb 0%, #b6e3f7 100%);
-}
-
-.card-header.employee {
-  background: linear-gradient(135deg, #f9a17c 0%, #fbc28d 100%);
-}
-
-.card-header.deductions {
-  background: linear-gradient(135deg, #f08d7d 0%, #f7a68f 100%);
-}
-
-.header-text {
-  flex: 1;
-}
-
-.header-text h3 {
-  font-size: 1.25rem;
+.tab-text {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 4px;
+  line-height: 1.2;
+  letter-spacing: -0.1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.amount {
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
+.tab-error-icon {
+  position: relative;
+  z-index: 2;
 }
 
-.percentage {
-  font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
+/* Error state styles */
+.tab-item--error:not(.tab-item--active) .tab-text {
+  color: #d32f2f !important;
 }
 
-.action-footer {
-  background: #f5f5f5;
-  border-radius: 0;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+.tab-item--error:not(.tab-item--active) .tab-icon {
+  color: #d32f2f !important;
 }
 
-.salary-breakdown {
-  margin-bottom: 60px; /* Add space for the fixed footer */
+.tab-item--error.tab-item--active .tab-error-icon {
+  color: white !important;
 }
 
-.net-salary-input {
-  display: inline-block;
-  margin-left: 16px;
-  vertical-align: middle;
+/* Remove default Vuetify tab styles */
+.custom-tabs :deep(.v-tab--selected) {
+  color: transparent !important;
 }
 
-.salary-config .v-col {
-  display: flex;
-  align-items: center;
+.custom-tabs :deep(.v-tab__slider) {
+  display: none !important;
 }
 
-.salary-config .v-col > * {
-  flex: 1;
-}
-
-@media (max-width: 960px) {
-  .salary-config .v-col {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .net-salary-input {
-    margin-left: 0;
-    margin-top: 16px;
-  }
+/* Ensure proper spacing and alignment */
+.custom-tabs :deep(.v-tab) {
+  opacity: 1 !important;
 }
 
 :deep(.v-list-item) {
@@ -4148,10 +3148,6 @@ onUnmounted(() => {
   transform: translateY(-2px);
 }
 
-.holidays-list {
-  margin: 0 auto;
-}
-
 :deep(.v-list-item.has-error) {
   background-color: rgba(244, 67, 54, 0.1) !important;
   color: #f44336 !important;
@@ -4165,7 +3161,6 @@ onUnmounted(() => {
   color: #f44336 !important;
 }
 
-/* Override active state when there's an error */
 :deep(.v-list-item.has-error.v-list-item--active) {
   background-color: rgba(244, 67, 54, 0.15) !important;
   color: #f44336 !important;
@@ -4177,5 +3172,103 @@ onUnmounted(() => {
 
 :deep(.v-list-item.has-error.v-list-item--active .v-icon) {
   color: #f44336 !important;
+}
+
+.app-access-card,
+.attendance-modes-card {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-access-switch :deep(.v-switch__track) {
+  width: 48px;
+  height: 24px;
+  border-radius: 12px;
+}
+
+.app-access-switch :deep(.v-switch__thumb) {
+  width: 20px;
+  height: 20px;
+}
+
+.attendance-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.attendance-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.attendance-icon-wrapper.enabled {
+  background-color: #059367;
+}
+
+.attendance-icon-wrapper.disabled {
+  background-color: #f44336;
+}
+
+.attendance-switch {
+  display: flex;
+  justify-content: center;
+}
+
+.attendance-switch :deep(.v-switch__track) {
+  width: 48px;
+  height: 24px;
+  border-radius: 12px;
+}
+
+.attendance-switch :deep(.v-switch__thumb) {
+  width: 20px;
+  height: 20px;
+}
+
+.attendance-switch :deep(.v-selection-control) {
+  min-height: auto;
+}
+
+.v-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+@media (max-width: 768px) {
+  .custom-tabs :deep(.v-slide-group__content) {
+    gap: 8px !important;
+  }
+
+  .tab-item {
+    min-width: 160px !important;
+    padding: 0 16px !important;
+    min-height: 44px !important;
+  }
+
+  .tab-text {
+    font-size: 13px;
+  }
+
+  .tab-icon {
+    size: 18px;
+  }
+}
+
+/* Focus states for accessibility */
+.tab-item:focus-visible {
+  outline: 2px solid #059367;
+  outline-offset: 2px;
+}
+
+.tab-item--active:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 </style>

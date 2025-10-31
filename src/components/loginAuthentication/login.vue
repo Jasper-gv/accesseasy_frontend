@@ -1,226 +1,155 @@
+<!-- login page.vue -->
 <template>
-  <v-app class="bg-app">
-    <v-container class="py-12">
-      <!-- Header -->
-      <v-row class="mb-8" align="center" justify="center">
-        <v-col cols="12" sm="10" md="8" lg="6" class="d-flex justify-center">
-          <v-avatar size="56" class="mr-4" :style="logoStyle">
-            <span class="font-weight-black text-h5">F</span>
-          </v-avatar>
-          <div>
-            <div class="text-h4 font-weight-black brand-text">Fieldseasy</div>
-            <div class="text-body-2 brand-sub">Field operations made easy</div>
-          </div>
-        </v-col>
-      </v-row>
-
-      <!-- Content -->
-      <v-row justify="center">
-        <!-- Auth Card -->
-        <v-col cols="12" sm="10" md="8" lg="6">
-          <v-card
-            :style="cardStyle"
-            rounded="lg"
-            class="mx-auto"
-            style="max-width: 600px"
-          >
-            <v-card-text class="pa-8">
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-h5 font-weight-black heading-text">
-                  Welcome to Fieldseasy
+  <v-container fluid class="fill-height pa-0">
+    <v-row no-gutters class="h-100">
+      <!-- Full Background Image -->
+      <v-col cols="12" class="d-flex align-center justify-end pa-0">
+        <div
+          class="background-container d-flex align-center justify-end h-100"
+          :style="backgroundStyle"
+        >
+          <!-- Right Panel - Login Form (Above Image) -->
+          <div class="login-container">
+            <!-- Redesigned login card with new layout matching the design image -->
+            <v-card
+              class="login-card"
+              style="
+                border: 2px solid #059669;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+              "
+            >
+              <!-- Logo and Tagline inside card header -->
+              <div class="card-header">
+                <div class="logo-section">
+                  <img
+                    src="/public/images/project.png"
+                    alt="FieldsEasy"
+                    class="logo-image"
+                  />
                 </div>
               </div>
-              <div class="text-body-2 help-text">
-                Continue with your mobile number or email.
+
+              <!-- Sub Header with light green background -->
+              <div class="card-subheader">
+                <h2 class="subheader-title">Login to dashboard</h2>
               </div>
 
-              <!-- Toggle -->
-              <div class="d-flex ga-3 mt-6">
-                <v-btn
-                  :style="[pillStyle, mode === 'phone' ? pillActiveStyle : {}]"
-                  @click="setMode('phone')"
-                  size="large"
-                >
-                  Phone
-                </v-btn>
-                <v-btn
-                  :style="[pillStyle, mode === 'email' ? pillActiveStyle : {}]"
-                  @click="setMode('email')"
-                  size="large"
-                >
-                  Email
-                </v-btn>
-              </div>
+              <!-- Card content with improved spacing -->
+              <div class="card-content">
+                <!-- Tab buttons with new styling -->
+                <div class="tab-buttons-container">
+                  <button
+                    @click="setMode('phone')"
+                    :class="['tab-btn', { active: mode === 'phone' }]"
+                  >
+                    PHONE
+                  </button>
+                  <button
+                    @click="setMode('email')"
+                    :class="['tab-btn', { active: mode === 'email' }]"
+                  >
+                    E-MAIL
+                  </button>
+                </div>
 
-              <!-- Phone mode -->
-              <div v-if="mode === 'phone'" class="mt-6">
-                <div class="text-body-1 label-text mb-2">Mobile number</div>
-                <div class="d-flex ga-3">
-                  <v-select
-                    v-model="countryCode"
-                    :items="countryItems"
-                    density="default"
-                    hide-details
-                    variant="outlined"
-                    :style="[inputStyle, { maxWidth: '100px', height: '10px' }]"
-                  />
+                <!-- Phone Tab -->
+                <div v-if="mode === 'phone'" class="form-section">
+                  <label class="form-label">Mobile Number</label>
+
+                  <div class="phone-row">
+                    <div class="country-code-text">+91</div>
+                    <v-text-field
+                      v-model.trim="phoneRaw"
+                      placeholder="Enter your Phone Number"
+                      variant="outlined"
+                      density="comfortable"
+                      type="tel"
+                      @input="sanitizePhone"
+                      @keyup.enter="handleSubmit"
+                      :error="!!phoneError"
+                      :error-messages="phoneError ? [phoneError] : []"
+                      class="phone-input"
+                    ></v-text-field>
+                  </div>
+                  <div class="help-text">
+                    We'll initiate a secure session and take you to OTP
+                    verification.
+                  </div>
+                </div>
+
+                <!-- Email Tab -->
+                <div v-if="mode === 'email'" class="form-section">
+                  <label class="form-label">E-mail</label>
                   <v-text-field
-                    v-model.trim="phoneRaw"
-                    density="default"
+                    v-model.trim="email"
+                    placeholder="your@example.com"
+                    type="email"
                     variant="outlined"
-                    placeholder="Enter your Phone Number"
-                    type="tel"
-                    :style="phoneInputStyle"
-                    :error-messages="phoneError"
-                    @input="sanitizePhone"
+                    density="comfortable"
                     @keyup.enter="handleSubmit"
-                  />
-                </div>
-                <div class="text-body-2 help-text mt-2">
-                  Digits only. You’ll receive an OTP on the next screen.
+                    :error="!!emailError"
+                    :error-messages="emailError ? [emailError] : []"
+                  ></v-text-field>
+                  <div class="help-text">
+                    We'll initiate a secure session and take you to OTP
+                    verification.
+                  </div>
                 </div>
 
+                <!-- Submit button with new styling -->
                 <v-btn
-                  class="mt-6"
-                  block
-                  color="primary"
-                  :style="primaryBtnStyle"
-                  :loading="loading"
                   @click="handleSubmit"
-                >
-                  Get Code
-                </v-btn>
-
-                <!-- Sign-up Link -->
-                <div class="text-center mt-4">
-                  <v-btn
-                    variant="text"
-                    :style="{ color: colors.brand }"
-                    :to="{ path: '/register' }"
-                  >
-                    Don't have an account? Sign-up
-                  </v-btn>
-                </div>
-
-                <v-alert
-                  v-if="phoneError"
-                  type="error"
-                  variant="tonal"
-                  class="mt-4"
-                  :style="alertStyle"
-                  density="default"
-                >
-                  {{ phoneError }}
-                </v-alert>
-
-                <div
-                  class="d-grid mt-6"
-                  style="
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 12px;
-                  "
-                >
-                  <v-chip
-                    :style="chipGhostStyle"
-                    size="default"
-                    variant="outlined"
-                    >GPS tracking</v-chip
-                  >
-                  <v-chip
-                    :style="chipGhostStyle"
-                    size="default"
-                    variant="outlined"
-                    >Digital timesheets</v-chip
-                  >
-                  <v-chip
-                    :style="chipGhostStyle"
-                    size="default"
-                    variant="outlined"
-                    >Auto reports</v-chip
-                  >
-                </div>
-              </div>
-
-              <!-- Email mode -->
-              <div v-else class="mt-6">
-                <div class="text-body-1 label-text mb-2">Email address</div>
-                <v-text-field
-                  v-model.trim="email"
-                  placeholder="your@example.com"
-                  density="default"
-                  hide-details
-                  variant="outlined"
-                  type="email"
-                  :style="inputStyle"
-                  @keyup.enter="onEmailSubmit"
-                />
-
-                <div class="text-body-2 help-text mt-2">
-                  We’ll initiate a secure session and take you to PIN
-                  verification.
-                </div>
-
-                <v-btn
-                  class="mt-6"
+                  :disabled="loading || emailLoading"
+                  :loading="loading || emailLoading"
                   block
-                  color="primary"
-                  :loading="emailLoading"
-                  :style="primaryBtnStyle"
-                  @click="onEmailSubmit"
+                  size="large"
+                  class="submit-btn"
                 >
-                  Continue with Email
+                  {{ loading || emailLoading ? "Loading..." : "Get OTP" }}
                 </v-btn>
 
-                <!-- Sign-up Link -->
-                <div class="text-center mt-4">
-                  <v-btn
-                    variant="text"
-                    :style="{ color: colors.brand }"
-                    :to="{ path: '/register' }"
+                <!-- Signup link with improved styling -->
+                <p class="signup-text">
+                  Don't have an account?
+                  <router-link to="/register" class="signup-link"
+                    >Signup Now</router-link
                   >
-                    Don't have an account? Sign-up
-                  </v-btn>
-                </div>
-
-                <v-alert
-                  v-if="emailError"
-                  type="error"
-                  variant="tonal"
-                  class="mt-4"
-                  :style="alertStyle"
-                  density="default"
-                  closable
-                  @click:close="emailError = ''"
-                >
-                  {{ emailError }}
-                </v-alert>
+                </p>
               </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
-  </v-app>
+            </v-card>
+
+            <p class="footer-text">© 2025 Fieldseasy</p>
+          </div>
+        </div>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { authService } from "@/services/authService";
 
 const router = useRouter();
 const mode = ref("phone");
-const countryCode = ref("+91");
 const phoneRaw = ref("");
 const phoneError = ref("");
 const loading = ref(false);
 const email = ref("");
 const emailError = ref("");
 const emailLoading = ref(false);
-const year = new Date().getFullYear();
 
-const countryItems = [{ title: "🇮🇳 +91", value: "+91" }];
+// Background image style
+const backgroundStyle = computed(() => ({
+  backgroundImage: `url('/public/images/loginimage.png')`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  minHeight: "100vh",
+}));
 
 function setMode(next) {
   mode.value = next;
@@ -237,9 +166,14 @@ function validPhone(num) {
   return /^\d{10}$/.test(num);
 }
 
+function validEmail(e) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
 async function onPhoneSubmit() {
   phoneError.value = "";
   const digits = (phoneRaw.value || "").replace(/\D/g, "");
+
   if (!validPhone(digits)) {
     phoneError.value = "Please enter a valid 10-digit mobile number.";
     return;
@@ -251,8 +185,10 @@ async function onPhoneSubmit() {
     localStorage.removeItem("pinVerifiedInSession");
     localStorage.removeItem("fromOtp");
 
-    const fullPhoneNumber = countryCode.value + digits;
+    // ✅ SIMPLIFIED: Hardcoded +91 since it's now plain text
+    const fullPhoneNumber = "+91" + digits;
 
+    // Check if phone exists
     const phoneExists = await authService.checkPhoneExists(fullPhoneNumber);
     if (!phoneExists) {
       phoneError.value =
@@ -260,6 +196,7 @@ async function onPhoneSubmit() {
       return;
     }
 
+    // Check if user is resigned
     const isResigned = await authService.checkUserResigned(fullPhoneNumber);
     if (isResigned) {
       phoneError.value =
@@ -285,8 +222,14 @@ async function onPhoneSubmit() {
     }
   } catch (error) {
     console.error("Error during login:", error);
-    phoneError.value =
+    let errorMessage =
       "An error occurred. Please try again or check the internet connection";
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    phoneError.value = errorMessage;
   } finally {
     loading.value = false;
   }
@@ -304,51 +247,61 @@ async function proceedToOtpVerification(fullPhoneNumber) {
       }
     }
 
-    console.log("OTP Generation Response:", response);
-
     if (response && response.otp_session_uuid) {
-      console.log("✅ Valid OTP response:", response);
       localStorage.setItem("sessionUuid", response.otp_session_uuid);
       localStorage.setItem("fromOtp", "true");
       localStorage.setItem("fullPhoneNumber", fullPhoneNumber);
 
-      // Debug routes
-      console.log("Available routes:", router.getRoutes());
-      console.log("Navigating to Verification with params:", {
-        name: "Verification",
-        params: { phoneNumber: fullPhoneNumber.replace(countryCode.value, "") },
-      });
-
       router.push({
         name: "Verification",
-        params: { phoneNumber: fullPhoneNumber.replace(countryCode.value, "") },
+        params: { phoneNumber: fullPhoneNumber.slice(3) },
       });
     } else {
-      console.warn("Invalid OTP response structure:", response);
-      phoneError.value = "Failed to generate OTP. Please try again.";
+      let backendMessage = "Failed to generate OTP. Please try again.";
+
+      if (response?.message) {
+        backendMessage = response.message;
+      } else if (response?.msg91Response?.message) {
+        backendMessage = `${response.message || "OTP Error:"} ${response.msg91Response.message}`;
+      }
+
+      phoneError.value = backendMessage;
     }
   } catch (error) {
     console.error("Error generating OTP:", error);
-    if (error.message === "RESIGNED_USER") {
-      phoneError.value =
-        "Resigned Employee has No access. Please contact your Company Admin.";
-    } else {
-      phoneError.value = "Failed to generate OTP. Please try again.";
-    }
-  }
-}
 
-function validEmail(e) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    let errorMessage = "Failed to generate OTP. Please try again.";
+
+    if (error.message === "RESIGNED_USER") {
+      errorMessage =
+        "Resigned Employee has No access. Please contact your Company Admin .";
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data) {
+      const data = error.response.data;
+      if (data.message) {
+        errorMessage = data.message;
+      } else if (data.msg91Response?.message) {
+        errorMessage = `${data.message || "OTP Error:"} ${data.msg91Response.message}`;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    phoneError.value = errorMessage;
+  }
 }
 
 async function onEmailSubmit() {
   emailError.value = "";
+
   if (!validEmail(email.value)) {
     emailError.value = "Enter a valid email address.";
     return;
   }
+
   emailLoading.value = true;
+
   try {
     // Check if email exists
     const emailExists = await authService.checkEmailExists(email.value);
@@ -374,12 +327,15 @@ async function onEmailSubmit() {
         body: JSON.stringify({ email: email.value, userApp: "fieldeasy" }),
       },
     );
+
     const data = await res.json().catch(() => ({}));
+
     if (!res.ok || !data?.otp_session_uuid) {
       throw new Error(
         data?.message || "Could not start email session. Try again.",
       );
     }
+
     localStorage.setItem("email", email.value);
     localStorage.setItem("emailSessionUuid", data.otp_session_uuid);
     router.push({ name: "EmailVerification", params: { email: email.value } });
@@ -398,137 +354,330 @@ function handleSubmit() {
     onEmailSubmit();
   }
 }
-
-/* Inline palette + styles */
-const colors = {
-  background: "#122f68",
-  surface: "#0f2a57",
-  border: "#2a4a8a",
-  brand: "#5b7fff",
-  accent: "#4dd6c2",
-  text: "#d7e3ff",
-  textSub: "#b9d1ff",
-};
-
-const bgAppStyle = {
-  backgroundColor: colors.background,
-};
-
-const cardStyle = {
-  backgroundColor: colors.surface,
-  border: `1px solid ${colors.border}`,
-  color: colors.text,
-};
-
-const inputStyle = {
-  backgroundColor: "#103063",
-  color: colors.text,
-  borderColor: colors.border,
-};
-
-const phoneInputStyle = {
-  color: colors.text,
-  borderColor: colors.border,
-};
-
-const primaryBtnStyle = {
-  background: `linear-gradient(90deg, ${colors.brand}, ${colors.accent})`,
-  color: "#ffffff",
-};
-
-const ghostBtnStyle = {
-  backgroundColor: "#103063",
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-};
-
-const pillStyle = {
-  backgroundColor: "#103063",
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  textTransform: "none",
-};
-
-const pillActiveStyle = {
-  boxShadow: `inset 0 0 0 1px ${colors.brand}`,
-  background:
-    "linear-gradient(180deg, rgba(91,127,255,0.28), rgba(91,127,255,0.14))",
-};
-
-const chipStyle = {
-  background:
-    "linear-gradient(180deg, rgba(91,127,255,0.24), rgba(91,127,255,0.12))",
-  border: `1px solid ${colors.brand}`,
-  color: colors.text,
-};
-
-const chipGhostStyle = {
-  backgroundColor: "#103063",
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-};
-
-const alertStyle = {
-  background:
-    "linear-gradient(135deg, rgba(254,202,202,0.9), rgba(248,113,113,0.95))",
-  color: "#7f1d1d",
-  border: "1px solid rgba(239,68,68,0.4)",
-};
-
-const demoChipStyle = {
-  backgroundColor: "rgba(251,191,36,0.25)",
-  border: "1px solid rgba(251,191,36,0.35)",
-  color: "#fde68a",
-};
-
-const logoStyle = {
-  background: `linear-gradient(135deg, ${colors.brand}, ${colors.accent})`,
-  color: "#fff",
-};
 </script>
 
 <style scoped>
-.bg-app {
-  min-height: 100vh;
-  background-color: #122f68;
+.h-100 {
+  height: 100%;
 }
 
-.brand-text {
-  color: #d7e3ff;
-  letter-spacing: -0.02em;
+.background-container {
+  position: relative;
+  width: 100%;
 }
 
-.brand-sub {
-  color: #b9d1ff;
+/* DESKTOP - Background Image */
+@media (min-width: 961px) {
+  .background-container {
+    background-image: url("/public/images/loginimage.png") !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    min-height: 100vh !important;
+  }
 }
 
-.heading-text {
-  color: #d7e3ff;
+.login-container {
+  max-width: 520px;
+  width: 100%;
+  z-index: 10;
+  margin-right: 170px;
+  position: relative;
+}
+
+/* Logo section styling - now inside card */
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-text {
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.tagline {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Card header styling - contains logo */
+.card-header {
+  text-align: center;
+}
+
+/* Sub header styling */
+.card-subheader {
+  background: #abffb54d;
+  padding: 14px 24px;
+  text-align: center;
+  border-bottom: 1px solid #5fb96e;
+  border-top: 1px solid #5fb96e;
+}
+
+.subheader-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+/* Card content styling */
+.card-content {
+  padding: 20px 24px;
+  background: white;
+  margin-bottom: 250px;
+}
+
+/* Tab buttons styling */
+.tab-buttons-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.tab-btn:hover {
+  border-color: #059669;
+  color: #059669;
+}
+
+.tab-btn.active {
+  background: #059669;
+  color: white;
+  border-color: #059669;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+/* Form section styling */
+.form-section {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.phone-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* ✅ NEW: Plain text country code styling */
+.country-code-text {
+  flex: 0 0 auto;
+  width: 100px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  height: 50px;
+}
+
+.phone-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .help-text {
-  color: #b9d1ff;
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
 }
 
-.label-text {
-  color: #d7e3ff;
+/* Submit button styling */
+.submit-btn {
+  background: #059669 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  margin-top: 16px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3) !important;
+  transition: all 0.3s ease !important;
 }
 
-.hero-title {
-  color: #d7e3ff;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+.submit-btn:hover:not(:disabled) {
+  background: #0a7a73 !important;
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4) !important;
 }
 
-.hero-lead {
-  color: #b9d1ff;
+/* Signup text styling */
+.signup-text {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  margin-top: 16px;
+  margin-bottom: 0;
 }
 
-.stat-text {
-  color: #d7e3ff;
+.signup-link {
+  color: #059669;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
 }
 
-.stat-sub {
-  color: #b9d1ff;
+.signup-link:hover {
+  color: #0a7a73;
+  text-decoration: underline;
+}
+
+.footer-text {
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.login-card {
+  transition: all 0.3s ease;
+}
+
+/* ✅ MOBILE - PLAIN WHITE BACKGROUND + CENTERED LOGIN */
+@media (max-width: 960px) {
+  .background-container {
+    background: #ffffff !important; /* ✅ PLAIN WHITE */
+    background-image: none !important; /* ✅ NO IMAGE */
+  }
+
+  .login-container {
+    padding: 12px !important;
+    margin: 0 auto !important; /* ✅ CENTERED */
+    max-width: 480px;
+    width: 90% !important;
+  }
+
+  .logo-text {
+    font-size: 24px;
+  }
+
+  .card-content {
+    padding: 16px 20px;
+    margin-bottom: 50px;
+  }
+
+  .tab-btn {
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .background-container {
+    background: #ffffff !important; /* ✅ PLAIN WHITE */
+    background-image: none !important; /* ✅ NO IMAGE */
+  }
+
+  .login-container {
+    padding: 8px !important;
+    margin: 0 auto !important; /* ✅ CENTERED */
+    max-width: 100%;
+    width: calc(100% - 16px) !important;
+  }
+
+  .card-content {
+    padding: 16px 20px;
+    margin-bottom: 40px;
+  }
+
+  .phone-row {
+    flex-wrap: wrap;
+  }
+
+  .country-code-text {
+    width: 90px;
+    min-width: 90px;
+  }
+}
+
+@media (max-width: 480px) {
+  .background-container {
+    background: #ffffff !important; /* ✅ PLAIN WHITE */
+    background-image: none !important; /* ✅ NO IMAGE */
+  }
+
+  .login-container {
+    padding: 8px !important;
+    margin: 0 auto !important; /* ✅ CENTERED */
+    max-width: 100%;
+    width: calc(100% - 16px) !important;
+  }
+
+  .card-content {
+    padding: 14px 16px;
+    margin-bottom: 30px;
+  }
+
+  .subheader-title {
+    font-size: 14px;
+  }
+
+  .form-label {
+    font-size: 12px;
+  }
+
+  .tab-btn {
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+
+  .phone-row {
+    gap: 8px;
+  }
+
+  .country-code-text {
+    width: 80px;
+    min-width: 80px;
+    font-size: 15px;
+    padding: 0 10px;
+  }
+
+  .help-text {
+    font-size: 11px;
+  }
+
+  .signup-text {
+    font-size: 11px;
+  }
+
+  .footer-text {
+    font-size: 10px;
+  }
 }
 </style>

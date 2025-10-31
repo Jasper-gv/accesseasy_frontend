@@ -11,7 +11,7 @@
     <!-- Left Icon -->
     <component
       v-if="leftIcon && !isLoading"
-      :is="leftIcon"
+      :is="resolveIcon(leftIcon)"
       :size="iconSize"
       class="button-icon-left"
     />
@@ -24,7 +24,7 @@
     <!-- Right Icon -->
     <component
       v-if="rightIcon && !isLoading"
-      :is="rightIcon"
+      :is="resolveIcon(rightIcon)"
       :size="iconSize"
       class="button-icon-right"
     />
@@ -36,6 +36,21 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import {
+  X,
+  User,
+  User2,
+  Plus,
+  Calendar,
+  MapPin,
+  ClipboardList,
+  CheckCircle,
+  Clock,
+  Building,
+  Users,
+  UserX,
+  Receipt,
+} from "lucide-vue-next";
 
 const props = defineProps({
   variant: {
@@ -59,8 +74,9 @@ const props = defineProps({
     validator: (value) => ["xs", "sm", "md", "lg", "xl"].includes(value),
   },
   text: String,
-  leftIcon: [Object, Function],
-  rightIcon: [Object, Function],
+  // ✅ FIXED: Now accepts String | Object | Function
+  leftIcon: [String, Object, Function],
+  rightIcon: [String, Object, Function],
   iconSize: {
     type: Number,
     default: 16,
@@ -94,14 +110,61 @@ const buttonClasses = computed(() => [
   },
 ]);
 
+// ✅ NEW: Resolves string icons to components
+function resolveIcon(icon) {
+  if (!icon) return null;
+
+  // If already a component, return as-is
+  if (typeof icon === "object" || typeof icon === "function") {
+    return icon;
+  }
+
+  // Map strings to Lucide components
+  const iconMap = {
+    // Common icons
+    X: X,
+    close: X,
+    clear: X,
+    delete: X,
+
+    // User icons
+    user: User,
+    user2: User2,
+
+    // Dashboard icons
+    plus: Plus,
+    calendar: Calendar,
+    "map-pin": MapPin,
+    "clipboard-list": ClipboardList,
+    "check-circle": CheckCircle,
+    clock: Clock,
+    building: Building,
+    users: Users,
+    "user-x": UserX,
+    receipt: Receipt,
+
+    // FontAwesome equivalents
+    "fa-users": Users,
+    "fa-user-times": UserX,
+    "fa-clipboard-list": ClipboardList,
+    "fa-check-circle": CheckCircle,
+    "fa-clock": Clock,
+    "fa-calendar-alt": Calendar,
+    "fa-building": Building,
+    "fa-map-marked-alt": MapPin,
+    "fa-map": MapPin,
+    "fa-receipt": Receipt,
+  };
+
+  return iconMap[icon] || X; // Default to X
+}
+
 function handleClick(event) {
   if (isLoading.value || props.disabled) return;
 
   localLoading.value = true;
-
   emit("click", event);
 
-  // Automatically reset loading after 1.5 seconds (can be changed or removed)
   setTimeout(() => {
     localLoading.value = false;
   }, 1500);
@@ -132,13 +195,12 @@ function handleClick(event) {
 .btn-primary {
   background: #059367;
   color: white;
-  border-color: #3b82f6;
+  /* border-color: #3b82f6; */
 }
 .btn-primary:hover:not(:disabled) {
-  background: #68ade1;
-  border-color: #68ade1;
+  background: #059367;
+
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .btn-secondary {
@@ -224,25 +286,30 @@ function handleClick(event) {
 .btn-xs {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
+  font-family: "Inter";
   gap: 0.25rem;
 }
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
+  font-family: "Inter";
   gap: 0.375rem;
 }
 .btn-md {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
+  font-family: "Inter";
   gap: 0.5rem;
 }
 .btn-lg {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
+  font-family: "Inter";
   gap: 0.5rem;
 }
 .btn-xl {
   padding: 1rem 2rem;
+  font-family: "Inter";
   font-size: 1.125rem;
   gap: 0.75rem;
 }
@@ -290,7 +357,8 @@ function handleClick(event) {
   right: -8px;
   background: #ef4444;
   color: white;
-  font-size: 0.75rem;
+  font-size: medium;
+  font-family: "Inter";
   font-weight: 600;
   padding: 0.125rem 0.375rem;
   border-radius: 9999px;

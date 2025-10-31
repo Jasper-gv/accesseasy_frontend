@@ -5,8 +5,9 @@
         <v-col cols="12" class="text-center">
           <v-progress-circular
             indeterminate
-            color="black"
+            color="#059367"
           ></v-progress-circular>
+          <p>Loading Mobile app access...</p>
         </v-col>
       </v-row>
     </v-container>
@@ -14,170 +15,143 @@
       v-else-if="employeeData && employeeData.assignedUser"
       class="pa-6"
     >
+      <div class="d-flex justify-end">
+        <v-btn
+          color="#059367"
+          size="large"
+          :disabled="!hasChanges"
+          :loading="updating"
+          @click="handleUpdate"
+          class="px-8"
+        >
+          Update
+        </v-btn>
+      </div>
       <!-- App Access Toggle -->
-      <v-card class="mb-6 pa-4" elevation="2">
+      <v-card class="mb-6 pa-6" elevation="0" outlined>
         <div class="d-flex justify-space-between align-center">
-          <div>
-            <h2 class="text-h5 mb-1">App Access</h2>
-            <p class="text-body-2 text-grey">
-              Enable or disable application access for this employee
+          <div class="app-access-left">
+            <div class="d-flex align-center mb-2">
+              <h2 class="text-h6 font-weight-bold me-3 mb-0">App Access</h2>
+              <div class="d-flex align-center">
+                <v-switch
+                  v-model="localData.appAccess"
+                  color="#059367"
+                  hide-details
+                  inset
+                  class="app-access-switch"
+                ></v-switch>
+              </div>
+            </div>
+            <p class="text-body-2 text-grey-darken-1 mb-0">
+              Enable or disable mobile application access for this employee
             </p>
           </div>
-          <v-switch
-            v-model="employeeData.assignedUser.appAccess"
-            color="primary"
-            hide-details
-            inset
-            class="custom-switch"
-            @update:modelValue="handleAppAccessChange"
-          >
-            <template v-slot:label>
-              <span class="text-body-1 font-weight-medium">
-                {{
-                  employeeData.assignedUser.appAccess ? "Enabled" : "Disabled"
-                }}
-              </span>
-            </template>
-          </v-switch>
         </div>
       </v-card>
 
       <!-- Attendance Mode Toggles -->
-      <v-card class="pa-4" elevation="2">
-        <div class="mb-4">
-          <h2 class="text-h5 mb-1">Attendance Mode</h2>
-          <p class="text-body-2 text-grey">
+      <v-card class="pa-6 mb-4" elevation="0" outlined>
+        <div class="mb-6">
+          <h2 class="text-h6 font-weight-bold mb-1">Attendance Modes</h2>
+          <p class="text-body-2 text-grey-darken-1">
             Select the attendance tracking methods for this employee
           </p>
         </div>
 
         <v-row>
-          <v-col cols="12" md="6" lg="3">
-            <v-card
-              class="pa-4 attendance-card"
-              :class="{ active: employeeData.GeoAttendance }"
-              elevation="1"
-            >
-              <div class="d-flex flex-column align-center">
-                <v-icon
-                  size="40"
-                  :color="employeeData.GeoAttendance ? 'primary' : 'grey'"
-                  class="mb-3"
-                >
-                  mdi-map-marker
-                </v-icon>
-                <v-switch
-                  v-model="employeeData.GeoAttendance"
-                  color="primary"
-                  hide-details
-                  inset
-                  class="custom-switch"
-                  @update:modelValue="handleAttendanceModeChange"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-1 font-weight-medium"
-                      >Geo Attendance</span
-                    >
-                  </template>
-                </v-switch>
+          <v-col cols="12" sm="6" md="3">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.GeoAttendance ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-crosshairs-gps </v-icon>
               </div>
-            </v-card>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >Geo Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.GeoAttendance"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+              ></v-switch>
+            </div>
           </v-col>
 
-          <v-col cols="12" md="6" lg="3">
-            <v-card
-              class="pa-4 attendance-card"
-              :class="{ active: employeeData.faceAttendance }"
-              elevation="1"
-            >
-              <div class="d-flex flex-column align-center">
-                <v-icon
-                  size="40"
-                  :color="employeeData.faceAttendance ? 'primary' : 'grey'"
-                  class="mb-3"
-                >
-                  mdi-face-recognition
-                </v-icon>
-                <v-switch
-                  v-model="employeeData.faceAttendance"
-                  color="primary"
-                  hide-details
-                  inset
-                  class="custom-switch"
-                  @update:modelValue="handleAttendanceModeChange"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-1 font-weight-medium"
-                      >Face Attendance</span
-                    >
-                  </template>
-                </v-switch>
+          <v-col cols="12" sm="6" md="3">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.faceAttendance ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-account-circle </v-icon>
               </div>
-            </v-card>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >Face Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.faceAttendance"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+                @update:model-value="handleFaceToggle"
+              ></v-switch>
+            </div>
           </v-col>
 
-          <v-col cols="12" md="6" lg="3">
-            <v-card
-              class="pa-4 attendance-card"
-              :class="{ active: employeeData.selfieAttendance }"
-              elevation="1"
-            >
-              <div class="d-flex flex-column align-center">
-                <v-icon
-                  size="40"
-                  :color="employeeData.selfieAttendance ? 'primary' : 'grey'"
-                  class="mb-3"
-                >
-                  mdi-camera
-                </v-icon>
-                <v-switch
-                  v-model="employeeData.selfieAttendance"
-                  color="primary"
-                  hide-details
-                  inset
-                  class="custom-switch"
-                  @update:modelValue="handleAttendanceModeChange"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-1 font-weight-medium"
-                      >Selfie Attendance</span
-                    >
-                  </template>
-                </v-switch>
+          <v-col cols="12" sm="6" md="3">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.selfieAttendance ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-camera </v-icon>
               </div>
-            </v-card>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >Selfie Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.selfieAttendance"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+                @update:model-value="handleSelfieToggle"
+              ></v-switch>
+            </div>
           </v-col>
 
-          <v-col cols="12" md="6" lg="3">
-            <v-card
-              class="pa-4 attendance-card"
-              :class="{ active: employeeData.QrAttendance }"
-              elevation="1"
-            >
-              <div class="d-flex flex-column align-center">
-                <v-icon
-                  size="40"
-                  :color="employeeData.QrAttendance ? 'primary' : 'grey'"
-                  class="mb-3"
-                >
-                  mdi-qrcode
-                </v-icon>
-                <v-switch
-                  v-model="employeeData.QrAttendance"
-                  color="primary"
-                  hide-details
-                  inset
-                  class="custom-switch"
-                  @update:modelValue="handleAttendanceModeChange"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-1 font-weight-medium"
-                      >QR Attendance</span
-                    >
-                  </template>
-                </v-switch>
+          <v-col cols="12" sm="6" md="3">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.QrAttendance ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-qrcode-scan </v-icon>
               </div>
-            </v-card>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >QR Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.QrAttendance"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+              ></v-switch>
+            </div>
           </v-col>
         </v-row>
       </v-card>
@@ -210,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits, onMounted } from "vue";
+import { ref, computed, defineProps, defineEmits, onMounted, watch } from "vue";
 import { authService } from "@/services/authService";
 
 const props = defineProps({
@@ -226,11 +200,52 @@ const props = defineProps({
 
 const emit = defineEmits(["update:employeeData"]);
 const loading = ref(true);
+const updating = ref(false);
 const originalEmployeeData = ref(null);
 const showSuccessSnackbar = ref(false);
 const showErrorSnackbar = ref(false);
 const successMessage = ref("");
 const errorMessage = ref("");
+
+// Local data for form editing
+const localData = ref({
+  appAccess: false,
+  GeoAttendance: false,
+  faceAttendance: false,
+  selfieAttendance: false,
+  QrAttendance: false,
+});
+
+// Handle Face Attendance toggle - disable Selfie when Face is enabled
+const handleFaceToggle = (value) => {
+  if (value) {
+    localData.value.selfieAttendance = false;
+  }
+};
+
+// Handle Selfie Attendance toggle - disable Face when Selfie is enabled
+const handleSelfieToggle = (value) => {
+  if (value) {
+    localData.value.faceAttendance = false;
+  }
+};
+
+// Check if there are any changes
+const hasChanges = computed(() => {
+  if (!originalEmployeeData.value) return false;
+
+  return (
+    localData.value.appAccess !==
+      originalEmployeeData.value.assignedUser?.appAccess ||
+    localData.value.GeoAttendance !==
+      originalEmployeeData.value.GeoAttendance ||
+    localData.value.faceAttendance !==
+      originalEmployeeData.value.faceAttendance ||
+    localData.value.selfieAttendance !==
+      originalEmployeeData.value.selfieAttendance ||
+    localData.value.QrAttendance !== originalEmployeeData.value.QrAttendance
+  );
+});
 
 const showSuccessMessage = (message) => {
   successMessage.value = message;
@@ -240,6 +255,16 @@ const showSuccessMessage = (message) => {
 const showErrorMessage = (message) => {
   errorMessage.value = message;
   showErrorSnackbar.value = true;
+};
+
+const syncLocalData = (data) => {
+  localData.value = {
+    appAccess: data.assignedUser?.appAccess ?? false,
+    GeoAttendance: data.GeoAttendance ?? false,
+    faceAttendance: data.faceAttendance ?? false,
+    selfieAttendance: data.selfieAttendance ?? false,
+    QrAttendance: data.QrAttendance ?? false,
+  };
 };
 
 const fetchEmployeeData = async () => {
@@ -268,8 +293,10 @@ const fetchEmployeeData = async () => {
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
     const data = await response.json();
+
     if (data.data) {
       originalEmployeeData.value = JSON.parse(JSON.stringify(data.data));
+      syncLocalData(data.data);
       emit("update:employeeData", data.data);
     } else {
       throw new Error("No employee data found");
@@ -282,85 +309,21 @@ const fetchEmployeeData = async () => {
   }
 };
 
-const handleAppAccessChange = async (newValue) => {
-  const previousValue = !newValue;
-
-  console.log("🔹 handleAppAccessChange triggered");
-  console.log("🆔 Employee ID:", props.id);
-  console.log("🟦 New Value:", newValue);
-  console.log("🟧 Previous Value:", previousValue);
+const handleUpdate = async () => {
+  updating.value = true;
 
   try {
     const token = authService.getToken();
 
-    const url = `${import.meta.env.VITE_API_URL}/items/personalModule/${props.id}`;
     const body = {
       assignedUser: {
-        appAccess: newValue,
+        id: props.employeeData.assignedUser.id,
+        appAccess: localData.value.appAccess,
       },
-    };
-
-    console.log("🌐 API URL:", url);
-    console.log("📦 Request Body:", JSON.stringify(body, null, 2));
-
-    const response = await fetch(url, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    console.log("📨 Response Status:", response.status);
-
-    // Try to log response body (even if not OK)
-    let responseData = null;
-    try {
-      responseData = await response.json();
-      console.log("✅ Raw Response JSON:", responseData);
-    } catch (parseErr) {
-      console.warn("⚠️ Could not parse response JSON:", parseErr);
-    }
-
-    if (!response.ok) {
-      console.error("❌ Server Error Response:", responseData);
-      throw new Error(
-        responseData?.errors?.[0]?.message || "Failed to update app access",
-      );
-    }
-
-    showSuccessMessage("App access updated successfully");
-
-    console.log("🔁 Refetching updated employee data...");
-    await fetchEmployeeData();
-  } catch (error) {
-    console.error("🚨 Error updating app access:", error);
-
-    // Show in UI
-    showErrorMessage(`Error updating app access: ${error.message}`);
-
-    // Revert toggle safely
-    if (
-      props.employeeData.assignedUser &&
-      typeof props.employeeData.assignedUser === "object"
-    ) {
-      props.employeeData.assignedUser.appAccess = previousValue;
-      console.log("↩️ Reverted appAccess to previous value:", previousValue);
-    }
-  }
-};
-
-const handleAttendanceModeChange = async () => {
-  try {
-    const token = authService.getToken();
-
-    // Only send the required attendance fields
-    const updatedData = {
-      GeoAttendance: props.employeeData.GeoAttendance,
-      faceAttendance: props.employeeData.faceAttendance,
-      selfieAttendance: props.employeeData.selfieAttendance,
-      QrAttendance: props.employeeData.QrAttendance,
+      GeoAttendance: localData.value.GeoAttendance,
+      faceAttendance: localData.value.faceAttendance,
+      selfieAttendance: localData.value.selfieAttendance,
+      QrAttendance: localData.value.QrAttendance,
     };
 
     const response = await fetch(
@@ -371,21 +334,41 @@ const handleAttendanceModeChange = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updatedData),
+        body: JSON.stringify(body),
       },
     );
 
-    if (!response.ok) throw new Error("Failed to update attendance modes");
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.errors?.[0]?.message || "Failed to update settings");
+    }
 
-    const result = await response.json();
-    originalEmployeeData.value = JSON.parse(JSON.stringify(result.data));
-    emit("update:employeeData", result.data);
-    showSuccessMessage("Attendance modes updated successfully");
+    showSuccessMessage("Settings updated successfully");
+    await fetchEmployeeData();
   } catch (error) {
-    console.error("Error updating attendance modes:", error);
-    showErrorMessage(`Error updating attendance modes: ${error.message}`);
+    showErrorMessage(`Error updating settings: ${error.message}`);
+  } finally {
+    updating.value = false;
   }
 };
+
+const handleCancel = () => {
+  if (originalEmployeeData.value) {
+    syncLocalData(originalEmployeeData.value);
+  }
+};
+
+// Watch for external changes to employeeData
+watch(
+  () => props.employeeData,
+  (newData) => {
+    if (newData && !updating.value) {
+      originalEmployeeData.value = JSON.parse(JSON.stringify(newData));
+      syncLocalData(newData);
+    }
+  },
+  { deep: true },
+);
 
 onMounted(fetchEmployeeData);
 </script>
@@ -393,42 +376,77 @@ onMounted(fetchEmployeeData);
 <style scoped>
 .personal-details {
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-/* Custom switch styling for bigger, neater appearance */
-.custom-switch :deep(.v-switch__track) {
-  width: 60px;
-  height: 28px;
-  border-radius: 14px;
-}
-
-.custom-switch :deep(.v-switch__thumb) {
-  width: 24px;
+/* App Access Switch */
+.app-access-switch :deep(.v-switch__track) {
+  width: 48px;
   height: 24px;
+  border-radius: 12px;
 }
 
-.custom-switch :deep(.v-selection-control) {
-  min-height: 48px;
+.app-access-switch :deep(.v-switch__thumb) {
+  width: 20px;
+  height: 20px;
 }
 
-.custom-switch :deep(.v-label) {
-  font-size: 1rem;
-  opacity: 1;
+/* App Access Left Section */
+.app-access-left {
+  flex-grow: 1;
 }
 
-/* Attendance card styling */
-.attendance-card {
+/* Attendance Option Container */
+.attendance-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Icon Wrapper - Circular with Green/Red background */
+.attendance-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
 }
 
-.attendance-card.active {
-  border-color: rgb(var(--v-theme-primary));
-  background-color: rgba(var(--v-theme-primary), 0.05);
+.attendance-icon-wrapper.enabled {
+  background-color: #059367;
 }
 
-.attendance-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+.attendance-icon-wrapper.disabled {
+  background-color: #f44336;
+}
+
+/* Attendance Switch */
+.attendance-switch {
+  display: flex;
+  justify-content: center;
+}
+
+.attendance-switch :deep(.v-switch__track) {
+  width: 48px;
+  height: 24px;
+  border-radius: 12px;
+}
+
+.attendance-switch :deep(.v-switch__thumb) {
+  width: 20px;
+  height: 20px;
+}
+
+.attendance-switch :deep(.v-selection-control) {
+  min-height: auto;
+}
+
+/* Card styling */
+.v-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
 }
 </style>

@@ -52,7 +52,7 @@
               v-if="userRole === 'Admin'"
               variant="primary"
               size="md"
-              text="Create Penalities"
+              text="Create Penalties"
               :leftIcon="Plus"
               @click="openDialog"
             />
@@ -162,6 +162,7 @@
         :policyPatchId="selectedID"
         @save-changes="handleSaveChanges"
         :showSnackbar="showSnackbar"
+        @close="handleClose"
         ref="policyTabs"
       />
     </div>
@@ -275,7 +276,7 @@ const pageFilters = ref([
 const columns = ref([
   {
     key: "configName",
-    label: "Penality Policies",
+    label: "Penalty Policies",
     sortable: true,
     width: "200px",
   },
@@ -666,7 +667,10 @@ watch(
   },
   { deep: true },
 );
-
+const handleClose = async () => {
+  showTabs.value = false;
+  await fetchData();
+};
 onMounted(async () => {
   await fetchData();
 });
@@ -683,7 +687,7 @@ onMounted(async () => {
 
 .main-content {
   flex: 1;
-  padding: 16px;
+
   overflow: auto;
   transition: margin-right 0.3s ease;
 }

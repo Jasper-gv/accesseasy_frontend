@@ -15,26 +15,6 @@
     </div>
 
     <!-- Filter Toggle Button -->
-    <button
-      v-if="tenantId"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
 
     <!-- Main Content -->
     <div class="main-content" :class="{ 'full-width': !showFilters }">
@@ -45,6 +25,28 @@
         :has-error="showError"
         wrapper-class="logs-table-wrapper"
       >
+        <template #before-search>
+          <button
+            v-if="tenantId"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Toolbar Actions Slot -->
         <template #toolbar-actions>
           <div class="d-flex align-center" style="gap: 8px">
@@ -54,9 +56,16 @@
               size="md"
               text="Import Logs"
               :leftIcon="Upload"
-              class="mr-3 import-btn"
               @click="openImportDialog"
             />
+            <!-- <BaseButton
+              v-if="userRole === 'Admin'"
+              variant="danger"
+              text="Delete"
+              :leftIcon="Trash"
+              @click="handleDelete"
+            /> -->
+
             <!-- Export Dropdown -->
             <!-- <Dropdown
               v-if="!['Manager', 'Employee'].includes(userRole?.trim())"
@@ -128,18 +137,27 @@
           >
             <!-- Custom Cell for Profile -->
             <template #cell-avatarImage="{ item }">
-              <v-avatar size="40" v-if="item.avatarImage">
-                <v-img
+              <div class="profile-avatar">
+                <img
+                  v-if="item.avatarImage"
                   :src="item.avatarImage"
                   :alt="item.employeeId?.assignedUser?.first_name"
-                ></v-img>
-              </v-avatar>
-              <v-avatar size="40" v-else color="grey" class="text-uppercase">
-                <v-img
-                  src="/images/person-Icon.png"
-                  alt="Default Avatar"
-                ></v-img>
-              </v-avatar>
+                  class="avatar-image"
+                />
+                <div v-else class="avatar-placeholder">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+              </div>
             </template>
 
             <!-- Custom Cell for Employee ID -->
@@ -359,31 +377,6 @@
             ></v-progress-circular>
             <p class="mt-3 text-blue-200">Processing file... Please wait</p>
           </div>
-          <!-- Show response details after upload -->
-          <div v-if="uploadResponse">
-            <v-card class="pa-3 bg-grey-800 rounded-lg">
-              <p class="font-semibold mb-2 text-red-300">
-                ❌ Invalid Users ({{
-                  uploadResponse.details.invalidUsers.length
-                }})
-              </p>
-              <div
-                style="max-height: 200px; overflow-y: auto"
-                class="text-sm text-red-300"
-              >
-                <v-chip
-                  v-for="(user, i) in uploadResponse.details.invalidUsers"
-                  :key="i"
-                  color="red-darken-3"
-                  variant="outlined"
-                  size="small"
-                  class="ma-1 text-red-200 border-red-400"
-                >
-                  {{ user }}
-                </v-chip>
-              </div>
-            </v-card>
-          </div>
         </v-card-text>
 
         <v-card-actions class="border-t border-grey-800">
@@ -579,29 +572,31 @@ const columns = ref([
   { key: "timeStamp", label: "Time", sortable: true, width: "100px" },
   { key: "action", label: "Action", sortable: true, width: "120px" },
   { key: "mode", label: "Mode", sortable: true, width: "100px" },
+  { key: "status", label: "Status", sortable: true, width: "100px" },
   { key: "ValidLogs", label: "ValidLogs", sortable: true, width: "150px" },
-  { key: "rfid", label: "RFID Card", sortable: true, width: "100px" },
-  { key: "sn", label: "Device ID", sortable: true, width: "200px" },
+  // { key: "rfid", label: "RFID Card", sortable: true, width: "100px" },
+  // { key: "sn", label: "Device ID", sortable: true, width: "200px" },
   { key: "msgType", label: "Message Type", sortable: true, width: "200px" },
-  { key: "door.doorName", label: "Door", sortable: true, width: "120px" },
-  {
-    key: "door.doorNumber",
-    label: "Door Number",
-    sortable: true,
-    width: "120px",
-  },
-  {
-    key: "base64Data",
-    label: "AI Device Face Image",
-    sortable: false,
-    width: "90px",
-  },
+  // { key: "door.doorName", label: "Door", sortable: true, width: "120px" },
+  // {
+  //   key: "door.doorNumber",
+  //   label: "Door Number",
+  //   sortable: true,
+  //   width: "120px",
+  // },
+  // {
+  //   key: "base64Data",
+  //   label: "AI Device Face Image",
+  //   sortable: false,
+  //   width: "90px",
+  // },
   {
     key: "faceId",
     label: "MobileApp Face ID",
     sortable: false,
     width: "100px",
   },
+
   {
     key: "date_created",
     label: "Log Connected At Server",
@@ -931,6 +926,59 @@ const aggregateCount = async (tabStatus = selectedStatus.value) => {
     totalItems.value = 0;
   }
 };
+const handleDelete = async () => {
+  const batchSize = 1000; // batch size per batch
+
+  try {
+    while (true) {
+      console.log(`📄 Fetching next batch (batch size: ${batchSize})...`);
+      const batchTenant = "2c3fb637-4dd1-4ce5-badf-14a750a8e6e0";
+
+      // Fetch batch using tenant filter
+      const queryString = `filter[_and][0][tenant][tenantId][_eq]=${batchTenant}&limit=${batchSize}`;
+      const url = `${import.meta.env.VITE_API_URL}/items/logs?${queryString}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok)
+        throw new Error(`HTTP error! Status: ${response.status}`);
+
+      const data = await response.json();
+      const logsBatch = data.data;
+
+      if (logsBatch.length === 0) break; // no more logs
+
+      console.log(`🗂 Fetched ${logsBatch.length} logs`);
+
+      // Delete batch
+      const logIds = logsBatch.map((log) => log.id);
+      console.log(`🗑 Deleting ${logIds.length} logs...`);
+      const deleteResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/logs`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(logIds),
+        },
+      );
+
+      if (!deleteResponse.ok)
+        throw new Error(`Delete failed! Status: ${deleteResponse.status}`);
+      console.log(`✅ Batch deleted successfully`);
+    }
+
+    console.log(`🎯 All logs deleted successfully for tenant ${tenantId}`);
+  } catch (error) {
+    console.error("❌ Error in batch fetch/delete:", error);
+  }
+};
 
 const fetchLogs = async () => {
   console.log("🔄 Starting fetchLogs...");
@@ -944,6 +992,7 @@ const fetchLogs = async () => {
   try {
     let params = {
       fields: [
+        "status",
         "action",
         "employeeId.employeeId",
         "employeeId.assignedUser.id",
@@ -1173,59 +1222,62 @@ const handleFileUpload = (event) => {
 };
 const isLoading = ref(false);
 const submitFile = async () => {
-  if (!selectedFile.value) {
-    console.error("⚠️ No file selected for upload");
-    return;
-  }
-
+  if (!selectedFile.value) return;
   const file = selectedFile.value;
-
-  if (!tenantId) {
-    console.error("⚠️ Tenant ID not found");
-    return;
-  }
+  if (!tenantId) return;
 
   try {
     isLoading.value = true;
-    console.log("📤 Uploading file to logImport API...");
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("tenantId", tenantId);
 
-    // First POST call → your logImport endpoint
-    const importResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/logImport`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      },
-    );
+    // 1️⃣ Upload file to TDS folder
+    const fileId = await uploadFile({ target: { files: [file] } });
 
-    if (!importResponse.ok) {
-      throw new Error(`Import API failed → ${importResponse.status}`);
-    }
+    // 2️⃣ Call the separate handleImport function
+    const importID = await handleImportFile(fileId);
 
-    const importResult = await importResponse.json();
-    isLoading.value = false;
-    uploadResponse.value = importResult;
-    console.log("✅ File uploaded to logImport successfully:", importResult);
+    // 3️⃣ POST to logImport API (no response stored)
+    const logFormData = new FormData();
+    logFormData.append("file", file);
+    logFormData.append("tenantId", tenantId);
+    logFormData.append("importID", importID);
+    logFormData.append("fileId", fileId);
 
-    // Close dialog now that upload is triggered
-
-    // Second POST call → upload file into Directus TDS Folder
-    console.log("📂 Uploading file to TDS folder...");
-    await uploadFile({
-      target: { files: [file] },
+    await fetch(`${import.meta.env.VITE_API_URL}/logImport`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: logFormData,
     });
-    alert("Log processed successfully");
-    console.log("🎯 Both uploads completed successfully!");
+
+    alert("Logs Imported completed successfully!");
   } catch (error) {
-    console.error("❌ Error during file submission:", error);
-    alert("failed");
+    alert("Logs Processing in backend check that in updloads");
+  } finally {
+    isLoading.value = false;
   }
+};
+
+const handleImportFile = async (file) => {
+  if (!file) throw new Error("File not defined");
+
+  const payload = {
+    generatedFile: file,
+    collectionName: "logs",
+    status: "pending",
+    tenant: tenantId,
+  };
+
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/items/import`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error("handleImport API failed");
+
+  const result = await response.json();
+  return result?.data?.id || null;
 };
 
 const tdsFolderId = ref(null);
@@ -1308,7 +1360,7 @@ const uploadFile = async (event) => {
     });
 
     const data = await response.json();
-    editedItem.document = data.data.id;
+    return data.data.id;
   } catch (err) {
     console.error("File upload failed:", err);
   }
@@ -1602,7 +1654,7 @@ onMounted(async () => {
 
 .main-content {
   flex: 1;
-  padding: 16px;
+  padding: 8px;
   overflow: auto;
   transition: margin-right 0.3s ease;
 }
@@ -1708,6 +1760,30 @@ onMounted(async () => {
   opacity: 1;
 }
 
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+}
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
 .error-placeholder {
   display: flex;
   align-items: center;

@@ -15,26 +15,6 @@
     </div>
 
     <!-- Filter Toggle Button -->
-    <button
-      v-if="isAdmin"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
 
     <div
       class="main-content"
@@ -42,6 +22,26 @@
     >
       <!-- Add Request Button -->
       <div class="d-flex align-center py-2 px-4 header-actions">
+        <button
+          v-if="isAdmin"
+          class="filter-toggle-static"
+          @click="toggleFilters"
+          :class="{ active: hasActiveFilters }"
+          :title="showFilters ? 'Hide filters' : 'Show filters'"
+          aria-label="Toggle filters"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+          </svg>
+          <div v-if="hasActiveFilters" class="filter-indicator"></div>
+        </button>
         <v-spacer></v-spacer>
         <BaseButton
           color="primary"
@@ -199,13 +199,13 @@ const initialFilters = computed(() => ({
 }));
 
 const pageFilters = ref([
-  {
-    key: "request",
-    label: "Request",
-    type: "select",
-    show: true,
-    defaultValue: "",
-  },
+  // {
+  //   key: "request",
+  //   label: "Request",
+  //   type: "select",
+  //   show: true,
+  //   defaultValue: "",
+  // },
   { key: "fromDate", label: "From Date", type: "date", show: true },
   { key: "toDate", label: "To Date", type: "date", show: true },
 ]);
@@ -281,22 +281,6 @@ const formatDate = (date) => {
   return newDate.toISOString().split("T")[0];
 };
 
-const getStatusIcon = (status) => {
-  return "mdi-clock-outline";
-};
-
-const getIconColor = (status) => {
-  return "amber-darken-3";
-};
-
-const formatStatus = (status) => {
-  return "Requested";
-};
-
-const getStatusClass = (status) => {
-  return "status-requested";
-};
-
 // Handle sort events from DataTable
 const handleSortByUpdate = (newSortBy) => {
   sortBy.value = newSortBy
@@ -315,49 +299,6 @@ const handleSort = ({ field, direction }) => {
   fetchData();
 };
 
-const checkAttendanceConflicts = async () => {
-  try {
-    const token = getToken();
-    const conflictsMap = {};
-    for (const item of items.value) {
-      const fromDate = new Date(item.fromDate);
-      const today = new Date();
-
-      if (fromDate < today && item.status === "pending") {
-        const params = new URLSearchParams({
-          "filter[_and][0][date][_between][0]": item.fromDate,
-          "filter[_and][0][date][_between][1]": item.fromDate,
-          "filter[_and][1][employeeId][_eq]": item.requestedBy,
-          "filter[_and][2][attendance][_eq]": "present",
-        });
-
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/attendance?${params}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to check attendance conflicts");
-        }
-
-        const data = await response.json();
-        if (data.data && data.data.length > 0) {
-          conflictsMap[item.id] = data.data;
-        }
-      }
-    }
-
-    attendanceConflicts.value = conflictsMap;
-  } catch (error) {
-    console.error("Error checking attendance conflicts:", error);
-  }
-};
-
 const calculateDays = (fromDate, toDate, isHalfDay) => {
   const start = new Date(fromDate);
   const end = new Date(toDate);
@@ -367,6 +308,7 @@ const calculateDays = (fromDate, toDate, isHalfDay) => {
 };
 
 const updateStatus = async (id, newStatus) => {
+  console.log("Updating status for ID:", id, "to", newStatus);
   const hasConflict = hasAttendanceConflict(id);
   if (hasConflict && newStatus === "approved") {
     console.error("Attendance conflict exists for this leave request");
@@ -459,19 +401,30 @@ const updateStatus = async (id, newStatus) => {
       }
     }
 
-    if (newStatus === "approved") {
-      // Helper function to extract time from datetime
-      const extractTime = (datetime) => {
-        if (!datetime) return null;
-        const date = new Date(datetime);
-        return date.toTimeString().split(" ")[0]; // Returns HH:MM:SS format
-      };
+    // Handle attendance records update for approved/rejected status
+    if (newStatus === "approved" || newStatus === "declined") {
+      // Get existing attendance records for the date range
+      const attendanceResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/attendance?filter[_and][0][employeeId][_eq]=${requestedBy}&filter[_and][2][date][_between][0]=${fromDate}&filter[_and][2][date][_between][1]=${toDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-      // Handle abnormal leave type
-      if (leaveType.toLowerCase() === "abnormal" && leaveAttendanceId) {
-        try {
-          const attendanceUpdateResponse = await fetch(
-            `${import.meta.env.VITE_API_URL}/items/attendance/${leaveAttendanceId}`,
+      if (!attendanceResponse.ok) {
+        throw new Error("Failed to fetch attendance records");
+      }
+
+      const attendanceData = await attendanceResponse.json();
+
+      if (attendanceData.data && attendanceData.data.length > 0) {
+        // Update each attendance record
+        for (const attendanceRecord of attendanceData.data) {
+          const updateAttendanceResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/attendance/${attendanceRecord.id}`,
             {
               method: "PATCH",
               headers: {
@@ -479,155 +432,110 @@ const updateStatus = async (id, newStatus) => {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                outTime: extractTime(timeTo),
-                status: "out",
-                mode: "abnormal",
+                status: newStatus === "approved" ? "approved" : "rejected",
               }),
             },
           );
 
-          if (!attendanceUpdateResponse.ok) {
-            console.error("Failed to update attendance for abnormal leave");
-          }
-        } catch (error) {
-          console.error("Error updating attendance for abnormal leave:", error);
-        }
-      }
-      // Handle other leave types with timeFrom and timeTo
-      else if (timeFrom && timeTo) {
-        const start = new Date(fromDate);
-        const end = new Date(toDate);
-        const dateArray = [];
-
-        let currentDate = new Date(start);
-        while (currentDate <= end) {
-          dateArray.push(new Date(currentDate));
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        for (const date of dateArray) {
-          const dateString = date.toISOString().split("T")[0];
-
-          try {
-            // Check if attendance exists for this date and employee
-            const checkAttendanceResponse = await fetch(
-              `${import.meta.env.VITE_API_URL}/items/attendance?filter[_and][0][date][_eq]=${dateString}&filter[_and][1][employeeId][_eq]=${requestedBy}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              },
-            );
-
-            if (!checkAttendanceResponse.ok) {
-              throw new Error("Failed to check existing attendance");
-            }
-
-            const existingAttendance = await checkAttendanceResponse.json();
-
-            if (existingAttendance.data && existingAttendance.data.length > 0) {
-              // PATCH existing attendance
-              const attendanceId = existingAttendance.data[0].id;
-              const patchResponse = await fetch(
-                `${import.meta.env.VITE_API_URL}/items/attendance/${attendanceId}`,
-                {
-                  method: "PATCH",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    inTime: timeFrom,
-                    outTime: timeTo,
-                  }),
-                },
-              );
-
-              if (!patchResponse.ok) {
-                console.error(
-                  `Failed to patch attendance for date ${dateString}`,
-                );
-              }
-            } else {
-              // POST new attendance
-              const postResponse = await fetch(
-                `${import.meta.env.VITE_API_URL}/items/attendance`,
-                {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    date: dateString,
-                    inTime: timeFrom,
-                    outTime: timeTo,
-                    employeeId: requestedBy,
-                    tenant: tenantId,
-                    leaveType: leaveType,
-                  }),
-                },
-              );
-
-              if (!postResponse.ok) {
-                console.error(
-                  `Failed to post attendance for date ${dateString}`,
-                );
-              }
-            }
-          } catch (error) {
+          if (!updateAttendanceResponse.ok) {
             console.error(
-              `Error processing attendance for date ${dateString}:`,
-              error,
+              `Failed to update attendance record ${attendanceRecord.id}`,
+            );
+          } else {
+            console.log(
+              `Successfully updated attendance record ${attendanceRecord.id} to ${newStatus}`,
             );
           }
         }
+      } else {
+        console.log("No attendance records found for the specified date range");
       }
-      // Original flow for regular leave types without time
-      else {
-        const start = new Date(fromDate);
-        const end = new Date(toDate);
-        const dateArray = [];
 
-        let currentDate = new Date(start);
-        while (currentDate <= end) {
-          dateArray.push(new Date(currentDate));
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
+      // Handle logs records update
+      const logsResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/logs?filter[_and][0][employeeId][_eq]=${requestedBy}&filter[_and][1][tenant][_eq]=${tenantId}&filter[_and][2][date][_between][0]=${fromDate}&filter[_and][2][date][_between][1]=${toDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-        const attendancePayload = dateArray.map((date) => {
-          return {
-            date: date.toISOString().split("T")[0],
-            attendance: leaveType === "unpaid" ? "unPaidLeave" : "paidLeave",
-            employeeId: requestedBy,
-            tenant: tenantId,
-            leaveType: leaveType,
-          };
-        });
+      if (!logsResponse.ok) {
+        throw new Error("Failed to fetch logs records");
+      }
 
-        try {
-          const attendanceResponse = await fetch(
-            `${import.meta.env.VITE_API_URL}/items/attendance`,
+      const logsData = await logsResponse.json();
+
+      if (logsData.data && logsData.data.length > 0) {
+        // Update each log record
+        for (const logRecord of logsData.data) {
+          const updateLogResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/logs/${logRecord.id}`,
             {
-              method: "POST",
+              method: "PATCH",
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(attendancePayload),
+              body: JSON.stringify({
+                status: newStatus === "approved" ? "approved" : "rejected",
+              }),
             },
           );
 
-          if (!attendanceResponse.ok) {
-            console.error("Failed to update attendance records");
+          if (!updateLogResponse.ok) {
+            console.error(`Failed to update log record ${logRecord.id}`);
+          } else {
+            console.log(
+              `Successfully updated log record ${logRecord.id} to ${newStatus}`,
+            );
           }
-        } catch (error) {
-          console.error("Error updating attendance records:", error);
         }
+      } else {
+        console.log("No log records found for the specified date range");
       }
     }
 
+    // Handle abnormal leave type separately
+    if (
+      newStatus === "approved" &&
+      leaveType.toLowerCase() === "abnormal" &&
+      leaveAttendanceId
+    ) {
+      try {
+        const extractTime = (datetime) => {
+          if (!datetime) return null;
+          const date = new Date(datetime);
+          return date.toTimeString().split(" ")[0];
+        };
+
+        const attendanceUpdateResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/attendance/${leaveAttendanceId}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              outTime: extractTime(timeTo),
+              status: "approved",
+              mode: "abnormal",
+            }),
+          },
+        );
+
+        if (!attendanceUpdateResponse.ok) {
+          console.error("Failed to update attendance for abnormal leave");
+        }
+      } catch (error) {
+        console.error("Error updating attendance for abnormal leave:", error);
+      }
+    }
+
+    // Update the main leave request status
     const statusResponse = await fetch(
       `${import.meta.env.VITE_API_URL}/items/leaveRequest/${id}`,
       {
@@ -641,14 +549,10 @@ const updateStatus = async (id, newStatus) => {
         }),
       },
     );
-
+    await fetchData();
     if (!statusResponse.ok) {
       throw new Error(`Failed to ${newStatus} request`);
     }
-
-    items.value = items.value.map((item) =>
-      item.id === id ? { ...item, status: newStatus } : item,
-    );
   } catch (error) {
     console.error("Error updating status:", error);
     showError.value = true;
@@ -753,7 +657,7 @@ const aggregateCount = async () => {
     }
 
     const countData = await countResponse.json();
-    totalItems.value = countData?.data?.[0]?.count?.id || 0;
+    totalItems.value = countData?.data?.[0]?.count?.id || 1;
   } catch (error) {
     console.error("Error fetching aggregate count:", error);
     totalItems.value = 0;
@@ -826,6 +730,11 @@ const fetchData = async () => {
 
     const data = await response.json();
     items.value = Array.isArray(data.data) ? data.data : [];
+    if (items.value.length === 0 && page.value > 1) {
+      page.value = 1;
+      // Don't call fetchData() again here to avoid infinite loop
+      // The page change watcher will handle it
+    }
   } catch (error) {
     console.error("Error fetching leave requests:", error);
     showError.value = true;
@@ -859,7 +768,9 @@ const filterParams = () => {
   }
 
   // Always filter by tenant
-  params[`filter[_and][${filterCount}][tenant][tenantId][_eq]`] = tenantId;
+  params[
+    `filter[_and][${filterCount}][requestedBy][assignedUser][tenant][_eq]`
+  ] = tenantId;
   filterCount++;
 
   // Search filter
@@ -934,7 +845,9 @@ watch(
   },
   { deep: true },
 );
-
+watch(page, (newPage) => {
+  fetchData();
+});
 onMounted(async () => {
   await fetchData();
 });

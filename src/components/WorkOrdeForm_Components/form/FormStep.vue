@@ -1,6 +1,7 @@
+<!-- /senzrGo/senzrfieldopsfrontend/src/components/WorkOrdeForm_Components/form/FormStep.vue -->
 <template>
-  <v-card class="form-step-card" elevation="8">
-    <v-card-text class="form-step-content">
+  <v-div class="form-step-card" elevation="8">
+    <v-div class="form-step-content">
       <!-- Added debug info to help troubleshoot -->
       <div v-if="currentStepFields.length === 0" class="empty-state">
         <v-alert type="info" variant="tonal">
@@ -10,13 +11,13 @@
         </v-alert>
       </div>
 
-      <v-form v-else ref="formRef" @submit.prevent="handleFormSubmit">
+      <v-form ref="formRef" @submit.prevent="handleFormSubmit">
         <v-row class="field-grid">
           <v-col
             v-for="field in currentStepFields"
             :key="field.key"
             cols="12"
-            :md="getFieldColSize(field.type)"
+            md="4"
             class="field-column"
           >
             <FieldRenderer
@@ -27,12 +28,13 @@
               :departments="departments"
               :shared-properties="sharedProperties"
               :user-role="userRole"
+              :contact-details="contactDetails"
               @field-action="$emit('field-action', field, $event)"
               @generate-code="$emit('generate-code', field)"
               @validation-change="handleValidationChange"
+              @update-contact-details="$emit('update-contact-details', $event)"
             />
           </v-col>
-
           <!-- Priority -->
           <v-col cols="12" class="field-column" v-if="showPriorityReschedule">
             <v-label class="field-label">
@@ -40,7 +42,6 @@
               Task priority
             </v-label>
             <v-select
-              label="priority"
               :model-value="priority"
               @update:model-value="$emit('update-priority', $event)"
               :items="priorityItems"
@@ -50,7 +51,6 @@
               density="comfortable"
               hide-details="auto"
               clearable
-              placeholder="Select priority"
             >
               <template #item="{ props: itemProps, item }">
                 <v-list-item v-bind="itemProps">
@@ -105,7 +105,6 @@
                 Start date (fixed)
               </v-label>
               <v-text-field
-                label="Start date"
                 :value="normalizedFromDate"
                 type="date"
                 variant="outlined"
@@ -123,7 +122,6 @@
                 End date
               </v-label>
               <v-text-field
-                label="End date"
                 :model-value="scheduleEndDate"
                 @update:model-value="$emit('update-schedule-end-date', $event)"
                 type="date"
@@ -131,7 +129,6 @@
                 density="comfortable"
                 hide-details="auto"
                 :min="normalizedFromDate || undefined"
-                placeholder="Select end date"
               />
             </v-col>
 
@@ -162,55 +159,16 @@
             </v-col>
           </template>
         </v-row>
-
-        <!-- Form Actions -->
-        <v-card-actions class="form-actions">
-          <v-btn
-            v-if="currentStep > 1"
-            color="secondary"
-            variant="outlined"
-            size="large"
-            class="action-btn prev-btn"
-            prepend-icon="mdi-arrow-left"
-            @click="handlePrevious"
-          >
-            Previous
-          </v-btn>
-          <v-spacer></v-spacer>
-          <v-btn
-            v-if="currentStep < totalSteps"
-            color="primary"
-            :disabled="!canProceed"
-            size="large"
-            class="action-btn primary-btn"
-            append-icon="mdi-arrow-right"
-            @click="handleNext"
-          >
-            Next
-          </v-btn>
-          <!-- Create Task button only enabled when all mandatory fields are valid -->
-          <v-btn
-            v-else
-            color="primary"
-            type="submit"
-            :disabled="!canSubmit || loading"
-            size="large"
-            class="action-btn primary-btn"
-            :append-icon="'mdi-check-circle'"
-            @click="handleFormSubmit"
-          >
-            Create Task
-          </v-btn>
-        </v-card-actions>
       </v-form>
-    </v-card-text>
-  </v-card>
+    </v-div>
+  </v-div>
 </template>
 
 <script setup>
 import { ref, watch, computed, provide } from "vue";
 import { isFieldMandatory } from "@/utils/createWOF/validationRules";
 import FieldRenderer from "./FieldRenderer.vue";
+import { getFieldTypeString } from "@/utils/createWOF/fieldUtils";
 
 const props = defineProps({
   formDetails: Object,
@@ -236,6 +194,8 @@ const props = defineProps({
   dueDate: { type: String, default: null },
   showPriorityReschedule: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
+  hideNavigation: { type: Boolean, default: false },
+  contactDetails: { type: Object, default: null },
 });
 
 const emit = defineEmits([
@@ -251,6 +211,7 @@ const emit = defineEmits([
   "update-from-date",
   "update-due-date",
   "submit-form",
+  "update-contact-details",
 ]);
 
 const formRef = ref(null);
@@ -356,7 +317,7 @@ const handleNext = () => {
 };
 
 const getFieldColSize = (type) => {
-  return 12;
+  return 4;
 };
 
 const priorityItems = [
@@ -448,14 +409,6 @@ const canEnableReschedule = computed(() => {
 </script>
 
 <style scoped>
-.form-step-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
-  overflow: hidden;
-}
-
 .field-grid {
   margin-bottom: 32px;
 }
@@ -523,7 +476,8 @@ const canEnableReschedule = computed(() => {
   font-weight: 600;
   color: #37474f;
   margin-bottom: 12px;
-  font-size: 0.95rem;
+  font-size: medium;
+  font-family: "Inter";
 }
 
 .weekday-grid {
@@ -543,6 +497,16 @@ const canEnableReschedule = computed(() => {
 .empty-state {
   padding: 24px;
   text-align: center;
+}
+
+.contact-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-field {
+  background: #f5f5f5;
 }
 
 @media (max-width: 768px) {

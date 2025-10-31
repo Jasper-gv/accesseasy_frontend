@@ -1,801 +1,503 @@
 <template>
   <v-container fluid>
-    <v-row>
-      <v-col cols="10">
-        <div
-          class="d-flex align-center justify-space-between pa-4"
-          style="background-color: #f8fafc; border-radius: 8px"
+    <!-- Header Section -->
+    <div
+      class="d-flex align-center justify-space-between pa-4 mb-4"
+      style="background-color: #f8fafc; border-radius: 8px"
+    >
+      <div class="d-flex align-center">
+        <v-btn
+          icon="mdi-arrow-left"
+          variant="text"
+          color="black"
+          @click="goBack"
+          class="mr-2"
+        ></v-btn>
+        <h2 class="text-h5 font-weight-bold text-black mb-0">
+          Create Payroll Policy
+        </h2>
+      </div>
+      <div class="d-flex align-center ga-2">
+        <BaseButton
+          variant="danger"
+          size="sm"
+          color="grey"
+          class="me-2 text-none"
+          :left-icon="XCircle"
+          @click="goBack"
+          >Cancel</BaseButton
         >
-          <!-- Left section: Back button + Title -->
-          <div class="d-flex align-center">
-            <v-btn
-              icon="mdi-arrow-left"
-              variant="text"
-              color="black"
-              @click="goBack"
-              class="mr-2"
-            ></v-btn>
-            <h2 class="text-h5 font-weight-bold text-black mb-0">
-              Create Payroll Policy
-            </h2>
-          </div>
+        <BaseButton
+          variant="primary"
+          size="sm"
+          color="#122f68"
+          class="text-none text-white"
+          :left-icon="Check"
+          :loading="saving"
+          @click="save"
+          >Save
+        </BaseButton>
+      </div>
+    </div>
 
-          <div class="d-flex align-center ga-2">
-            <BaseButton
-              variant="danger"
-              size="sm"
-              color="grey"
-              class="me-2 text-none"
-              :left-icon="XCircle"
-              @click="goBack"
-            >
-              Cancel
-            </BaseButton>
+    <!-- Category Name Section -->
+    <div
+      class="pa-4 mb-4"
+      style="background-color: #f8fafc; border-radius: 8px"
+    >
+      <v-text-field
+        v-model="categoryName"
+        label="Category Name *"
+        variant="outlined"
+        density="compact"
+        required
+        class="w-100"
+      />
+    </div>
 
+    <div
+      v-if="isLoading"
+      class="loading-container d-flex flex-column align-center justify-center"
+      style="height: 70vh"
+    >
+      <v-progress-circular
+        indeterminate
+        color="primary"
+        size="64"
+      ></v-progress-circular>
+      <div class="loading-text mt-4">Loading data...</div>
+    </div>
+
+    <div v-else class="clean-layout" style="height: 70vh; overflow-y: auto">
+      <!-- Earning Components -->
+
+      <v-row
+        v-for="(row, idx) in form.earning"
+        :key="row.id"
+        class="earning-row align-center mb-3"
+      >
+        <!-- Column 1: Name -->
+        <v-col cols="3">
+          <span class="font-weight-medium">{{ row.label }}</span>
+        </v-col>
+
+        <!-- Column 2: Type -->
+        <v-col cols="3">
+          <v-select
+            v-if="
+              !['Basic Pay', 'HRA', 'Dearness Allowance'].includes(row.label)
+            "
+            v-model="row.unit"
+            :items="unitItems"
+            label="Type"
+            variant="outlined"
+            density="compact"
+            hide-details
+            hide-no-data
+          />
+        </v-col>
+
+        <!-- Column 3: Value -->
+        <v-col cols="3">
+          <v-text-field
+            v-model.number="row.value"
+            type="number"
+            min="0"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            :prefix="row.unit === 'Percentage' ? '%' : '₹'"
+            :placeholder="row.unit === 'Percentage' ? 'Percentage' : 'Fixed'"
+          />
+        </v-col>
+
+        <!-- Column 4: Action -->
+        <v-col cols="3" class="text-left">
+          <ActionButton
+            v-if="!['Basic Pay'].includes(row.label)"
+            :icon="Trash2"
+            variant="text"
+            size="sm"
+            color="red"
+            @click="() => removeEarning(idx)"
+          />
+        </v-col>
+      </v-row>
+
+      <div class="add-button-container mb-6">
+        <v-menu>
+          <template v-slot:activator="{ props }">
             <BaseButton
               variant="primary"
               size="sm"
-              color="#122f68"
-              class="text-none text-white"
-              :left-icon="Check"
-              :loading="saving"
-              @click="save"
+              color="black"
+              :left-icon="Plus"
+              v-bind="props"
+              >Add allowance</BaseButton
             >
-              Save Category
+          </template>
+          <v-list style="max-height: 200px; overflow-y: auto">
+            <v-list-item
+              v-for="(item, index) in availableEarningOptions"
+              :key="index"
+              @click="addSelectedEarning(item.name)"
+            >
+              <v-list-item-title>{{ item.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
+
+      <!-- Employer Contribution -->
+      <div class="section-header mb-4">
+        <div class="section-indicator employer-indicator"></div>
+        <h3 class="section-title">Employer Contribution</h3>
+      </div>
+
+      <!-- Employer PF -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employer PF </v-col>
+
+        <!-- <div v-if="!hasPFAccount" class="d-flex align-center">
+            <v-icon color="red" class="mr-2">mdi-alert-circle</v-icon>
+            <span class="text-red font-weight-bold">PF Not Available</span>
+            <BaseButton
+              variant="primary"
+              size="sm"
+              color="primary"
+              :left-icon="Plus"
+              class="ml-auto"
+              @click="handleAddPfClick"
+            >
+              Add PF Account
             </BaseButton>
-          </div>
-        </div>
-      </v-col>
-    </v-row>
-    <v-row style="margin-top: -24px">
-      <v-col cols="10">
-        <div
-          class="d-flex align-center justify-space-between pa-4"
-          style="background-color: #f8fafc; border-radius: 8px"
-        >
-          <v-row>
-            <!-- <v-col cols="3">
-              <v-select
-                v-model="selectedState"
-                :items="states"
-                item-title="text"
-                item-value="value"
-                label="Select State *"
-                variant="outlined"
-                density="compact"
-                @update:model-value="stateLimit"
-                required
-                :error-messages="limitMessage"
-              />
-            </v-col> -->
-            <v-col cols="3">
-              <v-text-field
-                v-model="categoryName"
-                label="Category Name *"
-                variant="outlined"
-                density="compact"
-                required
-              />
-            </v-col>
-          </v-row>
-        </div>
-      </v-col>
-    </v-row>
-    <v-row style="height: 70vh; overflow-y: auto">
-      <v-col cols="10">
-        <div v-if="isLoading" class="loading-container">
-          <v-progress-circular
-            indeterminate
-            color="primary"
-            size="64"
-          ></v-progress-circular>
-          <div class="loading-text">Loading data...</div>
-        </div>
-        <div
-          v-else
-          style="
-            padding-top: 0;
-            padding-right: 20px;
-            padding-bottom: 20px;
-            padding-left: 20px;
-          "
-        >
-          <!-- Updated header with professional styling -->
+          </div> -->
 
-          <div>
-            <!-- Added professional background for basic information section -->
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '12% No limit', value: 12 },
+              { title: '12% ₹1800 limit', value: 1800 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employerPF.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+          />
+        </v-col>
 
-            <!-- Updated Earning section with professional styling -->
-            <section>
-              <div
-                class="pa-4 mb-4"
-                style="
-                  background-color: rgb(252 253 255);
-                  border-radius: 8px;
-                  border-left: 4px solid #22c55e;
-                  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-                "
-              >
-                <h3
-                  class="text-h6 font-weight-medium mb-4"
-                  style="color: #166534"
-                >
-                  Earning Components
-                </h3>
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employerPF.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+          />
+        </v-col>
 
-                <div
-                  class="fields-container"
-                  style="max-height: 300px; overflow-y: auto"
-                >
-                  <v-card-text>
-                    <v-row
-                      v-for="(row, idx) in form.earning"
-                      :key="row.id"
-                      class="mb-4 align-center"
-                      dense
-                    >
-                      <v-col cols="3">
-                        <div
-                          :style="{
-                            fontWeight: '500',
-                            color: 'rgba(0, 0, 0, 0.87)',
-                            lineHeight: '1.5',
-                            paddingTop: '16px',
-                            fontSize: '16px',
-                            fontFamily: 'Roboto, sans-serif',
-                          }"
-                        >
-                          {{ row.label }}
-                        </div>
-                      </v-col>
-                      <v-col
-                        cols="2"
-                        v-if="
-                          !['Basic Pay', 'HRA', 'Dearness Allowance'].includes(
-                            row.label,
-                          )
-                        "
-                      >
-                        <v-select
-                          v-model="row.unit"
-                          :items="unitItems"
-                          label="Type"
-                          variant="outlined"
-                          density="comfortable"
-                          hide-details
-                        />
-                      </v-col>
-                      <v-col cols="2">
-                        <v-text-field
-                          v-model.number="row.value"
-                          type="number"
-                          min="0"
-                          label="Value"
-                          variant="outlined"
-                          density="comfortable"
-                          hide-details
-                          :prefix="row.unit === 'Percentage' ? '%' : '₹'"
-                          :placeholder="
-                            row.unit === 'Percentage' ? 'Percentage' : 'Fixed'
-                          "
-                        />
-                      </v-col>
-                      <v-col cols="1" class="d-flex align-center justify-end">
-                        <ActionButton
-                          v-if="!['Basic Pay'].includes(row.label)"
-                          :icon="Trash2"
-                          text=""
-                          variant="text"
-                          size="sm"
-                          color="black"
-                          @click="() => removeEarning(idx)"
-                        />
-                      </v-col>
-                    </v-row>
-                  </v-card-text>
-                </div>
+        <v-col cols="3">
+          <v-checkbox
+            v-model="form.employerPF.withinCTC"
+            label="Within CTC"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+      </v-row>
 
-                <!-- Dropdown menu attached to the Add allowance button -->
-                <div class="d-flex align-center ga-2 mt-4">
-                  <v-menu>
-                    <template v-slot:activator="{ props }">
-                      <BaseButton
-                        variant="primary"
-                        size="sm"
-                        color="black"
-                        class="mr-2"
-                        :left-icon="Plus"
-                        v-bind="props"
-                      >
-                        Add allowance
-                      </BaseButton>
-                    </template>
-                    <v-list
-                      style="
-                        max-height: 200px;
-                        overflow-y: auto;
-                        justify-content: space-between;
-                      "
-                    >
-                      <v-list-item
-                        v-for="(item, index) in availableEarningOptions"
-                        :key="index"
-                        @click="addSelectedEarning(item.name)"
-                      >
-                        <v-list-item-title>{{ item.name }}</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </div>
-              </div>
-            </section>
+      <!-- Employer ESI -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employer ESI </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '3.25%', value: 3.25 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employerESI.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+          />
+        </v-col>
 
-            <!-- Updated Employer Contribution section with professional styling -->
-            <section>
-              <div
-                class="pa-4 mb-4"
-                style="
-                  background-color: rgb(252 253 255);
-                  border-radius: 8px;
-                  border-left: 4px solid #3b82f6;
-                  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-                "
-              >
-                <h3
-                  class="text-h6 font-weight-medium mb-4"
-                  style="color: #1e40af"
-                >
-                  Employer Contribution
-                </h3>
-                <v-divider class="mb-4" />
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employerESI.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+          />
+        </v-col>
 
-                <div class="fields-container">
-                  <!-- Employer PF -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Employer PF</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasPFAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >PF Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="handleAddPfClick"
-                          >
-                            Add PF Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row>
-                      <v-row v-else dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '12% No limit', value: 12 },
-                              { title: '12% ₹1800 limit', value: 1800 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employerPF.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            class="ml-4 value-input"
-                            item-title="title"
-                            item-value="value"
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="4">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employerPF.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                            :menu-props="{ maxHeight: 200 }"
-                            style="max-height: 80px; overflow-y: auto"
-                          >
-                          </v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-checkbox
-                            v-model="form.employerPF.withinCTC"
-                            label="Within CTC"
-                            class="ml-4"
-                            density="comfortable"
-                            hide-details
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+        <v-col cols="3">
+          <v-checkbox
+            v-model="form.employerESI.withinCTC"
+            label="Within CTC"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+      </v-row>
 
-                  <!-- Employer ESI -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Employer ESI</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <!-- <v-row v-if="!hasESIAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >ESI Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="handleAddESIClick"
-                          >
-                            Add ESI Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row> -->
-                      <v-row dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '3.25%', value: 3.25 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employerESI.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            class="ml-4 value-input"
-                            item-title="title"
-                            item-value="value"
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employerESI.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                          >
-                          </v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-checkbox
-                            v-model="form.employerESI.withinCTC"
-                            label="Within CTC"
-                            class="ml-4"
-                            density="comfortable"
-                            hide-details
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+      <!-- PF EDLI & Admin Charges -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> PF EDLI & Admin Charges </v-col>
 
-                  <!-- PF EDLI & Admin Charges -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">PF EDLI & Admin Charges</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row dense>
-                        <v-col cols="3">
-                          <v-switch
-                            v-model="form.includeEdli"
-                            hide-details
-                            density="comfortable"
-                            :disabled="
-                              form.employerPF.value === '' ||
-                              form.employerPF.value === null ||
-                              !hasPFAccount
-                            "
-                            color="success"
-                            inset
-                          ></v-switch>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-text-field
-                            v-if="form.includeEdli"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            class="component-input"
-                            value="1"
-                            suffix="%"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <!-- Labour Welfare Fund -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Labour Welfare Fund</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasShopEstablishment" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >Shop Account Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="addAccount"
-                          >
-                            Add Shop Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row>
+        <v-col cols="3">
+          <v-switch
+            v-model="form.includeEdli"
+            hide-details
+            density="compact"
+            color="success"
+            inset
+            :disabled="
+              form.employerPF.value === '' || form.employerPF.value === null
+            "
+          />
+        </v-col>
+        <v-col cols="3" v-if="form.includeEdli">
+          <v-text-field
+            variant="outlined"
+            density="compact"
+            hide-details
+            value="1"
+            suffix="%"
+            readonly
+          />
+        </v-col>
+      </v-row>
 
-                      <v-row v-else class="align-center">
-                        <v-col cols="6">
-                          <v-select
-                            v-model="selectedState"
-                            :items="states"
-                            item-title="text"
-                            item-value="value"
-                            label="Select State"
-                            variant="outlined"
-                            density="compact"
-                          />
-                        </v-col>
+      <!-- Labour Welfare Fund -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Labour Welfare Fund </v-col>
 
-                        <v-col cols="6" class="d-flex align-center">
-                          <v-icon color="grey-darken-1" class="mr-2"
-                            >mdi-information-outline</v-icon
-                          >
-                          <span class="text-grey-darken-1"
-                            >Value based on state rules</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                </div>
-              </div>
-            </section>
+        <v-col cols="3" class="d-flex align-center">
+          <v-icon color="grey-darken-1" class="mr-2"
+            >mdi-information-outline</v-icon
+          >
+          <span class="text-grey-darken-1">Value based on state rules</span>
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            v-model="selectedState"
+            :items="states"
+            item-title="text"
+            item-value="value"
+            label="Select State"
+            variant="outlined"
+            density="compact"
+          />
+        </v-col>
+      </v-row>
 
-            <!-- Updated Deduction section with professional styling -->
-            <section>
-              <div
-                class="pa-4 mb-4"
-                style="
-                  background-color: rgb(252 253 255);
-                  border-radius: 8px;
-                  border-left: 4px solid #ef4444;
-                  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-                "
-              >
-                <h3
-                  class="text-h6 font-weight-medium mb-6"
-                  style="color: #dc2626"
-                >
-                  Deduction Components
-                </h3>
+      <!-- Deduction Components -->
+      <div class="section-header mb-4">
+        <div class="section-indicator deduction-indicator"></div>
+        <h3 class="section-title">Deduction Components</h3>
+      </div>
 
-                <div
-                  class="mb-6"
-                  style="
-                    max-height: 300px;
-                    overflow-y: auto;
-                    overflow-x: hidden;
-                  "
-                >
-                  <!-- Employee PF -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Employee PF</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasPFAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >PF Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="addAccount"
-                          >
-                            Add PF Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row>
-                      <v-row v-else dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '12% No limit', value: 12 },
-                              { title: '12% ₹1800 limit', value: 1800 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employeePF.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employeePF.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                          >
-                          </v-select>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+      <!-- Employee PF -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employee PF </v-col>
 
-                  <!-- Employee ESI -->
-                  <v-row class="mb-4 align-center">
-                    <v-col cols="3">
-                      <div class="field-name">Employee ESI</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <!-- <v-row v-if="!hasESIAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >ESI Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="addAccount"
-                          >
-                            Add ESI Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row> -->
-                      <v-row dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '0.75%', value: 0.75 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employeeESI.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employeeESI.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                          >
-                          </v-select>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Labour Welfare Fund</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasShopEstablishment" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >Shop Account Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="addAccount"
-                          >
-                            Add Shop Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row>
-                      <v-row v-else class="align-center">
-                        <v-col cols="6">
-                          <v-select
-                            v-model="selectedState"
-                            :items="states"
-                            item-title="text"
-                            item-value="value"
-                            label="Select State"
-                            variant="outlined"
-                            density="compact"
-                          />
-                        </v-col>
-                        <v-col cols="6" class="d-flex align-center">
-                          <v-icon color="grey-darken-1" class="mr-2"
-                            >mdi-information-outline</v-icon
-                          >
-                          <span class="text-grey-darken-1"
-                            >Value based on state rules</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <!-- Professional Tax -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Professional Tax</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row class="align-center">
-                        <v-col cols="6">
-                          <v-select
-                            v-model="selectedState"
-                            :items="states"
-                            item-title="text"
-                            item-value="value"
-                            label="Select State"
-                            variant="outlined"
-                            density="compact"
-                          />
-                        </v-col>
-                        <v-col cols="6" class="d-flex align-center">
-                          <v-icon color="grey-darken-1" class="mr-2"
-                            >mdi-information-outline</v-icon
-                          >
-                          <span class="text-grey-darken-1"
-                            >System Calculated</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <v-row
-                    v-for="(row, idx) in form.deduction"
-                    :key="row.id"
-                    class="mb-4 align-center"
-                  >
-                    <v-col cols="3">
-                      <div class="field-name">{{ row.label }}</div>
-                    </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '12% No limit', value: 12 },
+              { title: '12% ₹1800 limit', value: 1800 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employeePF.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+          />
+        </v-col>
 
-                    <v-col cols="3">
-                      <v-text-field
-                        v-model.number="row.value"
-                        type="number"
-                        min="0"
-                        label="Value"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details
-                        prefix="₹"
-                        placeholder="Fixed"
-                      />
-                    </v-col>
-                    <v-col cols="1" class="d-flex align-center justify-end">
-                      <ActionButton
-                        text="Delete"
-                        :icon="Trash2"
-                        variant="text"
-                        size="sm"
-                        color="black"
-                        @click="
-                          () => {
-                            removeDeduction(idx);
-                          }
-                        "
-                      />
-                    </v-col>
-                  </v-row>
-                </div>
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employeePF.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+          />
+        </v-col>
+      </v-row>
 
-                <div class="d-flex align-center ga-2 mt-4">
-                  <v-menu>
-                    <template v-slot:activator="{ props }">
-                      <BaseButton
-                        variant="primary"
-                        size="sm"
-                        color="black"
-                        :left-icon="Plus"
-                        class="mr-2"
-                        v-bind="props"
-                      >
-                        Add deduction
-                      </BaseButton>
-                    </template>
-                    <v-list
-                      style="
-                        max-height: 200px;
-                        overflow-y: auto;
-                        justify-content: space-between;
-                      "
-                    >
-                      <v-list-item
-                        v-for="(item, index) in deductionOptions.filter(
-                          (opt) =>
-                            !form.deduction.some((d) => d.name === opt.name),
-                        )"
-                        :key="index"
-                        @click="addSelectedDeduction(item)"
-                      >
-                        <v-list-item-title>{{ item.name }}</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
-      </v-col>
-      <v-col cols="2"> </v-col>
-    </v-row>
+      <!-- Employee ESI -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employee ESI </v-col>
+
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '0.75%', value: 0.75 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employeeESI.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+          />
+        </v-col>
+
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employeeESI.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+          />
+        </v-col>
+      </v-row>
+
+      <!-- Labour Welfare Fund -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Labour Welfare Fund </v-col>
+
+        <v-col cols="3" class="d-flex align-center">
+          <v-icon color="grey-darken-1" class="mr-2"
+            >mdi-information-outline</v-icon
+          >
+          <span class="text-grey-darken-1">Value based on state rules</span>
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            v-model="selectedState"
+            :items="states"
+            item-title="text"
+            item-value="value"
+            label="Select State"
+            variant="outlined"
+            density="compact"
+          />
+        </v-col>
+      </v-row>
+
+      <!-- Professional Tax -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Professional Tax </v-col>
+
+        <v-col cols="3" class="d-flex align-center">
+          <v-icon color="grey-darken-1" class="mr-2"
+            >mdi-information-outline</v-icon
+          >
+          <span class="text-grey-darken-1">System Calculated</span>
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            v-model="selectedState"
+            :items="states"
+            item-title="text"
+            item-value="value"
+            label="Select State"
+            variant="outlined"
+            density="compact"
+          />
+        </v-col>
+      </v-row>
+
+      <!-- Dynamic Deduction Rows -->
+      <v-row
+        v-for="(row, idx) in form.deduction"
+        :key="row.id"
+        class="align-center mb-3 border-bottom pb-2"
+      >
+        <v-col cols="3">
+          <strong>{{ row.label }}</strong>
+        </v-col>
+        <v-col cols="3"></v-col>
+        <v-col cols="3">
+          <v-text-field
+            v-model.number="row.value"
+            type="number"
+            min="0"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            prefix="₹"
+            placeholder="Fixed"
+          />
+        </v-col>
+
+        <v-col cols="3">
+          <ActionButton
+            text="Delete"
+            :icon="Trash2"
+            variant="text"
+            size="sm"
+            color="red"
+            @click="() => removeDeduction(idx)"
+          />
+        </v-col>
+      </v-row>
+
+      <div class="add-button-container">
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              color="black"
+              :left-icon="Plus"
+              v-bind="props"
+              >Add deduction</BaseButton
+            >
+          </template>
+          <v-list style="max-height: 200px; overflow-y: auto">
+            <v-list-item
+              v-for="(item, index) in availableDeductionOptions"
+              :key="index"
+              @click="addSelectedDeduction(item)"
+            >
+              <v-list-item-title>{{ item.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
+    </div>
+
     <v-dialog v-model="showAddDialog" max-width="500px">
       <v-card>
-        <v-card-title class="text-h6 font-weight-bold">
-          Add ESI Account
-        </v-card-title>
-
+        <v-card-title class="text-h6 font-weight-bold"
+          >Add ESI Account</v-card-title
+        >
         <v-card-text>
           <v-form ref="addAccountForm" v-model="formValid">
             <v-text-field
@@ -806,15 +508,15 @@
             />
           </v-form>
         </v-card-text>
-
         <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="showAddDialog = false"> Cancel </v-btn>
-          <v-btn color="green" :disabled="!formValid" @click="saveAccount">
-            Save
-          </v-btn>
+          <v-btn variant="text" @click="showAddDialog = false">Cancel</v-btn>
+          <v-btn color="green" :disabled="!formValid" @click="saveAccount"
+            >Save</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
+
     <v-dialog v-model="showAddPfDialog" max-width="400">
       <v-card>
         <v-card-title class="text-h6">Add PF Account</v-card-title>
@@ -1289,6 +991,10 @@ const addSelectedDeduction = (item) => {
   });
   console.log("Deduction rows:", form.value.deduction);
 };
+const availableDeductionOptions = computed(() => {
+  const usedLabels = form.value.deduction.map((item) => item.label);
+  return deductionOptions.filter((option) => !usedLabels.includes(option.name));
+});
 
 // Computed property to show only available earning options (excluding already selected ones)
 const availableEarningOptions = computed(() => {
@@ -1338,7 +1044,9 @@ function removeDeduction(idx) {
 
 const goBack = () => {
   emit("close");
-  router.push("/configuration");
+  router.push({
+    path: "/configuration/payroll-policy",
+  });
 };
 
 watch(
@@ -1384,62 +1092,124 @@ onMounted(async () => {
   await fetchStateData();
 });
 </script>
-
 <style scoped>
-.v-container {
-  max-width: 100% !important;
+.clean-layout {
+  background: #fff;
 }
 
-.text-pretty {
-  text-wrap: pretty;
+.section-wrapper {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
-.ga-2 {
-  gap: 8px;
-}
-
-.pe-md-3 {
-  padding-right: 12px;
-}
-
-.pe-2 {
-  padding-right: 8px;
-}
-
-.mt-2 {
-  margin-top: 8px;
-}
-
-.mt-md-0 {
-  margin-top: 0;
-}
-
-.mt-6 {
-  margin-top: 24px;
-}
-
-.mt-8 {
-  margin-top: 32px;
-}
-
-.mb-2 {
-  margin-bottom: 8px;
-}
-
-.mb-4 {
-  margin-bottom: 16px;
-}
-.loading-container {
+.section-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 3rem;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f1f5f9;
 }
 
-.loading-text {
-  margin-top: 1rem;
-  font-size: 1rem;
-  color: #4a5568;
+.section-indicator {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  margin-right: 12px;
+}
+
+.earning-indicator {
+  background-color: #22c55e;
+}
+
+.employer-indicator {
+  background-color: #3b82f6;
+}
+
+.deduction-indicator {
+  background-color: #ef4444;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.field-label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.component-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.component-row:last-child {
+  border-bottom: none;
+}
+
+.component-fields {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.earning-row,
+.deduction-row {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #22c55e;
+}
+
+.deduction-row {
+  border-left-color: #ef4444;
+}
+
+.alert-row {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px;
+  color: #dc2626;
+}
+
+.add-button-container {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+.field-input {
+  flex: 1;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.loading-container {
+  height: 100%;
+  min-height: 400px;
 }
 </style>

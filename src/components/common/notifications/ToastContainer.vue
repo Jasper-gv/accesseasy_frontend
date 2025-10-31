@@ -1,3 +1,4 @@
+<!-- /src/components/common/notifications/ToastContainer.vue -->
 <template>
   <div class="toast-container">
     <TransitionGroup name="toast" tag="div" class="toast-list">

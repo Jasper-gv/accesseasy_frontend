@@ -25,11 +25,11 @@
       >
         <template #before-search>
           <button
-            v-if="isAdmin"
             class="filter-toggle-static"
             @click="toggleFilters"
             :class="{ active: hasActiveFilters }"
             :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
           >
             <svg
               width="20"

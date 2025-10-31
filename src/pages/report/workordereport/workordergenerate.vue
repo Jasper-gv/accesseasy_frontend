@@ -1,432 +1,392 @@
 <template>
   <v-app>
     <v-container class="app-wrapper" fluid>
-      <!-- Header -->
-      <v-row>
-        <!-- Task Report Grid -->
-        <v-col cols="12" md="4">
-          <v-card elevation="2" class="pa-4">
-            <v-card-title class="text-h6">WorkOrders Report</v-card-title>
-            <v-card-text>
-              <p class="text-body-2">
-                Generate detailed work order information including employee
-                assignments, locations, and collection data.
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="openDialog('TaskReport')"
-                >Generate WorkOrders Report</v-btn
-              >
-            </v-card-actions>
-          </v-card>
-        </v-col>
-        <!-- Trip Report Grid -->
-        <v-col cols="12" md="4">
-          <v-card elevation="2" class="pa-4">
-            <v-card-title class="text-h6">Trip Report</v-card-title>
-            <v-card-text>
-              <p class="text-body-2">
-                Generate detailed trip information including employee
-                assignments, locations, and collection data.
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="showUnderDevelopment">
-                <v-icon small left>mdi-tools</v-icon>
-                Generate Trip Report
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
-      <v-row>
-        <!-- Attendance Report Grid -->
-        <v-col cols="12" md="4">
-          <v-card elevation="2" class="pa-4">
-            <v-card-title class="text-h6">Attendance Report</v-card-title>
-            <v-card-text>
-              <p class="text-body-2">
-                Generate attendance reports including absent, present, or leave
-                data for employees.
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="openDialog('Attendance')"
-                >Generate Attendance Report</v-btn
-              >
-            </v-card-actions>
-          </v-card>
-        </v-col>
-        <!-- Monthly Attendance Report Grid -->
-        <v-col cols="12" md="4">
-          <v-card elevation="2" class="pa-4">
-            <v-card-title class="text-h6"
-              >Monthly Attendance Report</v-card-title
-            >
-            <v-card-text>
-              <p class="text-body-2">
-                Generate monthly attendance reports including absent, present,
-                or leave data for employees.
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="openDialog('MonthlyAttendance')"
-                >Generate Monthly Attendance Report</v-btn
-              >
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
-      <v-row>
-        <!-- Reimbursement Report Grid -->
-        <v-col cols="12" md="4">
-          <v-card elevation="2" class="pa-4">
-            <v-card-title class="text-h6">Reimbursement Report</v-card-title>
-            <v-card-text>
-              <p class="text-body-2">
-                Creates expense reports for employee travel and task-related
-                costs.
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="openDialog('Reimbursement')"
-                >Generate Reimbursement Report</v-btn
-              >
-            </v-card-actions>
-          </v-card>
-        </v-col>
-        <!-- QR Generate Grid -->
-        <v-col cols="12" md="4">
-          <v-card elevation="2" class="pa-4">
-            <v-card-title class="text-h6">QR Generate</v-card-title>
-            <v-card-text>
-              <p class="text-body-2">
-                Generate and download QR codes for main tenant branches.
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="openDialog('QRGenerate')"
-                >Generate QR</v-btn
-              >
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
-      <!-- Dialog for Report Configuration -->
-      <v-dialog v-model="dialog" max-width="600px" persistent>
-        <v-card>
-          <v-card-title class="text-h6">
-            {{
-              dialogType === "TaskReport"
-                ? "WorkOrders Report Configuration"
-                : dialogType === "Reimbursement"
-                  ? "Reimbursement Report Configuration"
-                  : dialogType === "Attendance"
-                    ? "Attendance Report Configuration"
-                    : dialogType === "MonthlyAttendance"
-                      ? "Monthly Attendance Report Configuration"
-                      : dialogType === "QRGenerate"
-                        ? "QR Generate Configuration"
-                        : ""
-            }}
-          </v-card-title>
-          <v-card-text>
-            <v-form ref="form" @submit.prevent="generateReport">
-              <!-- Organization Selection (for Task, Reimbursement, and Monthly Attendance Reports) -->
-              <div
-                v-if="
-                  dialogType === 'TaskReport' ||
-                  dialogType === 'Reimbursement' ||
-                  dialogType === 'MonthlyAttendance'
-                "
-                class="select-wrapper"
-              >
-                <v-select
-                  v-model="selectedOrganization"
-                  :items="availableOrganizations"
-                  item-title="orgName"
-                  item-value="id"
-                  label="Organization *"
-                  :loading="loadingOrganizations"
-                  :disabled="loadingOrganizations"
-                  variant="outlined"
-                  dense
-                  required
-                  @update:modelValue="fetchEmployees"
-                >
-                  <template v-slot:prepend-inner>
-                    <v-icon v-if="!loadingOrganizations"
-                      >mdi-office-building</v-icon
-                    >
-                    <v-progress-circular
-                      v-else
-                      indeterminate
-                      size="20"
-                      width="2"
-                      color="primary"
-                    ></v-progress-circular>
-                  </template>
-                </v-select>
-              </div>
+      <div v-if="loading" class="d-flex justify-center align-center pa-6">
+        <v-progress-circular
+          indeterminate
+          color="#68ade1"
+          size="48"
+          width="5"
+        ></v-progress-circular>
+      </div>
+      <div v-else>
+        <!-- Header -->
+        <v-row dense>
+          <!-- Task Report Grid -->
+          <v-col cols="12" md="4">
+            <v-card elevation="2" class="pa-4">
+              <v-card-title class="text-h6">WorkOrders Report</v-card-title>
+              <v-card-text>
+                <p class="text-body-2">
+                  Generate detailed work order information including employee
+                  assignments, locations, and collection data.
+                </p>
+              </v-card-text>
+              <v-card-actions>
+                <BaseButton
+                  variant="primary"
+                  size="md"
+                  text="Generate WorkOrders Report"
+                  :leftIcon="ClipboardList"
+                  @click="() => openDialog('TaskReport')"
+                />
+              </v-card-actions>
+            </v-card>
+          </v-col>
+          <!-- Trip Report Grid -->
+          <v-col cols="12" md="4">
+            <v-card elevation="2" class="pa-4">
+              <v-card-title class="text-h6">Trip Report</v-card-title>
+              <v-card-text>
+                <p class="text-body-2">
+                  Generate detailed trip information including employee
+                  assignments, locations, and collection data.
+                </p>
+              </v-card-text>
+              <v-card-actions>
+                <BaseButton
+                  variant="primary"
+                  size="md"
+                  text="Generate Trip Report"
+                  :leftIcon="Wrench"
+                  @click="showUnderDevelopment"
+                />
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
 
-              <!-- Department Selection (for Attendance and Monthly Attendance Reports) -->
-              <div v-if="dialogType === 'Attendance'" class="select-wrapper">
-                <v-select
-                  v-model="selectedDepartment"
-                  :items="availableDepartments"
-                  item-title="title"
-                  item-value="value"
-                  label="Department (Optional)"
-                  :loading="loadingDepartments"
-                  :disabled="loadingDepartments"
-                  variant="outlined"
-                  dense
-                >
-                  <template v-slot:prepend-inner>
-                    <v-icon v-if="!loadingDepartments"
-                      >mdi-account-group</v-icon
-                    >
-                    <v-progress-circular
-                      v-else
-                      indeterminate
-                      size="20"
-                      width="2"
-                      color="primary"
-                    ></v-progress-circular>
-                  </template>
-                </v-select>
-              </div>
-
-              <!-- Employee Selection (for Task and Monthly Attendance Reports) -->
-              <div
-                v-if="
-                  dialogType === 'TaskReport' ||
-                  dialogType === 'MonthlyAttendance'
-                "
-                class="select-wrapper"
-              >
-                <v-select
-                  v-model="selectedEmployee"
-                  :items="availableEmployees"
-                  :item-title="employeeDisplayName"
-                  item-value="id"
-                  label="Employee (Optional)"
-                  :loading="loadingEmployees"
-                  :disabled="loadingEmployees || !selectedOrganization"
-                  variant="outlined"
-                  dense
-                >
-                  <template v-slot:prepend-inner>
-                    <v-icon v-if="!loadingEmployees">mdi-account</v-icon>
-                    <v-progress-circular
-                      v-else
-                      indeterminate
-                      size="20"
-                      width="2"
-                      color="primary"
-                    ></v-progress-circular>
-                  </template>
-                </v-select>
-              </div>
-
-              <!-- Month Selection (for Task, Reimbursement, and Monthly Attendance Reports) -->
-              <div
-                v-if="
-                  dialogType === 'TaskReport' ||
-                  dialogType === 'Reimbursement' ||
-                  dialogType === 'MonthlyAttendance'
-                "
-                class="month-input-wrapper"
-              >
-                <v-text-field
-                  v-model="selectedMonthYear"
-                  type="month"
-                  label="Report Month *"
-                  prepend-inner-icon="mdi-calendar"
-                  variant="outlined"
-                  dense
-                  required
-                ></v-text-field>
-              </div>
-
-              <!-- Date Range Selection (for Attendance Report) -->
-              <div
-                v-if="dialogType === 'Attendance'"
-                class="date-input-wrapper"
-              >
-                <v-text-field
-                  v-model="startDate"
-                  type="date"
-                  label="Start Date *"
-                  prepend-inner-icon="mdi-calendar"
-                  variant="outlined"
-                  dense
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="endDate"
-                  type="date"
-                  label="End Date *"
-                  prepend-inner-icon="mdi-calendar"
-                  variant="outlined"
-                  dense
-                  required
-                ></v-text-field>
-              </div>
-
-              <!-- Report Type Selection (for Attendance and Monthly Attendance Reports) -->
-              <div v-if="dialogType === 'Attendance'" class="select-wrapper">
-                <v-select
-                  v-model="attendanceReportType"
-                  :items="['AbsentReport', 'PresentReport', 'LeaveReport']"
-                  label="Report Type *"
-                  variant="outlined"
-                  dense
-                  required
-                >
-                  <template v-slot:prepend-inner>
-                    <v-icon>mdi-file-chart</v-icon>
-                  </template>
-                </v-select>
-              </div>
-
-              <!-- Location Selection for QR Generate -->
-              <div v-if="dialogType === 'QRGenerate'" class="select-wrapper">
-                <v-select
-                  v-model="selectedLocation"
-                  :items="availableLocations"
-                  item-title="locationName"
-                  item-value="id"
-                  label="Branch Location *"
-                  :loading="loadingLocations"
-                  :disabled="loadingLocations"
-                  variant="outlined"
-                  dense
-                  required
-                >
-                  <template v-slot:prepend-inner>
-                    <v-icon v-if="!loadingLocations">mdi-map-marker</v-icon>
-                    <v-progress-circular
-                      v-else
-                      indeterminate
-                      size="20"
-                      width="2"
-                      color="primary"
-                    ></v-progress-circular>
-                  </template>
-
-                  <!-- Optional: Custom item template to show address too -->
-                  <template v-slot:item="{ props, item }">
-                    <v-list-item v-bind="props">
-                      <!-- <v-list-item-title>{{
-                        item.raw.locationName
-                      }}</v-list-item-title> -->
-                      <v-list-item-subtitle v-if="item.raw.address">
-                        {{ item.raw.address }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                  </template>
-                </v-select>
-              </div>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="grey" text @click="dialog = false">Cancel</v-btn>
-            <v-btn
-              color="primary"
-              :loading="isGenerating"
-              :disabled="isGenerating"
-              @click="generateReport"
-            >
-              <v-icon small left v-if="!isGenerating">mdi-check</v-icon>
-              {{ isGenerating ? "Generating..." : "Generate Report" }}
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-
-      <!-- Error Snackbar -->
-      <v-snackbar v-model="showError" color="error" :timeout="5000">
-        {{ errorMessage }}
-        <template v-slot:action="{ attrs }">
-          <v-btn text v-bind="attrs" @click="showError = false">Close</v-btn>
-        </template>
-      </v-snackbar>
-
-      <!-- Success Snackbar -->
-      <v-snackbar v-model="showSuccess" color="success" :timeout="3000">
-        {{ successMessage }}
-        <template v-slot:action="{ attrs }">
-          <v-btn text v-bind="attrs" @click="showSuccess = false">Close</v-btn>
-        </template>
-      </v-snackbar>
-      <!-- Warning Snackbar (Yellow) -->
-      <v-snackbar v-model="showWarning" color="warning" :timeout="4000">
-        {{ warningMessage }}
-        <template v-slot:action="{ attrs }">
-          <v-btn text v-bind="attrs" @click="showWarning = false">Close</v-btn>
-        </template>
-      </v-snackbar>
-      <!-- Help Section in Grid -->
-      <v-row class="mt-4">
-        <v-col cols="12">
-          <v-card elevation="2" class="pa-4">
+        <v-row>
+          <!-- Reimbursement Report Grid -->
+          <v-col cols="12" md="4">
+            <v-card elevation="2" class="pa-4">
+              <v-card-title class="text-h6">Expense Report</v-card-title>
+              <v-card-text>
+                <p class="text-body-2">
+                  Creates expense reports for employee travel and task-related
+                  costs.
+                </p>
+              </v-card-text>
+              <v-card-actions>
+                <BaseButton
+                  variant="primary"
+                  size="md"
+                  text="Generate Expense Report"
+                  :leftIcon="FileText"
+                  @click="() => openDialog('Reimbursement')"
+                />
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
+        <!-- Dialog for Report Configuration -->
+        <v-dialog v-model="dialog" max-width="600px" persistent>
+          <v-card>
             <v-card-title class="text-h6">
-              <v-icon left>mdi-help-circle-outline</v-icon>
-              Need Help?
+              {{
+                dialogType === "TaskReport"
+                  ? "WorkOrders Report Configuration"
+                  : dialogType === "Reimbursement"
+                    ? "Reimbursement Report Configuration"
+                    : dialogType === "Attendance"
+                      ? "Attendance Report Configuration"
+                      : dialogType === "MonthlyAttendance"
+                        ? "Monthly Attendance Report Configuration"
+                        : dialogType === "QRGenerate"
+                          ? "QR Generate Configuration"
+                          : ""
+              }}
             </v-card-title>
             <v-card-text>
-              <v-list dense>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    <strong>WorkOrders Report:</strong> Generates detailed work
-                    order information including employee assignments, locations,
-                    and collection data
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    <strong>Reimbursement:</strong> Creates expense reports for
-                    employee travel and task-related costs
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    <strong>Attendance:</strong> Generates reports on employee
-                    attendance, including absent, present, or leave data
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    <strong>Monthly Attendance:</strong> Generates monthly
-                    reports on employee attendance, including absent, present,
-                    or leave data
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    <strong>QR Generate:</strong> Generates QR codes for main
-                    tenant branches based on location details
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    Select "All Organizations" or "All Departments" to include
-                    data from all available organizations or departments
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content class="text-body-2">
-                    Reports are generated in Excel format for easy analysis and
-                    sharing
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list>
+              <v-form ref="form" @submit.prevent="generateReport">
+                <!-- Organization Selection (for Task, Reimbursement, and Monthly Attendance Reports) -->
+                <div
+                  v-if="
+                    dialogType === 'TaskReport' ||
+                    dialogType === 'Reimbursement' ||
+                    dialogType === 'MonthlyAttendance'
+                  "
+                  class="select-wrapper"
+                >
+                  <v-select
+                    v-model="selectedOrganization"
+                    :items="availableOrganizations"
+                    item-title="orgName"
+                    item-value="id"
+                    label="Organization *"
+                    :loading="loadingOrganizations"
+                    :disabled="loadingOrganizations"
+                    variant="outlined"
+                    dense
+                    required
+                    @update:modelValue="fetchEmployees"
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon v-if="!loadingOrganizations"
+                        >mdi-office-building</v-icon
+                      >
+                      <v-progress-circular
+                        v-else
+                        indeterminate
+                        size="20"
+                        width="2"
+                        color="primary"
+                      ></v-progress-circular>
+                    </template>
+                  </v-select>
+                </div>
+
+                <!-- Department Selection (for Attendance and Monthly Attendance Reports) -->
+                <div v-if="dialogType === 'Attendance'" class="select-wrapper">
+                  <v-select
+                    v-model="selectedDepartment"
+                    :items="availableDepartments"
+                    item-title="title"
+                    item-value="value"
+                    label="Department (Optional)"
+                    :loading="loadingDepartments"
+                    :disabled="loadingDepartments"
+                    variant="outlined"
+                    dense
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon v-if="!loadingDepartments"
+                        >mdi-account-group</v-icon
+                      >
+                      <v-progress-circular
+                        v-else
+                        indeterminate
+                        size="20"
+                        width="2"
+                        color="primary"
+                      ></v-progress-circular>
+                    </template>
+                  </v-select>
+                </div>
+
+                <!-- Employee Selection (for Task and Monthly Attendance Reports) -->
+                <div
+                  v-if="
+                    dialogType === 'TaskReport' ||
+                    dialogType === 'MonthlyAttendance'
+                  "
+                  class="select-wrapper"
+                >
+                  <v-select
+                    v-model="selectedEmployee"
+                    :items="availableEmployees"
+                    :item-title="employeeDisplayName"
+                    item-value="id"
+                    label="Employee (Optional)"
+                    :loading="loadingEmployees"
+                    :disabled="loadingEmployees || !selectedOrganization"
+                    variant="outlined"
+                    dense
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon v-if="!loadingEmployees">mdi-account</v-icon>
+                      <v-progress-circular
+                        v-else
+                        indeterminate
+                        size="20"
+                        width="2"
+                        color="primary"
+                      ></v-progress-circular>
+                    </template>
+                  </v-select>
+                </div>
+
+                <!-- Month Selection (for Task, Reimbursement, and Monthly Attendance Reports) -->
+                <div
+                  v-if="
+                    dialogType === 'TaskReport' ||
+                    dialogType === 'Reimbursement' ||
+                    dialogType === 'MonthlyAttendance'
+                  "
+                  class="month-input-wrapper"
+                >
+                  <v-text-field
+                    v-model="selectedMonthYear"
+                    type="month"
+                    label="Report Month *"
+                    prepend-inner-icon="mdi-calendar"
+                    variant="outlined"
+                    dense
+                    required
+                  ></v-text-field>
+                </div>
+
+                <!-- Date Range Selection (for Attendance Report) -->
+                <div
+                  v-if="dialogType === 'Attendance'"
+                  class="date-input-wrapper"
+                >
+                  <v-text-field
+                    v-model="startDate"
+                    type="date"
+                    label="Start Date *"
+                    prepend-inner-icon="mdi-calendar"
+                    variant="outlined"
+                    dense
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="endDate"
+                    type="date"
+                    label="End Date *"
+                    prepend-inner-icon="mdi-calendar"
+                    variant="outlined"
+                    dense
+                    required
+                  ></v-text-field>
+                </div>
+
+                <!-- Report Type Selection (for Attendance and Monthly Attendance Reports) -->
+                <div v-if="dialogType === 'Attendance'" class="select-wrapper">
+                  <v-select
+                    v-model="attendanceReportType"
+                    :items="['AbsentReport', 'PresentReport', 'LeaveReport']"
+                    label="Report Type *"
+                    variant="outlined"
+                    dense
+                    required
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon>mdi-file-chart</v-icon>
+                    </template>
+                  </v-select>
+                </div>
+
+                <!-- Location Selection for QR Generate -->
+                <div v-if="dialogType === 'QRGenerate'" class="select-wrapper">
+                  <v-select
+                    v-model="selectedLocation"
+                    :items="availableLocations"
+                    item-title="locationName"
+                    item-value="id"
+                    label="Branch Location *"
+                    :loading="loadingLocations"
+                    :disabled="loadingLocations"
+                    variant="outlined"
+                    dense
+                    required
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon v-if="!loadingLocations">mdi-map-marker</v-icon>
+                      <v-progress-circular
+                        v-else
+                        indeterminate
+                        size="20"
+                        width="2"
+                        color="primary"
+                      ></v-progress-circular>
+                    </template>
+
+                    <!-- Optional: Custom item template to show address too -->
+                    <template v-slot:item="{ props, item }">
+                      <v-list-item v-bind="props">
+                        <!-- <v-list-item-title>{{
+                        item.raw.locationName
+                      }}</v-list-item-title> -->
+                        <v-list-item-subtitle v-if="item.raw.address">
+                          {{ item.raw.address }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                    </template>
+                  </v-select>
+                </div>
+              </v-form>
             </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <BaseButton
+                variant="danger"
+                size="md"
+                text="Cancel"
+                :leftIcon="XCircle"
+                @click="dialog = false"
+              />
+              <BaseButton
+                variant="primary"
+                size="md"
+                :text="isGenerating ? 'Generating...' : 'Generate Report'"
+                :leftIcon="isGenerating ? null : Check"
+                :loading="isGenerating"
+                :disabled="isGenerating"
+                @click="generateReport"
+              />
+            </v-card-actions>
           </v-card>
-        </v-col>
-      </v-row>
+        </v-dialog>
+
+        <!-- Error Snackbar -->
+        <v-snackbar v-model="showError" color="error" :timeout="5000">
+          {{ errorMessage }}
+          <template v-slot:action="{ attrs }">
+            <v-btn text v-bind="attrs" @click="showError = false">Close</v-btn>
+          </template>
+        </v-snackbar>
+
+        <!-- Success Snackbar -->
+        <v-snackbar v-model="showSuccess" color="success" :timeout="3000">
+          {{ successMessage }}
+          <template v-slot:action="{ attrs }">
+            <v-btn text v-bind="attrs" @click="showSuccess = false"
+              >Close</v-btn
+            >
+          </template>
+        </v-snackbar>
+        <!-- Warning Snackbar (Yellow) -->
+        <v-snackbar v-model="showWarning" color="warning" :timeout="4000">
+          {{ warningMessage }}
+          <template v-slot:action="{ attrs }">
+            <v-btn text v-bind="attrs" @click="showWarning = false"
+              >Close</v-btn
+            >
+          </template>
+        </v-snackbar>
+        <!-- Help Section in Grid -->
+        <v-row class="mt-4">
+          <v-col cols="12">
+            <v-card elevation="2" class="pa-4">
+              <v-card-title class="text-h6">
+                <v-icon left>mdi-help-circle-outline</v-icon>
+                Need Help?
+              </v-card-title>
+              <v-card-text>
+                <v-list dense>
+                  <v-list-item>
+                    <v-list-item-content class="text-body-2">
+                      <strong>WorkOrders Report:</strong> Generates detailed
+                      work order information including employee assignments,
+                      locations, and collection data
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-content class="text-body-2">
+                      <strong>Expenses:</strong> Creates expense reports for
+                      employee travel and task-related costs
+                    </v-list-item-content>
+                  </v-list-item>
+
+                  <v-list-item>
+                    <v-list-item-content class="text-body-2">
+                      Select "All Organizations" or "All Departments" to include
+                      data from all available organizations or departments
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-content class="text-body-2">
+                      Reports are generated in Excel format for easy analysis
+                      and sharing
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </div>
     </v-container>
   </v-app>
 </template>
@@ -437,8 +397,17 @@ import { currentUserTenant } from "@/utils/currentUserTenant";
 import { authService } from "@/services/authService";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
-
+import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import {
+  Wrench,
+  FileText,
+  ClipboardList,
+  Check,
+  XCircle,
+} from "lucide-vue-next";
 const emit = defineEmits(["closeAddPage"]);
+const loading = ref(false);
 const showWarning = ref(false);
 const warningMessage = ref("");
 const form = ref(null);
@@ -502,7 +471,7 @@ const availableLocations = computed(() => {
     .map((org) => org.id);
 
   return locations.value
-    .filter((loc) => mainTenantOrgIds.includes(loc.orgLocation))
+
     .filter((loc) => loc.locdetail && loc.locdetail.locationName) // Add null check
     .map((loc) => ({
       id: loc.id,
@@ -585,6 +554,7 @@ const openDialog = (type) => {
 };
 
 const fetchOrganizations = async () => {
+  loading.value = true;
   loadingOrganizations.value = true;
   try {
     const response = await fetch(
@@ -604,6 +574,7 @@ const fetchOrganizations = async () => {
     showErrorToast("Failed to load organizations");
   } finally {
     loadingOrganizations.value = false;
+    loading.value = false;
   }
 };
 
@@ -683,9 +654,10 @@ const fetchEmployees = async () => {
 
 const fetchLocations = async () => {
   loadingLocations.value = true;
+  const tenantId = currentUserTenant.getTenantId();
   try {
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/locationManagement?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}&fields=id,orgLocation,locdetail,qrDetails`,
+      `${import.meta.env.VITE_API_URL}/items/locationManagement?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][0][_and][1][locType][_eq]=branch&fields=id,locdetail,qrDetails`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -695,6 +667,8 @@ const fetchLocations = async () => {
     if (!response.ok) throw new Error("Failed to fetch locations");
     const data = await response.json();
     locations.value = data.data || [];
+    location.value = locations.value[0] || null;
+    console.log(location.value);
   } catch (error) {
     console.error("Error fetching locations:", error);
     showErrorToast("Failed to load locations");

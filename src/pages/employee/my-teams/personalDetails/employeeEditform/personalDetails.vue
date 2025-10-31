@@ -1,12 +1,28 @@
 <template>
+  <ToastNotification
+    v-if="showSuccessToast"
+    :show="showSuccessToast"
+    :message="successMessage"
+    type="success"
+    @close="showSuccessToast = false"
+  />
+  <ToastNotification
+    v-if="showErrorToast"
+    :show="showErrorToast"
+    :message="errorMessage"
+    type="error"
+    @close="showErrorToast = false"
+  />
+
   <div class="personal-details">
     <v-container v-if="loading">
       <v-row>
         <v-col cols="12" class="text-center">
           <v-progress-circular
             indeterminate
-            color="black"
+            color="#059367"
           ></v-progress-circular>
+          <p>Loading personal details...</p>
         </v-col>
       </v-row>
     </v-container>
@@ -14,447 +30,318 @@
       v-else-if="employeeData && employeeData.assignedUser"
       class="pa-4"
     >
-      <div class="d-flex justify-space-between align-center mb-4">
-        <h3>Employee Details</h3>
-        <div class="d-flex gap-3">
-          <div class="d-flex align-center">
-            <div>
-              <BaseButton
-                :text="'Update'"
-                variant="primary"
-                :disabled="
-                  !hasChanges ||
-                  phoneErrorMessage.value ||
-                  emailErrorMessage.value
-                "
-                @click="updatePersonalDetails"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      <br />
-      <v-row>
-        <!-- Avatar Section -->
-        <v-col cols="12" class="d-flex justify-center align-center mb-4">
-          <div class="avatar-container">
-            <v-avatar size="150">
-              <v-img v-if="avatarImage" :src="avatarImage" alt="Avatar"></v-img>
-              <v-icon
-                v-else
-                size="150"
-                color="grey lighten-1"
-                style="border: 2px solid gray; border-radius: 50%; padding: 5px"
-              >
-                mdi-account-circle
-              </v-icon>
-            </v-avatar>
-            <v-btn
-              icon
-              class="edit-avatar-btn"
-              @click="triggerFileInput"
-              color="white"
-              style="background-color: black"
-            >
-              <v-icon>mdi-camera</v-icon>
-            </v-btn>
-          </div>
-          <input
-            type="file"
-            ref="fileInput"
-            style="display: none"
-            accept="image/*"
-            @change="handleAvatarChange"
-          />
-        </v-col>
-        <!-- First Name -->
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.first_name"
-            :label="'First Name *'"
-            required
-            :error-messages="getFieldErrorMessage('first_name')"
-            variant="outlined"
-            density="comfortable"
-            @blur="markFieldAsTouched('first_name')"
-            @input="capitalizeFirstLetterEachWord('first_name')"
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.middleName"
-            :label="'Middle Name'"
-            variant="outlined"
-            density="comfortable"
-            @input="capitalizeFirstLetterEachWord('middleName')"
-          />
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.last_name"
-            :label="'Last Name'"
-            :error-messages="getFieldErrorMessage('last_name')"
-            variant="outlined"
-            density="comfortable"
-            @blur="markFieldAsTouched('last_name')"
-            @input="capitalizeFirstLetterEachWord('last_name')"
-          />
-        </v-col>
-        <!-- Employee ID -->
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.employeeId"
-            label="Employee ID *"
-            required
-            :error-messages="getFieldErrorMessage('employeeId')"
-            variant="outlined"
-            density="comfortable"
-            :disabled="isRoleDisabled"
-            @blur="markFieldAsTouched('employeeId')"
-            @input="handleInputChange('employeeId')"
-          ></v-text-field>
-        </v-col>
-        <!-- Gender -->
-        <v-col cols="12" md="6">
-          <v-select
-            v-model="employeeData.assignedUser.gender"
-            :items="['Female', 'Male', 'Other']"
-            label="Gender *"
-            variant="outlined"
-            density="comfortable"
-            :error-messages="getFieldErrorMessage('gender')"
-            @blur="markFieldAsTouched('gender')"
-            @update:model-value="validateField('gender')"
-            required
-          ></v-select>
-        </v-col>
-        <!-- Phone -->
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="displayPhone"
-            :label="'Phone'"
-            type="tel"
-            :error-messages="phoneErrorMessage"
-            variant="outlined"
-            density="comfortable"
-            @blur="validatePhone"
-            @input="clearPhoneError"
-            maxlength="10"
-          ></v-text-field>
-        </v-col>
-        <!-- Email -->
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.email"
-            :label="'Email'"
-            :error-messages="emailErrorMessage"
-            variant="outlined"
-            density="comfortable"
-            @blur="validateEmail"
-            @input="
-              clearEmailError();
-              toLowerCase('email');
+      <!-- Employee Details Card -->
+      <v-card class="mb-6" flat>
+        <v-card-title class="text-h6 d-flex justify-space-between align-center">
+          <span>Employee Details</span>
+          <BaseButton
+            :text="'Update'"
+            variant="primary"
+            :disabled="
+              !hasChanges || phoneErrorMessage.value || emailErrorMessage.value
             "
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-select
-            v-model="selectedRole"
-            :items="roleOptions"
-            item-title="name"
-            item-value="id"
-            label="Role"
-            variant="outlined"
-            density="comfortable"
-            :disabled="isRoleDisabled"
-            @update:model-value="handleRoleChange"
-          ></v-select>
-          <!-- <v-select
-            v-model="employeeData.assignedUser.organization"
-            :items="orgOptions"
-            item-title="orgName"
-            item-value="id"
-            label="Organization"
-            variant="outlined"
-            density="comfortable"
-            return-object
-          ></v-select> -->
-        </v-col>
-        <!-- Office Email -->
-        <!-- <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.officeEmail"
-            label="Office Email"
-            :error-messages="getFieldErrorMessage('officeEmail')"
-            variant="outlined"
-            density="comfortable"
-            @blur="markFieldAsTouched('officeEmail')"
-            @input="
-              handleInputChange('assignedUser.officeEmail');
-              toLowerCase('officeEmail');
-            "
-          ></v-text-field>
-        </v-col> -->
-        <!-- Role -->
-        <v-col cols="12" md="6"> </v-col>
-        <!-- <v-col cols="12" md="6">
-          <v-select
-            v-model="employeeData.assignedUser.skilled"
-            :items="[
-              'Skilled',
-              'HighlySkilled',
-              'UnSkilled',
-              'SemiSkilled',
-              'Drivers',
-              'OfficeStaffs',
-              'Others',
-            ]"
-            label="Skill Type"
-            variant="outlined"
-            density="comfortable"
-          ></v-select>
-        </v-col> -->
-        <!-- <v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.country || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.country = val"
-    label="Country"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
+            @click="updatePersonalDetails"
+          />
+        </v-card-title>
+        <v-card-text>
+          <v-row class="mb-6">
+            <v-col cols="12" sm="3" class="d-flex justify-center">
+              <div class="avatar-section">
+                <div class="avatar-container">
+                  <v-avatar size="160" class="avatar-image">
+                    <v-img
+                      v-if="avatarImage"
+                      :src="avatarImage"
+                      alt="Avatar"
+                    ></v-img>
+                    <v-icon
+                      v-else
+                      size="150"
+                      color="grey lighten-1"
+                      class="default-avatar"
+                    >
+                      mdi-account-tie
+                    </v-icon>
+                  </v-avatar>
+                  <v-btn
+                    icon
+                    class="edit-avatar-btn"
+                    @click="triggerFileInput"
+                    color="white"
+                  >
+                    <v-icon>mdi-camera</v-icon>
+                  </v-btn>
+                </div>
+                <input
+                  type="file"
+                  ref="fileInput"
+                  style="display: none"
+                  accept="image/*"
+                  @change="handleAvatarChange"
+                />
+              </div>
+            </v-col>
+            <v-col cols="12" sm="9">
+              <div class="profile-info">
+                <!-- Editable Name Fields -->
+                <v-row>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model="employeeData.assignedUser.first_name"
+                      :label="'First Name *'"
+                      required
+                      :error-messages="getFieldErrorMessage('first_name')"
+                      variant="outlined"
+                      density="comfortable"
+                      @blur="markFieldAsTouched('first_name')"
+                      @input="capitalizeFirstLetterEachWord('first_name')"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model="employeeData.assignedUser.middleName"
+                      :label="'Middle Name'"
+                      variant="outlined"
+                      density="comfortable"
+                      @input="capitalizeFirstLetterEachWord('middleName')"
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model="employeeData.assignedUser.last_name"
+                      :label="'Last Name'"
+                      :error-messages="getFieldErrorMessage('last_name')"
+                      variant="outlined"
+                      density="comfortable"
+                      @blur="markFieldAsTouched('last_name')"
+                      @input="capitalizeFirstLetterEachWord('last_name')"
+                    />
+                  </v-col>
+                </v-row>
+                <!-- Editable Employee ID, Designation, Role -->
+                <v-row class="mt-4">
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model="employeeData.employeeId"
+                      label="Employee ID *"
+                      required
+                      :error-messages="getFieldErrorMessage('employeeId')"
+                      variant="outlined"
+                      density="comfortable"
+                      :disabled="isRoleDisabled"
+                      @blur="markFieldAsTouched('employeeId')"
+                      @input="handleInputChange('employeeId')"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model="employeeData.assignedUser.designation"
+                      label="Designation"
+                      variant="outlined"
+                      density="comfortable"
+                      @input="capitalizeFirstLetterEachWord('designation')"
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-select
+                      v-model="selectedRole"
+                      :items="roleOptions"
+                      item-title="name"
+                      item-value="id"
+                      label="Role"
+                      variant="outlined"
+                      density="comfortable"
+                      :disabled="isRoleDisabled"
+                      @update:model-value="handleRoleChange"
+                    />
+                  </v-col>
+                </v-row>
+                <!-- Editable Phone and Email -->
+                <v-row class="mt-4">
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="displayPhone"
+                      :label="'Phone'"
+                      type="tel"
+                      :error-messages="phoneErrorMessage"
+                      variant="outlined"
+                      density="comfortable"
+                      @blur="validatePhone"
+                      @input="clearPhoneError"
+                      maxlength="10"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="employeeData.assignedUser.email"
+                      :label="'Email'"
+                      :error-messages="emailErrorMessage"
+                      variant="outlined"
+                      density="comfortable"
+                      @blur="validateEmail"
+                      @input="
+                        clearEmailError();
+                        toLowerCase('email');
+                      "
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </div>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
 
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.dist || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.dist = val"
-    label="District"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
+      <!-- Personal Details Card -->
+      <v-card class="mb-6" flat>
+        <v-card-title class="text-h6">Personal Details</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="employeeData.assignedUser.bloodGroup"
+                :items="['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']"
+                label="Blood Group"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="employeeData.assignedUser.gender"
+                :items="['Female', 'Male', 'Other']"
+                label="Gender *"
+                variant="outlined"
+                density="comfortable"
+                :error-messages="getFieldErrorMessage('gender')"
+                @blur="markFieldAsTouched('gender')"
+                @update:model-value="validateField('gender')"
+                required
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="employeeData.assignedUser.maritalStatus"
+                :items="['Single', 'Unmarried', 'Married']"
+                label="Marital Status"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="employeeData.assignedUser.DOB"
+                label="Date of Birth"
+                type="date"
+                variant="outlined"
+                density="comfortable"
+                :error-messages="getFieldErrorMessage('DOB')"
+                :max="maxDate"
+                :min="minDate"
+                @input="handleInputChange('assignedUser.DOB')"
+                @blur="markFieldAsTouched('DOB')"
+                hide-details
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-textarea
+                v-model="employeeData.assignedUser.permanent_Address"
+                label="Permanent Address"
+                rows="3"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+              ></v-textarea>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-textarea
+                v-model="employeeData.assignedUser.current_Address"
+                label="Communications Address"
+                rows="3"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+              ></v-textarea>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
 
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.state || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.state = val"
-    label="State"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.po || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.po = val"
-    label="Post Office"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.house || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.house = val"
-    label="House Number"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.loc || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.loc = val"
-    label="Location"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.vtc || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.vtc = val"
-    label="Village/Town/City"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.subdist || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.subdist = val"
-    label="Sub-District"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.street || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.street = val"
-    label="Street"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col>
-
-<v-col cols="12" md="6">
-  <v-text-field
-    :model-value="employeeData.assignedUser?.permanentAddress?.landmark || ''"
-    @update:model-value="val => employeeData.assignedUser.permanentAddress.landmark = val"
-    label="Landmark"
-    variant="outlined"
-    density="comfortable"
-  />
-</v-col> -->
-      </v-row>
-
-      <v-row>
-        <v-col cols="12">
-          <h3>Other Details</h3>
-          <br />
-        </v-col>
-        <!-- <v-col cols="12" md="6">
-          <v-switch
-            v-model="employeeData.assignedUser.appAccess"
-            label="Samay App Access"
-            color="primary"
-            inset
-            hide-details
-            :true-value="true"
-            :false-value="false"
-          ></v-switch>
-        </v-col> -->
-        <!-- Date of Birth -->
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.DOB"
-            label="Date of Birth"
-            type="date"
-            variant="outlined"
-            density="comfortable"
-            :error-messages="getFieldErrorMessage('DOB')"
-            :max="maxDate"
-            :min="minDate"
-            @input="handleInputChange('assignedUser.DOB')"
-            @blur="markFieldAsTouched('DOB')"
-          ></v-text-field>
-        </v-col>
-        <!-- Marital Status -->
-        <v-col cols="12" md="6">
-          <v-select
-            v-model="employeeData.assignedUser.maritalStatus"
-            :items="['Single', 'Unmarried', 'Married']"
-            label="Marital Status"
-            variant="outlined"
-            density="comfortable"
-          ></v-select>
-        </v-col>
-        <!-- Blood Group -->
-        <v-col cols="12" md="6">
-          <v-select
-            v-model="employeeData.assignedUser.bloodGroup"
-            :items="['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']"
-            label="Blood Group"
-            variant="outlined"
-            density="comfortable"
-          ></v-select>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-textarea
-            v-model="employeeData.assignedUser.permanent_Address"
-            label="Permanent Address"
-            rows="3"
-            variant="outlined"
-            density="comfortable"
-          ></v-textarea>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-textarea
-            v-model="employeeData.assignedUser.current_Address"
-            label="Communications Address"
-            rows="3"
-            variant="outlined"
-            density="comfortable"
-          ></v-textarea>
-        </v-col>
-      </v-row>
-      <v-row>
-        <!-- <v-col cols="12">
-          <h3>Emergency Contact Details</h3>
-          <br />
-        </v-col> -->
-        <!-- Emergency Contact Name -->
-        <!-- <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.emergency_Contact_Name"
-            label="Emergency Contact Name"
-            variant="outlined"
-            density="comfortable"
-          ></v-text-field>
-        </v-col> -->
-        <!-- Emergency Contact Mobile Number -->
-        <!-- <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.emergency_Contact_Mobile_Number"
-            label="Emergency Contact Mobile Number"
-            type="tel"
-            variant="outlined"
-            density="comfortable"
-          ></v-text-field>
-        </v-col> -->
-        <!-- Emergency Contact Relationship -->
-        <!-- <v-col cols="12" md="6">
-          <v-text-field
-            v-model="employeeData.assignedUser.emergency_Contact_Relationship"
-            label="Emergency Contact Relationship"
-            variant="outlined"
-            density="comfortable"
-          ></v-text-field>
-        </v-col> -->
-
-        <!-- Emergency Contact Address -->
-        <!-- <v-col cols="12" md="6">
-          <v-textarea
-            v-model="employeeData.assignedUser.emergency_Contact_Address"
-            label="Emergency Contact Address"
-            rows="3"
-            variant="outlined"
-            density="comfortable"
-          ></v-textarea>
-        </v-col> -->
-      </v-row>
+      <!-- Company Details Card -->
+      <v-card flat>
+        <v-card-title class="text-h6">Company Details</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="employeeData.assignedUser.dateOfJoining"
+                label="Date of Joining"
+                type="date"
+                variant="outlined"
+                density="comfortable"
+                @input="handleDateOfJoiningChange"
+                hide-details
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="selectedBranchLocation"
+                :items="branchLocationOptions"
+                item-title="name"
+                item-value="id"
+                label="Branch"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleBranchLocationChange"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="selectedDepartment"
+                :items="departmentOptions"
+                item-title="name"
+                item-value="id"
+                label="Department"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleDepartmentChange"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="selectedCycleType"
+                :items="cycleTypeOptions"
+                item-title="cycleName"
+                item-value="cycleId"
+                label="Attendance Cycle"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleCycleTypeChange"
+                hide-details
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="selectedReportingTo"
+                :items="reportingToOptions"
+                item-title="name"
+                item-value="id"
+                label="Approver"
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="handleReportingToChange"
+                hide-details
+              ></v-select>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
     </v-container>
-
-    <v-snackbar
-      v-model="showSuccessSnackbar"
-      color="success"
-      timeout="2000"
-      location="top"
-    >
-      <div class="d-flex align-center">
-        <v-icon class="me-2">mdi-check-circle</v-icon>
-        {{ successMessage }}
-      </div>
-    </v-snackbar>
-    <!-- Error message notification -->
-    <v-snackbar
-      v-model="showErrorSnackbar"
-      color="error"
-      timeout="2000"
-      location="top"
-    >
-      <div class="d-flex align-center">
-        <v-icon class="me-2">mdi-alert-circle</v-icon>
-        {{ errorMessage }}
-      </div>
-    </v-snackbar>
   </div>
 </template>
 
@@ -464,6 +351,7 @@ import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import SensitiveDataInput from "@/components/sensitiveData/sensitiveDataInput.vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import ToastNotification from "@/components/common/notifications/ToastNotification.vue";
 const props = defineProps({
   employeeData: {
     type: Object,
@@ -485,8 +373,8 @@ const loading = ref(true);
 const originalEmployeeData = ref(null);
 const roleOptions = ref([]);
 const selectedRole = ref(null);
-const showSuccessSnackbar = ref(false);
-const showErrorSnackbar = ref(false);
+const showSuccessToast = ref(false);
+const showErrorToast = ref(false);
 const successMessage = ref("");
 const errorMessage = ref("");
 const isPanChecking = ref(false);
@@ -497,6 +385,17 @@ const currentAvatarFileId = ref(null);
 const phoneErrorMessage = ref("");
 const emailErrorMessage = ref("");
 const workingRangeError = ref(""); // New ref for working range error
+
+// Company details refs
+const branchLocationOptions = ref([]);
+const selectedBranchLocation = ref(null);
+const departmentOptions = ref([]);
+const selectedDepartment = ref(null);
+const reportingToOptions = ref([]);
+const selectedReportingTo = ref(null);
+const cycleTypeOptions = ref([]);
+const selectedCycleType = ref(null);
+const changedFields = ref({});
 
 // Add validation rules
 const rules = {
@@ -512,12 +411,22 @@ const touchedFields = ref(new Set());
 
 const showSuccessMessage = (message) => {
   successMessage.value = message;
-  showSuccessSnackbar.value = true;
+  showSuccessToast.value = true;
+  // Auto hide after 3 seconds
+  setTimeout(() => {
+    showSuccessToast.value = false;
+  }, 3000);
 };
+
 const showErrorMessage = (message) => {
   errorMessage.value = message;
-  showErrorSnackbar.value = true;
+  showErrorToast.value = true;
+  // Auto hide after 3 seconds
+  setTimeout(() => {
+    showErrorToast.value = false;
+  }, 3000);
 };
+
 const isRoleDisabled = computed(() => {
   const currentUserRole = authService.getUserRole()?.toLowerCase();
 
@@ -546,24 +455,24 @@ function toggleAadhaarView() {
   showAadhaarView.value = !showAadhaarView.value;
 }
 
-async function fetchAadhaarData() {
-  try {
-    const user = props.employeeData.assignedUser;
+// async function fetchAadhaarData() {
+//   try {
+//     const user = props.employeeData.assignedUser;
 
-    aadhaarData.value = {
-      fullName: `${user.first_name} ${user.last_name || ""}`,
-      dateOfBirth: user.DOB || "",
-      gender: user.gender || "",
-      fatherName: "RAMAN KUMAR", // Replace with API value
-      address: "123, Main Street, Bangalore, Karnataka - 560001", // Replace with API value
-      maskedAadhaar: "XXXX-XXXX-1234", // Replace with API value
-      verificationDate: "15 March 2024", // Replace with API value
-      status: "Active",
-    };
-  } catch (error) {
-    console.error("Error fetching Aadhaar data:", error);
-  }
-}
+//     aadhaarData.value = {
+//       fullName: `${user.first_name} ${user.last_name || ""}`,
+//       dateOfBirth: user.DOB || "",
+//       gender: user.gender || "",
+//       fatherName: "RAMAN KUMAR", // Replace with API value
+//       address: "123, Main Street, Bangalore, Karnataka - 560001", // Replace with API value
+//       maskedAadhaar: "XXXX-XXXX-1234", // Replace with API value
+//       verificationDate: "15 March 2024", // Replace with API value
+//       status: "Active",
+//     };
+//   } catch (error) {
+//     console.error("Error fetching Aadhaar data:", error);
+//   }
+// }
 
 const displayPhone = computed({
   get: () => {
@@ -678,114 +587,113 @@ const generateDefaultEmail = () => {
 };
 
 // Handle sensitive input changes (PAN, Aadhar)
-const handleSensitiveInputChange = (field) => {
-  touchedFields.value.add(field);
-  validateField(field);
+// const handleSensitiveInputChange = (field) => {
+//   touchedFields.value.add(field);
+//   validateField(field);
 
-  if (field === "pan") {
-    toUpperCase("pan");
-  }
-};
+//   if (field === "pan") {
+//     toUpperCase("pan");
+//   }
+// };
 
-// Check if PAN already exists
-const checkPanExists = async () => {
-  const pan = props.employeeData?.assignedUser?.pan;
-  if (!pan || !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
-    return; // Don't check if PAN is invalid
-  }
+// const checkPanExists = async () => {
+//   const pan = props.employeeData?.assignedUser?.pan;
+//   if (!pan || !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
+//     return; // Don't check if PAN is invalid
+//   }
 
-  // Skip check if it's the same as original PAN
-  if (originalEmployeeData.value?.assignedUser?.pan === pan) {
-    return;
-  }
+//   // Skip check if it's the same as original PAN
+//   if (originalEmployeeData.value?.assignedUser?.pan === pan) {
+//     return;
+//   }
 
-  isPanChecking.value = true;
-  try {
-    const token = authService.getToken();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/users?filter[_and][0][pan][_eq]=${pan}&fields[]=pan`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+//   isPanChecking.value = true;
+//   try {
+//     const token = authService.getToken();
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}/users?filter[_and][0][pan][_eq]=${pan}&fields[]=pan`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       },
+//     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
 
-    const data = await response.json();
-    if (data.data && data.data.length > 0) {
-      validationErrors.value["pan"] = "PAN number already exists";
-      touchedFields.value.add("pan");
+//     const data = await response.json();
+//     if (data.data && data.data.length > 0) {
+//       validationErrors.value["pan"] = "PAN number already exists";
+//       touchedFields.value.add("pan");
 
-      const updatedData = {
-        ...props.employeeData,
-        _validationState: {
-          ...props.employeeData._validationState,
-          personalDetails: false,
-        },
-      };
+//       const updatedData = {
+//         ...props.employeeData,
+//         _validationState: {
+//           ...props.employeeData._validationState,
+//           personalDetails: false,
+//         },
+//       };
 
-      emit("update:employeeData", updatedData);
-    }
-  } catch (error) {
-    console.error("Error checking PAN:", error);
-  } finally {
-    isPanChecking.value = false;
-  }
-};
+//       emit("update:employeeData", updatedData);
+//     }
+//   } catch (error) {
+//     console.error("Error checking PAN:", error);
+//   } finally {
+//     isPanChecking.value = false;
+//   }
+// };
 
 // Check if Aadhar already exists
-const checkAadharExists = async () => {
-  const aadhar = props.employeeData?.assignedUser?.aadhar;
-  if (!aadhar || !/^\d{12}$/.test(aadhar)) {
-    return; // Don't check if Aadhar is invalid
-  }
+// const checkAadharExists = async () => {
+//   const aadhar = props.employeeData?.assignedUser?.aadhar;
+//   if (!aadhar || !/^\d{12}$/.test(aadhar)) {
+//     return; // Don't check if Aadhar is invalid
+//   }
 
-  // Skip check if it's the same as original Aadhar
-  if (originalEmployeeData.value?.assignedUser?.aadhar === aadhar) {
-    return;
-  }
+//   // Skip check if it's the same as original Aadhar
+//   if (originalEmployeeData.value?.assignedUser?.aadhar === aadhar) {
+//     return;
+//   }
 
-  isAadharChecking.value = true;
-  try {
-    const token = authService.getToken();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/users?filter[_and][0][aadhar][_eq]=${aadhar}&fields[]=aadhar`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+//   isAadharChecking.value = true;
+//   try {
+//     const token = authService.getToken();
+//     const response = await fetch(
+//       `${import.meta.env.VITE_API_URL}/users?filter[_and][0][aadhar][_eq]=${aadhar}&fields[]=aadhar`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       },
+//     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
 
-    const data = await response.json();
-    if (data.data && data.data.length > 0) {
-      validationErrors.value["aadhar"] = "Aadhar number already exists";
-      touchedFields.value.add("aadhar");
+//     const data = await response.json();
+//     if (data.data && data.data.length > 0) {
+//       validationErrors.value["aadhar"] = "Aadhar number already exists";
+//       touchedFields.value.add("aadhar");
 
-      const updatedData = {
-        ...props.employeeData,
-        _validationState: {
-          ...props.employeeData._validationState,
-          personalDetails: false,
-        },
-      };
+//       const updatedData = {
+//         ...props.employeeData,
+//         _validationState: {
+//           ...props.employeeData._validationState,
+//           personalDetails: false,
+//         },
+//       };
 
-      emit("update:employeeData", updatedData);
-    }
-  } catch (error) {
-    console.error("Error checking Aadhar:", error);
-  } finally {
-    isAadharChecking.value = false;
-  }
-};
+//       emit("update:employeeData", updatedData);
+//     }
+//   } catch (error) {
+//     console.error("Error checking Aadhar:", error);
+//   } finally {
+//     isAadharChecking.value = false;
+//   }
+// };
 
 // Fetch the Profiles folder ID from tenant data
 const fetchProfilesFolderId = async () => {
@@ -862,6 +770,7 @@ const fetchEmployeeData = async () => {
       "assignedUser.role.id",
       "assignedUser.role.name",
       "assignedUser.appAccess",
+      "assignedUser.designation",
       "workingRange",
       "assignedUser.tenant",
       "assignedUser.permanent_Address",
@@ -872,6 +781,16 @@ const fetchEmployeeData = async () => {
       "assignedUser.emergency_Contact_Relationship",
       "assignedUser.emergency_Contact_Address",
       "assignedUser.guardians_Name",
+      "assignedUser.dateOfJoining",
+      "assignedUser.dateOfLeaving",
+      "department.id",
+      "department.departmentName",
+      "branchLocation.id",
+      "branchLocation.locdetail",
+      "branchLocation.locType",
+      "reportingTo.id",
+      "reportingTo.first_name",
+      "cycleType",
     ];
 
     const queryString = `fields[]=${fields.join("&fields[]=")}`;
@@ -914,7 +833,37 @@ const fetchEmployeeData = async () => {
       }
 
       selectedRole.value = data.data.assignedUser?.role?.id || null;
+
+      // Set company details selected values
+      selectedDepartment.value = data.data.department?.id || null;
+      if (!selectedDepartment.value && data.data.department?.departmentName) {
+        matchDepartmentByName(data.data.department.departmentName);
+      }
+
+      selectedBranchLocation.value = data.data.branchLocation?.id || null;
+      if (
+        !selectedBranchLocation.value &&
+        data.data.branchLocation?.locdetail?.locationName
+      ) {
+        matchBranchLocationByName(
+          data.data.branchLocation.locdetail.locationName,
+        );
+      }
+
+      selectedReportingTo.value = data.data.reportingTo?.id || null;
+      await fetchCycleTypes();
+      if (data.data.cycleType !== undefined && data.data.cycleType !== null) {
+        selectedCycleType.value =
+          typeof data.data.cycleType === "string"
+            ? Number(data.data.cycleType)
+            : data.data.cycleType;
+      } else {
+        selectedCycleType.value = null;
+      }
+
       await fetchProfilesFolderId();
+      await fetchBranchLocations();
+      await fetchDepartments();
     } else {
       throw new Error("No employee data found");
     }
@@ -924,37 +873,329 @@ const fetchEmployeeData = async () => {
     loading.value = false;
   }
 };
+const convertCycleType = (value) => {
+  if (value === null || value === undefined) return null;
 
+  if (typeof value === "number") return value;
+
+  if (typeof value === "string") {
+    const num = Number(value);
+    return isNaN(num) ? value : num;
+  }
+
+  return value; // fallback for other types
+};
 async function fetchDepartments() {
-  const tenantId = await currentUserTenant.getTenantId();
   try {
+    const tenantId = await currentUserTenant.getTenantId();
+    const filterQuery = `filter[tenant][tenantId][_eq]=${tenantId}`;
+
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/organization?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}`,
+      `${import.meta.env.VITE_API_URL}/items/department?${filterQuery}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
       },
     );
-    const data = await response.json();
-    orgOptions.value = data.data;
 
-    // Set initial organization if employee data exists
+    if (!response.ok) {
+      throw new Error("Failed to fetch departments");
+    }
+
+    const data = await response.json();
+    departmentOptions.value = data.data.map((dept) => ({
+      id: dept.id,
+      name: dept.departmentName || "Unnamed Department",
+    }));
+
+    // Match department by name if needed
     if (
-      props.employeeData?.assignedUser?.organization?.id &&
-      !props.employeeData.assignedUser.organization.orgName
+      props.employeeData?.department?.departmentName &&
+      !selectedDepartment.value
     ) {
-      const org = orgOptions.value.find(
-        (o) => o.id === props.employeeData.assignedUser.organization.id,
-      );
-      if (org) {
-        employeeData.value.assignedUser.organization = org;
-      }
+      matchDepartmentByName(props.employeeData.department.departmentName);
     }
   } catch (error) {
-    console.error("Error fetching organizations:", error);
+    console.error("Error fetching departments:", error);
+    departmentOptions.value = [];
+    showErrorMessage("Failed to load department options");
   }
 }
+
+const matchDepartmentByName = (departmentName) => {
+  if (!departmentName || !departmentOptions.value.length) return;
+  const matchedDept = departmentOptions.value.find(
+    (dept) => dept.name.toLowerCase() === departmentName.toLowerCase(),
+  );
+  if (matchedDept) {
+    selectedDepartment.value = matchedDept.id;
+  }
+};
+
+async function fetchBranchLocations() {
+  try {
+    const tenantId = await currentUserTenant.getTenantId();
+    const filterQuery = `filter[tenant][tenantId][_eq]=${tenantId}&filter[locType][_eq]=branch`;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/locationManagement?${filterQuery}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch branch locations");
+    }
+
+    const data = await response.json();
+    branchLocationOptions.value = data.data.map((loc) => ({
+      id: loc.id,
+      name: `${loc.locdetail?.locationName || ""} (${loc.locType || ""})`,
+    }));
+
+    // Match branch location by name if needed
+    if (
+      props.employeeData?.branchLocation?.locdetail?.locationName &&
+      !selectedBranchLocation.value
+    ) {
+      matchBranchLocationByName(
+        props.employeeData.branchLocation.locdetail.locationName,
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching branch locations:", error);
+    branchLocationOptions.value = [];
+    showErrorMessage("Failed to load branch location options");
+  }
+}
+
+const matchBranchLocationByName = (locationName) => {
+  if (!locationName || !branchLocationOptions.value.length) return;
+  const matchedLoc = branchLocationOptions.value.find((loc) =>
+    loc.name.toLowerCase().includes(locationName.toLowerCase()),
+  );
+  if (matchedLoc) {
+    selectedBranchLocation.value = matchedLoc.id;
+  }
+};
+
+async function fetchReportingTo() {
+  try {
+    const tenantId = await currentUserTenant.getTenantId();
+    let allReportingTo = [];
+    let page = 1;
+    const limit = 100;
+    let hasMore = true;
+
+    while (hasMore) {
+      let filters = [
+        `filter[_and][0][assignedUser][tenant][tenantId][_eq]=${tenantId}`,
+      ];
+
+      const baseFilter = `filter[assignedUser][tenant][tenantId][_eq]=${tenantId}`;
+      const fullFilter = `${filters.length > 0 ? "&" + filters.join("&") : ""}`;
+      const fields = [
+        "id",
+        "assignedUser.id",
+        "assignedUser.first_name",
+        "assignedUser.role.name",
+        "department.id",
+        "department.departmentName",
+        "branchLocation.id",
+        "branchLocation.locdetail",
+      ].join("&fields[]=");
+
+      const pagination = `&limit=${limit}&page=${page}`;
+      const url = `${import.meta.env.VITE_API_URL}/items/personalModule?${fullFilter}&fields[]=${fields}${pagination}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reporting to: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const currentPage = data.data || [];
+      allReportingTo = [...allReportingTo, ...currentPage];
+
+      if (currentPage.length < limit) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+
+    reportingToOptions.value = allReportingTo
+      .filter(
+        (item) =>
+          item.assignedUser?.id && item.assignedUser?.first_name && true, // Adjust accessOn if needed
+      )
+      .map((item) => ({
+        id: item.assignedUser.id,
+        name: item.assignedUser.first_name.trim(),
+        role: item.assignedUser?.role?.name || "",
+        departmentId: item.department?.id || null,
+        departmentName: item.department?.departmentName || "",
+        branchLocationId: item.branchLocation?.id || null,
+        branchLocationName: item.branchLocation?.locdetail?.locationName || "",
+      }));
+  } catch (error) {
+    console.error("Error fetching reporting to:", error);
+    reportingToOptions.value = [];
+    showErrorMessage("Failed to load reporting to options. Please try again.");
+  }
+}
+
+async function fetchCycleTypes() {
+  try {
+    const tenantId = await currentUserTenant.getTenantId();
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/attendanceCycle?filter[tenant][tenantId][_eq]=${tenantId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch attendance cycles");
+    }
+
+    const data = await response.json();
+    if (data.data && data.data.length > 0) {
+      const firstItem = data.data[0];
+      const multiAttendanceCycle = firstItem.multi_attendance_cycle;
+      if (
+        multiAttendanceCycle &&
+        multiAttendanceCycle.cycles &&
+        Array.isArray(multiAttendanceCycle.cycles)
+      ) {
+        cycleTypeOptions.value = multiAttendanceCycle.cycles.map((cycle) => ({
+          cycleId: cycle.cycleId,
+          cycleName: cycle.cycleName,
+        }));
+
+        // After fetching options, match the current cycleType to set selectedCycleType
+        if (props.employeeData?.cycleType) {
+          const matchedCycle = cycleTypeOptions.value.find(
+            (cycle) => cycle.cycleId === props.employeeData.cycleType,
+          );
+          if (matchedCycle) {
+            selectedCycleType.value = matchedCycle.cycleId;
+          }
+        }
+      } else {
+        console.warn("No cycles found in multi_attendance_cycle");
+      }
+    } else {
+      console.warn("No data found in response");
+    }
+  } catch (error) {
+    console.error("Error fetching attendance cycles:", error);
+    showErrorMessage("Failed to load attendance cycle options");
+  }
+}
+
+// Company details change handlers
+const handleBranchLocationChange = (newValue) => {
+  const originalBranchLocation = originalEmployeeData.value.branchLocation?.id;
+  if (newValue !== originalBranchLocation) {
+    changedFields.value.branchLocation = newValue;
+    const selectedLoc = branchLocationOptions.value.find(
+      (l) => l.id === newValue,
+    );
+    if (selectedLoc) {
+      props.employeeData.branchLocation = {
+        id: newValue,
+        locdetail: { locationName: selectedLoc.name.split(" (")[0] },
+        locType: selectedLoc.name.match(/\(([^)]+)\)/)?.[1] || "",
+      };
+    }
+  } else {
+    delete changedFields.value.branchLocation;
+  }
+};
+
+const handleDepartmentChange = (newValue) => {
+  const originalDept = originalEmployeeData.value.department?.id;
+  if (newValue !== originalDept) {
+    changedFields.value.department = newValue;
+    const selectedDept = departmentOptions.value.find((d) => d.id === newValue);
+    if (selectedDept) {
+      props.employeeData.department = {
+        id: newValue,
+        departmentName: selectedDept.name,
+      };
+    }
+  } else {
+    delete changedFields.value.department;
+  }
+};
+
+const handleReportingToChange = (newValue) => {
+  const originalReportingTo =
+    originalEmployeeData.value.reportingTo?.id || null;
+  if (newValue !== originalReportingTo) {
+    changedFields.value.reportingTo = newValue ? { id: newValue } : null;
+  } else {
+    delete changedFields.value.reportingTo;
+  }
+};
+
+const handleDateOfJoiningChange = (newValue) => {
+  if (newValue === "") {
+    props.employeeData.assignedUser.dateOfJoining = null;
+  }
+  if (
+    props.employeeData.assignedUser.dateOfJoining !==
+    originalEmployeeData.value.assignedUser.dateOfJoining
+  ) {
+    changedFields.value["assignedUser.dateOfJoining"] =
+      props.employeeData.assignedUser.dateOfJoining;
+  } else {
+    delete changedFields.value["assignedUser.dateOfJoining"];
+  }
+};
+
+const handleDateOfLeavingChange = (newValue) => {
+  if (newValue === "") {
+    props.employeeData.assignedUser.dateOfLeaving = null;
+  }
+  if (
+    props.employeeData.assignedUser.dateOfLeaving !==
+    originalEmployeeData.value.assignedUser.dateOfLeaving
+  ) {
+    changedFields.value["assignedUser.dateOfLeaving"] =
+      props.employeeData.assignedUser.dateOfLeaving;
+  } else {
+    delete changedFields.value["assignedUser.dateOfLeaving"];
+  }
+};
+
+const handleCycleTypeChange = (newValue) => {
+  const originalCycle = originalEmployeeData.value.cycleType;
+  if (newValue !== originalCycle) {
+    changedFields.value.cycleType = newValue;
+
+    // Update the employee data with the selected cycle ID
+    const updatedData = {
+      ...props.employeeData,
+      cycleType: newValue,
+    };
+    emit("update:employeeData", updatedData);
+  } else {
+    delete changedFields.value.cycleType;
+  }
+};
 const verifiedGovData = ref({});
 const fetchVerifiedGovernmentData = async () => {
   const token = authService.getToken();
@@ -1152,7 +1393,7 @@ const validatePhone = async () => {
 
   try {
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/users?filter[phone][_eq]=%2B91${phone}&filter[id][_neq]=${props.employeeData?.assignedUser?.id}`,
+      `${import.meta.env.VITE_API_URL}/users?filter[phone][_eq]=+91${phone}&filter[id][_neq]=${props.employeeData?.assignedUser?.id}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
@@ -1191,7 +1432,7 @@ const validateEmail = async () => {
 
   // Apply the email validation rule
   if (!rules.email(email)) {
-    emailErrorMessage.value = rules.email.message;
+    emailErrorMessage.value = "Invalid email address";
     return false;
   }
 
@@ -1492,6 +1733,8 @@ const handleRoleChange = (newValue) => {
   if (newValue !== originalEmployeeData.value.assignedUser?.role?.id) {
     props.employeeData.assignedUser.role = { id: newValue };
     validateField("role");
+    // Refetch reporting to options based on new role
+    fetchReportingTo();
   }
 };
 
@@ -1593,6 +1836,23 @@ const updatePersonalDetails = async () => {
     ) {
       personalModuleFieldsToUpdate.employeeId = props.employeeData.employeeId;
     }
+
+    // Handle company details changes
+    if (changedFields.value.branchLocation) {
+      personalModuleFieldsToUpdate.branchLocation =
+        changedFields.value.branchLocation;
+    }
+    if (changedFields.value.department) {
+      personalModuleFieldsToUpdate.department = changedFields.value.department;
+    }
+    if (changedFields.value.reportingTo) {
+      personalModuleFieldsToUpdate.reportingTo =
+        changedFields.value.reportingTo;
+    }
+    if (changedFields.value.cycleType) {
+      personalModuleFieldsToUpdate.cycleType = changedFields.value.cycleType;
+    }
+
     for (const [key, value] of Object.entries(
       props.employeeData.assignedUser,
     )) {
@@ -1622,6 +1882,8 @@ const updatePersonalDetails = async () => {
           // Handle email - generate default if empty
           const emailValue = value || generateDefaultEmail();
           assignedUserFieldsToUpdate[key] = emailValue;
+        } else if (key === "dateOfJoining" || key === "dateOfLeaving") {
+          assignedUserFieldsToUpdate[key] = value === "" ? null : value;
         } else {
           assignedUserFieldsToUpdate[key] = value === "" ? null : value;
         }
@@ -1689,6 +1951,7 @@ const updatePersonalDetails = async () => {
     const result = await response.json();
     console.log("Update successful", result);
     originalEmployeeData.value = JSON.parse(JSON.stringify(props.employeeData));
+    changedFields.value = {};
     showSuccessMessage("Personal details updated successfully!");
   } catch (error) {
     console.error("Error updating personal details:", error);
@@ -1736,11 +1999,14 @@ watch(
   { immediate: true }, // Run immediately to validate initial value
 );
 
-onMounted(() => {
-  fetchEmployeeData();
-  fetchRoles();
-  fetchAadhaarData();
-  fetchDepartments();
+onMounted(async () => {
+  await Promise.all([
+    fetchEmployeeData(),
+    fetchRoles(),
+    fetchAadhaarData(),
+
+    fetchReportingTo(),
+  ]);
   setDefaultDOB();
 });
 
@@ -1751,6 +2017,44 @@ watch(
       fetchAndSetAvatar();
     }
   },
+);
+
+watch(
+  () => props.employeeData,
+  (newVal) => {
+    if (newVal) {
+      if (newVal.department?.id) {
+        selectedDepartment.value = newVal.department.id;
+      } else if (newVal.department?.departmentName) {
+        matchDepartmentByName(newVal.department.departmentName);
+      }
+      if (newVal.branchLocation?.id) {
+        selectedBranchLocation.value = newVal.branchLocation.id;
+      } else if (newVal.branchLocation?.locdetail?.locationName) {
+        matchBranchLocationByName(newVal.branchLocation.locdetail.locationName);
+      }
+      if (newVal.reportingTo) {
+        selectedReportingTo.value = newVal.reportingTo.id;
+      } else {
+        selectedReportingTo.value = null;
+      }
+      if (newVal.cycleType) {
+        selectedCycleType.value = newVal.cycleType.cycleId || newVal.cycleType;
+      }
+    }
+  },
+  { deep: true, immediate: true },
+);
+
+watch(
+  () => props.employeeData?.assignedUser?.role?.name,
+  (newRole) => {
+    if (newRole) {
+      selectedReportingTo.value = null;
+      fetchReportingTo();
+    }
+  },
+  { immediate: true },
 );
 </script>
 
@@ -1776,25 +2080,114 @@ watch(
   overflow-x: hidden;
   border-radius: 8px;
 }
+
+.avatar-section {
+  display: flex;
+  /* flex-direction: column; */
+  align-items: center;
+  gap: 16px;
+}
+
 .avatar-container {
   position: relative;
   display: inline-block;
+  margin-bottom: 8px;
 }
+
+.avatar-image {
+  /* border: 2px solid #e0e0e0; */
+  border-radius: 0; /* Changed to 0 for square shape */
+  overflow: hidden;
+  width: 150px; /* Ensure square dimensions */
+  height: 150px;
+}
+
+.default-avatar {
+  border: 2px solid #e0e0e0;
+  border-radius: 0; /* Changed to 0 for square shape */
+  padding: 5px;
+  background-color: #f5f5f5;
+  width: 150px; /* Ensure square dimensions */
+  height: 150px;
+}
+
 .edit-avatar-btn {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  z-index: 1;
-  background-color: white !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  background-color: #059367 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 2px solid white;
+  transition: all 0.3s ease;
 }
+
+.edit-avatar-btn:hover {
+  background-color: #059367 !important;
+  transform: scale(1.1);
+}
+
+.edit-avatar-btn .v-icon {
+  font-size: 18px;
+  color: white;
+}
+
+/* Profile Info Styling */
+.profile-info {
+  padding: 1rem 0;
+}
+
+.profile-name {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.profile-meta {
+  margin-bottom: 1rem;
+}
+
+.profile-contact {
+  font-size: 1rem;
+  color: #666;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+}
+
+.contact-item .v-icon {
+  color: #999;
+}
+
 :deep(.v-input--error) {
   color: rgb(var(--v-theme-error)) !important;
 }
+
 :deep(.v-input--error .v-field) {
   border-color: rgb(var(--v-theme-error)) !important;
 }
+
 :deep(.error--text) {
   color: rgb(var(--v-theme-error)) !important;
+}
+
+:deep(.v-card) {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+:deep(.v-card-title) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+:deep(.v-card-text) {
+  padding: 1rem;
 }
 </style>

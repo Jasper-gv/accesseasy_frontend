@@ -106,7 +106,8 @@ const tabs = [
 const currentTab = ref(tabs[0]);
 
 const cancelForm = () => {
-  router.push("/payroll/employee-salary/policyDetails");
+  emit("close");
+  router.push("/payroll/employee-salary/salary-details");
 };
 
 onMounted(async () => {

@@ -67,7 +67,6 @@ const handleSelectAllChange = () => {
   min-width: max-content;
   position: sticky !important;
   top: 0;
-  z-index: 20;
 }
 
 .header-cell {

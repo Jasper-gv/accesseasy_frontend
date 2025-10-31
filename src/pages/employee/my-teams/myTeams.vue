@@ -2,7 +2,9 @@
   <v-app>
     <v-main>
       <v-container fluid>
+        <!-- Tabs: show only when not on Add/Edit -->
         <v-tabs
+          v-if="!isFormRoute"
           v-model="activeTab"
           show-arrows
           background-color="transparent"
@@ -20,8 +22,14 @@
           </v-tab>
         </v-tabs>
 
-        <!-- Tab Content -->
-        <v-card class="tab-content-wrapper" elevation="0">
+        <!-- Tab Content (always rendered) -->
+        <v-card
+          :class="[
+            'tab-content-wrapper',
+            { 'full-width-no-tabs': isFormRoute },
+          ]"
+          elevation="0"
+        >
           <router-view></router-view>
         </v-card>
       </v-container>
@@ -30,15 +38,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 
 const router = useRouter();
 const route = useRoute();
+
 const userRole = ref("");
 const tabs = ref([]);
 const activeTab = ref("employee");
+
+// names of routes that should hide tabs
+const FORM_ROUTE_NAMES = ["AddEmployeeForm", "EmployeeForm"];
+
+// computed boolean: true when current route is a form (add/edit)
+const isFormRoute = computed(() => {
+  // route.name may be undefined briefly — coerce to string
+  const rname = String(route.name || "");
+  return FORM_ROUTE_NAMES.includes(rname);
+});
+
+// (optional) debug: uncomment to see the route names in console when navigating
+// watch(() => route.name, (n) => console.log('route.name =>', n));
 
 const handleTabChange = (newValue) => {
   router.push(`/employee-details/${newValue}`);
@@ -48,15 +70,8 @@ const updateActiveTabFromRoute = () => {
   const currentPath = route.path;
   const pathSegments = currentPath.split("/");
   const tabValue = pathSegments[pathSegments.length - 1];
-
-  // Check if the route corresponds to a valid tab
   const currentTab = tabs.value.find((tab) => tab.value === tabValue);
-  if (currentTab) {
-    activeTab.value = currentTab.value;
-  } else {
-    // If not a valid tab route, default to employee
-    activeTab.value = "employee";
-  }
+  activeTab.value = currentTab ? currentTab.value : "employee";
 };
 
 const fetchrole = async () => {
@@ -64,36 +79,26 @@ const fetchrole = async () => {
   userRole.value = userData.role.name;
 
   tabs.value = [
-    { value: "employee", title: "User detail", icon: "mdi-account-details" },
+    { value: "employee", title: "All Employees", icon: "mdi-account-details" },
     { value: "leave", title: "Leave Balance", icon: "mdi-calendar-check" },
     {
       value: "attendance",
-      title: "Attendance Details",
+      title: "Shift Details",
       icon: "mdi-calendar-clock",
     },
-
-    {
-      value: "otherDetails",
-      title: "Employee Other Details",
-      icon: "mdi-card-account-details-outline",
-    },
+    // {
+    //   value: "otherDetails",
+    //   title: "Employee Other Details",
+    //   icon: "mdi-card-account-details-outline",
+    // },
   ];
-
-  if (userRole.value === "Manager") {
-    const salaryIndex = tabs.value.findIndex((tab) => tab.value === "salary");
-    if (salaryIndex !== -1) {
-      tabs.value.splice(salaryIndex, 1);
-    }
-  }
 };
 
-// Watch route changes to update active tab
 watch(
   () => route.path,
   () => {
     updateActiveTabFromRoute();
   },
-  { immediate: false },
 );
 
 onMounted(async () => {
@@ -101,16 +106,21 @@ onMounted(async () => {
   updateActiveTabFromRoute();
 });
 </script>
+
 <style scoped>
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
   margin-right: auto;
   margin-left: auto;
 }
-
+.full-width-no-tabs {
+  padding-top: 8px; /* reduce space reserved for tabs if needed */
+}
 .custom-tabs {
-  background-color: #e8edff;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
@@ -118,7 +128,7 @@ onMounted(async () => {
 
 .custom-tab {
   border-radius: 10;
-  background-color: white;
+  background-color: #ecfdf5;
   color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -133,7 +143,7 @@ onMounted(async () => {
 
 /* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: #122f68 !important;
+  background-color: #059367 !important;
   color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }

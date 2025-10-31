@@ -2570,7 +2570,7 @@ const initMap = async (lat, lng) => {
 const fetchReverseGeocode = async (lat, lng) => {
   try {
     const response = await fetch(
-      "https://access.sensenservice.com/branchLocation/location/reverse-geocode",
+      `${import.meta.env.VITE_API_URL}/branchLocation/location/reverse-geocode`,
       {
         method: "POST",
         headers: {

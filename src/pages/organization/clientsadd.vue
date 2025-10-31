@@ -1,48 +1,39 @@
 <template>
-  <div class="container">
+  <div class="sidebar-container">
     <div class="header">
-      <!-- Client Information in Header -->
-      <div class="header-client-info">
-        <div class="header-title-container">
-          <i class="fas fa-arrow-left back-icon" @click="goBack"></i>
-          <h2 class="header-title">
-            Add New {{ client.category === "contact" ? "Contact" : "Client" }}
-          </h2>
-        </div>
+      <div class="header-left">
+        <h2 class="header-title">Create Clients</h2>
       </div>
-      <div class="header-buttons">
-        <BaseButton variant="danger" size="md" text="Cancel" @click="goBack" />
-        <BaseButton
-          type="submit"
-          form="clientForm"
-          variant="primary"
-          size="md"
-          text="Save"
-          :loading="isSubmitting"
-          @click="handleSubmit"
-        />
+      <div class="header-right">
+        <BaseButton @click="emitClose" variant="danger" :text="`Cancel`" />
+        <BaseButton @click="handleSave" :text="`Save`" variant="primary" />
+        <!-- <button class="draft-btn" @click="handleSaveDraft">
+          Save as draft
+        </button> -->
       </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="main-layout" id="clientForm">
-      <!-- Left Column: Client Info -->
-      <div class="left-column">
-        <!-- Client Information Box -->
-        <div class="info-box">
-          <h2 class="box-title">
-            {{
-              client.category === "contact"
-                ? "Contact Information"
-                : "Client Information"
-            }}
-          </h2>
+    <form @submit.prevent="handleSubmit" class="sidebar-layout" id="clientForm">
+      <!-- Client Info -->
+      <div class="info-box">
+        <h2 class="box-title">Client Details</h2>
+        <div class="form-row">
           <div class="form-group">
-            <label for="clientName"
-              >{{
-                client.category === "contact" ? "Contact Name" : "Client Name"
-              }}
-              *</label
+            <label for="category">Category</label>
+            <select
+              v-model="client.category"
+              id="category"
+              class="input"
+              required
             >
+              <option value="clientorg">Client-Company</option>
+              <option value="contact">Individual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="clientName">{{
+              client.category === "contact" ? "Contact Name" : "Client's Name"
+            }}</label>
             <input
               v-model="client.orgName"
               id="clientName"
@@ -56,36 +47,45 @@
               required
             />
           </div>
-
           <div class="form-group">
-            <label for="clientEmail">{{
-              client.category === "contact" ? "Contact Email" : "Client Email"
-            }}</label>
-            <input
-              v-model="client.email"
-              id="clientEmail"
-              type="email"
-              class="input"
-              :placeholder="
-                client.category === 'contact'
-                  ? 'Enter Contact email'
-                  : 'Enter Client email'
-              "
-            />
+            <label for="supervisor">Supervisor</label>
+            <div class="searchable-select" @click="toggleSupervisorDropdown">
+              <input
+                v-model="supervisorSearch"
+                id="supervisor"
+                type="text"
+                class="input"
+                :placeholder="
+                  showSupervisorDropdown
+                    ? 'Search supervisor...'
+                    : 'Select Supervisor'
+                "
+                @focus="showSupervisorDropdown = true"
+                @input="showSupervisorDropdown = true"
+              />
+              <div v-if="showSupervisorDropdown" class="dropdown-list">
+                <ul>
+                  <li
+                    v-for="sup in filteredSupervisors"
+                    :key="sup.id"
+                    @click="selectSupervisor(sup)"
+                  >
+                    {{ sup.name }}
+                  </li>
+                </ul>
+                <div v-if="filteredSupervisors.length === 0" class="no-results">
+                  No supervisors found
+                </div>
+              </div>
+            </div>
           </div>
-
+        </div>
+        <div class="form-row">
           <div class="form-group">
-            <label for="contactNumber"
-              >{{
-                client.category === "contact"
-                  ? "Contact Number"
-                  : "Client Number"
-              }}
-              *</label
-            >
+            <label for="phoneNumber">Phone number</label>
             <input
               v-model="client.orgNumber"
-              id="contactNumber"
+              id="phoneNumber"
               type="tel"
               class="input"
               :placeholder="
@@ -101,76 +101,78 @@
             />
             <div v-if="phoneError" class="error-message">{{ phoneError }}</div>
           </div>
-
           <div class="form-group">
-            <label for="category">Category *</label>
-            <select
-              v-model="client.category"
-              id="category"
-              class="input"
-              required
-            >
-              <option value="clientorg">Client</option>
-              <option value="contact">Contact</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Address and Map -->
-      <div class="right-column">
-        <!-- Address Information Box -->
-        <div class="info-box address-box">
-          <h2 class="box-title">Address</h2>
-          <div class="address-grid">
-            <div class="form-group address-full">
-              <input
-                v-model="client.orgAddress"
-                id="address"
-                type="text"
-                class="input"
-                placeholder="Enter full address"
-                required
-                @input="updateMap"
-              />
-            </div>
-          </div>
-          <div class="form-group">
+            <label for="email">E-mail ID</label>
             <input
-              v-model="client.googleSearch"
-              id="googleSearch"
-              type="text"
-              class="input search-input"
-              placeholder="Search Google"
-              @input="searchLocation"
+              v-model="client.email"
+              id="email"
+              type="email"
+              class="input"
+              :placeholder="
+                client.category === 'contact'
+                  ? 'Enter Contact email'
+                  : 'Enter Client email'
+              "
             />
           </div>
         </div>
-
-        <!-- Map -->
-        <div id="map" class="map"></div>
+        <div class="form-group">
+          <label for="address"> Billing Address</label>
+          <input
+            v-model="client.orgAddress"
+            id="address"
+            type="text"
+            class="input"
+            placeholder="Enter full address"
+            required
+          />
+        </div>
       </div>
+
+      <!-- Search -->
+      <div class="search-container">
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search for address..."
+          class="input"
+        />
+      </div>
+
+      <!-- Map -->
+      <div id="map" class="map"></div>
+
+      <!-- Toast Notification -->
+      <ToastNotification
+        v-if="toast.show"
+        :show="toast.show"
+        :message="toast.message"
+        :type="toast.type"
+        @close="toast.show = false"
+      />
     </form>
   </div>
 </template>
 
 <script>
 import { Loader } from "@googlemaps/js-api-loader";
-import { reactive, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
-import axios from "axios";
+import { reactive, onMounted, ref, computed, onUnmounted, watch } from "vue";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import { authService } from "@/services/authService";
+import axios from "axios";
+import ToastNotification from "@/components/common/notifications/ToastNotification.vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 
 export default {
   name: "AddClient",
   components: {
+    ToastNotification,
     BaseButton,
   },
-  setup() {
-    const router = useRouter();
+  emits: ["close", "success"],
+  setup(props, { emit }) {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiUrl = import.meta.env.VITE_API_URL;
     const tenantId = currentUserTenant.getTenantId();
     const token = authService.getToken();
     const client = reactive({
@@ -178,39 +180,141 @@ export default {
       email: "",
       orgNumber: "",
       orgAddress: "",
-      googleSearch: "",
+      supervisor: "",
       latitude: "",
       longitude: "",
-      category: "clientorg", // Default to clientorg
+      category: "clientorg",
     });
     const isSubmitting = ref(false);
     const phoneError = ref("");
+    const toast = reactive({
+      show: false,
+      message: "",
+      type: "error",
+    });
+    const supervisors = ref([]);
+    const supervisorSearch = ref("");
+    const showSupervisorDropdown = ref(false);
     let map;
-    let geocoder;
+    let searchBox;
     let marker;
+
+    const filteredSupervisors = computed(() => {
+      if (!supervisorSearch.value.trim()) return supervisors.value;
+      return supervisors.value.filter((s) =>
+        s.name.toLowerCase().includes(supervisorSearch.value.toLowerCase()),
+      );
+    });
+
+    const fetchSupervisors = async () => {
+      try {
+        const response = await axios.get(
+          `${apiUrl}/items/personalModule?filter[assignedUser][tenant][tenantId][_eq]=${tenantId}&fields=id,assignedUser.first_name`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+        supervisors.value = response.data.data.map((item) => ({
+          id: item.id,
+          name: item.assignedUser.first_name,
+        }));
+      } catch (error) {
+        console.error("Failed to fetch supervisors:", error);
+        toast.message = "Failed to load supervisors.";
+        toast.type = "error";
+        toast.show = true;
+      }
+    };
+
+    const selectSupervisor = (sup) => {
+      client.supervisor = sup.id;
+      supervisorSearch.value = sup.name;
+      showSupervisorDropdown.value = false;
+    };
+
+    const toggleSupervisorDropdown = () => {
+      showSupervisorDropdown.value = !showSupervisorDropdown.value;
+    };
+
+    const closeDropdown = (e) => {
+      if (!e.target.closest(".searchable-select")) {
+        showSupervisorDropdown.value = false;
+      }
+    };
 
     const initMap = async () => {
       const loader = new Loader({
         apiKey,
         version: "weekly",
+        libraries: ["places"],
       });
       const google = await loader.load();
-      geocoder = new google.maps.Geocoder();
       map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 20.5937, lng: 78.9629 },
         zoom: 5,
       });
+
+      // Initialize SearchBox
+      const searchInput = document.getElementById("search-input");
+      searchBox = new google.maps.places.SearchBox(searchInput);
+
+      // Bias the SearchBox results towards current map's viewport
+      map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+      });
+
+      // Listen for the search to finish
+      searchBox.addListener("places_changed", () => {
+        const places = searchBox.getPlaces();
+
+        if (places.length === 0) {
+          return;
+        }
+
+        // Clear the previous marker
+        if (marker) {
+          marker.setMap(null);
+        }
+
+        // For each place, get the icon, name and location
+        const bounds = new google.maps.LatLngBounds();
+        const place = places[0]; // Use the first place
+
+        if (!place.geometry || !place.geometry.location) {
+          console.log("No geometry available for place");
+          return;
+        }
+
+        // Create a marker for each place
+        marker = new google.maps.Marker({
+          map,
+          title: place.name,
+          position: place.geometry.location,
+        });
+
+        if (place.geometry.viewport) {
+          bounds.union(place.geometry.viewport);
+        } else {
+          bounds.extend(place.geometry.location);
+        }
+
+        // Update client address and coordinates
+        client.orgAddress = place.formatted_address || "";
+        client.latitude = place.geometry.location.lat().toFixed(8);
+        client.longitude = place.geometry.location.lng().toFixed(8);
+
+        map.fitBounds(bounds);
+      });
     };
 
     const validatePhoneNumber = () => {
-      // Remove any non-digit characters
       client.orgNumber = client.orgNumber.replace(/\D/g, "");
-
-      // Validate length and format
       if (client.orgNumber.length > 10) {
         client.orgNumber = client.orgNumber.slice(0, 10);
       }
-
       if (client.orgNumber && client.orgNumber.length !== 10) {
         phoneError.value = "Phone number must be exactly 10 digits";
       } else {
@@ -218,69 +322,33 @@ export default {
       }
     };
 
-    const updateMap = () => {
-      if (!client.orgAddress || !geocoder) return;
-      geocoder.geocode({ address: client.orgAddress }, (results, status) => {
-        if (status === "OK" && results[0]) {
-          const location = results[0].geometry.location;
-          map.setCenter(location);
-          map.setZoom(15);
-          client.latitude = location.lat().toFixed(8);
-          client.longitude = location.lng().toFixed(8);
-          if (marker) marker.setMap(null);
-          marker = new google.maps.Marker({
-            map,
-            position: location,
-          });
-        }
-      });
-    };
-
-    const searchLocation = () => {
-      if (!client.googleSearch || !geocoder) return;
-      geocoder.geocode({ address: client.googleSearch }, (results, status) => {
-        if (status === "OK" && results[0]) {
-          const location = results[0].geometry.location;
-          client.orgAddress = results[0].formatted_address;
-          client.latitude = location.lat().toFixed(8);
-          client.longitude = location.lng().toFixed(8);
-          map.setCenter(location);
-          map.setZoom(15);
-          if (marker) marker.setMap(null);
-          marker = new google.maps.Marker({
-            map,
-            position: location,
-          });
-        }
-      });
-    };
-
-    const handleSubmit = async () => {
-      // Validate phone number before submission
+    const handleSubmit = async (status = "active") => {
       validatePhoneNumber();
-
       if (phoneError.value) {
-        alert("Please fix the phone number error before submitting.");
+        toast.message = "Please fix the phone number error before submitting.";
+        toast.type = "error";
+        toast.show = true;
         return;
       }
-
       if (client.orgNumber.length !== 10) {
-        alert("Phone number must be exactly 10 digits.");
+        toast.message = "Phone number must be exactly 10 digits.";
+        toast.type = "error";
+        toast.show = true;
         return;
       }
-
       isSubmitting.value = true;
       try {
-        const response = await axios.post(
-          "https://appv1.fieldseasy.com/directus/items/organization",
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/items/organization`,
           {
             orgName: client.orgName,
             email: client.email,
             orgNumber: client.orgNumber,
             orgAddress: client.orgAddress,
-            status: "draft",
+            supervisor: client.supervisor,
+            status,
             tenant: tenantId,
-            orgType: client.category, // Maps to "clientorg" or "contact"
+            orgType: client.category,
           },
           {
             headers: {
@@ -289,73 +357,103 @@ export default {
             },
           },
         );
-
-        console.log(
-          `${client.category === "contact" ? "Contact" : "Client"} added:`,
-          response.data,
-        );
-        alert(
-          `${client.category === "contact" ? "Contact" : "Client"} added successfully!`,
-        );
-        router.push("/organization/orgmainui");
-
-        // Reset form
+        toast.message = `${client.category === "contact" ? "Contact" : "Client"} added successfully!`;
+        toast.type = "success";
+        toast.show = true;
         Object.assign(client, {
           orgName: "",
           email: "",
           orgNumber: "",
           orgAddress: "",
-          googleSearch: "",
+          supervisor: "",
           latitude: "",
           longitude: "",
           category: "clientorg",
         });
+        supervisorSearch.value = "";
+        showSupervisorDropdown.value = false;
         phoneError.value = "";
         if (marker) marker.setMap(null);
         map.setCenter({ lat: 20.5937, lng: 78.9629 });
         map.setZoom(5);
+        emit("success");
       } catch (error) {
-        console.error(
-          `Error adding ${client.category === "contact" ? "contact" : "client"}:`,
-          error,
-        );
-        alert(
-          `Failed to add ${client.category === "contact" ? "contact" : "client"}. Please try again.`,
-        );
+        toast.message = `Failed to add ${client.category === "contact" ? "contact" : "client"}. Please try again.`;
+        toast.type = "error";
+        toast.show = true;
       } finally {
         isSubmitting.value = false;
       }
     };
 
-    const goBack = () => {
-      router.push("/organization/orgmainui");
+    const handleSave = () => {
+      handleSubmit("active");
     };
 
-    onMounted(initMap);
+    const handleSaveDraft = () => {
+      handleSubmit("draft");
+    };
+
+    const emitClose = () => {
+      emit("close");
+    };
+
+    watch(
+      () => client.supervisor,
+      (newVal) => {
+        if (!newVal) {
+          supervisorSearch.value = "";
+        } else {
+          const sup = supervisors.value.find((s) => s.id === newVal);
+          if (sup) {
+            supervisorSearch.value = sup.name;
+          }
+        }
+      },
+    );
+
+    onMounted(() => {
+      initMap();
+      fetchSupervisors();
+      document.addEventListener("click", closeDropdown);
+    });
+
+    onUnmounted(() => {
+      document.removeEventListener("click", closeDropdown);
+    });
 
     return {
       client,
-      updateMap,
-      searchLocation,
       handleSubmit,
+      handleSave,
+      handleSaveDraft,
       isSubmitting,
       phoneError,
       validatePhoneNumber,
-      goBack,
+      emitClose,
+      toast,
+      supervisorSearch,
+      showSupervisorDropdown,
+      filteredSupervisors,
+      selectSupervisor,
+      toggleSupervisorDropdown,
     };
   },
 };
 </script>
 
 <style scoped>
-.container {
-  height: calc(105vh - 190px);
+.sidebar-container {
+  width: 700px;
+  height: 90vh;
   display: flex;
   flex-direction: column;
-  padding: 20px;
   box-sizing: border-box;
-  overflow-y: auto;
   background: #fff;
+  border-left: 1px solid #e1e4e8;
+  padding: 20px;
+  margin-top: 60px;
+  overflow-y: auto;
 }
 
 .header {
@@ -365,94 +463,90 @@ export default {
   margin-bottom: 20px;
   padding-bottom: 10px;
   border-bottom: 1px solid #e1e4e8;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
 }
 
-.header-client-info {
-  flex: 1;
-}
-
-.header-title-container {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.back-icon {
-  font-size: 18px;
-  color: #007bff;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.back-icon:hover {
-  color: #0056b3;
 }
 
 .header-title {
   font-size: 20px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 10px;
+  margin: 0;
 }
 
-.header-buttons {
+.header-right {
   display: flex;
+  align-items: center;
   gap: 10px;
 }
 
-.main-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  flex: 1;
-  overflow: visible;
+.save-btn,
+.draft-btn,
+.close-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.close-btn {
+  background: none;
+  color: #6c757d;
+  font-size: 18px;
+  padding: 4px;
+}
+
+.close-btn:hover {
+  color: #dc3545;
+}
+
+.sidebar-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  height: calc(100vh - 80px);
   padding-bottom: 20px;
 }
 
-.main-layout::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-layout::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.main-layout::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.main-layout::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.left-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .info-box {
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 20px;
+  background: #fff;
 }
 
 .box-title {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 20px;
-  color: #333;
+  margin-bottom: 15px;
+  color: #059367;
+
+  padding-bottom: 5px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.form-row:last-child {
+  grid-template-columns: 1fr 2fr;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 0;
 }
 
 label {
@@ -465,7 +559,7 @@ label {
 
 .input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
@@ -479,101 +573,87 @@ label {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
-.input:disabled {
-  background: #f1f1f1;
-  cursor: not-allowed;
+.searchable-select {
+  position: relative;
 }
 
-.address-box {
-  background: #f8f9fc;
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.address-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+.dropdown-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.address-full {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
+.dropdown-list li {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.search-input {
-  margin-top: 8px;
+.dropdown-list li:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-list li:last-child {
+  border-bottom: none;
+}
+
+.no-results {
+  padding: 10px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.search-container {
+  margin-bottom: 10px;
+}
+
+#search-input {
+  width: 100%;
 }
 
 .map {
   width: 100%;
-  height: 400px;
+  height: 300px;
   border-radius: 8px;
   border: 1px solid #e1e4e8;
   background: #f8f9fc;
+  flex-shrink: 0;
 }
 
-@media (max-width: 1024px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .map {
-    height: 350px;
-  }
-
-  .header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-end;
-  }
-
-  .header-buttons {
-    width: 100%;
-    justify-content: flex-end;
-  }
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
 }
 
 @media (max-width: 768px) {
-  .container {
+  .sidebar-container {
+    width: 100%;
+    max-width: 350px;
     padding: 15px;
-    height: 100vh;
-  }
-
-  .header {
-    margin-bottom: 15px;
   }
 
   .header-title {
     font-size: 18px;
   }
 
-  .back-icon {
-    font-size: 16px;
-  }
-
-  .info-box {
-    padding: 15px;
-  }
-
-  .address-grid {
+  .form-row {
     grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .map {
-    height: 300px;
-  }
-}
-
-@media (max-width: 480px) {
-  .container {
-    padding: 10px;
-  }
-
-  .main-layout {
-    gap: 15px;
-    padding-right: 5px;
+    gap: 12px;
   }
 
   .info-box {
@@ -582,29 +662,48 @@ label {
 
   .box-title {
     font-size: 16px;
-    margin-bottom: 15px;
-  }
-
-  .form-group {
-    margin-bottom: 12px;
   }
 
   .input {
-    padding: 8px 10px;
+    padding: 8px;
     font-size: 13px;
+  }
+
+  .map {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-container {
+    padding: 10px;
   }
 
   .header-title {
     font-size: 16px;
   }
 
-  .header-buttons {
-    flex-wrap: wrap;
-    gap: 8px;
+  .header-right {
+    gap: 5px;
   }
 
-  .back-icon {
-    font-size: 14px;
+  .save-btn,
+  .draft-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .input {
+    padding: 7px;
+    font-size: 12px;
+  }
+
+  .map {
+    height: 200px;
   }
 }
 </style>

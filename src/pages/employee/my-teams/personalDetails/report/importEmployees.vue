@@ -1384,7 +1384,7 @@ const transformEmployeeData = async (
     assignedUser: {
       first_name: employee.firstName || employee["First Name"],
       userApp: "fieldeasy",
-      cycleType: 1,
+      cycleType: "1",
       middleName: employee.middleName || employee["Middle Name"] || "",
       last_name: employee.lastName || employee["Last Name"],
       email: email,
@@ -1963,7 +1963,7 @@ onMounted(() => {
 }
 
 .import-btn {
-  background-color: #1e40b0;
+  background-color: #059367;
   border: none;
   color: white;
   display: flex;
@@ -1973,7 +1973,7 @@ onMounted(() => {
 }
 
 .download-btn {
-  background-color: #1e40b0;
+  background-color: #059367;
   border: none;
   color: white;
   margin-top: 8px;

@@ -33,7 +33,8 @@
             <div>
               <div class="text-body-4" v-if="selectedEmployee">
                 {{
-                  selectedEmployee.assignedUser?.first_name || "Unknown Employee"
+                  selectedEmployee.assignedUser?.first_name ||
+                  "Unknown Employee"
                 }}
                 ({{ selectedEmployee.employeeId || "N/A" }}) -
                 {{ currentDate }}
@@ -91,6 +92,18 @@
               >
               <span class="text-body-2">End</span>
             </div>
+            <div class="d-flex align-center gap-2">
+              <v-icon :style="{ color: '#00A884' }" size="16"
+                >mdi-road-variant</v-icon
+              >
+              <span class="text-body-2">Travel</span>
+            </div>
+            <div class="d-flex align-center gap-2">
+              <v-icon :style="{ color: COLORS.idle }" size="16"
+                >mdi-pause</v-icon
+              >
+              <span class="text-body-2">Idle</span>
+            </div>
           </div>
 
           <!-- Summary chips: clearer/eye-visible -->
@@ -136,9 +149,7 @@
           <v-col cols="12" md="5" lg="4" class="logs-section">
             <div class="logs-header pa-4 bg-grey-lighten-5 border-b">
               <h3 class="text-h6 text-primary">Timeline</h3>
-              <div
-                class="text-caption  mt-1 d-flex align-center gap-2"
-              >
+              <div class="text-caption mt-1 d-flex align-center gap-2">
                 <span
                   >{{ currentDate }} | {{ summaryStats.totalDistance }} km</span
                 >
@@ -232,11 +243,11 @@
                           color: #d32f2f;
                         "
                       >
-                        <v-icon start size="14">mdi-pause</v-icon>
+                        <v-icon start size="14">mdi-stop</v-icon>
                         Idle: {{ formatIdleDuration(item) }}
                       </span>
                     </div>
-                    <br></br>
+                    <br />
                   </div>
 
                   <!-- Stop Entry (detected) -->
@@ -251,7 +262,7 @@
                       <span class="action-text">
                         Stop ({{ formatTime(item.startTime) }})
                       </span>
-                      <v-spacer></v-spacer>
+                      <v-spacer />
                       <v-chip
                         color="success"
                         variant="flat"
@@ -281,7 +292,6 @@
                         <v-icon size="16" class="mr-1"
                           >mdi-map-marker-off</v-icon
                         >
-                        <!-- Location unavailable -->
                       </div>
                       <div class="d-flex align-center text-body-2 text-grey">
                         <v-icon size="16" class="mr-1">mdi-play</v-icon>
@@ -323,7 +333,7 @@
         <v-btn
           @click="exportToExcel"
           :loading="exporting"
-          color="#122f68"
+          color=" #059367"
           variant="elevated"
           prepend-icon="mdi-microsoft-excel"
         >
@@ -338,9 +348,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import * as XLSX from "xlsx";
-import { utils as XLSXUtils, writeFile } from "xlsx";
-import axios from "axios"; // Import axios
-import { authService } from "@/services/authService"; // Import authService (ensure this path is correct)
+import { authService } from "@/services/authService";
 
 const COLORS = {
   start: "#FFC107", // amber (warning)
@@ -369,10 +377,10 @@ const markers = ref([]);
 const polylines = ref([]);
 const refreshing = ref(false);
 const exporting = ref(false);
-const employeeAvatar = ref(null); // Ref to store the avatar image URL (blob)
-const isLoadingAvatar = ref(false); // Ref to track avatar loading state
+const employeeAvatar = ref(null);
+const isLoadingAvatar = ref(false);
 
-/* Fetch authorized image helper (copied from employeeDetails.vue) */
+/* Fetch authorized image helper */
 const fetchAuthorizedImage = async (imageUrl) => {
   try {
     const response = await fetch(imageUrl, {
@@ -389,7 +397,7 @@ const fetchAuthorizedImage = async (imageUrl) => {
   }
 };
 
-/* Fetch employee avatar (updated path to selectedEmployee.assignedUser.avatar.id) */
+/* Fetch employee avatar */
 const fetchEmployeeAvatar = async () => {
   if (
     props.selectedEmployee?.assignedUser?.avatar?.id &&
@@ -410,7 +418,7 @@ const fetchEmployeeAvatar = async () => {
   }
 };
 
-/* Branch info pulled from selectedEmployee.attendance fields */
+/* Branch info */
 const branchInfo = computed(() => {
   const orgName =
     props.selectedEmployee?.attendance?.employeeId?.branchLocation?.orgLocation
@@ -429,7 +437,6 @@ const branchInfo = computed(() => {
     Array.isArray(locmark.coordinates) &&
     locmark.coordinates.length === 2
   ) {
-    // GeoJSON => [lng, lat]
     return {
       orgName: orgName || "Branch",
       position: {
@@ -441,7 +448,7 @@ const branchInfo = computed(() => {
   return null;
 });
 
-/* Processed logs & stats (original logic retained) */
+/* Processed logs */
 const processedLogs = computed(() => {
   if (!props.employeeLogs || props.employeeLogs.length === 0) return [];
 
@@ -531,7 +538,7 @@ const logsWithStats = computed(() => {
     return {
       ...log,
       travelDistance: travel,
-      idleDistance: idle * 1000 /* meters */,
+      idleDistance: idle * 1000,
     };
   });
 });
@@ -628,6 +635,7 @@ const getActionIcon = (action) => {
       return "mdi-map-marker";
   }
 };
+
 const getActionMarkerColor = (action) => {
   switch ((action || "").toLowerCase()) {
     case "in":
@@ -660,59 +668,37 @@ const formatTime = (timestamp) => {
     return timestamp;
   }
 };
+
 const formatCoordinates = (lat, lng) => {
   if (!lat || !lng || lat === 0 || lng === 0) return "Location unavailable";
   return `${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)}`;
 };
-const formatDateTime = (timestamp) => {
-  if (!timestamp) return "N/A";
-  try {
-    const date =
-      /^\d{2}:\d{2}:\d{2}$/.test(timestamp) && props.currentDate
-        ? new Date(`${props.currentDate}T${timestamp}`)
-        : new Date(timestamp);
-    if (isNaN(date.getTime())) return "N/A";
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return "N/A";
-  }
-};
+
 const formatDuration = (minutes) => {
   if (minutes < 60) return `${Math.round(minutes)} mins`;
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
   return `${h} hrs ${m} mins`;
 };
+
 const formatHours = (hours) => {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
   return `${h} hrs ${m} mins`;
 };
 
-/* Show backend-provided idleDuration prominently; fallback to computed idle (meters) -> minutes approx if needed */
 const formatIdleDuration = (log) => {
   if (log?.idleDuration != null && log.idleDuration !== "") {
-    // assume backend value already minutes
     return `${log.idleDuration} m`;
   }
-  // fallback: convert computed idle meters to minutes approximately if polyline speed not known; show meters instead for accuracy
   const fallback = getLogStats(log.id)?.idle || "0";
   return `${fallback} m`;
 };
 
-/* Session duration for an 'out' item (IN→OUT) */
 const getSessionDurationForOut = (outItem) => {
   if (!outItem?.timeStamp) return "";
   const idx = sortedLogsForSessions.value.findIndex((l) => l.id === outItem.id);
   if (idx < 0) return "";
-  // find previous 'in'
   for (let i = idx - 1; i >= 0; i--) {
     const it = sortedLogsForSessions.value[i];
     if ((it.action || "").toLowerCase() === "in") {
@@ -725,13 +711,14 @@ const getSessionDurationForOut = (outItem) => {
   }
   return "";
 };
+
 const mergeDateTime = (timeOrDateTime) => {
-  // if it's only time, combine with currentDate
   if (/^\d{2}:\d{2}:\d{2}$/.test(timeOrDateTime) && props.currentDate) {
     return `${props.currentDate}T${timeOrDateTime}`;
   }
   return timeOrDateTime;
 };
+
 const sortedLogsForSessions = computed(() => {
   const getSeconds = (t) => {
     if (/^\d{2}:\d{2}:\d{2}$/.test(t)) {
@@ -758,6 +745,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
+
 const decodePolyline = (encoded) => {
   if (!encoded) return [];
   let index = 0,
@@ -805,7 +793,6 @@ const loadGoogleMapsScript = () =>
 const initGoogleMap = async () => {
   if (!window.google || !window.google.maps) return;
 
-  // wait for container
   let tries = 0;
   while (!mapContainer.value && tries++ < 20)
     await new Promise((r) => setTimeout(r, 100));
@@ -851,8 +838,23 @@ const addMarkersAndRoutes = async () => {
   const bounds = new google.maps.LatLngBounds();
   let hasValidLocation = false;
 
+  const getSeconds = (timeStr) => {
+    if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
+      const [hours, minutes, seconds] = timeStr.split(":").map(Number);
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+    return new Date(timeStr).getTime() / 1000;
+  };
+
+  const sortedLogs = [...props.employeeLogs].sort(
+    (a, b) => getSeconds(a.timeStamp) - getSeconds(b.timeStamp),
+  );
+
+  const STOP_THRESHOLD_KM = 3;
+  const MIN_STOP_MINUTES = 5;
+
   // Plot logs markers & polylines
-  props.employeeLogs.forEach((log) => {
+  sortedLogs.forEach((log, i) => {
     if (log.lat && log.lng && log.lat !== 0 && log.lng !== 0) {
       hasValidLocation = true;
       const position = { lat: parseFloat(log.lat), lng: parseFloat(log.lng) };
@@ -898,20 +900,79 @@ const addMarkersAndRoutes = async () => {
       markers.value.push(marker);
       bounds.extend(position);
 
-      // Polylines per log
+      // Connect to previous log with straight line if not a stop
+      if (i > 0) {
+        const prevLog = sortedLogs[i - 1];
+        if (
+          prevLog.lat &&
+          prevLog.lng &&
+          prevLog.lat !== 0 &&
+          prevLog.lng !== 0
+        ) {
+          const prevPosition = {
+            lat: parseFloat(prevLog.lat),
+            lng: parseFloat(prevLog.lng),
+          };
+          const distance = calculateDistance(
+            prevPosition.lat,
+            prevPosition.lng,
+            position.lat,
+            position.lng,
+          );
+          const prevSeconds = getSeconds(prevLog.timeStamp);
+          const currentSeconds = getSeconds(log.timeStamp);
+          const minutesDiff = (currentSeconds - prevSeconds) / 60;
+
+          if (distance < STOP_THRESHOLD_KM || minutesDiff < MIN_STOP_MINUTES) {
+            const connectLine = new google.maps.Polyline({
+              path: [prevPosition, position],
+              geodesic: true,
+              strokeColor: "#00A884", // green for travel
+              strokeOpacity: 0.7,
+              strokeWeight: 3,
+            });
+            connectLine.setMap(googleMap.value);
+            polylines.value.push(connectLine);
+            bounds.extend(prevPosition);
+            bounds.extend(position);
+          }
+        }
+      }
+
+      // Polylines per log with idle/travel segments and YELLOW DOTS for idle points
       if (log.polyline) {
         const routeCoordinates = decodePolyline(log.polyline);
         if (routeCoordinates.length > 1) {
           let currentPath = [routeCoordinates[0]];
           let prevIsIdle = null;
-          for (let i = 1; i < routeCoordinates.length; i++) {
+          for (let j = 1; j < routeCoordinates.length; j++) {
+            const prev = routeCoordinates[j - 1];
+            const current = routeCoordinates[j];
             const dist = calculateDistance(
-              routeCoordinates[i - 1].lat,
-              routeCoordinates[i - 1].lng,
-              routeCoordinates[i].lat,
-              routeCoordinates[i].lng,
+              prev.lat,
+              prev.lng,
+              current.lat,
+              current.lng,
             );
             const isIdle = dist < 0.025;
+
+            // ADD YELLOW DOT for idle point
+            if (isIdle) {
+              const idleMarker = new google.maps.Marker({
+                position: current,
+                map: googleMap.value,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 4,
+                  fillColor: "#FFEB3B", // BRIGHT YELLOW
+                  fillOpacity: 1,
+                  strokeWeight: 0,
+                },
+              });
+              markers.value.push(idleMarker);
+              bounds.extend(current);
+            }
+
             if (prevIsIdle !== null && isIdle !== prevIsIdle) {
               const polyline = new google.maps.Polyline({
                 path: currentPath,
@@ -922,9 +983,9 @@ const addMarkersAndRoutes = async () => {
               });
               polyline.setMap(googleMap.value);
               polylines.value.push(polyline);
-              currentPath = [routeCoordinates[i - 1]];
+              currentPath = [prev];
             }
-            currentPath.push(routeCoordinates[i]);
+            currentPath.push(current);
             prevIsIdle = isIdle;
           }
           // Final segment
@@ -984,7 +1045,7 @@ const addMarkersAndRoutes = async () => {
       bounds.extend(position);
     });
 
-  // Plot Branch marker (orgName + coordinates)
+  // Plot Branch marker
   if (branchInfo.value) {
     hasValidLocation = true;
     const branchMarker = new google.maps.Marker({
@@ -1030,14 +1091,6 @@ const addMarkersAndRoutes = async () => {
   }
 };
 
-const getLastActivity = () => {
-  if (!props.employeeLogs || props.employeeLogs.length === 0) return null;
-  const sorted = [...props.employeeLogs].sort(
-    (a, b) => new Date(b.timeStamp) - new Date(a.timeStamp),
-  );
-  return sorted[0]?.timeStamp;
-};
-
 const refreshData = async () => {
   refreshing.value = true;
   try {
@@ -1049,28 +1102,24 @@ const refreshData = async () => {
   }
 };
 
-
 const exportToExcel = async () => {
   exporting.value = true;
   try {
     const aoa = [];
 
-    // Main Heading
     aoa.push(["Employee Tracking Report"]);
-    aoa.push([]); // Empty row
+    aoa.push([]);
 
-    // Summary Heading
     aoa.push(["Summary"]);
-    aoa.push([]); // Empty row before summary table
+    aoa.push([]);
 
-    // Summary Table Header
     aoa.push(["Key", "Value"]);
 
-    // Summary Table Data
     const summaryData = {
-      "Employee Name": props.selectedEmployee?.assignedUser?.first_name || "Unknown",
+      "Employee Name":
+        props.selectedEmployee?.assignedUser?.first_name || "Unknown",
       "Employee ID": props.selectedEmployee?.employeeId || "N/A",
-      "Date": props.currentDate || "N/A",
+      Date: props.currentDate || "N/A",
       "Start Time": summaryStats.value.startTime,
       "End Time": summaryStats.value.endTime,
       "Total Working Hours": summaryStats.value.totalWorkingHours,
@@ -1082,15 +1131,12 @@ const exportToExcel = async () => {
       aoa.push([key, value]);
     });
 
-    // Empty rows between summary and logs
     aoa.push([]);
     aoa.push([]);
 
-    // Logs Heading
     aoa.push([`Logs for ${props.currentDate || "Today"}`]);
-    aoa.push([]); // Empty row before logs table
+    aoa.push([]);
 
-    // Logs Table Headers
     const logHeaders = [
       "Date",
       "Employee ID",
@@ -1108,7 +1154,6 @@ const exportToExcel = async () => {
     ];
     aoa.push(logHeaders);
 
-    // Logs Table Data
     processedLogs.value.forEach((item) => {
       if (item.type === "stop") {
         aoa.push([
@@ -1131,10 +1176,12 @@ const exportToExcel = async () => {
         const stats = getLogStats(item.id);
         aoa.push([
           props.currentDate || "N/A",
-           item.employeeId?.employeeId || props.selectedEmployee?.employeeId || "N/A",
+          item.employeeId?.employeeId ||
+            props.selectedEmployee?.employeeId ||
+            "N/A",
           formatTime(item.timeStamp),
-          "", // End Time
-          "", // Duration
+          "",
+          "",
           (item.action || "").toLowerCase() === "in"
             ? "CheckIn"
             : (item.action || "").toLowerCase() === "out"
@@ -1158,73 +1205,65 @@ const exportToExcel = async () => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-    // Define column widths for alignment
     ws["!cols"] = [
-      { wch: 15 }, // Date
-      { wch: 10 }, // Type
-      { wch: 15 }, // Timestamp
-      { wch: 15 }, // End Time
-      { wch: 15 }, // Duration
-      { wch: 15 }, // Action
-      { wch: 15 }, // Latitude
-      { wch: 15 }, // Longitude
-      { wch: 15 }, // Distance
-      { wch: 15 }, // Travel (km)
-      { wch: 15 }, // Idle (m)
-      { wch: 15 }, // Session Worked
-      { wch: 15 }, // Employee ID
-      { wch: 30 }, // Polyline
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 30 },
     ];
 
-    // Define row heights for headers (big box effect)
     ws["!rows"] = [];
-    ws["!rows"][0] = { hpt: 30 }; // Main heading
-    ws["!rows"][2] = { hpt: 24 }; // Summary heading
-    ws["!rows"][4] = { hpt: 24 }; // Summary table header
-    ws["!rows"][14] = { hpt: 24 }; // Logs heading
-    ws["!rows"][16] = { hpt: 24 }; // Logs table header
+    ws["!rows"][0] = { hpt: 30 };
+    ws["!rows"][2] = { hpt: 24 };
+    ws["!rows"][4] = { hpt: 24 };
+    ws["!rows"][14] = { hpt: 24 };
+    ws["!rows"][16] = { hpt: 24 };
 
-    // Merge cells for headings
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 13 } }, // "Employee Tracking Report"
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 13 } }, // "Summary"
-      { s: { r: 14, c: 0 }, e: { r: 14, c: 13 } }, // "Logs for [date]"
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 13 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 13 } },
+      { s: { r: 14, c: 0 }, e: { r: 14, c: 13 } },
     ];
 
-    // Apply styles: Bold headers, center alignment, and borders
     const range = XLSX.utils.decode_range(ws["!ref"]);
     for (let R = range.s.r; R <= range.e.r; ++R) {
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
         if (!ws[cellAddress]) continue;
 
-        // Initialize cell style
         ws[cellAddress].s = ws[cellAddress].s || {};
 
-        // Bold and style headers
-        if (
-          R === 4 || // Summary table header ("Key", "Value")
-          R === 16 // Logs table header
-        ) {
+        if (R === 4 || R === 16) {
           ws[cellAddress].s.font = { bold: true, sz: 12 };
-          ws[cellAddress].s.fill = { fgColor: { rgb: "D3D3D3" } }; // Light gray background
-          ws[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
+          ws[cellAddress].s.fill = { fgColor: { rgb: "D3D3D3" } };
+          ws[cellAddress].s.alignment = {
+            horizontal: "center",
+            vertical: "center",
+          };
         }
 
-        // Center align all table cells (summary and logs)
         if (
-          (R >= 4 && R <= 4 + Object.keys(summaryData).length) || // Summary table
-          (R >= 16 && R <= range.e.r) // Logs table
+          (R >= 4 && R <= 4 + Object.keys(summaryData).length) ||
+          (R >= 16 && R <= range.e.r)
         ) {
           ws[cellAddress].s.alignment = ws[cellAddress].s.alignment || {};
           ws[cellAddress].s.alignment.horizontal = "center";
           ws[cellAddress].s.alignment.vertical = "center";
         }
 
-        // Apply borders to summary and logs table cells
         if (
-          (R >= 4 && R <= 4 + Object.keys(summaryData).length) || // Summary table (header + data)
-          (R >= 16 && R <= range.e.r) // Logs table (header + data)
+          (R >= 4 && R <= 4 + Object.keys(summaryData).length) ||
+          (R >= 16 && R <= range.e.r)
         ) {
           ws[cellAddress].s.border = {
             top: { style: "thin", color: { rgb: "000000" } },
@@ -1280,10 +1319,10 @@ watch(
 watch(
   () => props.selectedEmployee,
   async (newEmployee) => {
-    if (newEmployee?.assignedUser?.avatar?.id) {  // Fixed path here
+    if (newEmployee?.assignedUser?.avatar?.id) {
       await fetchEmployeeAvatar();
     } else {
-      employeeAvatar.value = null; // Reset avatar if no ID is present
+      employeeAvatar.value = null;
     }
   },
   { immediate: true, deep: true },
@@ -1291,7 +1330,7 @@ watch(
 
 onUnmounted(() => {
   if (employeeAvatar.value) {
-    URL.revokeObjectURL(employeeAvatar.value);  // Cleanup blob URL
+    URL.revokeObjectURL(employeeAvatar.value);
   }
   markers.value.forEach((m) => m.setMap(null));
   polylines.value.forEach((p) => p.setMap(null));
@@ -1323,16 +1362,6 @@ onUnmounted(() => {
   background-color: #fafafa;
 }
 
-.timeline-card {
-  transition: all 0.2s ease;
-  border-left: 3px solid transparent;
-}
-
-.timeline-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left-color: #1976d2;
-}
-
 .border-b {
   border-bottom: 1px solid rgba(0, 0, 0, 0.12) !important;
 }
@@ -1350,43 +1379,14 @@ onUnmounted(() => {
 }
 
 .pa-6 {
-  background-color: #122f68;
-}
-
-.location-info {
-  background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
-  padding: 8px;
-  margin-top: 8px;
+  background-color: #059367;
 }
 
 .gap-2 {
   gap: 8px;
 }
 
-.summary-stats {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-.stat-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.logs-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
+.logs-header,
 .map-header {
   position: sticky;
   top: 0;
@@ -1404,14 +1404,6 @@ onUnmounted(() => {
   .employee-logs-card {
     height: 95vh;
   }
-}
-
-.v-timeline {
-  padding-top: 0 !important;
-}
-
-.v-timeline-item {
-  margin-bottom: 16px;
 }
 
 .time-badge {
@@ -1462,18 +1454,23 @@ onUnmounted(() => {
   margin-top: 8px;
 }
 
+.stats-details {
+  background: rgba(255, 235, 59, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+  border-left: 3px solid #ffeb3b;
+}
+
 .profile-avatar {
   flex-shrink: 0;
   border: 2px solid #ffffff;
   margin-right: 8px;
 }
 
-/* Ensure the avatar aligns nicely with the employee name */
 .d-flex.align-center.gap-2 {
   align-items: center;
 }
 
-/* Avatar-specific styles (from employeeDetails.vue for consistency) */
 .avatar-image {
   width: 100%;
   height: 100%;
@@ -1489,5 +1486,9 @@ onUnmounted(() => {
   height: 100%;
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: inherit;
+}
+
+.w-100 {
+  width: 100%;
 }
 </style>

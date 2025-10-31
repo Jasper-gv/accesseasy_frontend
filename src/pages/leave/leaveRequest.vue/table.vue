@@ -2,21 +2,10 @@
   <div class="employee-container">
     <!-- Main Content with Table -->
     <div class="main-content" :class="{ 'with-drawer': showAddForm }">
-      <!-- <v-alert
-        v-if="noLeaveTypesEnabled"
-        type="info"
-        variant="tonal"
-        class="mb-4"
-        title="No Leave Types Available"
-        text="You don't have access to any leave types. Please contact your administrator to configure your leave settings."
-      >
-      </v-alert> -->
-
       <DataTableWrapper
         :searchQuery="search"
         @update:searchQuery="handleSearchUpdate"
-        :showSearch="false"
-        :isEmpty="false"
+        :showSearch="true"
         :hasError="showError"
         wrapperClass="employee-table-wrapper"
       >
@@ -26,7 +15,7 @@
             <BaseButton
               variant="primary"
               size="md"
-              text=" Request"
+              text="Request"
               :leftIcon="Plus"
               @click="toggleAddForm"
             />
@@ -91,6 +80,10 @@
                   You don't have access to any leave types. Please contact your
                   administrator.
                 </div>
+                <div v-else class="text-caption text-medium-emphasis mt-2">
+                  No leave requests available. Create a new request to get
+                  started.
+                </div>
               </div>
             </template>
           </DataTable>
@@ -128,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
@@ -161,10 +154,11 @@ const personalModuleData = ref(null);
 const userRole = currentUserTenant.getRole();
 const isAdmin = computed(() => userRole === "Admin");
 const isEmployee = computed(() => userRole === "Employee");
+
 const columns = [
   { key: "date_created", label: "Applied On", width: 150, sortable: false },
-  { key: "leaveType", label: " Type", width: 120, sortable: false },
-  { key: "fromDate", label: " From", width: 120, sortable: false },
+  { key: "leaveType", label: "Type", width: 120, sortable: false },
+  { key: "fromDate", label: "From", width: 120, sortable: false },
   { key: "toDate", label: "To", width: 120, sortable: false },
   { key: "reason", label: "Reason", width: 200, sortable: false },
   { key: "status", label: "Status", width: 250, sortable: false },
@@ -259,6 +253,7 @@ const toggleAddForm = () => {
 };
 
 const handleLeaveApplied = () => {
+  page.value = 1;
   fetchData();
   fetchLeaveBalance();
 };
@@ -284,25 +279,16 @@ const aggregateCount = async () => {
     const currentTenantId = currentUserTenant.getTenantId();
 
     const filterParams = {
+      "aggregate[count]": "id",
       "filter[_and][0][requestedBy][assignedUser][id][_eq]": userDetails.id,
-      "filter[_and][1][tenant][tenantId][_eq]": currentTenantId,
     };
-
-    if (search.value) {
-      filterParams["filter[_and][2][_or][0][reason][_contains]"] = search.value;
-      filterParams["filter[_and][2][_or][1][leaveType][_contains]"] =
-        search.value;
-      filterParams["filter[_and][2][_or][2][status][_contains]"] = search.value;
-    }
-
-    filterParams["aggregate[countDistinct]"] = "id";
 
     const queryString = Object.keys(filterParams)
       .map((key) => `${key}=${encodeURIComponent(filterParams[key])}`)
       .join("&");
 
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/leaveRequest?${queryString}`,
+      `${import.meta.env.VITE_API_URL}/items/leaveRequest?${queryString}&limit=-1`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -316,25 +302,30 @@ const aggregateCount = async () => {
     }
 
     const countData = await response.json();
-    const count = countData?.data?.[0]?.count?.id || 0;
-    totalItems.value = Number(count);
+    totalItems.value = countData?.data?.[0]?.count?.id || 0;
+
+    console.log("dascasc", totalItems);
   } catch (error) {
     console.error("Error fetching aggregate count:", error);
     totalItems.value = 0;
+    showError.value = true;
+    errorMessage.value = "Failed to fetch total leave requests.";
   }
 };
 
 const fetchData = async () => {
   const token = getToken();
   if (!token) {
+    showError.value = true;
+    errorMessage.value = "Authentication required. Please login again.";
     return;
   }
 
-  const userDetails = await currentUserTenant.fetchLoginUserDetails();
-  const tenantId = currentUserTenant.getTenantId();
-
   loading.value = true;
   try {
+    const userDetails = await currentUserTenant.fetchLoginUserDetails();
+    const tenantId = currentUserTenant.getTenantId();
+
     const params = new URLSearchParams({
       fields: [
         "id",
@@ -361,8 +352,6 @@ const fetchData = async () => {
       "filter[_and][0][requestedBy][assignedUser][id][_eq]",
       userDetails.id,
     );
-    params.append("filter[_and][1][tenant][tenantId][_eq]", tenantId);
-    params.append("filter[_and][2][leaveType][_nin]", "workFromHome,onDuty");
 
     if (search.value) {
       params.append("filter[_and][3][_or][0][reason][_contains]", search.value);
@@ -388,12 +377,13 @@ const fetchData = async () => {
     }
 
     const data = await response.json();
-    items.value = data.data;
-    await aggregateCount();
+    items.value = Array.isArray(data.data) ? data.data : [];
+    await aggregateCount(); // Ensure totalItems is updated after fetching data
   } catch (error) {
     console.error("Error fetching leave requests:", error);
     showError.value = true;
     errorMessage.value = "Failed to load leave requests.";
+    items.value = [];
     totalItems.value = 0;
   } finally {
     loading.value = false;
@@ -459,9 +449,10 @@ const cancelRequest = async (id) => {
     }
 
     items.value = items.value.filter((item) => item.id !== id);
+    await aggregateCount(); // Update totalItems after deletion
 
     const personalModuleResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/personalModule?fields[]=leaves.id&fields[]=leaves.CarryForwardleave&fields[]=leaves.leaveBalance&fields[]=leaves.leaveTaken&fields[]=leaves.monthLimit&fields[]=leaves.assignedLeave&fields[]=id&filter[_and][0][id][_eq]=${requestedBy}`,
+      `${import.meta.env.VITE_API_URL}/items/personalModule?fields[]=leaves.id&fields[]=leaves.CarryForwardleave&fields[]=leaves.leaveBalance&fields[]=leaves.leaveTaken&fields[]=leaves.monthLimit&fields[]=leaves.assignedLeave&filter[_and][0][id][_eq]=${requestedBy}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -485,10 +476,9 @@ const cancelRequest = async (id) => {
       throw new Error("Leave data not found in personal module");
     }
 
-    // Skip leave balance update if leaveType is "unpaid leave"
     if (leaveType.toLowerCase().replace(/\s+/g, "") === "unpaidleave") {
       await fetchLeaveBalance();
-      return; // Exit early to avoid updating leave balance
+      return;
     }
 
     const personalLeaveData = personalModuleInfo.leaves;
@@ -516,7 +506,6 @@ const cancelRequest = async (id) => {
         },
         body: JSON.stringify({
           leaveTaken: updatedLeaveTaken,
-          // leaveBalance: updatedLeaveBalance,
         }),
       },
     );
@@ -652,11 +641,11 @@ const fetchLeaveBalance = async () => {
       cumulativeLimits.value = newCumulativeLimits;
     }
 
-    await calculateCumulativeLimits(
-      userDetails,
-      assignedLeaves,
-      personalModuleData.value.assignedUser.dateOfJoining,
-    );
+    // await calculateCumulativeLimits(
+    //   userDetails,
+    //   assignedLeaves,
+    //   personalModuleData.value.assignedUser.dateOfJoining,
+    // );
   } catch (error) {
     console.error("Error fetching leave balance:", error);
     showError.value = true;
@@ -664,150 +653,153 @@ const fetchLeaveBalance = async () => {
   }
 };
 
-const calculateCumulativeLimits = async (
-  userDetails,
-  assignedLeaves,
-  dateOfJoining,
-) => {
-  try {
-    const token = getToken();
-    const userId = userDetails.id;
-    const tenantId = currentUserTenant.getTenantId();
+// const calculateCumulativeLimits = async (
+//   userDetails,
+//   assignedLeaves,
+//   dateOfJoining,
+// ) => {
+//   try {
+//     const token = getToken();
+//     const userId = userDetails.id;
+//     const tenantId = currentUserTenant.getTenantId();
 
-    const joinDate = new Date(dateOfJoining);
-    if (!dateOfJoining || isNaN(joinDate.getTime())) {
-      console.warn("⚠️ Invalid or missing join date:", dateOfJoining);
-      showError.value = true;
-      errorMessage.value = "Joining date is missing or invalid.";
-      return;
-    }
+//     const joinDate = new Date(dateOfJoining);
+//     if (!dateOfJoining || isNaN(joinDate.getTime())) {
+//       console.warn("⚠️ Invalid or missing join date:", dateOfJoining);
+//       showError.value = true;
+//       errorMessage.value = "Joining date is missing or invalid.";
+//       return;
+//     }
 
-    const currentDate = new Date();
+//     const currentDate = new Date();
 
-    const leaveNamesFilter = assignedLeaves
-      .map((leave) => encodeURIComponent(leave))
-      .join(",");
-    const leaveSettingUrl =
-      `${import.meta.env.VITE_API_URL}/items/leaveSetting?` +
-      `fields[]=leaveName,date_created&` +
-      `filter[_and][0][leaveName][_in]=${leaveNamesFilter}&` +
-      `filter[_and][1][tenant][tenantId][_eq]=${tenantId}`;
+//     const leaveNamesFilter = assignedLeaves
+//       .map((leave) => encodeURIComponent(leave))
+//       .join(",");
+//     const leaveSettingUrl =
+//       `${import.meta.env.VITE_API_URL}/items/leaveSetting?` +
+//       `fields[]=leaveName,date_created&` +
+//       `filter[_and][0][leaveName][_in]=${leaveNamesFilter}&` +
+//       `filter[_and][1][tenant][tenantId][_eq]=${tenantId}`;
 
-    const leaveSettingResponse = await fetch(leaveSettingUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+//     const leaveSettingResponse = await fetch(leaveSettingUrl, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json",
+//       },
+//     });
 
-    if (!leaveSettingResponse.ok) {
-      console.warn(
-        `⚠️ Failed to fetch leave settings: ${leaveSettingResponse.status}`,
-      );
-      showError.value = true;
-      errorMessage.value = "Failed to fetch leave settings.";
-      return;
-    }
+//     if (!leaveSettingResponse.ok) {
+//       console.warn(
+//         `⚠️ Failed to fetch leave settings: ${leaveSettingResponse.status}`,
+//       );
+//       showError.value = true;
+//       errorMessage.value = "Failed to fetch leave settings.";
+//       return;
+//     }
 
-    const leaveSettingData = await leaveSettingResponse.json();
-    const leaveSettingsMap = new Map(
-      leaveSettingData.data.map((setting) => [
-        setting.leaveName,
-        new Date(setting.date_created),
-      ]),
-    );
+//     const leaveSettingData = await leaveSettingResponse.json();
+//     const leaveSettingsMap = new Map(
+//       leaveSettingData.data.map((setting) => [
+//         setting.leaveName,
+//         new Date(setting.date_created),
+//       ]),
+//     );
 
-    for (const leaveName of assignedLeaves) {
-      const normalizedKey = leaveName.toLowerCase().replace(/\s+/g, "");
+//     for (const leaveName of assignedLeaves) {
+//       const normalizedKey = leaveName.toLowerCase().replace(/\s+/g, "");
 
-      const leaveCreationDate = leaveSettingsMap.get(leaveName);
-      if (!leaveCreationDate || isNaN(leaveCreationDate.getTime())) {
-        console.warn(`⚠️ Invalid or missing creation date for ${leaveName}`);
-        continue;
-      }
+//       const leaveCreationDate = leaveSettingsMap.get(leaveName);
+//       if (!leaveCreationDate || isNaN(leaveCreationDate.getTime())) {
+//         console.warn(`⚠️ Invalid or missing creation date for ${leaveName}`);
+//         continue;
+//       }
 
-      const startDate = new Date(
-        Math.max(joinDate.getTime(), leaveCreationDate.getTime()),
-      );
-      startDate.setDate(1);
-      startDate.setMonth(startDate.getMonth() + 1);
+//       const startDate = new Date(
+//         Math.max(joinDate.getTime(), leaveCreationDate.getTime()),
+//       );
+//       startDate.setDate(1);
+//       startDate.setMonth(startDate.getMonth() + 1);
 
-      const monthsToProcess = [];
-      let currentMonth = new Date(startDate);
-      while (currentMonth <= currentDate && !isNaN(currentMonth.getTime())) {
-        monthsToProcess.push(new Date(currentMonth));
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-      }
+//       const monthsToProcess = [];
+//       let currentMonth = new Date(startDate);
+//       while (currentMonth <= currentDate && !isNaN(currentMonth.getTime())) {
+//         monthsToProcess.push(new Date(currentMonth));
+//         currentMonth.setMonth(currentMonth.getMonth() + 1);
+//       }
 
-      if (monthLimits.value[normalizedKey] > 0) {
-        let totalCumulative = 0;
+//       if (monthLimits.value[normalizedKey] > 0) {
+//         let totalCumulative = 0;
 
-        for (const month of monthsToProcess) {
-          if (isNaN(month.getTime())) {
-            console.warn(`⚠️ Skipping invalid month: ${month}`);
-            continue;
-          }
+//         for (const month of monthsToProcess) {
+//           if (isNaN(month.getTime())) {
+//             console.warn(`⚠️ Skipping invalid month: ${month}`);
+//             continue;
+//           }
 
-          const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-          const monthEnd = new Date(
-            month.getFullYear(),
-            month.getMonth() + 1,
-            0,
-          );
+//           const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+//           const monthEnd = new Date(
+//             month.getFullYear(),
+//             month.getMonth() + 1,
+//             0,
+//           );
 
-          if (isNaN(monthStart.getTime()) || isNaN(monthEnd.getTime())) {
-            console.warn(`⚠️ Invalid monthStart or monthEnd for ${leaveName}`);
-            continue;
-          }
+//           if (isNaN(monthStart.getTime()) || isNaN(monthEnd.getTime())) {
+//             console.warn(`⚠️ Invalid monthStart or monthEnd for ${leaveName}`);
+//             continue;
+//           }
 
-          const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/items/leaveRequest?` +
-              `filter[_and][0][requestedBy][assignedUser][id][_eq]=${userId}&` +
-              `filter[_and][1][status][_in]=approved,pending&` +
-              `filter[_and][2][leaveType][_eq]=${encodeURIComponent(leaveName)}&` +
-              `filter[_and][3][fromDate][_gte]=${monthStart.toISOString().split("T")[0]}&` +
-              `filter[_and][4][fromDate][_lte]=${monthEnd.toISOString().split("T")[0]}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            },
-          );
+//           const response = await fetch(
+//             `${import.meta.env.VITE_API_URL}/items/leaveRequest?` +
+//               `filter[_and][0][requestedBy][assignedUser][id][_eq]=${userId}&` +
+//               `filter[_and][1][status][_in]=approved,pending&` +
+//               `filter[_and][2][leaveType][_eq]=${encodeURIComponent(leaveName)}&` +
+//               `filter[_and][3][fromDate][_gte]=${monthStart.toISOString().split("T")[0]}&` +
+//               `filter[_and][4][fromDate][_lte]=${monthEnd.toISOString().split("T")[0]}`,
+//             {
+//               headers: {
+//                 Authorization: `Bearer ${token}`,
+//                 "Content-Type": "application/json",
+//               },
+//             },
+//           );
 
-          if (!response.ok) {
-            console.warn(`⚠️ Failed to fetch leave requests for ${leaveName}`);
-            continue;
-          }
+//           if (!response.ok) {
+//             console.warn(`⚠️ Failed to fetch leave requests for ${leaveName}`);
+//             continue;
+//           }
 
-          const leaveData = await response.json();
-          let monthUsed = 0;
-          for (const leave of leaveData.data || []) {
-            monthUsed += calculateDays(
-              leave.fromDate,
-              leave.toDate,
-              leave.halfDay,
-            );
-          }
+//           const leaveData = await response.json();
+//           let monthUsed = 0;
+//           for (const leave of leaveData.data || []) {
+//             monthUsed += calculateDays(
+//               leave.fromDate,
+//               leave.toDate,
+//               leave.halfDay,
+//             );
+//           }
 
-          const monthLimit = monthLimits.value[normalizedKey];
-          if (monthUsed < monthLimit) {
-            totalCumulative += monthLimit - monthUsed;
-          }
-        }
+//           const monthLimit = monthLimits.value[normalizedKey];
+//           if (monthUsed < monthLimit) {
+//             totalCumulative += monthLimit - monthUsed;
+//           }
+//         }
 
-        cumulativeLimits.value[normalizedKey] = totalCumulative;
-      }
-    }
-  } catch (error) {
-    console.error("❌ Error calculating cumulative limits:", error);
-    showError.value = true;
-    errorMessage.value = "Failed to calculate cumulative limits.";
-  }
-};
+//         cumulativeLimits.value[normalizedKey] = totalCumulative;
+//       }
+//     }
+//   } catch (error) {
+//     console.error("❌ Error calculating cumulative limits:", error);
+//     showError.value = true;
+//     errorMessage.value = "Failed to calculate cumulative limits.";
+//   }
+// };
+
+watch([search, page, itemsPerPage], async () => {
+  await fetchData();
+});
 
 onMounted(async () => {
-  await aggregateCount();
   await fetchData();
   await fetchLeaveBalance();
 });
@@ -893,9 +885,9 @@ onMounted(async () => {
     margin-right: 0;
   }
 
-  .form-drawer {
+  /* .form-drawer {
     width: 100% !important;
-  }
+  } */
 
   .header-actions {
     flex-direction: column;

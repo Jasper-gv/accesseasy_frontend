@@ -74,7 +74,7 @@
               </option>
             </select>
 
-            <!-- Branch Select -->
+            <!-- Branch Select - REMOVED DEPENDENCY -->
             <select
               v-else-if="filter.key === 'branch'"
               :value="localFilters[filter.key]"
@@ -91,7 +91,7 @@
               </option>
             </select>
 
-            <!-- Department Select -->
+            <!-- Department Select - REMOVED DEPENDENCY -->
             <select
               v-else-if="filter.key === 'department'"
               :value="localFilters[filter.key]"
@@ -108,16 +108,52 @@
               </option>
             </select>
 
-            <!-- Request Select -->
-            <select
-              v-else-if="filter.key === 'request'"
-              :value="localFilters[filter.key]"
-              @change="handleInputChange(filter.key, $event.target.value)"
-              class="filter-input"
+            <!-- Attendance Cycle Select -->
+            <div
+              v-else-if="filter.key === 'attendanceCycle'"
+              class="attendance-cycle-container"
             >
-              <option value="">All Requests</option>
-              <option value="myRequests">My Requests</option>
-            </select>
+              <select
+                :value="localFilters[filter.key]"
+                @change="handleAttendanceCycleChange($event.target.value)"
+                class="filter-input"
+                :disabled="isLoadingCycles"
+              >
+                <option value="">Select Attendance Cycle</option>
+                <option
+                  v-for="cycle in attendanceCycles"
+                  :key="cycle.cycleId"
+                  :value="cycle.cycleId"
+                >
+                  {{ cycle.cycleName }}
+                </option>
+              </select>
+
+              <!-- Loading indicator for cycles -->
+              <div v-if="isLoadingCycles" class="loading-indicator">
+                Loading attendance cycles...
+              </div>
+
+              <!-- Display Dynamic Cycle Stats -->
+              <div
+                v-if="selectedCycleWithDates && !isLoadingCycles"
+                class="cycle-stats"
+              >
+                <p>
+                  <strong>Cycle Period:</strong>
+                  {{ formatDate(selectedCycleWithDates.actualStartDate) }} to
+                  {{ formatDate(selectedCycleWithDates.actualEndDate) }}
+                </p>
+                <p>
+                  <strong>Include Weekends:</strong>
+                  {{ selectedCycle?.includeWeekends ? "Yes" : "No" }}
+                </p>
+                <p>
+                  <strong>Include Holidays:</strong>
+                  {{ selectedCycle?.includeHolidays ? "Yes" : "No" }}
+                </p>
+              </div>
+            </div>
 
             <!-- Employee Cycle Type -->
             <select
@@ -288,11 +324,10 @@ export default {
         { key: "branch", label: "Branch", type: "select", show: true },
         { key: "department", label: "Department", type: "select", show: true },
         {
-          key: "request",
-          label: "Request",
+          key: "attendanceCycle",
+          label: "Attendance Cycle",
           type: "select",
           show: true,
-          defaultValue: "",
         },
         {
           key: "cycleType",
@@ -303,6 +338,16 @@ export default {
         { key: "status", label: "Status", type: "select", show: true },
         { key: "mode", label: "Mode", type: "select", show: true },
         { key: "attendance", label: "Attendance", type: "select", show: true },
+        {
+          key: "request",
+          label: "Request Type",
+          type: "select",
+          show: true,
+          options: [
+            { value: "", label: "All Requests" },
+            { value: "myrequests", label: "My Requests" },
+          ],
+        },
       ],
     },
   },
@@ -345,10 +390,10 @@ export default {
   data() {
     return {
       localFilters: {
+        attendanceCycle: "",
         monthYear: new Date().toISOString().slice(0, 7), // Default to current month
         startDate: "",
         endDate: "",
-        request: "", // Default to All Requests
       },
       organizations: [],
       branches: [],
@@ -365,10 +410,25 @@ export default {
       return this.filterSchema.filter((filter) => filter.show !== false);
     },
     selectedCycle() {
-      return null; // Removed attendance cycle logic
+      if (
+        !this.localFilters.attendanceCycle ||
+        this.attendanceCycles.length === 0
+      ) {
+        return null;
+      }
+      return getCycleById(
+        this.attendanceCycles,
+        parseInt(this.localFilters.attendanceCycle),
+      );
     },
     selectedCycleWithDates() {
-      return null; // Removed attendance cycle logic
+      if (!this.selectedCycle || !this.localFilters.monthYear) {
+        return null;
+      }
+      return this.calculateCycleDates(
+        this.selectedCycle,
+        this.localFilters.monthYear,
+      );
     },
   },
   watch: {
@@ -377,11 +437,11 @@ export default {
         if (newFilters) {
           this.localFilters = {
             ...newFilters,
+            attendanceCycle: newFilters.attendanceCycle || "",
             monthYear:
               newFilters.monthYear || new Date().toISOString().slice(0, 7),
             startDate: newFilters.startDate || "",
             endDate: newFilters.endDate || "",
-            request: newFilters.request || "",
           };
         }
       },
@@ -405,52 +465,175 @@ export default {
       this.fetchDepartments(),
     ];
 
+    // Only fetch attendance cycles if the filter is visible
+    if (this.hasFilter("attendanceCycle")) {
+      promises.push(this.fetchAttendanceCycles());
+    }
+
     await Promise.all(promises);
 
-    // Emit initial filters
-    this.$emit("filters-changed", this.localFilters);
-    this.$emit("apply-filters", this.localFilters);
+    // Set default cycle if cycles are loaded and no cycle is selected
+    if (
+      this.attendanceCycles.length > 0 &&
+      !this.localFilters.attendanceCycle
+    ) {
+      this.localFilters.attendanceCycle =
+        this.attendanceCycles[0].cycleId.toString();
+      // Emit updated filters with calculated cycle dates
+      this.$emit("filters-changed", this.getFiltersWithCycleDates());
+      this.$emit("apply-filters", this.getFiltersWithCycleDates());
+    } else if (
+      this.localFilters.attendanceCycle &&
+      this.localFilters.monthYear
+    ) {
+      // If a cycle and month are already selected, emit filters with calculated dates
+      this.$emit("filters-changed", this.getFiltersWithCycleDates());
+      this.$emit("apply-filters", this.getFiltersWithCycleDates());
+    }
   },
   methods: {
     async fetchAttendanceCycles() {
-      // Removed attendance cycle fetching logic
+      if (this.isLoadingCycles) return;
+
+      this.isLoadingCycles = true;
+      this.error = null;
+
+      try {
+        this.attendanceCycles = await fetchCycleTypes();
+        console.log("Fetched attendance cycles:", this.attendanceCycles);
+      } catch (error) {
+        console.error("Failed to fetch attendance cycles:", error);
+        this.error = "Failed to load attendance cycles. Please try again.";
+        this.attendanceCycles = [];
+      } finally {
+        this.isLoadingCycles = false;
+      }
     },
-    calculateCycleDates() {
-      return null; // Removed attendance cycle logic
+    calculateCycleDates(cycle, monthYear) {
+      if (!cycle || !monthYear) return null;
+
+      const [year, month] = monthYear.split("-").map(Number);
+
+      // Default: start from previous month
+      let startMonth = month - 1;
+      let startYear = year;
+
+      if (startMonth < 1) {
+        startMonth = 12;
+        startYear = year - 1;
+      }
+
+      let actualEndDate;
+      let actualStartDate;
+
+      if (
+        cycle.endDate === "end of the month" ||
+        cycle.endDate === "End of the month"
+      ) {
+        actualEndDate = new Date(year, month, 0);
+        actualStartDate = new Date(year, month - 1, parseInt(cycle.startDate));
+      } else {
+        actualEndDate = new Date(year, month - 1, parseInt(cycle.endDate));
+        actualStartDate = new Date(
+          startYear,
+          startMonth - 1,
+          parseInt(cycle.startDate),
+        );
+      }
+
+      const timeDiff = actualEndDate.getTime() - actualStartDate.getTime();
+      const totalDays = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
+      return {
+        ...cycle,
+        actualStartDate,
+        actualEndDate,
+        totalDays,
+        monthYear,
+      };
     },
     formatDate(date) {
       if (!date) return "";
+
+      if (
+        typeof date === "string" &&
+        date.toLowerCase().includes("end of month")
+      ) {
+        return "End of Month";
+      }
+
       const d = date instanceof Date ? date : new Date(date);
       const day = String(d.getDate()).padStart(2, "0");
       const month = String(d.getMonth() + 1).padStart(2, "0");
       const year = d.getFullYear();
+
       return `${day}-${month}-${year}`;
     },
     getFiltersWithCycleDates() {
-      return { ...this.localFilters }; // Return filters without cycle dates
+      const filters = { ...this.localFilters };
+
+      if (this.selectedCycleWithDates) {
+        filters.cycleStartDate = this.formatDateForAPI(
+          this.selectedCycleWithDates.actualStartDate,
+        );
+        filters.cycleEndDate = this.formatDateForAPI(
+          this.selectedCycleWithDates.actualEndDate,
+        );
+        filters.cycleTotalDays = this.selectedCycleWithDates.totalDays;
+        filters.cycleIncludeWeekends =
+          this.selectedCycleWithDates.includeWeekends;
+        filters.cycleIncludeHolidays =
+          this.selectedCycleWithDates.includeHolidays;
+        filters.cycleStartDateDisplay = this.formatDate(
+          this.selectedCycleWithDates.actualStartDate,
+        );
+        filters.cycleEndDateDisplay = this.formatDate(
+          this.selectedCycleWithDates.actualEndDate,
+        );
+      } else {
+        // Clear cycle-related fields if no valid cycle is selected
+        filters.cycleStartDate = "";
+        filters.cycleEndDate = "";
+        filters.cycleTotalDays = null;
+        filters.cycleIncludeWeekends = null;
+        filters.cycleIncludeHolidays = null;
+        filters.cycleStartDateDisplay = "";
+        filters.cycleEndDateDisplay = "";
+      }
+
+      return filters;
     },
     formatDateForAPI(date) {
       if (!date) return "";
+
+      if (
+        typeof date === "string" &&
+        date.toLowerCase().includes("end of month")
+      ) {
+        return "end-of-month";
+      }
+
       const d = date instanceof Date ? date : new Date(date);
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
       const day = String(d.getDate()).padStart(2, "0");
+
       return `${year}-${month}-${day}`;
     },
     initializeFiltersFromSchema() {
       const newFilters = {
+        attendanceCycle: "",
         monthYear: new Date().toISOString().slice(0, 7),
         startDate: "",
         endDate: "",
-        request: "",
       };
 
       this.filterSchema.forEach((filter) => {
         if (
+          filter.key !== "attendanceCycle" &&
           filter.key !== "monthYear" &&
           filter.key !== "startDate" &&
-          filter.key !== "endDate" &&
-          filter.key !== "request"
+          filter.key !== "endDate"
         ) {
           if (
             this.initialFilters &&
@@ -470,11 +653,6 @@ export default {
             this.initialFilters && this.initialFilters[filter.key]
               ? this.initialFilters[filter.key]
               : "";
-        } else if (filter.key === "request") {
-          newFilters[filter.key] =
-            this.initialFilters && this.initialFilters[filter.key]
-              ? this.initialFilters[filter.key]
-              : "";
         }
       });
 
@@ -484,24 +662,72 @@ export default {
     },
     handleMonthChange(value) {
       this.localFilters.monthYear = value;
-      this.$emit("filters-changed", this.localFilters);
-      this.$emit("apply-filters", this.localFilters);
+      // Recalculate cycle dates if an attendance cycle is selected
+      if (this.localFilters.attendanceCycle) {
+        this.$emit("filters-changed", this.getFiltersWithCycleDates());
+        this.$emit("apply-filters", this.getFiltersWithCycleDates());
+      }
+    },
+    handleAttendanceCycleChange(value) {
+      this.localFilters.attendanceCycle = value;
+      // Recalculate cycle dates using current monthYear
+      if (this.localFilters.monthYear) {
+        this.$emit("filters-changed", this.getFiltersWithCycleDates());
+        this.$emit("apply-filters", this.getFiltersWithCycleDates());
+      }
+    },
+    getIconSvg(key, type) {
+      const iconMap = {
+        monthYear:
+          '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
+        startDate:
+          '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
+        endDate:
+          '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
+        organization:
+          '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" stroke-width="2"/>',
+        branch:
+          '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke-width="2"/><circle cx="9" cy="7" r="4" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke-width="2"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke-width="2"/>',
+        department:
+          '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke-width="2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke-width="2"/>',
+        attendanceCycle:
+          '<path d="M12 2a10 10 0 0 0-10 10c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15.75-1.23-4.5-2.67V7z" stroke-width="2"/>',
+        status:
+          '<path d="M12 2a10 10 0 0 0-10 10c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" stroke-width="2"/>',
+        mode: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h16V6H4zm2 2h12v2H6V8zm0 3h12v2H6v-2zm0 3h6v2H6v-2z" stroke-width="2"/>',
+        attendance:
+          '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-2c0-1.66 1.34-3 3-3h8c1.66 0 3 1.34 3 3v2z" stroke-width="2"/>',
+        text: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke-width="2"/>',
+        date: '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
+        number:
+          '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke-width="2"/>',
+        request:
+          '<path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z" stroke-width="2"/>',
+      };
+
+      return iconMap[key] || iconMap[type] || iconMap.text;
     },
     handleInputChange(key, value) {
       this.localFilters[key] = value;
+
       const filter = this.filterSchema.find((f) => f.key === key);
+
       if (filter) {
-        this.$emit("filters-changed", this.localFilters);
+        this.$emit("filters-changed", this.getFiltersWithCycleDates());
         if (filter.type === "select" || filter.type === "date") {
-          this.$emit("apply-filters", this.localFilters);
+          this.$emit("apply-filters", this.getFiltersWithCycleDates());
         }
       } else {
         console.warn(`Key '${key}' not found in filterSchema.`);
       }
     },
+    // REMOVED: handleOrganizationChange method since we don't need special handling anymore
+
     async fetchOrganizations() {
       try {
         const token = authService.getToken();
+        console.log("Token being sent:", token);
+
         const res = await axios.get(
           `${import.meta.env.VITE_API_URL}/items/organization`,
           {
@@ -509,10 +735,16 @@ export default {
             params: { "filter[_and][0][tenant][tenantId][_eq]": this.tenantId },
           },
         );
+
         this.organizations = res.data.data || [];
       } catch (e) {
         this.error = "Failed to load organizations";
-        console.error("Error fetching organizations:", e);
+        if (e.response) {
+          console.error("API error:", e.response.status, e.response.data);
+          console.error("Request headers:", e.config?.headers);
+        } else {
+          console.error("Network/other error:", e);
+        }
       }
     },
     async fetchBranches() {
@@ -550,59 +782,38 @@ export default {
     },
     async resetFilters() {
       const resetData = {
+        attendanceCycle: "",
         monthYear: new Date().toISOString().slice(0, 7),
         startDate: "",
         endDate: "",
-        request: "",
       };
 
       this.filterSchema.forEach((filter) => {
         if (
+          filter.key !== "attendanceCycle" &&
           filter.key !== "monthYear" &&
           filter.key !== "startDate" &&
-          filter.key !== "endDate" &&
-          filter.key !== "request"
+          filter.key !== "endDate"
         ) {
           resetData[filter.key] = filter.defaultValue || "";
         }
       });
 
       this.localFilters = resetData;
-      this.$emit("filters-changed", this.localFilters);
-      this.$emit("apply-filters", this.localFilters);
+
+      // Set default cycle if cycles are available
+      if (this.attendanceCycles.length > 0) {
+        this.localFilters.attendanceCycle =
+          this.attendanceCycles[0].cycleId.toString();
+      }
+
+      this.$emit("filters-changed", this.getFiltersWithCycleDates());
+      this.$emit("apply-filters", this.getFiltersWithCycleDates());
     },
     hasFilter(key) {
       return this.filterSchema.some(
         (filter) => filter.key === key && filter.show !== false,
       );
-    },
-    getIconSvg(key, type) {
-      const iconMap = {
-        monthYear:
-          '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
-        startDate:
-          '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
-        endDate:
-          '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
-        organization:
-          '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" stroke-width="2"/>',
-        branch:
-          '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke-width="2"/><circle cx="9" cy="7" r="4" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke-width="2"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke-width="2"/>',
-        department:
-          '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke-width="2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke-width="2"/>',
-        request:
-          '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5l5-5m0 0l5 5m-5-5v12" stroke-width="2"/>',
-        status:
-          '<path d="M12 2a10 10 0 0 0-10 10c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" stroke-width="2"/>',
-        mode: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h16V6H4zm2 2h12v2H6V8zm0 3h12v2H6v-2zm0 3h6v2H6v-2z" stroke-width="2"/>',
-        attendance:
-          '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-2c0-1.66 1.34-3 3-3h8c1.66 0 3 1.34 3 3v2z" stroke-width="2"/>',
-        text: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke-width="2"/>',
-        date: '<rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="2"/>',
-        number:
-          '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke-width="2"/>',
-      };
-      return iconMap[key] || iconMap[type] || iconMap.text;
     },
   },
 };
@@ -611,8 +822,8 @@ export default {
 <style scoped>
 .filter-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #e8edff;
+  border: 1px solid #059367;
+  background: #ecfdf5;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -733,6 +944,30 @@ export default {
 .filter-wrapper {
   position: relative;
   z-index: 10;
+}
+
+.attendance-cycle-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cycle-stats {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #0c4a6e;
+}
+
+.cycle-stats p {
+  margin: 0.25rem 0;
+}
+
+.cycle-stats strong {
+  color: #075985;
 }
 
 @keyframes slideDown {

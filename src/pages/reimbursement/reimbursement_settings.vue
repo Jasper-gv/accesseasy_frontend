@@ -1,32 +1,73 @@
 <template>
-  <div class="settings-container">
-    <BaseButton
-      variant="primary"
-      size="md"
-      :leftIcon="Plus"
-      class="add-button"
-      @click="openModal('add')"
-      :text="'Add New Setting'"
-    />
-    <!-- Box View for Settings -->
-    <div class="box-container">
-      <div v-for="item in transportSettings" :key="item.id" class="setting-box">
-        <div class="setting-content">
-          <h3>{{ item.transportName }}</h3>
-          <p>Rate per /km: {{ item.ratePerKm }} /km</p>
-          <div class="setting-actions">
-            <button class="edit-button" @click="openModal('edit', item)">
-              Edit
-            </button>
-            <button class="delete-button" @click="deleteSetting(item.id)">
-              Delete
-            </button>
-          </div>
+  <div class="transport-settings-page">
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-text"></div>
+        <div class="header-actions">
+          <BaseButton
+            variant="primary"
+            :left-icon="PlusIcon"
+            @click="openAddModal"
+            text="Add Setting"
+            :loading="externalLoading"
+          />
         </div>
       </div>
     </div>
 
-    <!-- Modal for Adding/Editing Setting -->
+    <div class="settings-section">
+      <div class="table-container">
+        <!-- Skeleton loader while fetching -->
+        <SkeletonLoading
+          v-if="loading"
+          variant="data-table"
+          :rows="6"
+          :columns="tableColumns.length"
+        />
+
+        <!-- Data Table -->
+        <DataTable
+          v-else
+          :items="paginatedSettings"
+          :columns="tableColumns"
+          :show-selection="false"
+          :row-clickable="false"
+        >
+          <!-- Rate per KM Cell -->
+          <template #cell-ratePerKm="{ value }"> {{ value }} /km </template>
+
+          <!-- Actions Cell -->
+          <template #cell-actions="{ item }">
+            <div class="action-buttons">
+              <ActionButton
+                :icon="EditIcon"
+                variant="ghost"
+                tooltip="Edit setting"
+                @click="openEditModal(item)"
+              />
+              <ActionButton
+                :icon="TrashIcon"
+                variant="ghost"
+                tooltip="Delete setting"
+                @click="openDeleteModal(item)"
+              />
+            </div>
+          </template>
+        </DataTable>
+
+        <!-- Pagination -->
+        <div class="pagination-wrapper" v-if="!loading">
+          <CustomPagination
+            v-model:page="currentPage"
+            v-model:items-per-page="itemsPerPage"
+            :total-items="totalSettings"
+            :is-searching="loading"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Modal (kept inline to match original structure, but adapted) -->
     <div v-if="showModal" class="modal">
       <div class="modal-content">
         <h3>
@@ -36,6 +77,7 @@
               : "Edit Transport Setting"
           }}
         </h3>
+        <div class="title"></div>
         <form
           @submit.prevent="modalMode === 'add' ? addSetting() : updateSetting()"
         >
@@ -51,7 +93,6 @@
               <option value="Bus">Bus</option>
               <option value="Bike">Bike</option>
               <option value="Car">Car</option>
-
               <option value="Others">Others</option>
             </select>
           </div>
@@ -68,271 +109,382 @@
             />
           </div>
           <div class="modal-buttons">
-            <button type="submit" class="submit-button">
+            <button
+              type="submit"
+              class="submit-button"
+              :disabled="modalLoading"
+            >
               {{ modalMode === "add" ? "Add" : "Update" }}
             </button>
-            <button type="button" class="cancel-button" @click="closeModal">
+            <button
+              type="button"
+              class="cancel-button"
+              @click="closeModal"
+              :disabled="modalLoading"
+            >
               Cancel
             </button>
           </div>
         </form>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmDeleteModal
+      :show="showDeleteModal"
+      title="Delete Transport Setting"
+      confirm-message="Are you sure you want to delete this transport setting?"
+      item-label="Transport Name"
+      :item-name="selectedSetting?.transportName"
+      description="This action cannot be undone."
+      :deleting="deleteLoading"
+      @close="closeDeleteModal"
+      @confirm="deleteSetting"
+    />
+
+    <!-- Toast Container -->
+    <ToastContainer ref="toastContainer" />
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted } from "vue";
+import { PlusIcon, EditIcon, TrashIcon } from "lucide-vue-next";
+
+// Components
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
+import CustomPagination from "@/utils/pagination/CustomPagination.vue";
+import ActionButton from "@/components/common/buttons/ActionButton.vue";
+import ConfirmDeleteModal from "@/components/common/modals/ConfirmDeleteModal.vue";
+import ToastContainer from "@/components/common/notifications/ToastContainer.vue";
+import SkeletonLoading from "@/components/common/states/SkeletonLoading.vue";
+
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import axios from "axios";
-import { Plus } from "lucide-vue-next";
 
-export default {
-  name: "TransportSettings",
-  components: {
-    BaseButton,
+const settings = ref([]);
+const loading = ref(false);
+const currentPage = ref(1);
+const itemsPerPage = ref(25);
+const showModal = ref(false);
+const modalMode = ref("add"); // 'add' or 'edit'
+const currentSetting = ref({
+  id: null,
+  transportName: "",
+  ratePerKm: null,
+  status: "draft",
+  tenant: null,
+});
+const showDeleteModal = ref(false);
+const selectedSetting = ref(null);
+const modalLoading = ref(false);
+const deleteLoading = ref(false);
+const externalLoading = ref(false);
+const toastContainer = ref(null);
+const token = ref(null);
+const tenantId = ref(null);
+const apiUrl = `${import.meta.env.VITE_API_URL}/items/transport`;
+
+const tableColumns = [
+  {
+    key: "transportName",
+    label: "Transport Name",
+    sortable: false,
+    width: "250px",
   },
-  data() {
-    return {
-      transportSettings: [],
-      showModal: false,
-      modalMode: "add", // 'add' or 'edit'
-      currentSetting: {
-        id: null,
-        transportName: "",
-        ratePerKm: null,
-        status: "draft",
-        tenant: null,
+  { key: "ratePerKm", label: "Rate per KM", sortable: false, width: "200px" },
+  { key: "actions", label: "Actions", sortable: false, width: "120px" },
+];
+
+const totalSettings = computed(() => settings.value.length);
+
+const paginatedSettings = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return settings.value.slice(start, end);
+});
+
+async function init() {
+  try {
+    token.value = await authService.getToken();
+    tenantId.value = await currentUserTenant.getTenantId();
+    currentSetting.value.tenant = tenantId.value;
+  } catch (error) {
+    console.error("Error initializing:", error);
+  }
+}
+
+async function fetchSettings() {
+  loading.value = true;
+  try {
+    const response = await axios.get(
+      `${apiUrl}?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId.value}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token.value}`,
+        },
       },
-      token: null,
-      tenantId: null,
-      apiUrl: `${import.meta.env.VITE_API_URL}/items/transport`,
-    };
-  },
-  async created() {
+    );
+    settings.value = response.data.data;
+  } catch (error) {
+    console.error("Error fetching transport settings:", error);
+    toastContainer.value?.error("Failed to fetch settings");
+  } finally {
+    loading.value = false;
+  }
+}
+
+function openAddModal() {
+  modalMode.value = "add";
+  currentSetting.value = {
+    id: null,
+    transportName: "",
+    ratePerKm: null,
+    status: "draft",
+    tenant: tenantId.value,
+  };
+  showModal.value = true;
+}
+
+function openEditModal(item) {
+  modalMode.value = "edit";
+  currentSetting.value = { ...item, tenant: tenantId.value };
+  showModal.value = true;
+}
+
+function closeModal() {
+  showModal.value = false;
+  currentSetting.value = {
+    id: null,
+    transportName: "",
+    ratePerKm: null,
+    status: "draft",
+    tenant: tenantId.value,
+  };
+  modalLoading.value = false;
+}
+
+async function addSetting() {
+  if (
+    currentSetting.value.transportName &&
+    currentSetting.value.ratePerKm !== null
+  ) {
+    modalLoading.value = true;
     try {
-      this.token = await authService.getToken();
-      this.tenantId = await currentUserTenant.getTenantId();
-      this.currentSetting.tenant = this.tenantId;
-      await this.fetchSettings();
-    } catch (error) {
-      console.error("Error initializing component:", error);
-    }
-  },
-  methods: {
-    async fetchSettings() {
-      try {
-        const response = await axios.get(
-          `${this.apiUrl}?filter[_and][0][_and][0][tenant][tenantId][_eq]=${this.tenantId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${this.token}`,
-            },
-          },
-        );
-        this.transportSettings = response.data.data;
-      } catch (error) {
-        console.error("Error fetching transport settings:", error);
-      }
-    },
-    openModal(mode, item = null) {
-      this.modalMode = mode;
-      if (mode === "edit" && item) {
-        this.currentSetting = {
-          id: item.id,
-          transportName: item.transportName,
-          ratePerKm: item.ratePerKm,
-          status: item.status,
-          tenant: this.tenantId,
-        };
-      } else {
-        this.currentSetting = {
-          id: null,
-          transportName: "",
-          ratePerKm: null,
-          status: "draft",
-          tenant: this.tenantId,
-        };
-      }
-      this.showModal = true;
-    },
-    closeModal() {
-      this.showModal = false;
-      this.currentSetting = {
-        id: null,
-        transportName: "",
-        ratePerKm: null,
-        status: "draft",
-        tenant: this.tenantId,
-      };
-    },
-    async addSetting() {
-      if (
-        this.currentSetting.transportName &&
-        this.currentSetting.ratePerKm !== null
-      ) {
-        try {
-          const response = await axios.post(
-            this.apiUrl,
-            {
-              transportName: this.currentSetting.transportName,
-              ratePerKm: this.currentSetting.ratePerKm,
-              status: this.currentSetting.status,
-              tenant: this.currentSetting.tenant,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${this.token}`,
-              },
-            },
-          );
-          this.transportSettings.push(response.data.data);
-          this.closeModal();
-        } catch (error) {
-          console.error("Error adding transport setting:", error);
-        }
-      }
-    },
-    async updateSetting() {
-      if (
-        this.currentSetting.transportName &&
-        this.currentSetting.ratePerKm !== null
-      ) {
-        try {
-          const response = await axios.patch(
-            `${this.apiUrl}/${this.currentSetting.id}`,
-            {
-              transportName: this.currentSetting.transportName,
-              ratePerKm: this.currentSetting.ratePerKm,
-              status: this.currentSetting.status,
-              tenant: this.currentSetting.tenant,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${this.token}`,
-              },
-            },
-          );
-          const updatedIndex = this.transportSettings.findIndex(
-            (item) => item.id === this.currentSetting.id,
-          );
-          if (updatedIndex !== -1) {
-            this.transportSettings[updatedIndex] = response.data.data;
-          }
-          this.closeModal();
-        } catch (error) {
-          console.error("Error updating transport setting:", error);
-        }
-      }
-    },
-    async deleteSetting(id) {
-      try {
-        await axios.delete(`${this.apiUrl}/${id}`, {
+      const response = await axios.post(
+        apiUrl,
+        {
+          transportName: currentSetting.value.transportName,
+          ratePerKm: currentSetting.value.ratePerKm,
+          status: currentSetting.value.status,
+          tenant: currentSetting.value.tenant,
+        },
+        {
           headers: {
-            Authorization: `Bearer ${this.token}`,
+            Authorization: `Bearer ${token.value}`,
           },
-        });
-        this.transportSettings = this.transportSettings.filter(
-          (item) => item.id !== id,
-        );
-      } catch (error) {
-        console.error("Error deleting transport setting:", error);
+        },
+      );
+      settings.value.push(response.data.data);
+      toastContainer.value?.success("Setting added successfully");
+      closeModal();
+      await fetchSettings();
+    } catch (error) {
+      console.error("Error adding transport setting:", error);
+      toastContainer.value?.error("Failed to add setting");
+    } finally {
+      modalLoading.value = false;
+    }
+  }
+}
+
+async function updateSetting() {
+  if (
+    currentSetting.value.transportName &&
+    currentSetting.value.ratePerKm !== null
+  ) {
+    modalLoading.value = true;
+    try {
+      const response = await axios.patch(
+        `${apiUrl}/${currentSetting.value.id}`,
+        {
+          transportName: currentSetting.value.transportName,
+          ratePerKm: currentSetting.value.ratePerKm,
+          status: currentSetting.value.status,
+          tenant: currentSetting.value.tenant,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token.value}`,
+          },
+        },
+      );
+      const updatedIndex = settings.value.findIndex(
+        (item) => item.id === currentSetting.value.id,
+      );
+      if (updatedIndex !== -1) {
+        settings.value[updatedIndex] = response.data.data;
       }
-    },
-  },
-};
+      toastContainer.value?.success("Setting updated successfully");
+      closeModal();
+      await fetchSettings();
+    } catch (error) {
+      console.error("Error updating transport setting:", error);
+      toastContainer.value?.error("Failed to update setting");
+    } finally {
+      modalLoading.value = false;
+    }
+  }
+}
+
+function openDeleteModal(item) {
+  selectedSetting.value = item;
+  showDeleteModal.value = true;
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false;
+  selectedSetting.value = null;
+  deleteLoading.value = false;
+}
+
+async function deleteSetting() {
+  deleteLoading.value = true;
+  try {
+    await axios.delete(`${apiUrl}/${selectedSetting.value.id}`, {
+      headers: {
+        Authorization: `Bearer ${token.value}`,
+      },
+    });
+    settings.value = settings.value.filter(
+      (item) => item.id !== selectedSetting.value.id,
+    );
+    toastContainer.value?.success("Setting deleted successfully");
+    closeDeleteModal();
+    await fetchSettings();
+  } catch (error) {
+    console.error("Error deleting transport setting:", error);
+    toastContainer.value?.error("Failed to delete setting");
+  } finally {
+    deleteLoading.value = false;
+  }
+}
+
+onMounted(async () => {
+  await init();
+  await fetchSettings();
+});
 </script>
 
 <style scoped>
-.settings-container {
-  font-family: Arial, sans-serif;
-}
-
-h2 {
-  text-align: center;
-  color: #333;
-}
-
-.add-button {
-  color: white;
-
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 20px;
-  display: block;
-  margin-left: auto;
-}
-
-.add-button:hover {
-  background-color: #218838;
-}
-
-/* Box View Styles */
-.box-container {
+.table-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  flex-direction: column;
+  height: calc(100vh - 220px);
 }
 
-.setting-box {
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  width: 250px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.table-container :deep(.data-table) {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
-.setting-box:hover {
-  background-color: #f1f1f1;
+.pagination-wrapper {
+  flex-shrink: 0;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+  background: white;
 }
 
-.setting-content h3 {
-  margin: 0 0 10px;
-  font-size: 1.2em;
-  color: #333;
+.transport-settings-page {
+  margin: 0 auto;
 }
 
-.setting-content p {
-  margin: 0 0 10px;
-  color: #555;
-}
-
-.setting-actions {
+.header-content {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.edit-button,
-.delete-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
+.header-text {
+  flex: 1;
 }
 
-.edit-button {
-  background-color: #007bff;
-  color: white;
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
 }
 
-.edit-button:hover {
-  background-color: #0056b3;
+.page-subtitle {
+  color: #64748b;
+  font-size: 1rem;
+  margin: 0;
 }
 
-.delete-button {
-  background-color: #dc3545;
-  color: white;
+.header-actions {
+  flex-shrink: 0;
 }
 
-.delete-button:hover {
-  background-color: #c82333;
+.settings-section {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
 }
 
-/* Modal Styles */
+.section-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #64748b;
+}
+
+.section-title h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination-wrapper {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Modal Styles (kept from original) */
 .modal {
   position: fixed;
   top: 0;
@@ -352,6 +504,24 @@ h2 {
   border-radius: 8px;
   width: 400px;
   max-width: 90%;
+}
+
+.modal-header {
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.title {
+  height: 2px;
+  background-color: #059367; /* Green color */
+  width: 100%;
+  border-radius: 1px;
 }
 
 .form-group {
@@ -397,20 +567,20 @@ h2 {
 }
 
 .submit-button {
-  background-color: #28a745;
+  background-color: #059367;
   color: white;
 }
 
 .submit-button:hover {
-  background-color: #218838;
+  background-color: #059367;
 }
 
 .cancel-button {
-  background-color: #6c757d;
+  background-color: #a0a0a0;
   color: white;
 }
 
 .cancel-button:hover {
-  background-color: #5a6268;
+  background-color: #e2e4e5;
 }
 </style>

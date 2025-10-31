@@ -23,20 +23,14 @@
       elevation="0"
     >
       <!-- Header Section - Logo with Image -->
-      <div class="sidebar-header">
-        <div class="header-content" @click="toggleSidebarState">
-          <div class="logo-section">
-            <div class="logo-container">
-              <v-img
-                src="/images/SEO.png"
-                alt="Logo"
-                width="1000"
-                height="1000"
-                class="logo-image"
-              />
-            </div>
-          </div>
-        </div>
+      <div class="sidebar-header" @click="toggleSidebarState">
+        <v-img
+          src="/images/SEO.png"
+          alt="Logo"
+          cover
+          class="logo-image-full"
+          style="width: 85%"
+        />
       </div>
 
       <!-- Navigation Menu -->
@@ -52,7 +46,7 @@
               :to="item.to"
               class="nav-item main-item"
               :class="{ active: $route.path === item.to }"
-              @click="handleItemClick(item.to)"
+              @click="handleItemClick(item.to, item)"
               exact
             >
               <template v-slot:prepend>
@@ -75,11 +69,19 @@
                       </v-icon>
                     </div>
                   </template>
-                  <span>{{ item.title }}</span>
+                  <span> {{ item.title }}</span>
                 </v-tooltip>
               </template>
               <v-list-item-title v-if="!computedRail" class="nav-title">
                 {{ item.title }}
+                <v-progress-circular
+                  v-if="isLoading && loadingItemTitle === item.title"
+                  indeterminate
+                  size="20"
+                  color="white"
+                  class="ml-3"
+                  style="vertical-align: middle"
+                />
               </v-list-item-title>
             </v-list-item>
 
@@ -194,9 +196,7 @@
         </v-btn>
 
         <!-- Page Title -->
-        <v-toolbar-title>
-          {{ getCurrentPageTitle }}
-        </v-toolbar-title>
+        <v-toolbar-title>{{ getCurrentPageTitle }} </v-toolbar-title>
 
         <!-- Spacer -->
         <v-spacer />
@@ -253,14 +253,14 @@
           {{ tenantName || "No organization" }}
         </v-chip>
 
-        <!-- User Status Chip -->
+        <!-- Role Name Chip -->
         <v-chip
-          :color="userStatus.color"
+          class="role-chip"
+          variant="outlined"
           size="small"
-          variant="flat"
-          class="status-chip"
+          prepend-icon="mdi-account-check-outline"
         >
-          {{ userStatus.text }}
+          {{ userRole || "Employee" }}
         </v-chip>
       </v-app-bar>
 
@@ -302,6 +302,18 @@ export default {
     const railSubmenuOpen = ref(false);
     const currentRailSubmenu = ref(null);
     const railSubmenuStyle = ref({});
+    const isLoading = ref(false); // ADD THIS
+    const loadingItemTitle = ref("");
+
+    const startLoading = (itemTitle) => {
+      isLoading.value = true;
+      loadingItemTitle.value = itemTitle; // Set specific item
+    };
+
+    const stopLoading = () => {
+      isLoading.value = false;
+      loadingItemTitle.value = ""; // Clear
+    };
 
     const checkMobile = () => {
       isMobile.value = window.innerWidth < 960;
@@ -327,18 +339,13 @@ export default {
         to: "/employee-details/employee",
         roles: ["Admin", "Employee", "Manager", "esslAdmin"],
       },
-      {
-        title: "Organization Settings",
-        icon: "mdi-domain",
-        to: "/settings/organization",
-        roles: ["Admin", "Administrator", "Dealer"],
-      },
-      {
-        title: "Attendance Configuration",
-        icon: "mdi-calendar-clock",
-        roles: ["Admin", "Dealer", "Manager", "Employee"],
-        to: "/settings/attendanceconfigtab",
-      },
+
+      // {
+      //   title: "Attendance Configuration",
+      //   icon: "mdi-calendar-clock",
+      //   roles: ["Admin", "Dealer", "Manager", "Employee"],
+      //   to: "/settings/attendanceconfigtab",
+      // },
       {
         title: "Attendance",
         icon: "mdi-calendar-clock-outline",
@@ -355,11 +362,11 @@ export default {
             to: "/attendanceDeatils/daily",
             roles: ["Admin", "Employee"],
           },
-          {
-            title: "Monthly Attendance",
-            to: "/attendanceDeatils/dashboard",
-            roles: ["Admin", "Dealer", "Manager", "Employee"],
-          },
+          // {
+          //   title: "Monthly Attendance",
+          //   to: "/attendanceDeatils/dashboard",
+          //   roles: ["Admin", "Dealer", "Manager", "Employee"],
+          // },
           // {
           //   title: "Regularisation",
           //   icon: "mdi-calendar-check",
@@ -376,29 +383,41 @@ export default {
         ],
       },
       {
-        title: "FieldPro",
+        title: "Clients & Sites",
+        icon: "mdi-office-building-outline",
+        to: "/organization/locationtab",
+        roles: ["Admin"],
+      },
+      {
+        title: "Routes",
+        icon: "mdi-file-table-box-outline",
+        to: "/locate",
+        roles: ["Admin", "Manager"],
+      },
+      {
+        title: "Work Orders",
         icon: "mdi-clipboard-text-outline",
         to: "/taskManagement/taskcomponents/workorder",
         roles: ["Admin", "Manager", "Employee"],
         requiredFeature: "fieldpro",
       },
       {
-        title: "Requests",
-        icon: "mdi-calendar-remove",
-        to: "/leave",
-        roles: ["Admin", "Employee", "Manager"],
-      },
-      {
         title: "Expenses",
         icon: "mdi-cash",
-        to: "/reimbursement/reimbursementtab",
+        to: "/reimbursement/reimbursementtab/reimbursement_card",
         roles: ["Admin", "Employee", "Manager"],
       },
       {
-        title: "Locate",
-        icon: "mdi-file-table-box-outline",
-        to: "/locate",
-        roles: ["Admin", "Manager"],
+        title: " Requests",
+        to: "/leave/leaveRequest",
+        icon: "mdi-send",
+        roles: ["Employee"],
+      },
+      {
+        title: "Requests",
+        to: "/leave/leavePermission",
+        icon: "mdi-account-check",
+        roles: ["Admin"],
       },
       // {
       //   title: "Smart Forms",
@@ -406,13 +425,6 @@ export default {
       //   to: "/taskManagement/taskcomponents/workflow",
       //   roles: ["Admin"],
       // },
-      {
-        title: "Clients & Sites",
-        icon: "mdi-office-building-outline",
-        to: "/organization/locationtab",
-        roles: ["Admin"],
-      },
-
       {
         title: "Payroll",
         icon: "mdi-cash-multiple",
@@ -422,10 +434,9 @@ export default {
         subItems: [
           {
             title: "Employee Salaries",
-            to: "/payroll/employee-salary",
+            to: "/payroll/employee-salary/salary-details",
             roles: ["Admin", "Dealer"],
           },
-
           {
             title: "Run Payroll",
             to: "/payroll/management",
@@ -438,7 +449,7 @@ export default {
           },
           {
             title: "Advance and Loans",
-            to: "/payroll/advance-Loans",
+            to: "/payroll/advance-loans/advance",
             roles: ["Admin", "Dealer"],
           },
 
@@ -467,12 +478,23 @@ export default {
         roles: ["Admin", "Manager"],
       },
       {
-        title: "Import",
+        title: "Uploads",
         icon: "mdi-file-table-box-outline",
         to: "/import",
         roles: ["Admin", "Manager"],
       },
-
+      {
+        title: "Organization Settings",
+        icon: "mdi-domain",
+        to: "/settings/organization",
+        roles: ["Admin", "Administrator", "Dealer"],
+      },
+      // {
+      //   title: "Role Configurator",
+      //   icon: "mdi-shield-account",
+      //   roles: ["Admin", "Administrator"],
+      //   to: "/settings/roleConfigurator/roleconfig",
+      // },
       {
         title: "Subscription & Plans",
         icon: "mdi-credit-card-outline",
@@ -518,13 +540,13 @@ export default {
         ],
         crm: ["/connectors/connector"],
         pro: ["/regularisation"],
-        payrollpro: [
-          "/payroll",
-          "/payroll/management",
-          "/payroll/adhoc-payments",
-          "/payroll/advance",
-          "/payroll/loan",
-        ],
+        // payrollpro: [
+        //   "/payroll",
+        //   "/payroll/management",
+        //   "/payroll/adhoc-payments",
+        //   "/payroll/advance",
+        //   "/payroll/loan",
+        // ],
       };
       for (const [feature, paths] of Object.entries(premiumRoutes)) {
         if (paths.some((p) => path.startsWith(p))) {
@@ -574,15 +596,6 @@ export default {
       router.push("/settings/plans/plans");
     };
 
-    const isMenuActive = (item) => {
-      const currentPath = router.currentRoute.value.path;
-      if (item.to && currentPath === item.to) return true;
-      if (item.subItems) {
-        return item.subItems.some((subItem) => currentPath === subItem.to);
-      }
-      return false;
-    };
-
     const handleIconClick = (route, item, action, index) => {
       if (computedRail.value) {
         if (action === "logout") {
@@ -623,10 +636,34 @@ export default {
       currentRailSubmenu.value = null;
     };
 
-    const handleItemClick = (route) => {
-      if (route) {
-        router.push(route);
+    const handleItemClick = async (route, item) => {
+      if (!route) {
+        closeRailSubmenu();
+        return;
       }
+
+      const currentPath = router.currentRoute.value.path;
+
+      // Skip navigation if already on the route
+      if (currentPath === route) {
+        closeRailSubmenu();
+        return;
+      }
+
+      startLoading(item.title);
+
+      try {
+        await router.push(route);
+      } catch (error) {
+        if (error.name !== "NavigationDuplicated") {
+          console.error("Navigation error:", error);
+        }
+      } finally {
+        setTimeout(() => {
+          stopLoading();
+        }, 1000);
+      }
+
       closeRailSubmenu();
     };
 
@@ -657,6 +694,8 @@ export default {
         "/settings/configuration": "Configuration",
         "/settings/holidays": "Holidays",
         "/settings/shifts": "Shifts",
+        "/configuration/teams": "Configurators",
+        "/configuration/designations": "Configurators",
         "/settings/leave-types": "Leave Types",
         "/settings/plans/plans": "Subscription & Plans",
         "/taskManagement/taskcomponents/workOrder": "Work Orders",
@@ -664,19 +703,24 @@ export default {
         "/taskManagement/Map/livetracking": "Live Tracking",
         "/taskManagement/productviews": "Assets",
         "/taskManagement/productviews/deviceManagementScreen": "Asset Types",
-        "/organization/orgmainui": "Organizations",
+        "/organization/orgmainui": "Clients and Sites",
         "/organization/org_location": "Locations",
         "/employee-details/employee": "Employee Details",
+        "/employee-details/leave": "Employee Details",
+        "/employee-details/otherDetails": "Employee Details",
+        "/employee-details/attendance": "Employee Details",
         "/leave": "Leave Management",
         "/taskManagement/kpi": "KPI View",
+        "/reimbursement/reimbursementtab/reimbursement_card": "Expense",
+        "/reimbursement/reimbursementtab/addreimbursement": "Expense",
         "/taskManagement-overviewtab/livetracking": "Live Tracking",
         "/attendanceDeatils/live": "Live Attendance",
         "/attendanceLog/attendance": "Logs",
         "/attendanceDeatils/daily": "Daily Attendance",
-        "/attendanceDeatils/dashboard": "Attendance Dashboard",
+        "/attendanceDeatils/dashboard": "Monthly Dashboard",
         "/attendanceDeatils/roster": "Company Roster",
-        "/reimbursement/reimbursement_card": "Reimbursement",
-        "/import/importDetails": "Import",
+        "/reimbursement/reimbursement_card": "Expenses",
+        "/import/importDetails": "Uploads",
         "/connectors/connector": "Connectors",
         "/attendanceLog/general": "Attendance Logs",
         "/profile": "Profile",
@@ -688,7 +732,7 @@ export default {
       }
 
       if (path.startsWith("/taskManagement/")) {
-        return "Work order";
+        return "Work Orders";
       }
       if (path.startsWith("/organization/")) {
         return "Organization";
@@ -696,23 +740,66 @@ export default {
       if (path.startsWith("/employee-details/")) {
         return "Users Details";
       }
+
       if (path.includes("/payroll/employee-salary/salary-details")) {
         return "Salary Details";
       }
       if (path.includes("/payroll/employee-salary/bank-details")) {
         return "Bank Details";
       }
-      if (path.includes("/payroll/policy/payroll-policy")) {
-        return "Payroll Policies";
+      if (path.includes("/configuration/configuration")) {
+        return "Configurators";
       }
-      if (path.includes("/payroll/policy/penalty-policy")) {
-        return "Penality Policies";
+      if (path.includes("/configuration/departement-configuration")) {
+        return "Configurators";
       }
-      if (path.includes("/payroll/advance-Loans/Advance")) {
+      if (path.includes("/configuration/shifts")) {
+        return "Configurators";
+      }
+      if (path.includes("/configuration/attendanceCycle")) {
+        return "Configurators";
+      }
+      if (path.includes("/configuration/leave-types")) {
+        return "Configurators";
+      }
+      if (path.includes("/configuration/holidays")) {
+        return "Configurators";
+      }
+      if (path.includes("/configuration/reimbursement_settings")) {
+        return "Configurators";
+      }
+      if (path.includes("/configuration/payroll-policy")) {
+        return "Configurators";
+      }
+      if (path.includes("/configuration/penalty-policy")) {
+        return "Configurators";
+      }
+      if (path.includes("/leave/tab/leavePermission")) {
+        return "Request";
+      }
+      if (path.includes("/reports/attendance")) {
+        return "Attendance Report";
+      }
+      if (path.includes("/reports/companyReport")) {
+        return "Payroll Report";
+      }
+      // if (path.includes("/payroll/policy/penalty-policy")) {
+      //   return "Penality Policies";
+      // }
+      if (path.includes("/payroll/advance-loans/advance")) {
         return "Advance";
       }
       if (path.includes("/payroll/advance-Loans/Loan")) {
         return "Loan";
+      }
+      if (path.includes("/payroll/attendance-verification")) {
+        return "Run Payroll";
+      }
+      if (path.includes("/payroll/salary-verification")) {
+        return "Run Payroll";
+      }
+      if (path.includes("/payroll/review")) {
+        return "Run Payroll";
       }
       if (path.startsWith("/attendanceDeatils/")) {
         return "Attendance";
@@ -759,7 +846,7 @@ export default {
         const api = axios.create({
           baseURL: import.meta.env.VITE_API_URL,
           headers: {
-            Authorization: `Bearer ${authService.getToken()}`, // Fixed template literal
+            Authorization: `Bearer ${authService.getToken()}`,
             "Content-Type": "application/json",
           },
         });
@@ -790,14 +877,14 @@ export default {
             userData.last_name || ""
           }`;
           userRole.value = userData.role?.name || "";
-          userStatus.value = getUserStatus("unknown"); // Default to unknown since status is removed
+          userStatus.value = getUserStatus("unknown");
           tenantName.value =
             userData.tenant?.tenantName || "No organization assigned";
           tenantplan.value = userData.tenant?.plan || null;
 
           if (userData.avatar?.id) {
             await fetchAuthorizedImage(
-              `${import.meta.env.VITE_API_URL}/assets/${userData.avatar.id}` // Fixed template literal
+              `${import.meta.env.VITE_API_URL}/assets/${userData.avatar.id}`
             );
           }
         } else {
@@ -883,6 +970,8 @@ export default {
     );
 
     return {
+      loadingItemTitle,
+      isLoading,
       drawer,
       rail,
       isMobile,
@@ -896,7 +985,6 @@ export default {
       handleLogout,
       expandedMenus,
       toggleSidebarState,
-      isMenuActive,
       goToDashboard,
       tenantName,
       handleSubItemClick,
@@ -912,6 +1000,7 @@ export default {
       isLocked,
       goToPlans,
       planStatus,
+      userRole,
     };
   },
 };
@@ -933,25 +1022,21 @@ export default {
 }
 
 .sidebar-header {
-  padding: 16px;
-  background: #1e3fa9;
+  background: white;
   border-bottom: 1px solid #35486d;
+  height: 50px;
 }
 
 .header-content {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 8px;
+  padding: 0;
   border-radius: 8px;
-  background: #1e3fa9;
+  background: white;
   color: white;
   transition: background-color 0.2s;
   justify-content: flex-start;
-}
-
-.header-content:hover {
-  background: #1e3fa9;
 }
 
 .logo-section {
@@ -961,8 +1046,8 @@ export default {
 }
 
 .logo-container {
-  width: 36px;
-  height: 30px;
+  width: 240px;
+  height: 100px;
   background: rgb(255, 255, 255);
   border-radius: 8px;
   display: flex;
@@ -1040,15 +1125,6 @@ export default {
   color: #000000 !important;
 }
 
-.modern-sidebar :deep(.main-item.active) {
-  background-color: #77c3ab !important;
-  color: #000000 !important;
-}
-
-.modern-sidebar :deep(.main-item.active .nav-icon) {
-  color: #000000 !important;
-}
-
 .modern-sidebar :deep(.nav-icon) {
   color: #fafbfc;
   transition: all 0.2s ease !important;
@@ -1086,11 +1162,6 @@ export default {
 .modern-sidebar :deep(.sub-item:hover) {
   background-color: #c6e4dc !important;
   color: #000000 !important;
-}
-
-.modern-sidebar :deep(.sub-item.active) {
-  color: #000000 !important;
-  background-color: #77c3ab;
 }
 
 .modern-sidebar :deep(.sub-title) {
@@ -1152,11 +1223,6 @@ export default {
   color: #374151;
 }
 
-.rail-submenu-item.active {
-  background-color: #77c3ab;
-  color: #c6e4dc !important;
-}
-
 .rail-submenu-title {
   font-size: 13px;
   font-weight: 400;
@@ -1170,7 +1236,7 @@ export default {
   display: flex;
   align-items: center;
   border-bottom: 1px solid #e5e7eb !important;
-  background-color: #059367 !important; /* Black background */
+  background-color: #cc242d !important;
   color: #fff !important;
 }
 
@@ -1204,14 +1270,15 @@ export default {
 
 .header-profile-btn {
   text-transform: none !important;
-  color: #111827 !important;
+  color: #ffffff !important;
   padding: 0 8px !important;
+  font-weight: bold;
 }
 
 .header-profile-name {
   font-size: 14px;
-  font-weight: 500;
-  color: #111827;
+  font-weight: bold;
+  color: #ffffff;
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1223,6 +1290,15 @@ export default {
   height: 32px !important;
   border-color: #e5e7eb !important;
   margin-right: 8px !important;
+  font-weight: bold;
+}
+
+.role-chip {
+  font-size: 12px !important;
+  height: 32px !important;
+  border-color: #e5e7eb !important;
+  margin-right: 8px !important;
+  font-weight: bold;
 }
 
 .status-chip {
@@ -1284,5 +1360,8 @@ export default {
 
 .logout-menu-item {
   color: #dc2626 !important;
+}
+.v-toolbar-title {
+  font-weight: bold;
 }
 </style>

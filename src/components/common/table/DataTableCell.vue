@@ -116,12 +116,4 @@ const getCellStyle = computed(() => {
   flex: 0 0 280px;
   min-width: 280px;
 }
-
-.employeeId-sticky {
-  /* position: sticky; */
-  left: 0;
-  z-index: 10;
-  background: #fff;
-  box-shadow: 1px 0 0 #e2e8f0;
-}
 </style>

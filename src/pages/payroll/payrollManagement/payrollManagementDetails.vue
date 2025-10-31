@@ -12,95 +12,90 @@
         />
       </div>
     </div>
-    <button
-      v-if="tenantId"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
+
     <div class="main-content">
       <!-- Integrate DataTable wrapper -->
       <data-table-wrapper
         v-model:searchQuery="search"
-        search-placeholder="Search Employee"
+        search-placeholder="Search Employee "
         :show-search="true"
-        :is-empty="items.length === 0"
+        :is-empty="items.length === 0 && !search"
         :has-error="false"
-        wrapper-class="payroll-table-wrapper"
+        @update:searchQuery="debouncedSearch"
       >
+        <template #before-search>
+          <button
+            v-if="tenantId"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
+        <template #below-search>
+          <div class="position-relative">
+            <BaseButton
+              variant="primary"
+              size="md"
+              :left-icon="RefreshCw"
+              @click="recalculateAttendance"
+              class="ms-2"
+            >
+              Recalc Attendance
+            </BaseButton>
+
+            <BaseButton
+              variant="success"
+              size="md"
+              :left-icon="BadgeCheck"
+              @click="markAsPaid"
+              :disabled="!hasFinalizedUnpaidUsers"
+              class="ms-2"
+            >
+              Mark as Paid
+            </BaseButton>
+
+            <BaseButton
+              variant="primary"
+              size="md"
+              :left-icon="CheckCheck"
+              @click="finalizeMultiplePayroll()"
+              :disabled="selected.length === 0"
+              class="ms-2"
+            >
+              Finalize Payroll ({{ selected.length }})
+            </BaseButton>
+
+            <BaseButton
+              variant="primary"
+              size="md"
+              :left-icon="FileSpreadsheet"
+              @click="downloadSalarySheet()"
+              class="ms-2"
+            >
+              Salary Sheet
+              <span v-if="selected.length > 0" class="ml-1">
+                ({{ selected.length }})
+              </span>
+            </BaseButton>
+          </div></template
+        >
         <!-- Toolbar Actions Slot -->
+
         <template v-slot:toolbar-actions>
-          <div class="position-relative"></div>
-          <BaseButton
-            variant="primary"
-            size="md"
-            :left-icon="RefreshCw"
-            @click="recalculateAttendance"
-            class="ms-2"
-          >
-            Recalc Attendance
-          </BaseButton>
-
-          <BaseButton
-            variant="success"
-            size="md"
-            :left-icon="BadgeCheck"
-            @click="markAsPaid"
-            :disabled="!hasFinalizedUnpaidUsers"
-            class="ms-2"
-          >
-            Mark as Paid
-          </BaseButton>
-
-          <BaseButton
-            variant="primary"
-            size="md"
-            :left-icon="Undo2"
-            @click="selectUnfinalizedUsers"
-            :disabled="selected.length === 0"
-            class="mt-2"
-          >
-            Unfinalize Payroll
-          </BaseButton>
-
-          <BaseButton
-            variant="primary"
-            size="md"
-            :left-icon="CheckCheck"
-            @click="finalizeMultiplePayroll()"
-            :disabled="selected.length === 0"
-            class="ms-2"
-          >
-            Finalize Payroll ({{ selected.length }})
-          </BaseButton>
-
-          <BaseButton
-            variant="primary"
-            size="md"
-            :left-icon="FileSpreadsheet"
-            @click="downloadSalarySheet()"
-            class="ms-2"
-          >
-            Salary Sheet
-            <span v-if="selected.length > 0" class="ml-1">
-              ({{ selected.length }})
-            </span>
-          </BaseButton>
-
           <div class="stats-container">
             <div class="stat-item">
               <span class="stat-value">{{ payrollCounts.paid }}</span>
@@ -122,43 +117,44 @@
         </template>
         <!-- Table Content -->
         <template v-slot:default>
-          <DataTable
-            :items="items"
-            :columns="columns"
-            :selected-items="selected"
-            :show-selection="true"
-            :sort-by="sortBy"
-            :sort-direction="sortDirection"
-            :row-clickable="true"
-            @update:selected-items="selected = $event"
-            @rowClick="handleRowClick"
-            class="employee-table"
-            ><template v-slot:cell-employee.employeeId="{ item }">
-              <strong>{{ item.employee.employeeId || "-" }}</strong>
-            </template>
-            <template v-slot:cell-employee.assignedUser.first_name="{ item }">
-              <span class="text-primary">{{
-                item.employee.assignedUser.first_name || "Unknown"
-              }}</span>
-            </template>
-            <template v-slot:cell-employee.assignedUser.role.name="{ item }">
-              {{ item.employee.assignedUser.role?.name || "No Role" }}
-            </template>
-            <template v-slot:cell-employee.assignedUser.designation="{ item }">
-              {{ item.employee.assignedUser.designation || "No Designation" }}
-            </template>
-            <!-- Preserve existing top slot content -->
-            <template v-slot:top>
-              <div class="d-flex align-center py-2 px-4">
-                <v-chip
-                  v-if="dateRange.start && dateRange.end"
-                  class="mr-2 mb-1 mt-1"
-                  :closable="false"
-                >
-                  {{ formatDateForDisplay(dateRange.start) }} -
-                  {{ formatDateForDisplay(dateRange.end) }}
-                </v-chip>
-                <!-- <v-chip
+          <SkeletonLoading
+            v-if="loading"
+            variant="data-table"
+            :rows="6"
+            :columns="columns.length"
+            :animated="true"
+          />
+          <ErrorState
+            v-else-if="error"
+            :title="'Unable to load employees'"
+            :message="error"
+            :retry-action="{ text: 'Try Again', icon: RefreshCw }"
+            @retry="fetchItems"
+          />
+
+          <div v-else>
+            <DataTable
+              :items="items"
+              :columns="columns"
+              :selected-items="selected"
+              :show-selection="true"
+              :sort-by="sortBy"
+              :sort-direction="sortDirection"
+              :row-clickable="true"
+              @update:selected-items="selected = $event"
+              @rowClick="handleRowClick"
+            >
+              <template v-slot:top>
+                <div class="d-flex align-center py-2 px-4">
+                  <v-chip
+                    v-if="dateRange.start && dateRange.end"
+                    class="mr-2 mb-1 mt-1"
+                    :closable="false"
+                  >
+                    {{ formatDateForDisplay(dateRange.start) }} -
+                    {{ formatDateForDisplay(dateRange.end) }}
+                  </v-chip>
+                  <!-- <v-chip
                   v-if="selectedCycleId !== 1"
                   class="mr-2 mb-1 mt-1"
                   color="primary"
@@ -167,134 +163,168 @@
                 >
                   Cycle: {{ getCycleNameById(selectedCycleId) }}
                 </v-chip> -->
-                <v-chip
-                  v-if="verificationFilters.attendance !== null"
-                  class="mr-2 mb-1 mt-1"
-                  :color="verificationFilters.attendance ? 'success' : 'error'"
-                  closable
-                  @click:close="clearAttendanceFilter"
-                >
-                  Attendance:
-                  {{
-                    verificationFilters.attendance ? "Verified" : "Unverified"
-                  }}
-                </v-chip>
-                <v-chip
-                  v-if="verificationFilters.salary !== null"
-                  class="mr-2 mb-1 mt-1"
-                  :color="verificationFilters.salary ? 'success' : 'error'"
-                  closable
-                  @click:close="clearSalaryFilter"
-                >
-                  Salary:
-                  {{ verificationFilters.salary ? "Finalized" : "Unfinalized" }}
-                </v-chip>
-                <v-chip
-                  v-if="verificationFilters.salaryPaid !== null"
-                  class="mr-2 mb-1 mt-1"
-                  :color="
-                    verificationFilters.salaryPaid === 'paid'
-                      ? 'success'
-                      : 'error'
-                  "
-                  closable
-                  @click:close="clearSalaryPaidFilter"
-                >
-                  Salary Status:
-                  {{
-                    verificationFilters.salaryPaid === "paid"
-                      ? "Paid"
-                      : "Unpaid"
-                  }}
-                </v-chip>
-              </div>
-            </template>
+                  <v-chip
+                    v-if="verificationFilters.attendance !== null"
+                    :color="
+                      verificationFilters.attendance ? 'success' : 'error'
+                    "
+                    closable
+                    @click:close="clearAttendanceFilter"
+                  >
+                    Attendance:
+                    {{
+                      verificationFilters.attendance ? "Verified" : "Unverified"
+                    }}
+                  </v-chip>
+                  <v-chip
+                    v-if="verificationFilters.salary !== null"
+                    class="mr-2 mb-1 mt-1"
+                    :color="verificationFilters.salary ? 'success' : 'error'"
+                    closable
+                    @click:close="clearSalaryFilter"
+                  >
+                    Salary:
+                    {{
+                      verificationFilters.salary ? "Finalized" : "Unfinalized"
+                    }}
+                  </v-chip>
+                  <v-chip
+                    v-if="verificationFilters.salaryPaid !== null"
+                    class="mr-2 mb-1 mt-1"
+                    :color="
+                      verificationFilters.salaryPaid === 'paid'
+                        ? 'success'
+                        : 'error'
+                    "
+                    closable
+                    @click:close="clearSalaryPaidFilter"
+                  >
+                    Salary Status:
+                    {{
+                      verificationFilters.salaryPaid === "paid"
+                        ? "Paid"
+                        : "Unpaid"
+                    }}
+                  </v-chip>
+                </div>
+              </template>
+              <template v-slot:cell-employee.employeeId="{ item }">
+                <strong>{{ item.employee.employeeId || "-" }}</strong>
+              </template>
+              <template v-slot:cell-employee.assignedUser.first_name="{ item }">
+                <span class="text-primary">{{
+                  item.employee.assignedUser.first_name || "-"
+                }}</span>
+              </template>
+              <template v-slot:cell-employee.assignedUser.role.name="{ item }">
+                {{ item.employee.assignedUser.role?.name || "-" }}
+              </template>
+              <template
+                v-slot:cell-employee.assignedUser.designation="{ item }"
+              >
+                {{ item.employee.assignedUser.designation || "-" }}
+              </template>
+              <!-- Preserve existing top slot content -->
 
-            <!-- Custom cell slots -->
-            <!-- <template v-slot:cell-employee.cycleType="{ item }">
+              <!-- Custom cell slots -->
+              <!-- <template v-slot:cell-employee.cycleType="{ item }">
               {{ getCycleNameById(item.employee.cycleType) }}
             </template> -->
-            <template v-slot:cell-attendanceVerification="{ item }">
-              <v-icon
-                :color="item.attendanceVerified ? 'success' : 'error'"
-                small
-              >
+              <template v-slot:cell-attendanceVerification="{ item }">
+                <v-icon
+                  :color="item.attendanceVerified ? 'success' : 'error'"
+                  small
+                  style="position: static"
+                >
+                  {{
+                    item.attendanceVerified
+                      ? "mdi-check-circle"
+                      : "mdi-alert-circle"
+                  }}
+                </v-icon>
+                {{ item.attendanceVerified ? "Verified" : "Unverified" }}
+              </template>
+              <template v-slot:cell-salaryVerification="{ item }">
+                <v-icon
+                  :color="item.salaryVerified ? 'success' : 'error'"
+                  small
+                  style="position: static"
+                >
+                  {{
+                    item.salaryVerified
+                      ? "mdi-check-circle"
+                      : "mdi-alert-circle"
+                  }}
+                </v-icon>
+                {{ item.salaryVerified ? "Finalized" : "Unfinalized" }}
+              </template>
+              <template v-slot:cell-pending="{ item }">
+                <v-chip :color="item.isPending ? 'orange' : 'green'" small>
+                  {{ item.isPending ? "Pending" : "Approved" }}
+                </v-chip>
+              </template>
+              <template v-slot:cell-salaryPaid="{ item }">
+                <span
+                  class="salary-paid-status"
+                  :class="item.salaryPaid === 'paid' ? 'paid' : 'unpaid'"
+                >
+                  {{ item.salaryPaid === "paid" ? "Paid" : "Unpaid" }}
+                </span>
+              </template>
+
+              <template v-slot:cell-activity="{ item }">
+                <v-chip
+                  :color="getActivityColor(item.activity)"
+                  small
+                  variant="outlined"
+                >
+                  {{ item.activity }}
+                </v-chip>
+              </template>
+              <template v-slot:cell-joiningDate="{ item }">
                 {{
-                  item.attendanceVerified
-                    ? "mdi-check-circle"
-                    : "mdi-alert-circle"
+                  item.joiningDate
+                    ? formatDateForDisplay(item.joiningDate)
+                    : "-"
                 }}
-              </v-icon>
-              {{ item.attendanceVerified ? "Verified" : "Unverified" }}
-            </template>
-            <template v-slot:cell-salaryVerification="{ item }">
-              <v-icon :color="item.salaryVerified ? 'success' : 'error'" small>
+              </template>
+              <template v-slot:cell-leavingDate="{ item }">
                 {{
-                  item.salaryVerified ? "mdi-check-circle" : "mdi-alert-circle"
+                  item.leavingDate
+                    ? formatDateForDisplay(item.leavingDate)
+                    : "-"
                 }}
-              </v-icon>
-              {{ item.salaryVerified ? "Finalized" : "Unfinalized" }}
-            </template>
-            <template v-slot:cell-pending="{ item }">
-              <v-chip :color="item.isPending ? 'orange' : 'green'" small>
-                {{ item.isPending ? "Pending" : "Approved" }}
-              </v-chip>
-            </template>
-            <template v-slot:cell-salaryPaid="{ item }">
-              <v-chip
-                :color="item.salaryPaid === 'paid' ? 'success' : 'error'"
-                small
-              >
-                {{ item.salaryPaid === "paid" ? "Paid" : "Unpaid" }}
-              </v-chip>
-            </template>
-            <template v-slot:cell-activity="{ item }">
-              <v-chip
-                :color="getActivityColor(item.activity)"
-                small
-                variant="outlined"
-              >
-                {{ item.activity }}
-              </v-chip>
-            </template>
-            <template v-slot:cell-joiningDate="{ item }">
-              {{
-                item.joiningDate ? formatDateForDisplay(item.joiningDate) : "-"
-              }}
-            </template>
-            <template v-slot:cell-leavingDate="{ item }">
-              {{
-                item.leavingDate ? formatDateForDisplay(item.leavingDate) : "-"
-              }}
-            </template>
-            <template v-slot:cell-startDate="{ item }">
-              {{ item.startDate ? formatDateForDisplay(item.startDate) : "-" }}
-            </template>
-            <template v-slot:cell-endDate="{ item }">
-              {{ item.endDate ? formatDateForDisplay(item.endDate) : "-" }}
-            </template>
-            <template v-slot:cell-ctc="{ item }">
-              {{ formatAmount(item.ctc) }}
-            </template>
-            <template v-slot:cell-payableDays="{ item }">
-              {{ item.payableDays || "-" }}
-            </template>
-            <template v-slot:cell-payableCTC="{ item }">
-              {{ formatAmount(item.payableCTC) }}
-            </template>
-            <template v-slot:cell-data-table-select="{ item }">
-              <v-checkbox
-                :model-value="isItemSelected(item)"
-                @update:model-value="
-                  (value) => handleCheckboxChange(item, value)
-                "
-                :disabled="!isItemSelectable(item)"
-                color="black"
-                density="compact"
-                @click.stop
-              />
-            </template>
-            <!-- <template v-slot:empty-state>
+              </template>
+              <template v-slot:cell-startDate="{ item }">
+                {{
+                  item.startDate ? formatDateForDisplay(item.startDate) : "-"
+                }}
+              </template>
+              <template v-slot:cell-endDate="{ item }">
+                {{ item.endDate ? formatDateForDisplay(item.endDate) : "-" }}
+              </template>
+              <template v-slot:cell-ctc="{ item }">
+                {{ formatAmount(item.ctc) }}
+              </template>
+              <template v-slot:cell-payableDays="{ item }">
+                {{ item.payableDays || "-" }}
+              </template>
+              <template v-slot:cell-payableCTC="{ item }">
+                {{ formatAmount(item.payableCTC) }}
+              </template>
+              <template v-slot:cell-data-table-select="{ item }">
+                <v-checkbox
+                  :model-value="isItemSelected(item)"
+                  @update:model-value="
+                    (value) => handleCheckboxChange(item, value)
+                  "
+                  :disabled="!isItemSelectable(item)"
+                  color="black"
+                  density="compact"
+                  @click.stop
+                />
+              </template>
+              <!-- <template v-slot:empty-state>
               <div class="d-flex flex-column align-center py-6">
                 <v-icon size="64" color="grey lighten-2" class="mb-4"
                   >mdi-file-search-outline</v-icon
@@ -310,7 +340,8 @@
                 >
               </div>
             </template> -->
-          </DataTable>
+            </DataTable>
+          </div>
         </template>
 
         <!-- Pagination Slot -->
@@ -502,323 +533,313 @@
           </v-card-title>
           <v-card-text class="pa-0">
             <div ref="payslipPreviewContent" class="payslip-preview-content">
-              <div v-if="currentPayslipData" class="payslip-container">
-                <!-- Payslip content remains unchanged -->
+              <div v-if="currentPayslipData" class="payslip-container-new">
                 <div class="payslip-loading" v-if="generatingPdf">
                   <v-progress-circular indeterminate color="primary" />
                   <span class="ml-2">Generating PDF...</span>
                 </div>
-                <div v-else>
-                  <div
-                    class="payslip-header"
-                    style="
-                      display: flex;
-                      flex-direction: column;
-                      align-items: center;
-                      text-align: center;
-                    "
-                  >
-                    <div
-                      style="
-                        display: flex;
-                        align-items: center;
-                        gap: 20px;
-                        margin-bottom: 10px;
-                      "
-                    >
-                      <h2 style="margin: 0; font-weight: bold; font-size: 20px">
+                <div v-else class="payslip-content">
+                  <!-- Header Section -->
+                  <div class="payslip-header-new">
+                    <div>
+                      <h1 class="company-name">
                         {{ currentPayslipData.tenantName }}
-                        <p
-                          v-if="currentPayslipData.Address"
-                          class="address"
-                          style="font-weight: bold; font-size: 20px"
-                        >
-                          {{ currentPayslipData.Address.house }},
-                          {{ currentPayslipData.Address.street }},
-                          {{ currentPayslipData.Address.vtc }},
-                          {{ currentPayslipData.Address.dist }},
-                          {{ currentPayslipData.Address.zip }}
-                        </p>
-                      </h2>
-                      <img
-                        v-if="currentPayslipData.logo"
-                        :src="currentPayslipData.logo"
-                        alt="Company Logo"
-                        class="company-logo"
-                        style="
-                          max-height: 180px;
-                          width: 180px;
-                          border-radius: 50%;
-                          object-fit: cover;
-                        "
-                      />
-                    </div>
-                  </div>
-                  <div class="payslip-title">
-                    <h3>
-                      PAYSLIP FOR
-                      {{
-                        formatPayrollMonth(
-                          currentPayslipData.month,
-                          currentPayslipData.year,
-                        )
-                      }}
-                    </h3>
-                  </div>
-                  <div class="employee-details">
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <span class="label">Employee Name:</span>
-                        <span class="value">{{
-                          currentPayslipData.employeeName
-                        }}</span>
-                      </div>
-                      <div class="detail-item">
-                        <span class="label">Employee ID:</span>
-                        <span class="value">{{
-                          currentPayslipData.employeeId
-                        }}</span>
-                      </div>
-                    </div>
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <span class="label">Role:</span>
-                        <span class="value">{{ currentPayslipData.Role }}</span>
-                      </div>
-                      <div class="detail-item">
-                        <span class="label">Designation:</span>
-                        <span class="value">{{
-                          currentPayslipData.designation
-                        }}</span>
-                      </div>
-                    </div>
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <span class="label">PF(UAN)Number:</span>
-                        <span class="value">{{
-                          currentPayslipData.PFNumber
-                        }}</span>
-                      </div>
-                      <div class="detail-item">
-                        <span class="label">ESINumber:</span>
-                        <span class="value">{{
-                          currentPayslipData.ESINumber
-                        }}</span>
-                      </div>
-                    </div>
-                    <div class="detail-row">
-                      <div class="detail-item">
-                        <span class="label">Pay Period:</span>
-                        <span class="value">{{
+                      </h1>
+                      <p
+                        v-if="currentPayslipData.Address"
+                        class="company-address"
+                      >
+                        {{ currentPayslipData.Address.house }},
+                        {{ currentPayslipData.Address.street }},
+                        {{ currentPayslipData.Address.vtc }},
+                        {{ currentPayslipData.Address.dist }},
+                        {{ currentPayslipData.Address.zip }}
+                      </p>
+                      <h2 class="payslip-title-text">
+                        PAYSLIP FOR
+                        {{
                           formatPayrollMonth(
                             currentPayslipData.month,
                             currentPayslipData.year,
                           )
-                        }}</span>
-                      </div>
-                      <div class="detail-item">
-                        <span class="label">Payable Days:</span>
-                        <span class="value">{{
-                          currentPayslipData.payableDays
-                        }}</span>
-                      </div>
+                        }}
+                      </h2>
                     </div>
                   </div>
-                  <div class="salary-details">
-                    <div class="salary-section">
-                      <h4>Earnings</h4>
-                      <div class="salary-items">
-                        <div
-                          v-for="(value, key) in currentPayslipData.earnings"
-                          :key="`earning-${key}`"
-                          class="salary-item"
-                        >
-                          <span class="item-name">{{ key }}</span>
-                          <span class="item-value"
-                            >â‚¹ {{ formatAmount(value || 0) }}</span
-                          >
-                        </div>
-                        <!-- Show salary arrears if available -->
-                        <div
-                          v-if="
-                            currentPayslipData.salaryArrears &&
-                            Object.keys(currentPayslipData.salaryArrears)
-                              .length > 0
-                          "
-                          class="salary-item-group"
-                        >
-                          <div class="salary-item-group-title">
-                            Salary Arrears
-                          </div>
-                          <div
-                            v-for="(
-                              value, key
-                            ) in currentPayslipData.salaryArrears"
-                            :key="`arrear-${key}`"
-                            class="salary-item"
-                          >
-                            <span class="item-name">{{ key }}</span>
-                            <span class="item-value"
-                              >â‚¹ {{ formatAmount(value || 0) }}</span
-                            >
-                          </div>
-                        </div>
 
-                        <div class="salary-item total">
-                          <span class="item-name">Total Earnings</span>
-                          <span class="item-value"
-                            >â‚¹
+                  <!-- Employee Details Section -->
+                  <div class="section-container">
+                    <div class="section-header">Employee Details</div>
+                    <table class="details-table">
+                      <tbody>
+                        <tr>
+                          <td class="label-cell">Employee Name:</td>
+                          <td class="value-cell">
+                            {{ currentPayslipData.employeeName }}
+                          </td>
+                          <td class="label-cell">Employee ID:</td>
+                          <td class="value-cell">
+                            {{ currentPayslipData.employeeId }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="label-cell">Role:</td>
+                          <td class="value-cell">
+                            {{ currentPayslipData.Role }}
+                          </td>
+                          <td class="label-cell">Designation:</td>
+                          <td class="value-cell">
+                            {{ currentPayslipData.designation }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="label-cell">PF(UAN) Number:</td>
+                          <td colspan="3" class="value-cell">
+                            {{ currentPayslipData.PFNumber }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="label-cell">ESI Number:</td>
+                          <td colspan="3" class="value-cell">
+                            {{ currentPayslipData.ESINumber }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="label-cell">Pay Period:</td>
+                          <td class="value-cell">
                             {{
-                              formatAmount(
-                                currentPayslipData.totalEarnings || 0,
+                              formatPayrollMonth(
+                                currentPayslipData.month,
+                                currentPayslipData.year,
                               )
-                            }}</span
+                            }}
+                          </td>
+                          <td class="label-cell">Payable Days:</td>
+                          <td class="value-cell">
+                            {{ currentPayslipData.payableDays }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Earnings and Deductions Section -->
+                  <div class="salary-grid">
+                    <!-- Earnings Column -->
+                    <div class="salary-column">
+                      <div class="section-header">Earnings</div>
+                      <table class="salary-table">
+                        <tbody>
+                          <tr
+                            v-for="(value, key) in currentPayslipData.earnings"
+                            :key="`earning-${key}`"
                           >
-                        </div>
-                        <!-- Show benefits if available -->
-                        <div
-                          v-if="
-                            currentPayslipData.benefits &&
-                            Object.keys(currentPayslipData.benefits).length > 0
-                          "
-                          class="salary-item-group"
-                        >
-                          <div class="salary-item-group-title">Benefits</div>
-                          <div
-                            v-for="(value, key) in currentPayslipData.benefits"
-                            :key="`benefit-${key}`"
-                            class="salary-item"
+                            <td class="item-cell">{{ key }}</td>
+                            <td class="amount-cell">
+                              {{
+                                value === null
+                                  ? "NaN"
+                                  : formatAmount(value || 0)
+                              }}
+                            </td>
+                          </tr>
+
+                          <!-- Salary Arrears -->
+                          <template
+                            v-if="
+                              currentPayslipData.salaryArrears &&
+                              Object.keys(currentPayslipData.salaryArrears)
+                                .length > 0
+                            "
                           >
-                            <span class="item-name">{{ key }}</span>
-                            <span class="item-value"
-                              >â‚¹ {{ formatAmount(value || 0) }}</span
+                            <tr>
+                              <td colspan="2" class="subsection-header">
+                                Salary Arrears
+                              </td>
+                            </tr>
+                            <tr
+                              v-for="(
+                                value, key
+                              ) in currentPayslipData.salaryArrears"
+                              :key="`arrear-${key}`"
                             >
-                          </div>
-                        </div>
-                        <div class="salary-item total">
-                          <span class="item-name">Total Benefits</span>
-                          <span class="item-value"
-                            >â‚¹
-                            {{
-                              formatAmount(
-                                currentPayslipData.totalBenefits || 0,
-                              )
-                            }}</span
+                              <td class="item-cell">{{ key }}</td>
+                              <td class="amount-cell">
+                                {{ formatAmount(value || 0) }}
+                              </td>
+                            </tr>
+                          </template>
+
+                          <!-- Benefits -->
+                          <template
+                            v-if="
+                              currentPayslipData.benefits &&
+                              Object.keys(currentPayslipData.benefits).length >
+                                0
+                            "
                           >
-                        </div>
-                      </div>
+                            <tr>
+                              <td colspan="2" class="subsection-header">
+                                Benefits
+                              </td>
+                            </tr>
+                            <tr
+                              v-for="(
+                                value, key
+                              ) in currentPayslipData.benefits"
+                              :key="`benefit-${key}`"
+                            >
+                              <td class="item-cell">{{ key }}</td>
+                              <td class="amount-cell">
+                                {{ formatAmount(value || 0) }}
+                              </td>
+                            </tr>
+                          </template>
+
+                          <!-- Total Earnings -->
+                          <tr class="total-row">
+                            <td class="item-cell">Total Earnings</td>
+                            <td class="amount-cell">
+                              {{
+                                currentPayslipData.totalEarnings === null
+                                  ? "NaN"
+                                  : formatAmount(
+                                      currentPayslipData.totalEarnings || 0,
+                                    )
+                              }}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
 
-                    <div class="salary-section">
-                      <h4>Deductions</h4>
-                      <div class="salary-items">
-                        <div
-                          v-for="(value, key) in currentPayslipData.deductions"
-                          :key="`deduction-${key}`"
-                          class="salary-item"
-                        >
-                          <span class="item-name">{{ key }}</span>
-                          <span class="item-value"
-                            >â‚¹ {{ formatAmount(value || 0) }}</span
-                          >
-                        </div>
-                        <!-- Show penalties if available -->
-                        <div
-                          v-if="
-                            currentPayslipData.penalties &&
-                            Object.keys(currentPayslipData.penalties).length > 0
-                          "
-                          class="salary-item-group"
-                        >
-                          <div class="salary-item-group-title">Penalties</div>
-                          <div
-                            v-for="(value, key) in currentPayslipData.penalties"
-                            :key="`penalty-${key}`"
-                            class="salary-item"
-                          >
-                            <span class="item-name">{{ key }}</span>
-                            <span class="item-value"
-                              >â‚¹ {{ formatAmount(value || 0) }}</span
-                            >
-                          </div>
-                        </div>
-                        <!-- Show other deductions if available -->
-                        <div
-                          v-if="
-                            currentPayslipData.otherDeduction &&
-                            Object.keys(currentPayslipData.otherDeduction)
-                              .length > 0
-                          "
-                          class="salary-item-group"
-                        >
-                          <div class="salary-item-group-title">
-                            Other Deductions
-                          </div>
-                          <div
+                    <!-- Deductions Column -->
+                    <div class="salary-column">
+                      <div class="section-header">Deductions</div>
+                      <table class="salary-table">
+                        <tbody>
+                          <tr
                             v-for="(
                               value, key
-                            ) in currentPayslipData.otherDeduction"
-                            :key="`other-deduction-${key}`"
-                            class="salary-item"
+                            ) in currentPayslipData.deductions"
+                            :key="`deduction-${key}`"
                           >
-                            <span class="item-name">{{ key }}</span>
-                            <span class="item-value"
-                              >â‚¹ {{ formatAmount(value || 0) }}</span
-                            >
-                          </div>
-                        </div>
-                        <!-- Show individual deductions if available -->
-                        <div
-                          v-if="
-                            currentPayslipData.individualDeduction &&
-                            Object.keys(currentPayslipData.individualDeduction)
-                              .length > 0
-                          "
-                          class="salary-item-group"
-                        >
-                          <div class="salary-item-group-title">
-                            Individual Deductions
-                          </div>
-                          <div
-                            v-for="(
-                              group, groupKey
-                            ) in currentPayslipData.individualDeduction"
-                            :key="`individual-deduction-group-${groupKey}`"
+                            <td class="item-cell">{{ key }}</td>
+                            <td class="amount-cell">
+                              {{ formatAmount(value || 0) }}
+                            </td>
+                          </tr>
+
+                          <!-- Penalties -->
+                          <template
+                            v-if="
+                              currentPayslipData.penalties &&
+                              Object.keys(currentPayslipData.penalties).length >
+                                0
+                            "
                           >
-                            <div
-                              v-for="(value, key) in group"
-                              :key="`individual-deduction-${groupKey}-${key}`"
-                              class="salary-item"
+                            <tr>
+                              <td colspan="2" class="subsection-header">
+                                Penalties
+                              </td>
+                            </tr>
+                            <tr
+                              v-for="(
+                                value, key
+                              ) in currentPayslipData.penalties"
+                              :key="`penalty-${key}`"
                             >
-                              <span class="item-name">{{ key }}</span>
-                              <span class="item-value"
-                                >â‚¹ {{ formatAmount(value || 0) }}</span
+                              <td class="item-cell">{{ key }}</td>
+                              <td class="amount-cell">
+                                {{ formatAmount(value || 0) }}
+                              </td>
+                            </tr>
+                          </template>
+
+                          <!-- Other Deductions -->
+                          <template
+                            v-if="
+                              currentPayslipData.otherDeduction &&
+                              Object.keys(currentPayslipData.otherDeduction)
+                                .length > 0
+                            "
+                          >
+                            <tr>
+                              <td colspan="2" class="subsection-header">
+                                Other Deductions
+                              </td>
+                            </tr>
+                            <tr
+                              v-for="(
+                                value, key
+                              ) in currentPayslipData.otherDeduction"
+                              :key="`other-deduction-${key}`"
+                            >
+                              <td class="item-cell">{{ key }}</td>
+                              <td class="amount-cell">
+                                {{ formatAmount(value || 0) }}
+                              </td>
+                            </tr>
+                          </template>
+
+                          <!-- Individual Deductions -->
+                          <template
+                            v-if="
+                              currentPayslipData.individualDeduction &&
+                              Object.keys(
+                                currentPayslipData.individualDeduction,
+                              ).length > 0
+                            "
+                          >
+                            <tr>
+                              <td colspan="2" class="subsection-header">
+                                Individual Deductions
+                              </td>
+                            </tr>
+                            <template
+                              v-for="(
+                                group, groupKey
+                              ) in currentPayslipData.individualDeduction"
+                              :key="`individual-deduction-group-${groupKey}`"
+                            >
+                              <tr
+                                v-for="(value, key) in group"
+                                :key="`individual-deduction-${groupKey}-${key}`"
                               >
-                            </div>
-                          </div>
-                        </div>
+                                <td class="item-cell">{{ key }}</td>
+                                <td class="amount-cell">
+                                  {{ formatAmount(value || 0) }}
+                                </td>
+                              </tr>
+                            </template>
+                          </template>
 
-                        <div class="salary-item total">
-                          <span class="item-name">Total Deductions</span>
-                          <span class="item-value"
-                            >â‚¹
-                            {{
-                              formatAmount(
-                                currentPayslipData.totalDeductions || 0,
-                              )
-                            }}</span
-                          >
-                        </div>
-                      </div>
+                          <!-- Total Deductions -->
+                          <tr class="total-row">
+                            <td class="item-cell">Total Deductions</td>
+                            <td class="amount-cell">
+                              {{
+                                formatAmount(
+                                  currentPayslipData.totalDeductions || 0,
+                                )
+                              }}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                  <div class="net-salary">
-                    <div class="net-salary-label">Net Salary</div>
-                    <div class="net-salary-value">
-                      â‚¹ {{ formatAmount(currentPayslipData.netSalary) }}
-                    </div>
+
+                  <!-- Net Salary Section -->
+                  <div class="net-salary-box">
+                    <span class="net-salary-label">Net Salary (in words):</span>
+                    <span class="net-salary-amount">{{
+                      formatAmount(currentPayslipData.netSalary)
+                    }}</span>
                   </div>
-                  <div
+
+                  <!-- Attendance Summary (if applicable) -->
+                  <!-- <div
                     v-if="
                       currentPayslipData &&
                       currentPayslipData.totalAttendanceCount
@@ -841,14 +862,7 @@
                         </div>
                       </template>
                     </div>
-                  </div>
-                  <div class="payslip-footer">
-                    <p>
-                      This is a computer-generated payslip and does not require
-                      a signature.
-                    </p>
-                    <p>For any queries, please contact HR department.</p>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>
@@ -870,16 +884,13 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
       <v-dialog v-model="showPaidConfirmation" max-width="500px">
         <v-card>
           <v-card-title class="text-h5 bg-success text-white">
             Mark Users as Paid
           </v-card-title>
           <v-card-text class="pa-4 mt-4">
-            <p>
-              You are about to mark {{ finalizedUnpaidUsers.length }} finalized
-              users as paid. This action cannot be undone.
-            </p>
             <p class="mt-2">
               <strong>Note:</strong> Once marked as paid, these users cannot be
               unfinalized.
@@ -957,12 +968,10 @@
           </v-card-title>
           <v-card-text class="pa-4 mt-4">
             <p>
-              Found {{ unfinalizedUsers.length }} finalized users. These will be
-              processed in batches of {{ batchSize }}.
+              Found {{ unfinalizedUsers.length }} finalized users or else
+              unselect that employee
             </p>
-            <p class="mt-2">
-              <strong>Total Batches:</strong> {{ totalBatches }}
-            </p>
+
             <v-progress-linear
               v-if="processingBatch"
               :value="(currentBatch / totalBatches) * 100"
@@ -991,7 +1000,7 @@
               :disabled="processingBatch"
             >
               <v-icon left>mdi-account-check</v-icon>
-              Process Batches
+              UnFinalized
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -1008,13 +1017,6 @@
               You have selected a user who has already been paid. Paid users
               cannot be unfinalized.
             </p>
-            <p class="mt-2">
-              <strong>Options:</strong>
-            </p>
-            <ul class="mt-2">
-              <li>Unselect this user and select only unpaid users</li>
-              <li>Skip this paid user and continue with unpaid users only</li>
-            </ul>
           </v-card-text>
           <v-card-actions class="pa-4">
             <v-spacer></v-spacer>
@@ -1121,6 +1123,9 @@ import DownloadProgressDialog from "@/components/loadingProgresss/salarySheetPro
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import html2canvas from "html2canvas";
+import SkeletonLoading from "@/components/common/states/SkeletonLoading.vue";
+import ErrorState from "@/components/common/states/ErrorState.vue";
+
 import {
   fetchCycleTypes,
   getCycleById,
@@ -1140,12 +1145,14 @@ import {
 
 export default {
   components: {
+    SkeletonLoading,
     CustomPagination,
     DownloadProgressDialog,
     DataTable,
     DataTableWrapper,
     BaseButton,
     PayrollFilters,
+    ErrorState,
   },
 
   name: "PayrollManagement",
@@ -1179,6 +1186,7 @@ export default {
       tenantAddress: "",
       companyLogo: "",
       page: 1,
+      error: null,
       itemsPerPage: 25,
       totalItems: 0,
       selectedEmployee: null,
@@ -1197,6 +1205,7 @@ export default {
         finalized: 0,
         unfinalized: 0,
       },
+
       loading: false,
       showFilters: true,
       downloadingPayslips: false,
@@ -1253,12 +1262,7 @@ export default {
       cycleTypeOptions: [],
       pageFilters: [
         { key: "monthYear", label: "Month & Year", type: "month", show: true },
-        {
-          key: "organization",
-          label: "Organization",
-          type: "select",
-          show: true,
-        },
+
         { key: "branch", label: "Branch", type: "select", show: true },
         { key: "department", label: "Department", type: "select", show: true },
         {
@@ -1300,9 +1304,9 @@ export default {
           key: "employee.assignedUser.designation",
           width: "150px",
         },
-        { title: "Activity", key: "activity", width: "120px" },
-        { title: "Joining Date", key: "joiningDate", width: "120px" },
-        { title: "Leaving Date", key: "leavingDate", width: "120px" },
+        // { title: "Activity", key: "activity", width: "120px" },
+        // { title: "Joining Date", key: "joiningDate", width: "120px" },
+        // { title: "Leaving Date", key: "leavingDate", width: "120px" },
         {
           title: "Attendance Verification",
           key: "attendanceVerification",
@@ -1313,7 +1317,7 @@ export default {
           key: "salaryVerification",
           width: "180px",
         },
-        { title: "Annual CTC", key: "monthlyCTC", width: "120px" },
+        { title: "Monthly CTC", key: "monthlyCTC", width: "120px" },
         { title: "Payable Days", key: "payableDays", width: "120px" },
         { title: "Salary Status", key: "salaryPaid", width: "120px" },
         { title: "Start Date", key: "startDate", width: "120px" },
@@ -1369,23 +1373,23 @@ export default {
       return selectedItems.filter((item) => item.salaryPaid === "paid").length;
     },
     successCount() {
-      return this.attendanceStatus.filter((r) => r.status === "success").length;
+      return this.processedCount - this.failedCount;
     },
-    failedCount() {
-      return this.attendanceStatus.filter((r) => r.status === "failed").length;
-    },
-    remainingCount() {
-      return this.totalCount
-        ? this.totalCount - this.attendanceStatus.length
-        : 0;
-    },
-    failedRecords() {
-      return this.attendanceStatus.filter((r) => r.status === "failed");
-    },
-    progressPercentage() {
-      if (!this.totalCount || this.totalCount === 0) return 0;
-      return (this.attendanceStatus.length / this.totalCount) * 100;
-    },
+    // failedCount() {
+    //   return this.attendanceStatus.filter((r) => r.status === "failed").length;
+    // },
+    // remainingCount() {
+    //   return this.totalCount
+    //     ? this.totalCount - this.attendanceStatus.length
+    //     : 0;
+    // },
+    // failedRecords() {
+    //   return this.attendanceStatus.filter((r) => r.status === "failed");
+    // },
+    // progressPercentage() {
+    //   if (!this.totalCount || this.totalCount === 0) return 0;
+    //   return (this.attendanceStatus.length / this.totalCount) * 100;
+    // },
     hasActiveFilters() {
       return (
         this.activeFilters.branch !== null ||
@@ -1796,7 +1800,6 @@ export default {
         }
 
         if (!this.dateRange.start || !this.dateRange.end) {
-          console.warn("Date range not set, skipping PayrollVerificationCount");
           // Fallback to filters.monthYear
           const [year, month] = this.initialFilters.monthYear
             .split("-")
@@ -1993,95 +1996,6 @@ export default {
       this.cancelProcessing = true;
       this.showAttendancePopup = false;
     },
-    async generateAttendance() {
-      try {
-        const batchSize = 5;
-        this.attendanceStatus = [];
-        this.recordsToProcess = [];
-        this.totalCount = 0;
-
-        for (let i = 0; i < this.selected.length; i += batchSize) {
-          const batchIds = this.selected
-            .slice(i, i + batchSize)
-            .map((emp) => emp.employee.id)
-            .join(",");
-
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/items/logs`,
-            {
-              headers: {
-                Authorization: `Bearer ${this.token}`,
-              },
-              params: {
-                "fields[]": [
-                  "date",
-                  "employeeId",
-                  "tenant",
-                  "timeStamp",
-                  "id",
-                  "action",
-                  "mode",
-                ],
-                "sort[]": "timeStamp",
-                page: 1,
-                limit: -1,
-                "filter[_and][0][_and][0][employeeId][_in]": batchIds,
-                "filter[_and][0][_and][1][date][_between][0]":
-                  this.dateRange.start,
-                "filter[_and][0][_and][1][date][_between][1]":
-                  this.dateRange.end,
-              },
-            },
-          );
-
-          this.recordsToProcess.push(...(response.data.data || []));
-          this.totalCount +=
-            response.data.meta?.total || (response.data.data || []).length;
-        }
-
-        for (const record of this.recordsToProcess) {
-          if (this.cancelProcessing) break;
-
-          try {
-            const payload = {
-              action: record.action,
-              date: record.date,
-              employeeId: record.employeeId,
-              mode: record.mode,
-              tenant: record.tenant,
-              timeStamp: record.timeStamp,
-            };
-
-            await axios.post(
-              `${import.meta.env.VITE_API_URL}/flows/trigger/45a57c51-b01c-4b2b-81f1-b177344f4d35`,
-              payload,
-              {
-                headers: { "Content-Type": "application/json" },
-              },
-            );
-
-            this.attendanceStatus.push({
-              employeeId: record.employeeId,
-              status: "success",
-            });
-          } catch (flowError) {
-            this.attendanceStatus.push({
-              employeeId: record.employeeId,
-              status: "failed",
-              date: record.date,
-              error: flowError.message || "Flow trigger failed",
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching attendance or triggering flow:", error);
-      }
-      if (this.attendanceStatus.some((s) => s.status === "failed")) {
-        alert("Attendance generation completed with some errors.");
-      } else {
-        alert("Attendance generated successfully.");
-      }
-    },
     async recalculateAttendance() {
       if (!this.selected || this.selected.length === 0) {
         this.$emit("show-snackbar", {
@@ -2091,14 +2005,13 @@ export default {
         return;
       }
 
-      this.isLoading = true;
       this.showAttendancePopup = true;
-      this.isProcessing = true;
+
       this.processedCount = 0;
       this.failedCount = 0;
-      this.cancelProcessing = false;
 
       try {
+        this.isProcessing = true;
         const batchSize = 100;
         const employeeIds = this.selected.map((emp) => emp.employee.id);
         this.totalCount = employeeIds.length;
@@ -2152,10 +2065,8 @@ export default {
           color: "error",
         });
       } finally {
-        this.isLoading = false;
         this.showAttendancePopup = false;
         this.isProcessing = false;
-        // Popup stays open until OK is clicked
       }
     },
 
@@ -2867,6 +2778,15 @@ export default {
         }),
       );
 
+      const verifiedUsers = this.selected.filter(
+        (item) => item.attendanceVerified === true,
+      );
+
+      if (verifiedUsers.length > 0) {
+        this.selectUnfinalizedUsers();
+        return;
+      }
+
       // const verifiedUsers = selectedItems.filter(
       //   (item) => item.salaryVerified === true,
       // );
@@ -2923,12 +2843,6 @@ export default {
         name: "attendance-verification",
       });
     },
-    // finalizeMultiplePayroll() {
-    //   alert(
-    //     "We are currently working to track PF and ESI. Finalization is temporarily disabled.",
-    //   );
-    //   return;
-    // },
 
     skipPaidUsers() {
       const selectedItems = this.items.filter((item) =>
@@ -3431,11 +3345,9 @@ export default {
               return selectedId === item.id;
             }),
           );
-        }
-        //  else if (this.hasActiveFilters || this.search) {
-        //   selectedItems = this.items;
-        // }
-        else {
+        } else if (this.hasActiveFilters || this.search) {
+          selectedItems = this.items;
+        } else {
           let page = 1;
           let allEmployees = [];
           let hasMore = true;
@@ -3526,17 +3438,18 @@ export default {
             endDate,
             isFixedCycle: this.fixedCycle,
             filters: {
-              branch: this.filters.branch,
-              department: this.filters.department,
-              attendanceVerification: this.verificationFilters.attendance,
-              salaryVerification: this.verificationFilters.salary,
+              branch: this.filters?.branch || null,
+              department: this.filters?.department || null,
+              attendanceVerification:
+                this.verificationFilters?.attendance || null,
+              salaryVerification: this.verificationFilters?.salary || null,
             },
           },
         );
 
         clearInterval(progressInterval);
         this.downloadProgress = 100;
-
+        this.showDownloadProgress = false;
         this.$emit("show-snackbar", {
           message: `Successfully generated salary sheet for ${selectedItems.length} employees`,
           color: "success",
@@ -3558,6 +3471,7 @@ export default {
         }
       } finally {
         this.loading = false;
+        // this.showDownloadProgress = false;
       }
     },
 
@@ -3826,13 +3740,14 @@ export default {
 
 .main-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   transition: all 0.3s ease;
-  width: 100%;
 }
 
-.employee-container.filter-open .main-content {
-  width: calc(100% - 350px);
-  margin-right: 350px;
+.main-content.full-width {
+  margin-left: 0;
 }
 
 /* Fixed row height - reduced from default */
@@ -3893,9 +3808,25 @@ export default {
 }
 
 /* Ensure proper alignment of all content */
-.employee-table :deep(.v-chip) {
-  height: 24px !important;
-  font-size: 12px !important;
+.salary-paid-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: capitalize;
+  text-align: center;
+  min-width: 70px;
+}
+
+.salary-paid-status.paid {
+  background-color: #1b5e20;
+  color: #c8e6c9;
+}
+
+.salary-paid-status.unpaid {
+  background-color: #b71c1c;
+  color: #ffcdd2;
 }
 
 .filter-panel {
@@ -4199,9 +4130,199 @@ export default {
   margin: 5px 0;
 }
 
+/* payslip */
+.payslip-container-new {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background-color: #fff;
+}
+
+.payslip-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Header Styles */
+.payslip-header-new {
+  border: 2px solid #000;
+  padding: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.company-name {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.company-address {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+}
+
+.payslip-title-text {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Section Styles */
+.section-container {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  background-color: #e0e0e0;
+  padding: 10px;
+  font-weight: bold;
+  border: 1px solid #000;
+  border-bottom: none;
+}
+
+/* Table Styles */
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.details-table td {
+  border: 1px solid #000;
+  padding: 8px;
+}
+
+.label-cell {
+  font-weight: bold;
+  width: 25%;
+}
+
+.value-cell {
+  width: 25%;
+}
+
+/* Salary Grid */
+.salary-grid {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.salary-column {
+  flex: 1;
+}
+
+.salary-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.salary-table td {
+  border: 1px solid #000;
+  padding: 8px;
+}
+
+.item-cell {
+  text-align: left;
+}
+
+.amount-cell {
+  text-align: right;
+}
+
+.subsection-header {
+  font-weight: bold;
+  background-color: #f5f5f5;
+  text-align: left;
+  padding: 8px !important;
+}
+
+.total-row {
+  font-weight: bold;
+  background-color: #f0f0f0;
+}
+
+/* Net Salary Box */
+.net-salary-box {
+  border: 2px solid #000;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.net-salary-label {
+  flex: 1;
+}
+
+.net-salary-amount {
+  flex: 0 0 auto;
+}
+
+/* Attendance Summary */
+.attendance-summary {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.attendance-summary h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.attendance-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.attendance-label {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.attendance-value {
+  font-weight: bold;
+}
+
+/* Footer */
+.payslip-footer-new {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  margin-top: 20px;
+}
+
+.payslip-footer-new p {
+  margin: 5px 0;
+}
+
+/* Loading State */
+.payslip-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* Print Styles */
 @media print {
-  .payslip-container {
-    box-shadow: none;
+  .payslip-container-new {
     padding: 0;
   }
 }
@@ -4335,5 +4456,10 @@ export default {
 
 .stat-item.active.contact--text {
   background: rgba(168, 85, 247, 0.1);
+}
+.position-relative {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 8px;
 }
 </style>

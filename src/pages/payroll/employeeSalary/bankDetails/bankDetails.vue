@@ -15,26 +15,6 @@
     </div>
 
     <!-- Filter Toggle Button -->
-    <button
-      v-if="!showForm"
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
 
     <div
       v-if="!showForm"
@@ -48,7 +28,27 @@
         :isEmpty="filteredItems.length === 0 && !search"
         :hasError="error"
         @update:searchQuery="debouncedSearch"
-      >
+        ><template #before-search>
+          <button
+            v-if="!showForm"
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div></button
+        ></template>
         <div v-if="loading">
           <SkeletonLoader
             variant="table-body-only"
@@ -204,7 +204,7 @@
         @cancel="showForm = false"
       />
     </div>
-    <router-view />
+    <router-view @close="handleClose" />
   </div>
 </template>
 
@@ -657,11 +657,14 @@ const deleteItem = async (item) => {
 const debouncedSearch = debounce(() => {
   fetchBankData(1, itemsPerPage.value, search.value);
 }, 300);
-
+const handleClose = async () => {
+  showForm.value = false;
+  await fetchManagerBranch();
+  await fetchBankData();
+};
 // Lifecycle Hooks
 onMounted(async () => {
   await fetchManagerBranch();
-
   await fetchBankData();
 });
 

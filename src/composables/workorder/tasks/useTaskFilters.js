@@ -1,12 +1,14 @@
+// src/composables/workorder/tasks/useTaskFilters.js
 import { ref, reactive, computed } from "vue";
 
 export function useTaskFilters() {
   const searchQuery = ref("");
-
   const filters = reactive({
     month: "",
     assignFormId: "",
     status: "",
+    orgId: "",
+    employeeUserId: "",
   });
 
   const hasActiveFilters = computed(() => {
@@ -14,6 +16,8 @@ export function useTaskFilters() {
       filters.month !== "" ||
       filters.assignFormId !== "" ||
       filters.status !== "" ||
+      filters.orgId !== "" ||
+      filters.employeeUserId !== "" ||
       searchQuery.value !== ""
     );
   });
@@ -22,11 +26,10 @@ export function useTaskFilters() {
     const params = {};
     let andIndex = 0;
 
-    // Search query (wrap in _and[0][_or])
+    // ---------- SEARCH ----------
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
       const orBase = `filter[_and][${andIndex}][_or]`;
-
       params[`${orBase}[0][title][_icontains]`] = query;
       params[`${orBase}[1][description][_icontains]`] = query;
       params[`${orBase}[2][orgId][orgName][_icontains]`] = query;
@@ -35,7 +38,6 @@ export function useTaskFilters() {
       params[`${orBase}[4][employeeId][employeeId][_icontains]`] = query;
       params[`${orBase}[5][taskType][_icontains]`] = query;
       params[`${orBase}[6][status][_icontains]`] = query;
-
       andIndex++;
     }
 
@@ -59,6 +61,17 @@ export function useTaskFilters() {
       andIndex++;
     }
 
+    if (filters.orgId) {
+      params[`filter[_and][${andIndex}][orgId][id][_eq]`] = filters.orgId;
+      andIndex++;
+    }
+
+    if (filters.employeeUserId) {
+      params[`filter[_and][${andIndex}][employeeId][assignedUser][id][_eq]`] =
+        filters.employeeUserId;
+      andIndex++;
+    }
+
     return params;
   };
 
@@ -66,28 +79,22 @@ export function useTaskFilters() {
     filters.month = "";
     filters.assignFormId = "";
     filters.status = "";
+    filters.orgId = "";
+    filters.employeeUserId = "";
     searchQuery.value = "";
   };
 
-  const clearMonthFilter = () => {
-    filters.month = "";
-  };
-
-  const clearTaskTypeFilter = () => {
-    filters.assignFormId = "";
-  };
-
-  const clearStatusFilter = () => {
-    filters.status = "";
-  };
+  const clearMonthFilter = () => (filters.month = "");
+  const clearTaskTypeFilter = () => (filters.assignFormId = "");
+  const clearStatusFilter = () => (filters.status = "");
+  const clearClientFilter = () => (filters.orgId = "");
+  const clearEmployeeFilter = () => (filters.employeeUserId = "");
 
   // Debounced search
   let searchTimeout = null;
   const debouncedApplyFilters = (callback) => {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      if (callback) callback();
-    }, 300);
+    searchTimeout = setTimeout(() => callback?.(), 300);
   };
 
   return {
@@ -99,6 +106,8 @@ export function useTaskFilters() {
     clearMonthFilter,
     clearTaskTypeFilter,
     clearStatusFilter,
+    clearClientFilter,
+    clearEmployeeFilter,
     debouncedApplyFilters,
   };
 }

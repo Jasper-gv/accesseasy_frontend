@@ -114,7 +114,7 @@
           <template #cell-clubWithOther="{ item }">
             <v-chip
               size="small"
-              :color="item.clubWithOther ? 'primary' : 'grey'"
+              :color="item.clubWithOther ? '#059367' : 'grey'"
               variant="tonal"
               class="clubbing-chip"
             >
@@ -255,7 +255,19 @@
               </div>
 
               <div class="form-row switch-row">
-                <label class="form-label">Carry Forward:</label>
+                <label class="form-label">Clubbing:</label>
+                <div class="switch-input-group">
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      v-model="newLeaveConfig.clubWithOtherLeaves"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-row switch-row">
+                <label class="form-label"> Yearly Carry Forward:</label>
                 <div class="switch-input-group">
                   <label class="switch">
                     <input type="checkbox" v-model="newLeaveConfig.isenabled" />
@@ -272,19 +284,6 @@
                     class="limit-input"
                     hide-details="auto"
                   />
-                </div>
-              </div>
-
-              <div class="form-row switch-row">
-                <label class="form-label">Clubbing:</label>
-                <div class="switch-input-group">
-                  <label class="switch">
-                    <input
-                      type="checkbox"
-                      v-model="newLeaveConfig.clubWithOtherLeaves"
-                    />
-                    <span class="slider"></span>
-                  </label>
                 </div>
               </div>
             </div>
@@ -1468,7 +1467,7 @@ const cleanAllDuplicateLeaves = async () => {
 
       if (updatePayloads.length > 0) {
         const batchResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/leave`,
+          `${import.meta.env.VITE_API_URL}/items/personalModule`,
           {
             method: "PATCH",
             headers: {
@@ -1721,7 +1720,7 @@ onUnmounted(() => {
 // Initialize component
 onMounted(async () => {
   await user();
-  await cleanAllDuplicateLeaves(); // Run cleanup on mount
+  // await cleanAllDuplicateLeaves(); // Run cleanup on mount
   await fetchData();
 });
 </script>
@@ -1732,14 +1731,7 @@ onMounted(async () => {
   outline-offset: 0 !important;
 }
 .leave-container {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  background: #f8f9fa;
-  min-height: 100vh;
-  padding: 10px;
+  width: 100%;
 }
 
 .custom-snackbar {
@@ -1752,14 +1744,6 @@ onMounted(async () => {
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  position: relative;
 }
 
 .main-title {
@@ -1889,7 +1873,7 @@ onMounted(async () => {
 }
 
 input:checked + .toggle-slider {
-  background-color: #68ade1;
+  background-color: #059367;
 }
 
 input:checked + .toggle-slider:before {
@@ -1914,7 +1898,7 @@ input:checked + .toggle-slider:before {
 .dialog-header {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   padding: 15px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 3px solid #059367;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2061,7 +2045,7 @@ input:checked + .toggle-slider:before {
 }
 
 input:checked + .slider {
-  background-color: #68ade1;
+  background-color: #059367;
 }
 
 input:checked + .slider:before {

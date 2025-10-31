@@ -1,676 +1,469 @@
 <template>
   <v-container fluid>
-    <v-row>
-      <v-col cols="10">
+    <!-- Header Section -->
+    <div
+      class="d-flex align-center justify-space-between pa-4 mb-4"
+      style="background-color: #f8fafc; border-radius: 8px"
+    >
+      <div class="d-flex align-center">
+        <v-btn
+          icon="mdi-arrow-left"
+          variant="text"
+          color="black"
+          @click="goBack"
+          class="mr-2"
+        ></v-btn>
+        <h2 class="text-h5 font-weight-bold text-black mb-0">
+          View {{ categoryName }}
+        </h2>
+      </div>
+    </div>
+
+    <div
+      v-if="isLoading"
+      class="loading-container d-flex flex-column align-center justify-center"
+      style="height: 70vh"
+    >
+      <v-progress-circular
+        indeterminate
+        color="primary"
+        size="64"
+      ></v-progress-circular>
+      <div class="loading-text mt-4">Loading data...</div>
+    </div>
+
+    <div v-else class="clean-layout" style="height: 70vh; overflow-y: auto">
+      <!-- Earning Components -->
+      <div class="section-header mb-4">
         <div
-          class="d-flex align-center justify-space-between pa-4"
-          style="background-color: #f8fafc; border-radius: 8px"
-        >
-          <!-- Left section: Back button + Title -->
-          <div class="d-flex align-center">
-            <v-btn
-              icon="mdi-arrow-left"
-              variant="text"
-              color="black"
-              @click="goBack"
-              class="mr-2"
-            ></v-btn>
-            <h2 class="text-h5 font-weight-bold text-black mb-0">
-              view {{ categoryName }}
-            </h2>
-          </div>
-        </div>
-      </v-col>
-    </v-row>
-    <v-row style="height: 70vh; overflow-y: auto">
-      <v-col cols="10">
-        <div v-if="isLoading" class="loading-container">
-          <v-progress-circular
-            indeterminate
-            color="primary"
-            size="64"
-          ></v-progress-circular>
-          <div class="loading-text">Loading data...</div>
-        </div>
+          class="section-indicator earning-indicator"
+          style="background-color: #22c55e"
+        ></div>
+        <h3 class="section-title" style="color: #166534">Earning Components</h3>
+      </div>
+
+      <v-row
+        v-for="(row, idx) in form.earning"
+        :key="row.id"
+        class="earning-row align-center mb-3 pb-2 border-bottom"
+      >
+        <!-- Column 1: Name -->
+        <v-col cols="3">
+          <span class="font-weight-medium">{{ row.label }}</span>
+        </v-col>
+
+        <!-- Column 2: Type -->
+        <v-col cols="3">
+          <v-select
+            v-if="
+              !['Basic Pay', 'HRA', 'Dearness Allowance'].includes(row.label)
+            "
+            v-model="row.unit"
+            :items="unitItems"
+            label="Type"
+            variant="outlined"
+            density="compact"
+            hide-details
+            hide-no-data
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+
+        <!-- Column 3: Value -->
+        <v-col cols="3">
+          <v-text-field
+            v-model.number="row.value"
+            type="number"
+            min="0"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            :prefix="row.unit === 'Percentage' ? '%' : '₹'"
+            :placeholder="row.unit === 'Percentage' ? 'Percentage' : 'Fixed'"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+
+        <!-- Column 4: Action (empty for view mode) -->
+        <v-col cols="3" class="text-left">
+          <!-- No action button in view mode -->
+        </v-col>
+      </v-row>
+
+      <!-- Employer Contribution -->
+      <div class="section-header mb-4">
         <div
-          v-else
-          style="
-            padding-top: 0;
-            padding-right: 20px;
-            padding-bottom: 20px;
-            padding-left: 20px;
-          "
-        >
-          <div>
-            <section>
-              <div
-                class="pa-4 mb-4"
-                style="
-                  background-color: rgb(252 253 255);
-                  border-radius: 8px;
-                  border-left: 4px solid #22c55e;
-                  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-                "
-              >
-                <h3
-                  class="text-h6 font-weight-medium mb-4"
-                  style="color: #166534"
-                >
-                  Earning Components
-                </h3>
+          class="section-indicator employer-indicator"
+          style="background-color: #3b82f6"
+        ></div>
+        <h3 class="section-title" style="color: #1e40af">
+          Employer Contribution
+        </h3>
+      </div>
 
-                <div
-                  class="fields-container"
-                  style="max-height: 300px; overflow-y: auto"
-                >
-                  <v-card-text>
-                    <v-row
-                      v-for="(row, idx) in form.earning"
-                      :key="row.id"
-                      class="mb-4 align-center"
-                      dense
-                    >
-                      <v-col cols="3">
-                        <div
-                          :style="{
-                            fontWeight: '500',
-                            color: 'rgba(0, 0, 0, 0.87)',
-                            lineHeight: '1.5',
-                            paddingTop: '16px',
-                            fontSize: '16px',
-                            fontFamily: 'Roboto, sans-serif',
-                          }"
-                        >
-                          {{ row.label }}
-                        </div>
-                      </v-col>
-                      <v-col
-                        cols="2"
-                        v-if="
-                          !['Basic Pay', 'HRA', 'Dearness Allowance'].includes(
-                            row.label,
-                          )
-                        "
-                      >
-                        <v-select
-                          v-model="row.unit"
-                          :items="unitItems"
-                          label="Type"
-                          variant="outlined"
-                          density="comfortable"
-                          hide-details
-                          readonly
-                          style="background-color: #f5f5f5"
-                        />
-                      </v-col>
-                      <v-col cols="2">
-                        <v-text-field
-                          v-model.number="row.value"
-                          type="number"
-                          min="0"
-                          label="Value"
-                          variant="outlined"
-                          density="comfortable"
-                          hide-details
-                          :prefix="row.unit === 'Percentage' ? '%' : '₹'"
-                          :placeholder="
-                            row.unit === 'Percentage' ? 'Percentage' : 'Fixed'
-                          "
-                          readonly
-                          style="background-color: #f5f5f5"
-                        />
-                      </v-col>
-                      <v-col cols="1" class="d-flex align-center justify-end">
-                      </v-col>
-                    </v-row>
-                  </v-card-text>
-                </div>
-              </div>
-            </section>
+      <!-- Employer PF -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employer PF </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '12% No limit', value: 12 },
+              { title: '12% ₹1800 limit', value: 1800 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employerPF.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employerPF.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <v-checkbox
+            v-model="form.employerPF.withinCTC"
+            label="Within CTC"
+            density="compact"
+            hide-details
+            readonly
+          />
+        </v-col>
+      </v-row>
 
-            <section>
-              <div
-                class="pa-4 mb-4"
-                style="
-                  background-color: rgb(252 253 255);
-                  border-radius: 8px;
-                  border-left: 4px solid #3b82f6;
-                  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-                "
-              >
-                <h3
-                  class="text-h6 font-weight-medium mb-4"
-                  style="color: #1e40af"
-                >
-                  Employer Contribution
-                </h3>
-                <v-divider class="mb-4" />
+      <!-- Employer ESI -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employer ESI </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '3.25%', value: 3.25 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employerESI.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employerESI.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <v-checkbox
+            v-model="form.employerESI.withinCTC"
+            label="Within CTC"
+            density="compact"
+            hide-details
+            readonly
+          />
+        </v-col>
+      </v-row>
 
-                <div class="fields-container">
-                  <!-- Employer PF -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Employer PF</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasPFAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >PF Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <!-- Remove or disable Add PF Account button -->
-                        </v-col>
-                      </v-row>
-                      <v-row v-else dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '12% No limit', value: 12 },
-                              { title: '12% ₹1800 limit', value: 1800 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employerPF.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            class="ml-4 value-input"
-                            item-title="title"
-                            item-value="value"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="4">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employerPF.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                            :menu-props="{ maxHeight: 200 }"
-                            style="
-                              max-height: 80px;
-                              overflow-y: auto;
-                              background-color: #f5f5f5;
-                            "
-                            readonly
-                          >
-                          </v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-checkbox
-                            v-model="form.employerPF.withinCTC"
-                            label="Within CTC"
-                            class="ml-4"
-                            density="comfortable"
-                            hide-details
-                            readonly
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+      <!-- PF EDLI & Admin Charges -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> PF EDLI & Admin Charges </v-col>
+        <v-col cols="3">
+          <v-switch
+            v-model="form.includeEdli"
+            hide-details
+            density="compact"
+            color="success"
+            inset
+            readonly
+          />
+        </v-col>
+        <v-col cols="3" v-if="form.includeEdli">
+          <v-text-field
+            variant="outlined"
+            density="compact"
+            hide-details
+            value="1"
+            suffix="%"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+      </v-row>
 
-                  <!-- Employer ESI -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Employer ESI</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasESIAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >ESI Not Available</span
-                          >
-                        </v-col>
-                      </v-row>
-                      <v-row v-else dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '3.25%', value: 3.25 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employerESI.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            class="ml-4 value-input"
-                            item-title="title"
-                            item-value="value"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employerESI.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          >
-                          </v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-checkbox
-                            v-model="form.employerESI.withinCTC"
-                            label="Within CTC"
-                            class="ml-4"
-                            density="comfortable"
-                            hide-details
-                            readonly
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+      <!-- Labour Welfare Fund -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Labour Welfare Fund </v-col>
+        <v-col cols="3" class="d-flex align-center">
+          <v-icon color="grey-darken-1" class="mr-2"
+            >mdi-information-outline</v-icon
+          >
+          <span class="text-grey-darken-1">Value based on state rules</span>
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            v-model="selectedState"
+            :items="states"
+            item-title="text"
+            item-value="value"
+            label="Select State"
+            variant="outlined"
+            density="compact"
+            readonly
+            style="background-color: #f5f5f5"
+            hide-details
+          />
+        </v-col>
+      </v-row>
 
-                  <!-- PF EDLI & Admin Charges -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">PF EDLI & Admin Charges</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row dense>
-                        <v-col cols="3">
-                          <v-switch
-                            v-model="form.includeEdli"
-                            hide-details
-                            density="comfortable"
-                            readonly
-                            color="success"
-                            inset
-                          ></v-switch>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-text-field
-                            v-if="form.includeEdli"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            class="component-input"
-                            value="1"
-                            suffix="%"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Labour Welfare Fund</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasShopEstablishment" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >Shop Account Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="addAccount"
-                          >
-                            Add Shop Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row>
-                      <v-row v-else class="align-center">
-                        <v-col cols="6" class="d-flex align-center">
-                          <v-icon color="grey-darken-1" class="mr-2"
-                            >mdi-information-outline</v-icon
-                          >
-                          <span class="text-grey-darken-1"
-                            >Value based on state rules</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                </div>
-              </div>
-            </section>
-            <section>
-              <div
-                class="pa-4 mb-4"
-                style="
-                  background-color: rgb(252 253 255);
-                  border-radius: 8px;
-                  border-left: 4px solid #ef4444;
-                  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-                "
-              >
-                <h3
-                  class="text-h6 font-weight-medium mb-6"
-                  style="color: #dc2626"
-                >
-                  Deduction Components
-                </h3>
+      <!-- Deduction Components -->
+      <div class="section-header mb-4">
+        <div
+          class="section-indicator deduction-indicator"
+          style="background-color: #ef4444"
+        ></div>
+        <h3 class="section-title" style="color: #dc2626">
+          Deduction Components
+        </h3>
+      </div>
 
-                <div
-                  class="mb-6"
-                  style="
-                    max-height: 300px;
-                    overflow-y: auto;
-                    overflow-x: hidden;
-                  "
-                >
-                  <!-- Employee PF -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Employee PF</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasPFAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >PF Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <!-- Remove or disable Add PF Account button -->
-                        </v-col>
-                      </v-row>
-                      <v-row v-else dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '12% No limit', value: 12 },
-                              { title: '12% ₹1800 limit', value: 1800 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employeePF.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            readonly
-                            style="background-color: #f5f5f5"
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employeePF.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          >
-                          </v-select>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+      <!-- Employee PF -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employee PF </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '12% No limit', value: 12 },
+              { title: '12% ₹1800 limit', value: 1800 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employeePF.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employeePF.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3"></v-col>
+      </v-row>
 
-                  <!-- Employee ESI -->
-                  <v-row class="mb-4 align-center">
-                    <v-col cols="3">
-                      <div class="field-name">Employee ESI</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasESIAccount" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >ESI Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <!-- Remove or disable Add ESI Account button -->
-                        </v-col>
-                      </v-row>
-                      <v-row v-else dense>
-                        <v-col cols="3">
-                          <v-select
-                            :items="[
-                              { title: '3.25%', value: 3.25 },
-                              { title: 'NoValue', value: null },
-                            ]"
-                            v-model="form.employeeESI.value"
-                            label="Value"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            readonly
-                            style="background-color: #f5f5f5"
-                          ></v-select>
-                        </v-col>
-                        <v-col cols="3">
-                          <v-select
-                            :items="componentOptions"
-                            v-model="form.employeeESI.calculations"
-                            label="Component"
-                            variant="outlined"
-                            density="comfortable"
-                            hide-details
-                            multiple
-                            item-title="label"
-                            item-value="value"
-                            readonly
-                            style="background-color: #f5f5f5"
-                          >
-                          </v-select>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Labour Welfare Fund</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row v-if="!hasShopEstablishment" class="align-center">
-                        <v-col cols="3" class="d-flex align-center">
-                          <v-icon color="red" class="mr-2"
-                            >mdi-alert-circle</v-icon
-                          >
-                          <span class="text-red font-weight-bold"
-                            >Shop Account Not Available</span
-                          >
-                        </v-col>
-                        <v-col cols="3" class="text-right">
-                          <BaseButton
-                            variant="primary"
-                            size="sm"
-                            color="primary"
-                            :left-icon="Plus"
-                            @click="addAccount"
-                          >
-                            Add Shop Account
-                          </BaseButton>
-                        </v-col>
-                      </v-row>
-                      <v-row v-else class="align-center">
-                        <v-col cols="6" class="d-flex align-center">
-                          <v-icon color="grey-darken-1" class="mr-2"
-                            >mdi-information-outline</v-icon
-                          >
-                          <span class="text-grey-darken-1"
-                            >Value based on state rules</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                  <!-- Professional Tax -->
-                  <v-row class="mb-4 align-center" dense>
-                    <v-col cols="3">
-                      <div class="field-name">Professional Tax</div>
-                    </v-col>
-                    <v-col cols="8">
-                      <v-row class="align-center">
-                        <v-col cols="6" class="d-flex align-center">
-                          <v-icon
-                            color="grey-darken-1"
-                            class="mr-2"
-                            @click="showProfessionalTaxDialog = true"
-                            >mdi-information-outline</v-icon
-                          >
-                          <span class="text-grey-darken-1"
-                            >System Calculated</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+      <!-- Employee ESI -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Employee ESI </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="[
+              { title: '0.75%', value: 0.75 },
+              { title: 'NoValue', value: null },
+            ]"
+            v-model="form.employeeESI.value"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            :items="componentOptions"
+            v-model="form.employeeESI.calculations"
+            label="Component"
+            variant="outlined"
+            density="compact"
+            hide-details
+            multiple
+            item-title="label"
+            item-value="value"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3"></v-col>
+      </v-row>
 
-                  <v-dialog
-                    v-model="showProfessionalTaxDialog"
-                    max-width="500px"
-                  >
-                    <v-card>
-                      <v-card-title class="text-h6 font-weight-bold">
-                        Professional Tax Rules
-                      </v-card-title>
-                      <v-card-text>
-                        <div style="max-width: 300px">
-                          <ul>
-                            <li
-                              v-for="rule in professionalTaxRules"
-                              :key="rule.salaryRange"
-                            >
-                              Salary Range: {{ rule.salaryRange }} - Tax: ₹{{
-                                rule.professionalTax
-                              }}
-                            </li>
-                          </ul>
-                        </div>
-                      </v-card-text>
-                      <v-card-actions class="justify-end">
-                        <v-btn
-                          variant="text"
-                          @click="showProfessionalTaxDialog = false"
-                        >
-                          Close
-                        </v-btn>
-                      </v-card-actions>
-                    </v-card>
-                  </v-dialog>
-                  <v-row
-                    v-for="(row, idx) in form.deduction"
-                    :key="row.id"
-                    class="mb-4 align-center"
-                  >
-                    <v-col cols="3">
-                      <div class="field-name">{{ row.label }}</div>
-                    </v-col>
+      <!-- Labour Welfare Fund -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Labour Welfare Fund </v-col>
+        <v-col cols="3" class="d-flex align-center">
+          <v-icon color="grey-darken-1" class="mr-2"
+            >mdi-information-outline</v-icon
+          >
+          <span class="text-grey-darken-1">Value based on state rules</span>
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            v-model="selectedState"
+            :items="states"
+            item-title="text"
+            item-value="value"
+            label="Select State"
+            variant="outlined"
+            density="compact"
+            readonly
+            style="background-color: #f5f5f5"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="3"></v-col>
+      </v-row>
 
-                    <v-col cols="3">
-                      <v-text-field
-                        v-model.number="row.value"
-                        type="number"
-                        min="0"
-                        label="Value"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details
-                        prefix="₹"
-                        placeholder="Fixed"
-                        readonly
-                        style="background-color: #f5f5f5"
-                      />
-                    </v-col>
-                    <v-col cols="1" class="d-flex align-center justify-end">
-                      <!-- Remove delete button -->
-                    </v-col>
-                  </v-row>
-                </div>
+      <!-- Professional Tax -->
+      <v-row class="align-center mb-4 pb-2 border-bottom">
+        <v-col cols="3"> Professional Tax </v-col>
+        <v-col cols="3" class="d-flex align-center">
+          <v-icon color="grey-darken-1" class="mr-2"
+            >mdi-information-outline</v-icon
+          >
+          <span class="text-grey-darken-1">System Calculated</span>
+        </v-col>
+        <v-col cols="3">
+          <v-select
+            v-model="selectedState"
+            :items="states"
+            item-title="text"
+            item-value="value"
+            label="Select State"
+            variant="outlined"
+            density="compact"
+            readonly
+            style="background-color: #f5f5f5"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="3"></v-col>
+      </v-row>
 
-                <!-- Remove Add deduction button -->
-              </div>
-            </section>
-          </div>
-        </div>
-      </v-col>
-      <v-col cols="2"> </v-col>
-    </v-row>
-    <v-dialog v-model="showAddDialog" max-width="500px">
+      <!-- Dynamic Deduction Rows -->
+      <v-row
+        v-for="(row, idx) in form.deduction"
+        :key="row.id"
+        class="align-center mb-3 border-bottom pb-2"
+      >
+        <v-col cols="3">
+          <strong>{{ row.label }}</strong>
+        </v-col>
+        <v-col cols="3"></v-col>
+        <v-col cols="3">
+          <v-text-field
+            v-model.number="row.value"
+            type="number"
+            min="0"
+            label="Value"
+            variant="outlined"
+            density="compact"
+            hide-details
+            prefix="₹"
+            placeholder="Fixed"
+            readonly
+            style="background-color: #f5f5f5"
+          />
+        </v-col>
+        <v-col cols="3">
+          <!-- No delete action in view mode -->
+        </v-col>
+      </v-row>
+    </div>
+
+    <!-- Professional Tax Dialog (keep existing) -->
+    <v-dialog v-model="showProfessionalTaxDialog" max-width="500px">
       <v-card>
-        <v-card-title class="text-h6 font-weight-bold">
-          Add ESI Account
-        </v-card-title>
-
+        <v-card-title class="text-h6 font-weight-bold"
+          >Professional Tax Rules</v-card-title
+        >
         <v-card-text>
-          <v-form ref="addAccountForm" v-model="formValid">
-            <v-text-field
-              v-model="newAccount.number"
-              label="ESI Number"
-              variant="outlined"
-              required
-              disabled
-              style="background-color: #f5f5f5"
-            />
-          </v-form>
+          <div style="max-width: 300px">
+            <ul>
+              <li v-for="rule in professionalTaxRules" :key="rule.salaryRange">
+                Salary Range: {{ rule.salaryRange }} - Tax: ₹{{
+                  rule.professionalTax
+                }}
+              </li>
+            </ul>
+          </div>
         </v-card-text>
-
         <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="showAddDialog = false" disabled>
-            Cancel
-          </v-btn>
-          <v-btn color="green" :disabled="true" @click="saveAccount" disabled>
-            Save
-          </v-btn>
+          <v-btn variant="text" @click="showProfessionalTaxDialog = false"
+            >Close</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="showAddPfDialog" max-width="400">
+
+    <!-- Disabled dialogs (keep existing but simplified) -->
+    <v-dialog v-model="showAddDialog" max-width="500px">
       <v-card>
-        <v-card-title class="text-h6">Add PF Account</v-card-title>
+        <v-card-title class="text-h6 font-weight-bold"
+          >Add ESI Account</v-card-title
+        >
         <v-card-text>
           <v-text-field
-            v-model="pfNumber"
-            label="PF Account Number"
+            v-model="newAccount.number"
+            label="ESI Number"
             variant="outlined"
-            dense
-            hide-details
-            disabled
+            readonly
             style="background-color: #f5f5f5"
           />
         </v-card-text>
         <v-card-actions class="justify-end">
-          <v-btn text @click="showAddDialog = false" disabled>Cancel</v-btn>
-          <v-btn color="primary" @click="saveAccount" disabled>Save</v-btn>
+          <v-btn variant="text" @click="showAddDialog = false" disabled
+            >Cancel</v-btn
+          >
+          <v-btn color="green" disabled>Save</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -943,7 +736,7 @@ function addDeduction() {
 
 const goBack = () => {
   emit("close");
-  router.push("/configuration");
+  router.push("/configuration/payroll-policy");
 };
 
 const fetchSettings = async (categoryData) => {
@@ -1045,7 +838,7 @@ const fetchSettings = async (categoryData) => {
     form.value.includeEdli = salarySetting.adminCharges?.enable || false;
 
     categoryName.value = salarySetting.configName;
-    selectedState.value = salarySetting.stateTaxes || selectedState.value;
+    selectedState.value = salarySetting.stateTaxes.state;
 
     await fetchTenant();
   } catch (error) {
@@ -1063,60 +856,123 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.v-container {
-  max-width: 100% !important;
+.clean-layout {
+  background: #fff;
 }
 
-.text-pretty {
-  text-wrap: pretty;
+.section-wrapper {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
-.ga-2 {
-  gap: 8px;
-}
-
-.pe-md-3 {
-  padding-right: 12px;
-}
-
-.pe-2 {
-  padding-right: 8px;
-}
-
-.mt-2 {
-  margin-top: 8px;
-}
-
-.mt-md-0 {
-  margin-top: 0;
-}
-
-.mt-6 {
-  margin-top: 24px;
-}
-
-.mt-8 {
-  margin-top: 32px;
-}
-
-.mb-2 {
-  margin-bottom: 8px;
-}
-
-.mb-4 {
-  margin-bottom: 16px;
-}
-.loading-container {
+.section-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 3rem;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f1f5f9;
 }
 
-.loading-text {
-  margin-top: 1rem;
-  font-size: 1rem;
-  color: #4a5568;
+.section-indicator {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  margin-right: 12px;
+}
+
+.earning-indicator {
+  background-color: #22c55e;
+}
+
+.employer-indicator {
+  background-color: #3b82f6;
+}
+
+.deduction-indicator {
+  background-color: #ef4444;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.field-label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.component-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.component-row:last-child {
+  border-bottom: none;
+}
+
+.component-fields {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.earning-row,
+.deduction-row {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #22c55e;
+}
+
+.deduction-row {
+  border-left-color: #ef4444;
+}
+
+.alert-row {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px;
+  color: #dc2626;
+}
+
+.add-button-container {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+.field-input {
+  flex: 1;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.loading-container {
+  height: 100%;
+  min-height: 400px;
 }
 </style>

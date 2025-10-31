@@ -110,11 +110,10 @@ const tabs = [
 const currentTab = ref(tabs[0]);
 
 const cancelForm = () => {
-  if (props.isDialog) {
-    emit("close");
-  } else {
-    router.push("/payroll/employee-salary/salary-details");
-  }
+  emit("close");
+  console.log("Emit", emit);
+
+  router.push("/payroll/employee-salary/policyDetails");
 };
 
 onMounted(async () => {

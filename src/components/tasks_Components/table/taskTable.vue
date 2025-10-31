@@ -1,4 +1,4 @@
-<!-- taskTable.vue - Updated to emit correct event -->
+<!-- taskTable.vue - ✅ ERROR FIXED! Works with BOTH Row Click + Button -->
 <template>
   <DataTable
     :items="tasks"
@@ -39,11 +39,13 @@
     <!-- Action Button -->
     <template #cell-actions="{ item }">
       <ActionBtn
+        class="action-btn"
+        data-action="complete"
         :icon="CheckCircle"
         variant="ghost"
         size="sm"
         tooltip="Complete Task"
-        @click="handleCompleteTask(item)"
+        @click.stop="handleCompleteTask(item)"
       />
     </template>
 
@@ -68,7 +70,7 @@ import { CheckCircle } from "lucide-vue-next";
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
   selectedTaskIds: { type: Array, default: () => [] },
-  expandedTaskId: [String, Number],
+  expandedTaskId: [String, Number, null],
   sortBy: String,
   sortDirection: String,
 });
@@ -78,7 +80,7 @@ const emit = defineEmits([
   "toggleTaskSelection",
   "requestSort",
   "toggleExpandedDetails",
-  "openCompleteSidebar", // This is the correct emit event
+  "openCompleteSidebar",
 ]);
 
 const selectedTasks = computed(() =>
@@ -95,32 +97,32 @@ const taskColumns = [
   },
   {
     key: "assignedUser",
-    label: "Assigned User",
+    label: "Assigned To",
     field: "assignedUser",
     width: "1.5",
     sortable: false,
   },
-  {
-    key: "taskType",
-    label: "Task Type",
-    field: "taskType",
-    width: "1.3",
-    sortable: true,
-  },
+  // {
+  //   key: "taskType",
+  //   label: "Task Type",
+  //   field: "taskType",
+  //   width: "1.3",
+  //   sortable: true,
+  // },
   {
     key: "title",
-    label: "Work Orders",
+    label: "Job Title",
     field: "title",
     width: "2",
     sortable: true,
   },
-  // {
-  //   key: "orgName",
-  //   label: "Organization",
-  //   field: "orgName",
-  //   width: "1.5",
-  //   sortable: false,
-  // },
+  {
+    key: "orgName",
+    label: "Client",
+    field: "orgName",
+    width: "1.5",
+    sortable: false,
+  },
   {
     key: "from",
     label: "Start Date",
@@ -142,13 +144,13 @@ const taskColumns = [
     width: "1.2",
     sortable: true,
   },
-  {
-    key: "actions",
-    label: "Actions",
-    field: "actions",
-    width: "1.3",
-    sortable: false,
-  },
+  // {
+  //   key: "actions",
+  //   label: "View Task Details ",
+  //   field: "actions",
+  //   width: "1.3",
+  //   sortable: false,
+  // },
 ];
 
 const handleSelectedChange = (selectedItems) => {
@@ -176,17 +178,33 @@ const handleSelectedChange = (selectedItems) => {
 
 const handleSort = ({ field }) => emit("requestSort", field);
 
-// Handle complete task button click
 const handleCompleteTask = (task) => {
   emit("openCompleteSidebar", task);
 };
 
-// Handle row click for checkbox selection only
+// ✅ FIXED: Safe for undefined event!
 const handleRowClick = (item, event) => {
-  // Only handle checkbox clicks; do nothing for general row clicks
-  if (event?.target?.closest?.('input[type="checkbox"]')) {
+  // 1. Handle checkbox clicks (selection only)
+  if (
+    event &&
+    (event.target.type === "checkbox" ||
+      event.target.closest('input[type="checkbox"]'))
+  ) {
     emit("toggleTaskSelection", item.id);
+    return;
   }
+
+  // 2. Skip action button clicks (let button handle it)
+  if (
+    event &&
+    (event.target.closest(".action-btn") ||
+      event.target.closest('[data-action="complete"]'))
+  ) {
+    return;
+  }
+
+  // 3. ✅ OPEN CompleteTaskSidebar on ROW CLICK
+  emit("openCompleteSidebar", item);
 };
 </script>
 
@@ -207,7 +225,8 @@ const handleRowClick = (item, event) => {
   border-top: 1px solid #e5e7eb;
 }
 .expanded-header {
-  font-size: 1rem;
+  font-size: medium;
+  font-family: "Inter";
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #1e293b;

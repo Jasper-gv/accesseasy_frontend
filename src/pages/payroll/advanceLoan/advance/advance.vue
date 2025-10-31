@@ -17,27 +17,6 @@
       </div>
     </div>
 
-    <!-- Filter Toggle Button -->
-    <button
-      class="filter-toggle-static"
-      @click="toggleFilters"
-      :class="{ active: hasActiveFilters }"
-      :title="showFilters ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle filters"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-      </svg>
-      <div v-if="hasActiveFilters" class="filter-indicator"></div>
-    </button>
-
     <!-- Main Content -->
     <div
       class="main-content"
@@ -52,6 +31,28 @@
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
+        <template #before-search>
+          <!-- Filter Toggle Button -->
+          <button
+            class="filter-toggle-static"
+            @click="toggleFilters"
+            :class="{ active: hasActiveFilters }"
+            :title="showFilters ? 'Hide filters' : 'Show filters'"
+            aria-label="Toggle filters"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+            </svg>
+            <div v-if="hasActiveFilters" class="filter-indicator"></div>
+          </button>
+        </template>
         <!-- Loading State -->
         <div v-if="loading">
           <SkeletonLoader
@@ -387,11 +388,9 @@ const filters = reactive({
   role: [],
   branch: [],
   department: [],
-  organization: "",
 });
 
 const pageFilters = [
-  { key: "organization", label: "Organization", type: "select", show: true },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
   { key: "monthYear", label: "Month & Year", type: "month", show: true },
@@ -407,7 +406,6 @@ const initialFilters = computed(() => ({
   role: filters.role,
   branch: filters.branch,
   department: filters.department,
-  organization: filters.organization,
 }));
 
 const hasActiveFilters = computed(() => {
@@ -415,7 +413,6 @@ const hasActiveFilters = computed(() => {
     filters.role.length > 0 ||
     filters.branch.length > 0 ||
     filters.department.length > 0 ||
-    filters.organization ||
     !!search.value
   );
 });
@@ -803,11 +800,6 @@ const filterParams = () => {
   if (search.value) {
     params["filter[employee][assignedUser][first_name][_icontains]"] =
       search.value;
-  }
-
-  if (filters.organization) {
-    params["filter[employee][assignedUser][organization][id][_eq]"] =
-      filters.organization;
   }
 
   if (filters.department.length) {

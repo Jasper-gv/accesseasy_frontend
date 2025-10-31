@@ -49,52 +49,47 @@ const formatTaskType = (type) => {
 
 /**
  * Formats raw task data into a human-readable format for export.
+ * Only exports one row per task with essential fields.
  * @param {Array} rawData - The raw task data from the API.
  * @returns {Array} Formatted data with proper headers.
  */
 export const getFormattedExportData = (rawData) => {
   return rawData.map((task) => {
-    const formattedTask = {
-      Title: task.title || "Untitled Task",
-      Description: task.description || "No description available",
-      "Task Type": formatTaskType(task.taskType),
+    // Get Task ID and Task Status from dynamicFields if available
+    let taskId = "N/A";
+    let taskStatus = "N/A";
+
+    if (task.dynamicFields?.tasks?.length > 0) {
+      // Get the first task's ID and status
+      taskId = task.dynamicFields.tasks[0].taskId || "N/A";
+      taskStatus = formatStatus(task.dynamicFields.tasks[0].status);
+    }
+
+    return {
+      // "Task Type": formatTaskType(task.taskType),
       Status: formatStatus(task.status),
+      Title: task.title || "Untitled Task",
+      // Description: task.description || "No description available",
+      "Employee ID": task.employeeId?.employeeId || "N/A",
       "Assigned User":
         task.employeeId?.assignedUser?.first_name || "Unassigned",
-      "Client Name": task.orgId?.orgName || "No Client",
-      "Date Created": formatDate(task.date_created),
-      "Amount Collected": task.amountCollected || 0,
-      "Amount Expected": task.amountExpected || 0,
-      "Current Latitude": task.currentLat || "N/A",
-      "Current Longitude": task.currentLng || "N/A",
-      Demo: task.demo || "N/A",
-      "Device Type": task.deviceType || "N/A",
-      "Due Time": task.dueTime || "N/A",
-      "E-Amount Collected": task.eAmountCollected || 0,
-      From: task.from || "N/A",
-      "Issue Report": task.issueReport || "N/A",
-      Latitude: task.lat || "N/A",
-      Longitude: task.lng || "N/A",
-      "Payment Mode": task.paymentMode || "N/A",
-      "Radius in Meters": task.radiusInMeters || 0,
-      "Reference Number": task.referenceNumber || "N/A",
-      "SN Number": task.snNumber || "N/A",
-      "Product Name": task.prodName?.productName || "N/A",
-      "Location Type": task.orgLocation?.locType || "N/A",
-      "Tenant Name": task.tenant?.tenantName || "N/A",
+      "Due Time": formatDate(task.dueTime),
+      From: formatDate(task.from),
+      "Task Priority": task.task_priority
+        ? task.task_priority.charAt(0).toUpperCase() +
+          task.task_priority.slice(1)
+        : "N/A",
+      "Organization Name": task.orgId?.orgName || "N/A",
+      "Location Name": task.orgLocation?.locdetail?.locationName || "N/A",
+      Address: task.orgLocation?.locdetail?.address || "N/A",
+      // "Location Size": task.orgLocation?.locSize || "N/A",
+      "Contact Person":
+        task.orgLocation?.contactDetails?.contactPerson || "N/A",
+      Ratings: task.ratings !== null ? task.ratings : "N/A",
+      // "Contact Number":
+      //   task.orgLocation?.contactDetails?.contactNumber || "N/A",
+      // Email: task.orgLocation?.contactDetails?.Email || "N/A",
     };
-
-    // If you want ALL data (including numbers) to be left-aligned in Excel,
-    // convert all values to strings here. Be aware this might affect numerical operations in Excel.
-    /*
-    for (const key in formattedTask) {
-      if (Object.hasOwnProperty.call(formattedTask, key)) {
-        formattedTask[key] = String(formattedTask[key]);
-      }
-    }
-    */
-
-    return formattedTask;
   });
 };
 
@@ -109,7 +104,7 @@ export const generateFileName = (type) => {
   const time = now.toTimeString().split(" ")[0].replace(/:/g, "");
   let extension = type;
   if (type === "excel") {
-    extension = "xlsx"; // Ensure .xlsx extension for Excel files
+    extension = "xlsx";
   }
   return `WorkOrders_Report_${date}_${time}.${extension}`;
 };
@@ -162,41 +157,58 @@ export const exportToExcel = (data, filename) => {
     alert("No data to export.");
     return;
   }
+
   const ws = XLSX.utils.json_to_sheet(data);
 
-  // --- Excel Column Widths (Header Spacing) ---
-  // Define column widths in pixels (wpx) or characters (wch)
-  // This array should match the order of your headers in getFormattedExportData
+  // Define column widths for the essential columns
   ws["!cols"] = [
-    { wpx: 50 }, // ID
-    { wpx: 100 }, // Title
-    { wpx: 180 }, // Description
-    { wpx: 90 }, // Task Type
+    // { wpx: 100 }, // Task Type
     { wpx: 80 }, // Status
+    { wpx: 100 }, // Title
+    // { wpx: 200 }, // Description
+    { wpx: 80 }, // Employee ID
     { wpx: 120 }, // Assigned User
-    { wpx: 120 }, // Client Name
-    { wpx: 100 }, // Date Created
-    { wpx: 100 }, // Amount Collected
-    { wpx: 100 }, // Amount Expected
-    { wpx: 100 }, // Current Latitude
-    { wpx: 100 }, // Current Longitude
-    { wpx: 60 }, // Demo
-    { wpx: 90 }, // Device Type
-    { wpx: 90 }, // Due Time
-    { wpx: 100 }, // E-Amount Collected
-    { wpx: 60 }, // From
-    { wpx: 120 }, // Issue Report
-    { wpx: 90 }, // Latitude
-    { wpx: 90 }, // Longitude
-    { wpx: 100 }, // Payment Mode
-    { wpx: 100 }, // Radius in Meters
-    { wpx: 120 }, // Reference Number
-    { wpx: 100 }, // SN Number
-    { wpx: 120 }, // Product Name
-    { wpx: 120 }, // Organization Name
-    { wpx: 100 }, // Location Type
-    { wpx: 100 }, // Tenant Name
+    { wpx: 100 }, // Due Time
+    { wpx: 100 }, // From
+    { wpx: 80 }, // Task Priority
+    { wpx: 150 }, // Organization Name
+    { wpx: 120 }, // Location Name
+    { wpx: 200 }, // Address
+    // { wpx: 80 }, // Location Size
+    { wpx: 100 }, // Contact Person
+    { wpx: 60 }, // Ratings
+    // { wpx: 100 }, // Contact Number
+    // { wpx: 120 }, // Email
   ];
+
+  // Apply styling (bold headers, borders, alignment)
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = { c: C, r: R };
+      const cellRef = XLSX.utils.encode_cell(cellAddress);
+      if (!ws[cellRef]) continue;
+
+      ws[cellRef].s = {
+        border: {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        },
+        alignment: {
+          horizontal: "left",
+          vertical: "middle",
+        },
+      };
+
+      // Bold headers
+      if (R === 0) {
+        ws[cellRef].s.font = { bold: true };
+        ws[cellRef].s.fill = { fgColor: { rgb: "D3D3D3" } }; // Light gray background
+      }
+    }
+  }
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Work Orders");
@@ -216,7 +228,6 @@ export const exportToPDF = (data, filename) => {
 
   const doc = new jsPDF("landscape");
 
-  // ✅ Explicit headers and body
   const headers = Object.keys(data[0]);
   const body = data.map((row) => headers.map((h) => row[h]));
 
@@ -243,11 +254,9 @@ export const exportToPDF = (data, filename) => {
     },
     columnStyles: {
       Description: { minCellWidth: 35, cellWidth: "auto" },
-      "Issue Report": { minCellWidth: 25, cellWidth: "auto" },
-      "Product Name": { minCellWidth: 25, cellWidth: "auto" },
       "Organization Name": { minCellWidth: 25, cellWidth: "auto" },
-      "Location Type": { minCellWidth: 20, cellWidth: "auto" },
-      "Tenant Name": { minCellWidth: 20, cellWidth: "auto" },
+      Address: { minCellWidth: 25, cellWidth: "auto" },
+      Title: { minCellWidth: 20, cellWidth: "auto" },
     },
     tableWidth: "auto",
     didDrawPage: (data) => {

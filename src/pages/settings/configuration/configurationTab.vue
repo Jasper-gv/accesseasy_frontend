@@ -20,15 +20,16 @@
     </v-tabs>
 
     <!-- Routed Component with Event Emission -->
-    <router-view v-slot="{ Component }">
-      <component
-        :is="Component"
-        @showAddPage="handleShowAdd"
-        @showEditPage="handleShowEdit"
-        @closeAddPage="handleClose"
-        @closeEditPage="handleClose"
-      />
-    </router-view>
+    <v-card class="tab-content-wrapper" elevation="0">
+      <router-view v-slot="{ Component }">
+        <component
+          :is="Component"
+          @showAddPage="handleShowAdd"
+          @showEditPage="handleShowEdit"
+          @closeAddPage="handleClose"
+          @closeEditPage="handleClose"
+        /> </router-view
+    ></v-card>
   </v-container>
 </template>
 
@@ -47,16 +48,6 @@ const tabs = [
     value: "organization-settings",
     title: "Organization Settings",
     icon: "mdi-office-building-cog",
-  },
-  {
-    value: "branch-configuration",
-    title: "Branch Configuration",
-    icon: "mdi-map-marker",
-  },
-  {
-    value: "department-configuration",
-    title: "Department Configuration",
-    icon: "mdi-domain",
   },
 ];
 
@@ -107,6 +98,8 @@ const handleClose = () => {
 </script>
 
 <style scoped>
+/* tab design */
+
 .v-container {
   width: 100%;
   padding: 0px;
@@ -115,15 +108,16 @@ const handleClose = () => {
 }
 
 .custom-tabs {
-  background-color: #dee8f1;
+  background-color: white;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   padding: 8px 10px 0;
 }
 
 .custom-tab {
-  background-color: white;
-  color: black !important;
+  border-radius: 10;
+  background-color: #ecfdf5;
+  color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   margin-right: 8px;
@@ -137,16 +131,19 @@ const handleClose = () => {
 
 /* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: #122f68 !important;
-  color: #ffffff !important;
+  background-color: #059367 !important;
+  color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Disabled tab style */
-.custom-tab.v-tab--disabled {
-  color: #ccc !important;
-  cursor: not-allowed;
-  opacity: 0.6;
+/* Icon styles */
+.custom-tab .v-icon {
+  color: #122f68 !important;
+  opacity: 0.8;
+}
+.v-tab--selected .v-icon {
+  color: white !important;
+  opacity: 1;
 }
 
 /* Content below tabs */
@@ -155,7 +152,6 @@ const handleClose = () => {
   background: white;
   padding: 16px;
 }
-
 ::v-deep(.v-tab.v-btn) {
   height: var(--v-tabs-height);
   border-radius: 10px !important;

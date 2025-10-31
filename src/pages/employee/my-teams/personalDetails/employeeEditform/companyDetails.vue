@@ -28,19 +28,6 @@
       <v-row>
         <v-col cols="12" md="6">
           <v-select
-            v-model="selectedOrganization"
-            :items="organizationOptions"
-            item-title="orgName"
-            item-value="id"
-            label="Organization"
-            variant="outlined"
-            density="comfortable"
-            @update:model-value="handleOrganizationChange"
-            @blur="markFieldAsTouched('organization')"
-          ></v-select>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-select
             v-model="selectedDepartment"
             :items="departmentOptions"
             item-title="name"
@@ -49,19 +36,7 @@
             variant="outlined"
             density="comfortable"
             @update:model-value="handleDepartmentChange"
-            @blur="markFieldAsTouched('department')"
           ></v-select>
-
-          <p
-            v-if="departmentOptions.length === 0 && !selectedOrganization"
-            class="text-caption text-black mt-1 d-flex align-center"
-          >
-            <v-icon size="16" color="blue-darken-2" class="mr-1">
-              mdi-information
-            </v-icon>
-            <strong>Note:</strong>&nbsp;Please select an organization before
-            selecting the department.
-          </p>
         </v-col>
         <v-col cols="12" md="6">
           <v-select
@@ -73,19 +48,7 @@
             variant="outlined"
             density="comfortable"
             @update:model-value="handleBranchLocationChange"
-            @blur="markFieldAsTouched('branchLocation')"
           ></v-select>
-
-          <p
-            v-if="locationOptions.length === 0 && !selectedOrganization"
-            class="text-caption text-black mt-1 d-flex align-center"
-          >
-            <v-icon size="16" color="blue-darken-2" class="mr-1">
-              mdi-information
-            </v-icon>
-            <strong>Note:</strong>&nbsp;Please select an organization before
-            selecting the branch location.
-          </p>
         </v-col>
         <v-col cols="12" md="6">
           <v-text-field
@@ -187,29 +150,6 @@
             <v-divider class="mt-2"></v-divider>
           </template>
         </v-select>
-        <!-- <v-col cols="12">
-          <h3>PF and ESI Account</h3>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="localEmployeeData.assignedUser.ESIAccountNumber"
-            type="string"
-            label="ESI Account Number"
-            variant="outlined"
-            density="comfortable"
-            @input="handleInputChange('assignedUser.ESIAccountNumber')"
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="localEmployeeData.assignedUser.PFAccountNumber"
-            type="string"
-            label="UAN PF AccountNumber"
-            variant="outlined"
-            density="comfortable"
-            @input="handleInputChange('assignedUser.PFAccountNumber')"
-          ></v-text-field>
-        </v-col> -->
       </v-row>
     </v-container>
 
@@ -272,8 +212,6 @@ const loading = ref(true);
 const error = ref(null);
 const departmentOptions = ref([]);
 const selectedDepartment = ref(null);
-const organizationOptions = ref([]);
-const selectedOrganization = ref(null);
 const locationOptions = ref([]);
 const selectedBranchLocation = ref(null);
 const originalData = ref(null);
@@ -293,31 +231,7 @@ const searchApprover = ref("");
 const showApproverFilters = ref(false);
 const selectedApproverDepartmentFilter = ref("all");
 const debounceFilterApprover = debounce(filterApprovers, 300);
-
-const showAssignOrgNote = computed(() => !selectedOrganization.value);
-const assignOrgNoteMessage =
-  "Before choosing the department, assign organization";
-
-const handleManagesEmployeesChange = (newValue) => {
-  const originalManagesEmployees = originalData.value.managesEmployees
-    ? Array.isArray(originalData.value.managesEmployees)
-      ? originalData.value.managesEmployees
-      : [originalData.value.managesEmployees]
-    : [];
-
-  const newManagesEmployees = newValue || [];
-
-  if (
-    JSON.stringify(originalManagesEmployees.sort()) !==
-    JSON.stringify(newManagesEmployees.sort())
-  ) {
-    changedFields.value.managesEmployees = newManagesEmployees;
-  } else {
-    delete changedFields.value.managesEmployees;
-  }
-
-  emit("has-unsaved-changes", hasChanges.value);
-};
+const isUpdating = ref(false);
 
 const handleApproverChange = (newValue) => {
   const originalApprover = originalData.value.approver?.id || null;
@@ -329,12 +243,6 @@ const handleApproverChange = (newValue) => {
   }
 
   emit("has-unsaved-changes", hasChanges.value);
-};
-
-const getFieldErrorMessage = (fieldName) => {
-  return touchedFields.value.has(fieldName)
-    ? validationErrors.value[fieldName]
-    : "";
 };
 
 const markFieldAsTouched = (fieldName) => {
@@ -355,11 +263,6 @@ const showSuccessMessage = (message) => {
 const showErrorMessage = (message) => {
   errorMessage.value = message;
   showErrorSnackbar.value = true;
-};
-
-const toggleSwitch = (field, value) => {
-  localEmployeeData.value[field] = value;
-  handleInputChange(field);
 };
 
 const handleCycleTypeChange = (newValue) => {
@@ -417,43 +320,6 @@ async function fetchCycleTypes() {
   }
 }
 
-async function fetchOrganizations() {
-  try {
-    const tenantId = currentUserTenant.getTenantId();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/organization?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authService.getToken()}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch organizations");
-    }
-
-    const data = await response.json();
-    organizationOptions.value = data.data.map((org) => ({
-      id: org.id,
-      orgName: `${org.orgName} (${org.orgType})`, // Combine orgName and orgType for display
-    }));
-
-    if (
-      localEmployeeData.value?.assignedUser?.organization?.orgName &&
-      !selectedOrganization.value
-    ) {
-      matchOrganizationByName(
-        localEmployeeData.value.assignedUser.organization.orgName,
-      );
-    }
-  } catch (error) {
-    console.error("Error fetching organizations:", error);
-    organizationOptions.value = [];
-    showErrorMessage("Failed to load organization options");
-  }
-}
-
 const fetchEmployeeData = async () => {
   const token = authService.getToken();
   try {
@@ -470,9 +336,6 @@ const fetchEmployeeData = async () => {
       "assignedUser.dateOfJoining",
       "assignedUser.PFAccountNumber",
       "assignedUser.ESIAccountNumber",
-      "assignedUser.organization.id",
-      "assignedUser.organization.orgName",
-      "assignedUser.organization.orgType",
       "department.id",
       "department.departmentName",
       "branchLocation.id",
@@ -503,7 +366,7 @@ const fetchEmployeeData = async () => {
     if (data.data && data.data.length > 0) {
       const employee = data.data[0];
       if (!employee.assignedUser) {
-        employee.assignedUser = { id: "", organization: {} };
+        employee.assignedUser = { id: "" };
       } else if (!employee.assignedUser.id) {
         employee.assignedUser.id = employee.user_id || "";
       }
@@ -515,27 +378,6 @@ const fetchEmployeeData = async () => {
         selectedCycleType.value = Number(
           employee.cycleType.cycleId || employee.cycleType,
         );
-      }
-      if (employee.reportingManager) {
-        selectedReportingManagers.value = Array.isArray(
-          employee.reportingManager,
-        )
-          ? employee.reportingManager
-          : [employee.reportingManager]
-            ? [employee.reportingManager]
-            : [];
-      } else {
-        selectedReportingManagers.value = [];
-      }
-
-      if (employee.managesEmployees) {
-        selectedManagesEmployees.value = Array.isArray(
-          employee.managesEmployees,
-        )
-          ? employee.managesEmployees
-          : [employee.managesEmployees];
-      } else {
-        selectedManagesEmployees.value = [];
       }
 
       if (employee.approver) {
@@ -552,10 +394,6 @@ const fetchEmployeeData = async () => {
         selectedBranchLocation.value = employee.branchLocation.id;
       }
 
-      if (employee.assignedUser.organization) {
-        selectedOrganization.value = employee.assignedUser.organization.id;
-      }
-
       if (!selectedDepartment.value && employee.department?.departmentName) {
         matchDepartmentByName(employee.department.departmentName);
       }
@@ -565,13 +403,6 @@ const fetchEmployeeData = async () => {
         employee.branchLocation?.locdetail?.locationName
       ) {
         matchBranchByName(employee.branchLocation.locdetail.locationName);
-      }
-
-      if (
-        !selectedOrganization.value &&
-        employee.assignedUser.organization?.orgName
-      ) {
-        matchOrganizationByName(employee.assignedUser.organization.orgName);
       }
     } else {
       throw new Error("No employee data found");
@@ -604,23 +435,11 @@ const matchBranchByName = (locationName) => {
   }
 };
 
-const matchOrganizationByName = (orgName) => {
-  if (!orgName || !organizationOptions.value.length) return;
-  const matchedOrg = organizationOptions.value.find((org) =>
-    org.orgName.toLowerCase().includes(orgName.toLowerCase()),
-  );
-  if (matchedOrg) {
-    selectedOrganization.value = matchedOrg.id;
-  }
-};
-
-const fetchDepartments = async (orgId = null) => {
+const fetchDepartments = async () => {
   try {
     const tenantId = currentUserTenant.getTenantId();
-    let filterQuery = `filter[tenant][tenantId][_eq]=${tenantId}`;
-    if (orgId) {
-      filterQuery = `filter[_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][1][orgId][id][_eq]=${orgId}`;
-    }
+    const filterQuery = `filter[tenant][tenantId][_eq]=${tenantId}`;
+
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/department?${filterQuery}`,
       {
@@ -629,11 +448,17 @@ const fetchDepartments = async (orgId = null) => {
         },
       },
     );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch departments");
+    }
+
     const data = await response.json();
     departmentOptions.value = data.data.map((dept) => ({
       id: dept.id,
       name: dept.departmentName || "Unnamed Department",
     }));
+
     if (
       localEmployeeData.value?.department?.departmentName &&
       !selectedDepartment.value
@@ -643,16 +468,15 @@ const fetchDepartments = async (orgId = null) => {
   } catch (error) {
     console.error("Error fetching departments:", error);
     departmentOptions.value = [];
+    showErrorMessage("Failed to load department options");
   }
 };
 
-const fetchLocations = async (orgId = null) => {
+const fetchLocations = async () => {
   try {
     const tenantId = currentUserTenant.getTenantId();
-    let filterQuery = `filter[tenant][tenantId][_eq]=${tenantId}`;
-    if (orgId) {
-      filterQuery += `&filter[orgLocation][id][_eq]=${orgId}`;
-    }
+    const filterQuery = `filter[tenant][tenantId][_eq]=${tenantId}`;
+
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/locationManagement?${filterQuery}`,
       {
@@ -661,45 +485,30 @@ const fetchLocations = async (orgId = null) => {
         },
       },
     );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch locations");
+    }
+
     const data = await response.json();
     locationOptions.value = data.data.map((loc) => ({
       id: loc.id,
       name: `${loc.locdetail.locationName} (${loc.locType})`,
     }));
-    if (localEmployeeData.value?.branch?.branchName && !selectedBranch.value) {
-      matchBranchByName(localEmployeeData.value.branch.branchName);
+
+    if (
+      localEmployeeData.value?.branchLocation?.locdetail?.locationName &&
+      !selectedBranchLocation.value
+    ) {
+      matchBranchByName(
+        localEmployeeData.value.branchLocation.locdetail.locationName,
+      );
     }
   } catch (error) {
-    console.error("Error fetching branches:", error);
-    branchOptions.value = [];
+    console.error("Error fetching locations:", error);
+    locationOptions.value = [];
+    showErrorMessage("Failed to load location options");
   }
-};
-
-const handleReportingManagerChange = (newValue) => {
-  const newManagers = Array.isArray(newValue)
-    ? newValue
-    : newValue
-      ? [newValue]
-      : [];
-
-  const originalManagers = originalData.value.reportingManager
-    ? Array.isArray(originalData.value.reportingManager)
-      ? originalData.value.reportingManager
-      : [originalData.value.reportingManager]
-    : [];
-
-  const originalSorted = [...originalManagers].sort();
-  const newSorted = [...newManagers].sort();
-
-  if (JSON.stringify(originalSorted) !== JSON.stringify(newSorted)) {
-    changedFields.value.reportingManager = newManagers.length
-      ? newManagers
-      : null;
-  } else {
-    delete changedFields.value.reportingManager;
-  }
-
-  emit("has-unsaved-changes", hasChanges.value);
 };
 
 const BATCH_SIZE = 100;
@@ -745,221 +554,6 @@ async function fetchAllPaginatedData(baseUrl) {
   } catch (error) {
     console.error("❌ Error in fetchAllPaginatedData:", error);
     return [];
-  }
-}
-
-async function filterReportingManagers() {
-  try {
-    const tenantId = currentUserTenant.getTenantId();
-    console.log(`✅ Tenant ID: ${tenantId}`);
-
-    let filters = [];
-    filters.push(`filter[accessOn][_eq]=true`);
-
-    if (selectedBranchFilter.value && selectedBranchFilter.value !== "all") {
-      const selectedBranch = branchOptions.value.find(
-        (branch) => branch.id === selectedBranchFilter.value,
-      );
-      if (selectedBranch) {
-        filters.push(
-          `filter[_and][1][branch][branchName][_contains]=${selectedBranch.name}`,
-        );
-      }
-    }
-
-    if (
-      localEmployeeData.value?.branchLocation?.locdetail?.locationName &&
-      !selectedBranchLocation.value
-    ) {
-      matchBranchByName(
-        localEmployeeData.value.branchLocation.locdetail.locationName,
-      );
-    }
-
-    const currentUserRole = authService.getUserRole();
-    let roleFilter = "";
-    if (currentUserRole === "Admin") {
-      roleFilter = `&filter[assignedUser][role][name][_eq]=Manager`;
-    } else if (currentUserRole === "Manager") {
-      roleFilter = `&filter[_or][0][assignedUser][role][name][_eq]=Employee`;
-      roleFilter += `&filter[_or][1][assignedUser][role][name][_eq]=Manager`;
-    }
-
-    const baseFilter = `filter[assignedUser][tenant][tenantId][_eq]=${tenantId}${roleFilter}`;
-    const fullFilter = `${baseFilter}${filters.length > 0 ? "&" + filters.join("&") : ""}`;
-
-    const fields = [
-      "id",
-      "assignedUser.id",
-      "assignedUser.first_name",
-      "assignedUser.role.name",
-      "branch.id",
-      "branch.branchName",
-      "department.id",
-      "department.departmentName",
-      "reportingManager",
-      "accessOn",
-    ].join(",");
-
-    const baseUrl = `${import.meta.env.VITE_API_URL}/items/personalModule?${fullFilter}&fields=${fields}`;
-
-    const allData = await fetchAllPaginatedData(baseUrl);
-    console.log(`✅ API returned ${allData.length} records`);
-
-    const currentEmployeeId =
-      localEmployeeData.value?.assignedUser?.id ||
-      localEmployeeData.value?.user_id ||
-      props.id;
-
-    const reportingManagerIds = new Set();
-    const employeesWithReportingManager = new Set();
-
-    allData.forEach((item) => {
-      if (item.reportingManager) {
-        const managers = Array.isArray(item.reportingManager)
-          ? item.reportingManager
-          : [item.reportingManager];
-        managers.forEach((id) => {
-          if (id) reportingManagerIds.add(id);
-        });
-        const itemUserId = item.assignedUser?.id || item.user_id;
-        if (itemUserId) employeesWithReportingManager.add(itemUserId);
-      }
-    });
-
-    filteredReportingManagers.value = allData
-      .filter((item) => {
-        const itemUserId = item.assignedUser?.id || item.user_id;
-        return (
-          itemUserId &&
-          itemUserId !== currentEmployeeId &&
-          !reportingManagerIds.has(itemUserId) &&
-          !employeesWithReportingManager.has(itemUserId) &&
-          item.accessOn !== false
-        );
-      })
-      .map((item) => ({
-        id: item.assignedUser?.id || item.user_id || "",
-        name: item.assignedUser?.first_name?.trim() || "Unnamed User",
-        role: item.assignedUser?.role?.name || "",
-        departmentId: item.department?.id || null,
-        departmentName: item.department?.departmentName || "",
-        branchId: item.branch?.id || null,
-        branchName: item.branch?.branchName || "",
-      }));
-
-    console.log(
-      `🎯 Final reporting managers count: ${filteredReportingManagers.value.length}`,
-    );
-  } catch (error) {
-    console.error("Error fetching locations:", error);
-    locationOptions.value = [];
-  }
-}
-
-async function filterManagesEmployees() {
-  try {
-    const tenantId = currentUserTenant.getTenantId();
-    console.log(`✅ Tenant ID: ${tenantId}`);
-
-    let filters = [];
-    filters.push(`filter[accessOn][_eq]=true`);
-
-    if (
-      selectedManagesEmployeeBranchFilter.value &&
-      selectedManagesEmployeeBranchFilter.value !== "all"
-    ) {
-      const selectedBranch = branchOptions.value.find(
-        (branch) => branch.id === selectedManagesEmployeeBranchFilter.value,
-      );
-      if (selectedBranch) {
-        filters.push(
-          `filter[_and][1][branch][branchName][_contains]=${selectedBranch.name}`,
-        );
-      }
-    }
-
-    if (
-      selectedManagesEmployeeDepartmentFilter.value &&
-      selectedManagesEmployeeDepartmentFilter.value !== "all"
-    ) {
-      const selectedDept = departmentOptions.value.find(
-        (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value,
-      );
-      if (selectedDept) {
-        filters.push(
-          `filter[_and][2][department][departmentName][_contains]=${selectedDept.name}`,
-        );
-      }
-    }
-
-    if (searchManagesEmployee.value) {
-      filters.push(
-        `filter[_and][3][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`,
-      );
-    }
-
-    const currentUserRole = authService.getUserRole();
-    let roleFilter = "";
-    if (currentUserRole === "Admin") {
-      roleFilter = `&filter[_or][0][assignedUser][role][name][_eq]=Manager&filter[_or][1][assignedUser][role][name][_eq]=Employee`;
-    } else if (currentUserRole === "Manager") {
-      roleFilter = `&filter[assignedUser][role][name][_eq]=Employee`;
-    }
-
-    const baseFilter = `filter[assignedUser][tenant][tenantId][_eq]=${tenantId}${roleFilter}`;
-    const fullFilter = `${baseFilter}${filters.length > 0 ? "&" + filters.join("&") : ""}`;
-
-    const fields = [
-      "id",
-      "assignedUser.id",
-      "assignedUser.first_name",
-      "assignedUser.role.name",
-      "branch.id",
-      "branch.branchName",
-      "department.id",
-      "department.departmentName",
-      "managesEmployees",
-      "accessOn",
-    ].join(",");
-
-    const baseUrl = `${import.meta.env.VITE_API_URL}/items/personalModule?${fullFilter}&fields=${fields}`;
-
-    const allData = await fetchAllPaginatedData(baseUrl);
-    console.log(`✅ API returned ${allData.length} records`);
-
-    const currentEmployeeId =
-      localEmployeeData.value?.assignedUser?.id ||
-      localEmployeeData.value?.user_id ||
-      props.id;
-
-    const existingManagesEmployees = selectedManagesEmployees.value || [];
-
-    filteredManagesEmployees.value = allData
-      .filter((item) => {
-        const itemUserId = item.assignedUser?.id || item.user_id;
-        return (
-          ((itemUserId && itemUserId !== currentEmployeeId) ||
-            existingManagesEmployees.includes(itemUserId)) &&
-          item.accessOn !== false
-        );
-      })
-      .map((item) => ({
-        id: item.assignedUser?.id || item.user_id || "",
-        name: item.assignedUser?.first_name?.trim() || "Unnamed User",
-        role: item.assignedUser?.role?.name || "",
-        departmentId: item.department?.id || null,
-        departmentName: item.department?.departmentName || "",
-        branchId: item.branch?.id || null,
-        branchName: item.branch?.branchName || "",
-      }));
-
-    console.log(
-      `🎯 Final manages employees count: ${filteredManagesEmployees.value.length}`,
-    );
-  } catch (error) {
-    console.error("❌ Error filtering manages employees:", error.message);
-    filteredManagesEmployees.value = [];
   }
 }
 
@@ -1106,35 +700,6 @@ const handleInputChange = (field) => {
   emit("has-unsaved-changes", hasChanges.value);
 };
 
-const handleOrganizationChange = (newValue) => {
-  const currentOrgId = originalData.value.assignedUser.organization?.id;
-  if (newValue !== currentOrgId) {
-    changedFields.value.assignedUser = changedFields.value.assignedUser || {};
-    changedFields.value.assignedUser.organization = newValue;
-    const selectedOrg = organizationOptions.value.find(
-      (o) => o.id === newValue,
-    );
-    if (selectedOrg) {
-      localEmployeeData.value.assignedUser.organization = {
-        id: newValue,
-        orgName: selectedOrg.orgName.split(" (")[0], // Extract orgName without orgType
-        orgType: selectedOrg.orgName.match(/\(([^)]+)\)/)?.[1] || "", // Extract orgType
-      };
-    }
-  } else {
-    if (changedFields.value.assignedUser) {
-      delete changedFields.value.assignedUser.organization;
-      if (Object.keys(changedFields.value.assignedUser).length === 0) {
-        delete changedFields.value.assignedUser;
-      }
-    }
-  }
-  if (newValue) {
-    validationErrors.value.organization = null;
-  }
-  emit("has-unsaved-changes", hasChanges.value);
-};
-
 const handleBranchLocationChange = (newValue) => {
   const currentBranchId = originalData.value.branchLocation?.id;
   if (newValue !== currentBranchId) {
@@ -1168,6 +733,7 @@ const updateCompanyDetails = async () => {
   const employeeId = props.id;
 
   try {
+    isUpdating.value = true;
     const payload = {};
     let updateAccess = null;
 
@@ -1219,11 +785,6 @@ const updateCompanyDetails = async () => {
         ) {
           assignedUserChanges.designation = null;
         }
-        if ("organization" in assignedUserChanges) {
-          assignedUserChanges.organization = {
-            id: assignedUserChanges.organization,
-          };
-        }
         payload.assignedUser = {
           id: localEmployeeData.value.assignedUser.id,
           ...assignedUserChanges,
@@ -1232,22 +793,8 @@ const updateCompanyDetails = async () => {
         payload.department = changedFields.value.department;
       } else if (key === "branchLocation") {
         payload.branchLocation = changedFields.value.branchLocation;
-      } else if (key === "reportingManager") {
-        const newManagers = changedFields.value.reportingManager;
-        payload.reportingManager =
-          newManagers && newManagers.length ? newManagers : null;
-      } else if (key === "managesEmployees") {
-        const newManagesEmployees = changedFields.value.managesEmployees;
-        payload.managesEmployees =
-          newManagesEmployees && newManagesEmployees.length
-            ? newManagesEmployees
-            : null;
       } else if (key === "approver") {
         payload.approver = changedFields.value.approver;
-      } else if (key === "department") {
-        payload.department = changedFields.value.department;
-      } else if (key === "branch") {
-        payload.branch = changedFields.value.branch;
       } else if (key === "cycleType") {
         payload.cycleType = changedFields.value.cycleType;
       } else {
@@ -1285,103 +832,6 @@ const updateCompanyDetails = async () => {
       );
     }
 
-    if (changedFields.value.managesEmployees !== undefined) {
-      const originalManagesEmployees = originalData.value.managesEmployees
-        ? Array.isArray(originalData.value.managesEmployees)
-          ? originalData.value.managesEmployees
-          : [originalData.value.managesEmployees]
-        : [];
-
-      const newManagesEmployees = changedFields.value.managesEmployees || [];
-
-      const addedEmployees = newManagesEmployees.filter(
-        (id) => !originalManagesEmployees.includes(id),
-      );
-      const removedEmployees = originalManagesEmployees.filter(
-        (id) => !newManagesEmployees.includes(id),
-      );
-
-      for (const userId of addedEmployees) {
-        const employeeResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/personalModule?filter[assignedUser][id][_eq]=${userId}&fields=id,reportingManager`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-        const employeeData = await employeeResponse.json();
-        if (employeeData.data && employeeData.data.length > 0) {
-          const employee = employeeData.data[0];
-          let currentManagers = employee.reportingManager
-            ? Array.isArray(employee.reportingManager)
-              ? employee.reportingManager
-              : [employee.reportingManager]
-            : [];
-
-          if (!currentManagers.includes(currentEmployeeUserId)) {
-            currentManagers.push(currentEmployeeUserId);
-            await fetch(
-              `${import.meta.env.VITE_API_URL}/items/personalModule/${employee.id}`,
-              {
-                method: "PATCH",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  reportingManager: currentManagers.length
-                    ? currentManagers
-                    : null,
-                }),
-              },
-            );
-          }
-        }
-      }
-
-      for (const userId of removedEmployees) {
-        const employeeResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/items/personalModule?filter[assignedUser][id][_eq]=${userId}&fields=id,reportingManager`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-        const employeeData = await employeeResponse.json();
-        if (employeeData.data && employeeData.data.length > 0) {
-          const employee = employeeData.data[0];
-          let currentManagers = employee.reportingManager
-            ? Array.isArray(employee.reportingManager)
-              ? employee.reportingManager
-              : [employee.reportingManager]
-            : [];
-
-          currentManagers = currentManagers.filter(
-            (id) => id !== currentEmployeeUserId,
-          );
-          await fetch(
-            `${import.meta.env.VITE_API_URL}/items/personalModule/${employee.id}`,
-            {
-              method: "PATCH",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                reportingManager: currentManagers.length
-                  ? currentManagers
-                  : null,
-              }),
-            },
-          );
-        }
-      }
-    }
-
     if (updateAccess !== null) {
       await updateCardAccess(employeeId, updateAccess);
     }
@@ -1395,6 +845,8 @@ const updateCompanyDetails = async () => {
     showErrorMessage(
       `Failed to update company details. Please try again: ${error.message}`,
     );
+  } finally {
+    isUpdating.value = false;
   }
 };
 
@@ -1480,50 +932,10 @@ const handleDepartmentChange = (newValue) => {
   emit("has-unsaved-changes", hasChanges.value);
 };
 
-watch(selectedOrganization, async (newOrgId) => {
-  if (newOrgId) {
-    await fetchDepartments(newOrgId);
-    await fetchLocations(newOrgId);
-    if (selectedDepartment.value) {
-      const stillValid = departmentOptions.value.some(
-        (d) => d.id === selectedDepartment.value,
-      );
-      if (!stillValid) {
-        selectedDepartment.value = null;
-        delete changedFields.value.department;
-        localEmployeeData.value.department = null;
-      }
-    }
-    if (selectedBranchLocation.value) {
-      const stillValid = locationOptions.value.some(
-        (l) => l.id === selectedBranchLocation.value,
-      );
-      if (!stillValid) {
-        selectedBranchLocation.value = null;
-        delete changedFields.value.branchLocation;
-        localEmployeeData.value.branchLocation = null;
-      }
-    }
-  } else {
-    departmentOptions.value = [];
-    selectedDepartment.value = null;
-    delete changedFields.value.department;
-    localEmployeeData.value.department = null;
-    locationOptions.value = [];
-    selectedBranchLocation.value = null;
-    delete changedFields.value.branchLocation;
-    localEmployeeData.value.branchLocation = null;
-  }
-});
-
 onMounted(async () => {
-  await Promise.all([fetchCycleTypes(), fetchOrganizations()]);
+  await Promise.all([fetchCycleTypes(), fetchDepartments(), fetchLocations()]);
   await fetchEmployeeData();
-  await Promise.all([
-    filterReportingManagers(),
-    filterManagesEmployees(),
-    filterApprovers(),
-  ]);
+  await filterApprovers();
 });
 
 watch(
@@ -1540,11 +952,6 @@ watch(
         selectedBranchLocation.value = newVal.branchLocation.id;
       } else if (newVal.branchLocation?.locdetail?.locationName) {
         matchBranchByName(newVal.branchLocation.locdetail.locationName);
-      }
-      if (newVal.assignedUser?.organization?.id) {
-        selectedOrganization.value = newVal.assignedUser.organization.id;
-      } else if (newVal.assignedUser?.organization?.orgName) {
-        matchOrganizationByName(newVal.assignedUser.organization.orgName);
       }
       if (newVal.approver) {
         selectedApprover.value = newVal.approver.id;
@@ -1592,18 +999,6 @@ watch(locationOptions, (newOptions) => {
   ) {
     matchBranchByName(
       localEmployeeData.value.branchLocation.locdetail.locationName,
-    );
-  }
-});
-
-watch(organizationOptions, (newOptions) => {
-  if (
-    newOptions.length &&
-    localEmployeeData.value?.assignedUser?.organization?.orgName &&
-    !selectedOrganization.value
-  ) {
-    matchOrganizationByName(
-      localEmployeeData.value.assignedUser.organization.orgName,
     );
   }
 });

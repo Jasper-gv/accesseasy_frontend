@@ -59,7 +59,6 @@ export async function sendHappyCodeEmail(to, happyCode) {
 export async function getOrganizationEmailById(orgId) {
   if (!orgId) return null;
   const token = authService.getToken?.() || "";
-  // Directus items endpoint; request nested orgId.email if stored relationally
   const qs = new URLSearchParams([
     ["limit", "1"],
     ["fields[]", "email"],
@@ -91,11 +90,15 @@ export async function patchOrganizationEmail(orgId, email) {
 
 export async function patchTaskCodes(taskId, { clientOtp, client_HappyCode }) {
   const token = authService.getToken?.() || "";
-  if (!taskId) return false;
+  if (!taskId) {
+    return false;
+  }
   const body = {};
   if (clientOtp) body.clientOtp = clientOtp;
   if (client_HappyCode) body.client_HappyCode = client_HappyCode;
-  if (!Object.keys(body).length) return true;
+  if (!Object.keys(body).length) {
+    return true;
+  }
   const res = await fetch(`${API_URL}/items/tasks/${taskId}`, {
     method: "PATCH",
     headers: {
@@ -104,7 +107,16 @@ export async function patchTaskCodes(taskId, { clientOtp, client_HappyCode }) {
     },
     body: JSON.stringify(body),
   });
-  return res.ok;
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "No error details");
+    console.error(
+      `[DEBUG] patchTaskCodes failed for task ${taskId}: Status ${res.status}, Details: ${errorText}`,
+    );
+    console.error("[DEBUG] Body sent:", body);
+    return false;
+  }
+  return true;
 }
 
 export async function maybeSendCodes({
@@ -135,7 +147,10 @@ export async function maybeSendCodes({
         /(happy[_-]?code)/i.test(f?.type || f?.key || f?.label),
     );
 
-  if (!needsOtp && !needsHappy) return;
+  if (!needsOtp && !needsHappy) {
+    console.log("[DEBUG] No OTP or Happy Code needed, exiting maybeSendCodes");
+    return;
+  }
 
   // infer lengths if defined on fields
   const otpLen =
@@ -177,8 +192,15 @@ export async function maybeSendCodes({
       await sendHappyCodeEmail(orgEmail, client_HappyCode);
     }
     const taskId = createdTask?.data?.id ?? createdTask?.id;
-    await patchTaskCodes(taskId, { clientOtp, client_HappyCode });
-    showToast("Codes processed successfully.", "success");
+
+    const codesPatched = await patchTaskCodes(taskId, {
+      clientOtp,
+      client_HappyCode,
+    });
+    if (!codesPatched) {
+      throw new Error("Failed to patch task OTP");
+    }
+    showToast("Otp Email Sended successfully.", "success");
   } catch (e) {
     showToast("Failed to send codes.", "error");
   }

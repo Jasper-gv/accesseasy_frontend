@@ -12,51 +12,10 @@
       <!-- Custom Toolbar with Stats and Create Button -->
       <template #toolbar-actions>
         <div class="toolbar-with-stats">
-          <!-- <div class="search-container">
-      <div class="search-input-wrapper">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="search-icon"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search locations..."
-          class="search-input"
-          @input="handleSearch"
-        />
-        <button
-          v-if="searchQuery"
-          class="clear-search"
-          @click="clearSearch"
-          aria-label="Clear search"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-    </div> -->
           <!-- Create Button -->
           <BaseButton
             variant="primary"
-            text="Create Location"
+            text="Create branch"
             :leftIcon="Plus"
             width="100px"
             @click="createLocation"
@@ -132,7 +91,7 @@
           @update:selected-items="selected = $event"
           @update:sort-by="sortBy = $event"
           @update:sort-direction="sortDirection = $event"
-          @row-click="editItem"
+          @row-click="openDialog"
         >
           <!-- Your cell templates remain the same -->
           <!-- Location -->
@@ -159,44 +118,6 @@
               </div>
             </div>
           </template>
-
-          <!-- Type -->
-          <!-- <template #cell-locType="{ item }">
-            <span
-              class="type-badge"
-              :class="`type-${item.locType || 'unknown'}`"
-            >
-              {{ formatLocationType(item.locType) }}
-            </span>
-          </template> -->
-
-          <!-- Organization -->
-          <!-- <template #cell-organization="{ item }">
-            <span
-              class="org-badge"
-              :class="item.orgName ? 'org-assigned' : 'org-unassigned'"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <template v-if="item.orgName">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <path d="m9 11 3 3L22 4" />
-                </template>
-                <template v-else>
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </template>
-              </svg>
-              {{ item.orgName || "Unassigned" }}
-            </span>
-          </template> -->
 
           <!-- Address -->
           <template #cell-address="{ item }">
@@ -241,13 +162,22 @@
 
           <!-- Actions -->
           <template #cell-actions="{ item }">
-            <ActionBtn
-              :icon="Edit"
-              variant="secondary"
-              size="100px"
-              tooltip="Edit Location"
-              @click="editItem(item)"
-            />
+            <div class="actions-container">
+              <ActionBtn
+                :icon="Edit"
+                variant="secondary"
+                size="100px"
+                tooltip="Edit Location"
+                @click="openDialog"
+              />
+              <!-- <ActionBtn
+                :icon="QrCodeIcon"
+                variant="secondary"
+                size="100px"
+                tooltip="Generate QR"
+                @click="generateQRForItem(item)"
+              /> -->
+            </div>
           </template>
 
           <!-- Optional slots for built-in states -->
@@ -281,6 +211,83 @@
         />
       </template>
     </DataTableWrapper>
+    <!-- Updated Dialog UI based on screenshot style -->
+    <v-dialog v-model="dialogVisible" max-width="500" persistent>
+      <v-card class="entry-type-dialog">
+        <v-card-title class="dialog-header">
+          Actions for Selected Location
+          <v-spacer></v-spacer>
+          <v-btn icon @click="dialogVisible = false" class="close-btn">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="dialog-content">
+          <p class="location-name-text">
+            Select an action for the location: {{ selectedItem?.locationName }}
+          </p>
+          <div class="entry-type-container">
+            <div class="entry-option" @click="handleEdit">
+              <div class="option-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                  ></path>
+                  <path
+                    d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="option-details">
+                <h3 class="option-title">Edit</h3>
+                <p class="option-description">Edit location details</p>
+              </div>
+            </div>
+            <div class="entry-option" @click="generateQR">
+              <div class="option-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <polyline points="14,3 21,3 21,10"></polyline>
+                  <polyline points="14,14 21,14 21,21"></polyline>
+                  <polyline points="3,14 10,14 10,21"></polyline>
+                  <line x1="14" y1="3" x2="10" y2="7"></line>
+                  <line x1="14" y1="14" x2="10" y2="18"></line>
+                  <line x1="3" y1="14" x2="7" y2="10"></line>
+                  <line x1="21" y1="3" x2="17" y2="7"></line>
+                </svg>
+              </div>
+              <div class="option-details">
+                <h3 class="option-title">Generate QR</h3>
+                <p class="option-description">Generate QR code for location</p>
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -297,7 +304,8 @@ import SkeletonLoading from "@/components/common/states/SkeletonLoading.vue";
 import EmptyState from "@/components/common/states/EmptyState.vue";
 import ErrorState from "@/components/WorkOrdeForm_Components/form/ErrorState.vue";
 import ActionBtn from "@/components/common/buttons/ActionButton.vue";
-import { Edit, Edit2Icon, LucideEdit3, Plus } from "lucide-vue-next";
+import { Edit, Plus, QrCode as QrCodeIcon } from "lucide-vue-next";
+
 const tenantId = currentUserTenant.getTenantId();
 
 const router = useRouter();
@@ -335,6 +343,12 @@ const toFixedNumber = (num, digits = 4) => {
   const n = parseFloat(num);
   return Number.isFinite(n) ? n.toFixed(digits) : "--";
 };
+const dialogVisible = ref(false); // New: Controls dialog visibility
+const selectedItem = ref(null);
+const openDialog = (item) => {
+  selectedItem.value = item; // Store the selected item
+  dialogVisible.value = true; // Open the dialog
+};
 const handleSearch = () => {
   // Clear previous timeout
   if (searchTimeout) {
@@ -347,7 +361,143 @@ const handleSearch = () => {
     page.value = 1; // Reset to first page when searching
   }, 300); // 300ms debounce
 };
+const handleEdit = () => {
+  if (selectedItem.value) {
+    router.push({
+      name: "branch-configuration-edit",
+      params: { id: selectedItem.value.id },
+    });
+    dialogVisible.value = false; // Close dialog after action
+  }
+};
+const generateQRForItem = async (item) => {
+  console.log("generating ", item);
+  selectedItem.value = item;
+  await generateQR();
+};
 
+const generateQR = async () => {
+  const loc = selectedItem.value;
+  if (!loc) {
+    showErrorMessage("Location not found");
+    return;
+  }
+
+  let qrContent = loc.qrDetails;
+
+  // If qrDetails not in the current object, fetch it
+  if (!qrContent) {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/locationManagement/${loc.id}?fields[]=qrDetails`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch QR details");
+
+      const data = await response.json();
+      qrContent = data.data.qrDetails;
+      console.log(qrContent);
+      if (!qrContent) {
+        showErrorMessage("QR details not found for this location");
+        return;
+      }
+    } catch (error) {
+      console.error("Error fetching QR details:", error);
+      showErrorMessage("Failed to retrieve QR details. Please try again.");
+      return;
+    }
+  }
+
+  // Ensure qrContent is a string
+  if (typeof qrContent !== "string") {
+    console.error("qrContent is not a string:", qrContent);
+    // Try to stringify if it's an object
+    try {
+      qrContent = JSON.stringify(qrContent);
+    } catch (e) {
+      showErrorMessage("Invalid QR content format");
+      return;
+    }
+  }
+
+  const locationName =
+    loc.locdetail?.locationName || loc.locationName || "Unknown_Location";
+
+  try {
+    // Create QR code instance
+    const typeNumber = 0; // Auto-detect the best type
+    const errorCorrectionLevel = "H"; // High error correction
+    const qr = QRCode(typeNumber, errorCorrectionLevel);
+
+    // Add data and generate
+    qr.addData(qrContent);
+    qr.make();
+
+    // Get the module count (size of QR code)
+    const moduleCount = qr.getModuleCount();
+    const cellSize = 8; // Size of each cell in pixels
+    const margin = 4; // Margin in cells
+    const size = moduleCount * cellSize + margin * cellSize * 2;
+
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    // Fill white background
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, size, size);
+
+    // Draw QR code
+    ctx.fillStyle = "#000000";
+    for (let row = 0; row < moduleCount; row++) {
+      for (let col = 0; col < moduleCount; col++) {
+        if (qr.isDark(row, col)) {
+          ctx.fillRect(
+            col * cellSize + margin * cellSize,
+            row * cellSize + margin * cellSize,
+            cellSize,
+            cellSize,
+          );
+        }
+      }
+    }
+
+    // Convert canvas to blob and download
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        showErrorMessage("Failed to generate QR code image");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${locationName.replace(/\s+/g, "_")}_QR.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      URL.revokeObjectURL(url);
+
+      showSuccessMessage("QR code downloaded successfully!");
+    }, "image/png");
+
+    dialogVisible.value = false;
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    showErrorMessage(`Failed to generate QR code: ${error.message}`);
+  }
+};
 // API Methods
 const fetchLocations = async () => {
   loading.value = true;
@@ -426,7 +576,7 @@ const columns = [
     key: "locationName",
     label: "Location Name",
     sortable: false,
-    width: "200px",
+    width: "20px",
   },
   // {
   //   key: "locType",
@@ -443,22 +593,22 @@ const columns = [
   {
     key: "address",
     label: "Address",
-    width: "300px",
+    width: "30px",
   },
   {
     key: "state",
     label: "State",
-    width: "300px",
+    width: "30px",
   },
   {
     key: "coordinates",
     label: "Coordinates",
-    width: "200px",
+    width: "20px",
   },
   {
     key: "actions",
     label: "Actions",
-    width: "200px",
+    width: "20px",
   },
 ];
 
@@ -597,9 +747,13 @@ const editItem = (item) => {
 };
 
 const createLocation = () => {
-  router.push({
-    name: "branch-configuration-add",
-  });
+  // Check if route exists
+  const route = router.resolve({ name: "branch-configuration-add" });
+  if (route) {
+    router.push({ name: "branch-configuration-add" });
+  } else {
+    console.error("Route not found");
+  }
 };
 
 // Lifecycle
@@ -890,5 +1044,105 @@ onMounted(() => {
   background: #ddd6fe;
   border-color: #c4b5fd;
   color: #5b21b6;
+}
+
+/* New styles for actions container in table */
+.actions-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Dialog styles based on screenshot */
+.entry-type-dialog {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dialog-header {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 24px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.close-btn {
+  background: none !important;
+  border: none !important;
+  color: #64748b !important;
+}
+
+.dialog-content {
+  padding: 24px;
+}
+
+.location-name-text {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #64748b;
+  text-align: center;
+}
+
+.entry-type-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.entry-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.entry-option:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.option-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.option-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.option-details {
+  flex: 1;
+}
+
+.option-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.option-description {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
 }
 </style>

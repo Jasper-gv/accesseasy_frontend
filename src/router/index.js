@@ -1,3 +1,4 @@
+// /src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 import { authService } from "@/services/authService";
 
@@ -8,58 +9,49 @@ import PinVerification from "@/components/loginAuthentication/pinVerification.vu
 import Register from "@/components/loginAuthentication/register.vue";
 import DashboardLayout from "@/layouts/dashboardLayout.vue";
 
-// Import device manager components
+// All static imports at the top
 import DeviceManagementTabs from "../pages/devicesManager/deviceManagerTabs.vue";
 import UnapprovedDevices from "@/pages/devicesManager/unApprovedDevice/unApprovedDetails.vue";
 import DoorManagement from "@/pages/devicesManager/doors/doorDetails.vue";
 import Accesslevel from "@/pages/devicesManager/accesslevel/accesslevelCatagory.vue";
 
-// Import attendance components
 import AttendanceDeatils from "../pages/attendanceDetails/attendanceTabs.vue";
 import LiveAttendance from "@/pages/attendanceDetails/liveAttendance/liveAttendanceDetails.vue";
 import DailyAttendance from "@/pages/attendanceDetails/dailyAttendance/dailyAttendanceDetails.vue";
 import AttendanceDashboard from "@/pages/attendanceDetails/attendanceDashboard/attendanceDashboardDetails.vue";
 import roosteremployeelist from "@/pages/attendanceDetails/companyRoaster/roosterEmployees.vue";
 import Profile from "@/pages/profile/profile.vue";
+import MonthUserAttendance from "@/pages/attendanceDetails/attendanceDashboard/monthUserAttendance.vue";
 
-// payroll managemnet
-import Payroll from "@/pages/payroll/payrolltab.vue";
+import PayrollTab from "@/pages/payroll/payrolltab.vue";
 import AttendanceVerification from "@/pages/payroll/payrollManagement/finalizePayroll/attendanceVerification.vue";
 import SalaryVerification from "@/pages/payroll/payrollManagement/finalizePayroll/salaryVerification.vue";
 
-// benifits
-import Benifits from "@/pages/payroll/benifits/benifitsDetails.vue";
-
-// Import employee components
 import EmployeeDetails from "@/pages/employee/my-teams/myTeams.vue";
+import EmployeeDetailsTab from "@/pages/employee/my-teams/personalDetails/employeeDetails.vue";
 import EmployeeEditForm from "@/pages/employee/my-teams/personalDetails/employeeEditForm.vue";
 import EmployeeAddForm from "@/pages/employee/my-teams/personalDetails/employeeForm.vue";
 import LeaveManagement from "@/pages/leave/tab.vue";
 
-// Import regularisation components
 import RegularisationManagement from "@/pages/regularisation/tab.vue";
 import RegularisationRequest from "@/pages/regularisation/regularisationRequest.vue/table.vue";
 import RegularisationPermission from "@/pages/regularisation/regularisationPermission.vue/table.vue";
 import MyRequest from "@/pages/regularisation/myRequest.vue/table.vue";
 import AddRegularisationRequest from "@/pages/regularisation/regularisationRequest.vue/add.vue";
 
-// logs
 import Attendance from "../pages/logs/logTab.vue";
 import LogsTable from "@/pages/logs/log/logTable.vue";
 
-//imports
 import Import from "@/pages/Imports/importsTabs.vue";
 import importDetals from "@/pages/Imports/import/importTable.vue";
 
-// Import report components
 import Reports from "@/pages/report/reportTab.vue";
 import CompanyReport from "@/pages/report/companyReport/company-reports.vue";
 import AttendanceDetails from "@/pages/report/attendance/attendanceTable.vue";
+import Workordergenerate from "@/pages/report/workordereport/workordergenerate.vue";
 
-// Import visitor flow
 import VisitorFlow from "@/pages/flow/visitorFlow.vue";
 
-// Import settings components
 import SettingsTabs from "@/pages/settings/settingsTabs.vue";
 import OrganizationSettingsTabs from "@/pages/settings/organizationSettings/organizationTabs.vue";
 import OrganizationSettings from "@/pages/settings/organizationSettings/organizationSettings.vue";
@@ -68,7 +60,6 @@ import HolidaySettings from "@/pages/settings/holidays/holidayManagmnet.vue";
 import ShiftSettings from "@/pages/settings/shifts/shiftsManagmnet.vue";
 import LeaveSettings from "@/pages/settings/leaves/leaveManagmnet.vue";
 
-// Import company settings components
 import ConfigurationTabs from "@/pages/settings/configuration/configurationTab.vue";
 import Branch from "@/pages/settings/configuration/branch/branchConfiguration.vue";
 import AddBranch from "@/pages/settings/configuration/branch/branchAddForm.vue";
@@ -77,23 +68,30 @@ import Department from "@/pages/settings/configuration/department/departmentConf
 import AddDepartment from "@/pages/settings/configuration/department/departmentAddForm.vue";
 import EditDepartment from "@/pages/settings/configuration/department/departmentEditForm.vue";
 
-// Import category components
-// import PayrollCatagory from "@/pages/settings/catagorys/salary/payrollCatagory.vue";
+import Payroll from "@/pages/payroll/payrollManagement/payrollManagementDetails.vue";
+import Benifits from "@/pages/payroll/benifits/benifitsDetails.vue";
 
-// Import payroll settings components
-// import SalaryConfiguration from "@/pages/settings/catagorys/salary/salaryConfiguration.vue";
-// import SalaryStructure from "@/pages/settings/catagorys/salary/salarySettings/salaryStructure.vue";
-// import Contribution from "@/pages/settings/catagorys/salary/salarySettings/contribution.vue";
-// import Deduction from "@/pages/settings/catagorys/salary/salarySettings/deduction.vue";
-// import AssignEmployee from "@/pages/settings/catagorys/salary/salarySettings/assignEmployee.vue";
-// import PolicySalaryStructure from "@/pages/settings/catagorys/salary/salaryPolicy/policySalaryStructure.vue";
-// import PolicyDeduction from "@/pages/settings/catagorys/salary/salaryPolicy/policyDeduction.vue";
-// import Bonus from "@/pages/settings/catagorys/salary/salaryPolicy/bonus.vue";
-// import SalarySettings from "@/pages/settings/catagorys/salary/salarySettings/salaryStructure.vue";
-// import SalaryPolicies from "@/pages/settings/catagorys/salary/salaryPolicy/policySalaryStructure.vue";
+import EmployeeSalaryTab from "@/pages/payroll/employeeSalary/employeeSalaryTab.vue";
+import SalaryDetails from "@/pages/payroll/employeeSalary/salaryDetails/salaryDetails.vue";
+import SalaryEditTab from "@/pages/payroll/employeeSalary/salaryDetails/salaryEditTab.vue";
+import BankDetails from "@/pages/payroll/employeeSalary/bankDetails/bankDetails.vue";
+import BankEditTabs from "@/pages/payroll/employeeSalary/bankDetails/bankEditTabs.vue";
+import PolicyDetails from "@/pages/payroll/employeeSalary/policyConfig/policyDetails.vue";
+import PolicyEditTab from "@/pages/payroll/employeeSalary/policyConfig/policyEditTab.vue";
 
-// Import product management components
-import TaskDashboard from "@/pages/taskManagement/taskcomponents/taskDashboard.vue"; // Correct casing
+import PolicyTab from "@/pages/payroll/policy/policyTab.vue";
+import SalaryPolicyDetails from "@/pages/payroll/policy/salary/salaryPolicyDetails.vue";
+import SalaryTemplate from "@/pages/payroll/policy/salary/salaryTemplate.vue";
+import SalaryTemplateEdit from "@/pages/payroll/policy/salary/salaryTemplateEdit.vue";
+import AttendancePolicy from "@/pages/payroll/policy/attendance/attendancePolicy.vue";
+
+import AdvanceLoanTab from "@/pages/payroll/advanceLoan/advanceLoanTab.vue";
+import Advance from "@/pages/payroll/advanceLoan/advance/advance.vue";
+import Loan from "@/pages/payroll/advanceLoan/loan/loan.vue";
+
+import BenifitsEditTabs from "@/pages/payroll/benifits/benifitsEditTabs.vue";
+
+import TaskDashboard from "@/pages/taskManagement/taskcomponents/taskDashboard.vue";
 import CompleteWorkOrderForm from "@/pages/taskManagement/taskcomponents/formTemplate/submitTaskForm/completeTaskForm.vue";
 import ProductManagementScreen from "@/pages/taskManagement/productviews/ProductManagementScreen.vue";
 import ProductDetailScreen from "@/pages/taskManagement/productviews/ProductDetailScreen.vue";
@@ -104,9 +102,7 @@ import DeviceListScreen from "@/pages/taskManagement/productviews/devicelist.vue
 import Livetracking from "@/pages/taskManagement/Map/livetracking.vue";
 import DeviceManagementScreen from "@/pages/taskManagement/productviews/deviceManagementScreen.vue";
 import Reimbursement_card from "@/pages/reimbursement/reimbursement_card.vue";
-// import AttendancePolicy from "@/pages/settings/catagorys/attendance/attendancePolicy.vue";
 
-import Workordergenerate from "@/pages/report/workordereport/workordergenerate.vue";
 import Orgmainui from "@/pages/organization/orgmainui.vue";
 import Org_location from "@/pages/organization/org_location.vue";
 import Org_addlocation from "@/pages/organization/org_addlocation.vue";
@@ -122,25 +118,33 @@ import Reimbursementtab from "@/pages/reimbursement/reimbursementtab.vue";
 import Reimbursement_settings from "@/pages/reimbursement/reimbursement_settings.vue";
 import Reimbursementemp from "@/pages/reimbursement/reimbursementemp.vue";
 import Tripview from "@/pages/reimbursement/tripview.vue";
-// import Advance from "@/pages/payroll/advance/advance.vue";
-// import Incentive from "@/pages/settings/catagorys/salary/salaryPolicy/incentive.vue";
 import Locationtab from "@/pages/organization/locationtab.vue";
 import Payrollsumary from "@/pages/payroll/payrollsumary.vue";
 
-// Import work order tabs component
 import TasksPage from "@/pages/taskManagement/taskcomponents/TasksPage.vue";
 import WorkOrderTabs from "@/pages/taskManagement/taskcomponents/workOrderTabs.vue";
 import FieldTrip from "@/pages/taskManagement/taskcomponents/fieldtrip.vue";
 import Addreimbursement from "@/pages/reimbursement/addreimbursement.vue";
 import Plans from "@/pages/settings/plans/plans.vue";
 
-//locate logs
 import locateTable from "@/pages/locate/locateTable.vue";
-import MonthUserAttendance from "@/pages/attendanceDetails/attendanceDashboard/monthUserAttendance.vue";
 import Clientsadd from "@/pages/organization/clientsadd.vue";
 import Clientsedit from "@/pages/organization/clientsedit.vue";
 
 import Attendanceconfigtab from "@/pages/settings/attendanceconfigtab.vue";
+import LeavePermissionTable from "@/pages/leave/leavePermission.vue/leavePermissionTable.vue";
+import Table from "@/pages/leave/leaveRequest.vue/table.vue";
+import ConfiguratorTab from "@/pages/configurator/configuratorTab.vue";
+
+import DeviceDetails from "@/pages/device/devicedetails.vue";
+import AddDeviceDetails from "@/pages/device/adddevicedetails.vue";
+import Doordetails from "@/pages/door/doordetails.vue";
+import AdddoorDetails from "@/pages/door/adddoordetails.vue";
+import accessleveldetails from "@/pages/accesslevel/accessleveldetails.vue";
+import acessleveladd from "@/pages/accesslevel/acessleveladd.vue";
+import timerzone from "@/pages/accesslevel/timerzone.vue";
+import antipassbackMode from "@/pages/globalConfigurator/antipassbackMode.vue";
+import interlockMode from "@/pages/globalConfigurator/interlockMode.vue";
 
 const routes = [
   {
@@ -167,7 +171,9 @@ const routes = [
     path: "/alternate-login",
     name: "AlternateLogin",
     component: () =>
-      import("@/components/loginAuthentication/alternateLogin.vue"),
+      import("@/components/loginAuthentication/alternateLogin.vue").catch(
+        () => Login
+      ),
     requiresAuth: false,
     title: "Login with Another Account",
   },
@@ -186,12 +192,15 @@ const routes = [
     path: "/verify-email/:email?",
     name: "EmailVerification",
     component: () =>
-      import("@/components/loginAuthentication/emailVerification.vue"),
+      import("@/components/loginAuthentication/emailVerification.vue").catch(
+        () => Login
+      ),
   },
   {
-    path: "/pin-verification/:phoneNumber?/:email?",
+    path: "/pin-verification/:contactType(phone|email)/:contactValue",
     name: "PinVerification",
     component: PinVerification,
+    props: true,
   },
   {
     path: "/taskManagement/taskcomponents",
@@ -204,12 +213,20 @@ const routes = [
         component: Profile,
         meta: { roles: ["Admin", "Manager", "Employee", "esslAdmin"] },
       },
+
       {
-        path: "/leave",
-        name: "LeaveManagement",
-        component: LeaveManagement,
-        meta: { roles: ["Admin", "Manager", "Employee"] },
+        path: "/leave/leavePermission",
+        name: "leavePermission",
+        component: LeavePermissionTable,
+        meta: { roles: ["Admin"] },
       },
+      {
+        path: "/leave/leaveRequest",
+        name: "table",
+        component: Table,
+        meta: { roles: ["Employee"] },
+      },
+
       {
         path: "/regularisation",
         name: "RegularisationManagement",
@@ -252,7 +269,6 @@ const routes = [
             component: AddRegularisationRequest,
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
-          // Add more routes for edit functionality if needed
         ],
       },
       {
@@ -260,26 +276,7 @@ const routes = [
         name: "attendanceconfigtab",
         component: Attendanceconfigtab,
         meta: { roles: ["Admin", "Dealer", "Manager"] },
-        children: [
-          {
-            path: "attendanceCycle",
-            name: "attendance-cycle",
-            component: AttendanceCycle,
-            meta: { roles: ["Admin", "Dealer"] },
-          },
-          {
-            path: "holidays",
-            name: "HolidaySettings",
-            component: HolidaySettings,
-            meta: { roles: ["Admin", "Dealer", "Manager"] },
-          },
-          {
-            path: "shifts",
-            name: "ShiftSettings",
-            component: ShiftSettings,
-            meta: { roles: ["Admin", "Dealer", "Manager"] },
-          },
-        ],
+        children: [],
       },
       {
         path: "/attendanceLog",
@@ -306,11 +303,10 @@ const routes = [
           },
         ],
       },
-
       {
         path: "/organization/locationtab",
         name: "LocationTabs",
-        component: Locationtab, // Your tabs container
+        component: Locationtab,
         meta: { roles: ["Admin", "Manager", "Employee"] },
         redirect: "/organization/orgmainui",
         children: [
@@ -332,11 +328,10 @@ const routes = [
             component: Clientsedit,
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
-
           {
             path: "/organization/org_location",
             name: "org_location",
-            component: Org_location, // From organization/ folder
+            component: Org_location,
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
           {
@@ -355,12 +350,11 @@ const routes = [
           {
             path: "livetracking",
             name: "livetrack",
-            component: Livetracking, // From taskManagement/Map/ folder
+            component: Livetracking,
             meta: { roles: ["Admin", "Manager"] },
           },
         ],
       },
-
       {
         path: "/attendanceDeatils",
         name: "AttendanceDeatils",
@@ -381,10 +375,7 @@ const routes = [
           {
             path: "daily",
             name: "DailyAttendance",
-            component: () =>
-              import(
-                "@/pages/attendanceDetails/dailyAttendance/dailyAttendanceDetails.vue"
-              ),
+            component: DailyAttendance,
             meta: { roles: ["Admin", "Employee", "Manager"] },
           },
           {
@@ -443,7 +434,6 @@ const routes = [
           },
         ],
       },
-      // user
       {
         path: "/employee-details",
         name: "EmployeeDetails",
@@ -458,10 +448,7 @@ const routes = [
           {
             path: "employee",
             name: "EmployeeDetailsTab",
-            component: () =>
-              import(
-                "@/pages/employee/my-teams/personalDetails/employeeDetails.vue"
-              ),
+            component: EmployeeDetailsTab,
             children: [
               {
                 path: "add/:module",
@@ -479,12 +466,13 @@ const routes = [
               },
             ],
           },
-
           {
             path: "leave",
             name: "LeaveBalanceTab",
             component: () =>
-              import("@/pages/employee/my-teams/leaveDeatils/leaveDetails.vue"),
+              import(
+                "@/pages/employee/my-teams/leaveDeatils/leaveDetails.vue"
+              ).catch(() => EmployeeDetailsTab),
           },
           {
             path: "attendance",
@@ -492,7 +480,7 @@ const routes = [
             component: () =>
               import(
                 "@/pages/employee/my-teams/attendanceDetails/attendanceDetails.vue"
-              ),
+              ).catch(() => EmployeeDetailsTab),
           },
           {
             path: "card",
@@ -500,7 +488,7 @@ const routes = [
             component: () =>
               import(
                 "@/pages/employee/my-teams/cardManagement/cardManagementDetails.vue"
-              ),
+              ).catch(() => EmployeeDetailsTab),
           },
           {
             path: "otherDetails",
@@ -508,38 +496,29 @@ const routes = [
             component: () =>
               import(
                 "@/pages/employee/my-teams/otherDetails/otherEmployeeDetails.vue"
-              ),
+              ).catch(() => EmployeeDetailsTab),
           },
         ],
       },
-      // payroll
       {
         path: "/payroll",
-        component: Payroll,
+        component: PayrollTab,
         meta: { roles: ["Admin"] },
         children: [
           {
             path: "employee-salary",
             name: "EmployeeSalary",
-            component: () =>
-              import("@/pages/payroll/employeeSalary/employeeSalaryTab.vue"),
-            meta: { roles: ["Admin"] },
+            component: EmployeeSalaryTab,
             children: [
               {
                 path: "salary-details",
                 name: "SalaryDetailsTab",
-                component: () =>
-                  import(
-                    "@/pages/payroll/employeeSalary/salaryDetails/salaryDetails.vue"
-                  ),
+                component: SalaryDetails,
                 children: [
                   {
                     path: ":id/salary-detailsedit",
                     name: "SalaryDetailsEdit",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/employeeSalary/salaryDetails/salaryEditTab.vue"
-                      ),
+                    component: SalaryEditTab,
                     props: true,
                   },
                 ],
@@ -547,18 +526,12 @@ const routes = [
               {
                 path: "bank-details",
                 name: "BankDetailsTab",
-                component: () =>
-                  import(
-                    "@/pages/payroll/employeeSalary/bankDetails/bankDetails.vue"
-                  ),
+                component: BankDetails,
                 children: [
                   {
                     path: ":id/bank-detailsedit",
-                    name: "bank-detailsEdit",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/employeeSalary/bankDetails/bankEditTabs.vue"
-                      ),
+                    name: "BankDetailsEdit",
+                    component: BankEditTabs,
                     props: true,
                   },
                 ],
@@ -566,18 +539,12 @@ const routes = [
               {
                 path: "policyDetails",
                 name: "PolicyTab",
-                component: () =>
-                  import(
-                    "@/pages/payroll/employeeSalary/policyConfig/policyDetails.vue"
-                  ),
+                component: PolicyDetails,
                 children: [
                   {
                     path: ":id/policy-edit",
                     name: "PolicyEdit",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/employeeSalary/policyConfig/policyEditTab.vue"
-                      ),
+                    component: PolicyEditTab,
                     props: true,
                   },
                 ],
@@ -585,108 +552,310 @@ const routes = [
             ],
           },
           {
-            path: "policy",
-            name: "policy",
-            component: () => import("@/pages/payroll/policy/policyTab.vue"),
-            meta: { roles: ["Admin"] },
-            children: [
-              {
-                path: "payroll-policy",
-                name: "Payroll policy",
-                component: () =>
-                  import(
-                    "@/pages/payroll/policy/salary/salaryPolicyDetails.vue"
-                  ),
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-                children: [
-                  {
-                    path: "salary-template",
-                    name: "salary-template",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/policy/salary/salaryTemplate.vue"
-                      ),
-                  },
-                  {
-                    path: "salary-templateEdit/:categoryData",
-                    name: "salary-templateEdit",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/policy/salary/salaryTemplateEdit.vue"
-                      ),
-                  },
-                ],
-              },
-              {
-                path: "penalty-policy",
-                name: "Penality policy",
-                component: () =>
-                  import(
-                    "@/pages/payroll/policy/attendance/attendancePolicy.vue"
-                  ),
-              },
-            ],
+            path: "management",
+            name: "PayrollManagement",
+            component: () =>
+              import(
+                "@/pages/payroll/payrollManagement/payrollManagementDetails.vue"
+              ).catch(() => PayrollTab),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "attendance-verification",
+            name: "attendance-verification",
+            component: AttendanceVerification,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "salary-verification/:date?",
+            name: "salary-verification",
+            component: SalaryVerification,
+            props: true,
+            meta: { roles: ["Admin", "Dealer"] },
+          },
+          {
+            path: "review",
+            name: "review",
+            component: () =>
+              import(
+                "@/pages/payroll/payrollManagement/finalizePayroll/review.vue"
+              ).catch(() => PayrollTab),
+            props: true,
+            meta: { roles: ["Admin", "Dealer"] },
           },
           {
             path: "adhoc-payments",
-            name: "adhoc-payments",
+            name: "AdhocPayments",
             component: Benifits,
           },
           {
             path: "adhoc-paymentsEdit",
-            name: "adhoc-paymentsEdit",
-            component: () =>
-              import("@/pages/payroll/benifits/benifitsEditTabs.vue"),
+            name: "AdhocPaymentsEdit",
+            component: BenifitsEditTabs,
+            props: true,
           },
-
           {
-            path: "advance-Loans",
-            name: "Advance And Loans",
-            component: () =>
-              import("@/pages/payroll/advanceLoan/advanceLoanTab.vue"),
+            path: "advance-loans",
+            name: "AdvanceAndLoans",
+            component: AdvanceLoanTab,
             meta: { roles: ["Admin"] },
             children: [
               {
-                path: "Advance",
+                path: "advance",
                 name: "Advance",
-                component: () =>
-                  import("@/pages/payroll/advanceLoan/advance/advance.vue"),
+                component: Advance,
               },
               {
-                path: "Loan",
+                path: "loan",
                 name: "Loan",
-                component: () =>
-                  import("@/pages/payroll/advanceLoan/loan/loan.vue"),
+                component: Loan,
               },
             ],
           },
-
-          {
-            path: "",
-            name: "PayrollList",
-            component: () =>
-              import(
-                "@/pages/payroll/payrollManagement/payrollManagementDetails.vue"
-              ),
-          },
-          {
-            path: "/payroll/payrollsumary",
-            name: "summary",
-            component: Payrollsumary,
-          },
           // {
-          //   path: "ctc/:id",
-          //   name: "PayrollCTC",
-          //   component: PayrollCTC,
-          //   props: true,
+          //   path: "policy",
+          //   name: "Policy",
+          //   component: PolicyTab,
+          //   meta: { roles: ["Admin"] },
+          //   children: [
+          //     {
+          //       path: "payroll-policy",
+          //       name: "PayrollPolicy",
+          //       component: SalaryPolicyDetails,
+          //       meta: { roles: ["Admin", "Dealer", "Manager"] },
+          //       children: [
+          //         {
+          //           path: "salary-template",
+          //           name: "SalaryTemplate",
+          //           component: SalaryTemplate,
+          //         },
+          //         {
+          //           path: "salary-template-edit/:categoryData",
+          //           name: "SalaryTemplateEdit",
+          //           component: SalaryTemplateEdit,
+          //           props: true,
+          //         },
+          //       ],
+          //     },
+          //     {
+          //       path: "penalty-policy",
+          //       name: "PenaltyPolicy",
+          //       component: AttendancePolicy,
+          //     },
+          //   ],
+          // },
+
+          // {
+          //   path: "",
+          //   name: "PayrollList",
+          //   component: PayrollSummary,
+          // },
+
+          // {
+          //   path: "payroll-summary",
+          //   name: "PayrollSummary",
+          //   component: PayrollSummary,
           // },
         ],
       },
-
+      // configurator
       {
         path: "/configuration",
         name: "configuration",
-        component: () => import("@/pages/configurator/configuratorTab.vue"),
+        component: () =>
+          import("@/pages/configurator/configuratorTab.vue").catch(
+            () => ConfiguratorTab
+          ),
+        children: [
+          {
+            path: "payroll-policy",
+            name: "Payrollpolicy",
+            component: () =>
+              import(
+                "@/pages/payroll/policy/salary/salaryPolicyDetails.vue"
+              ).catch(() => TaskDashboard),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+            children: [
+              {
+                path: "salary-template",
+                name: "salary-template",
+                component: () =>
+                  import(
+                    "@/pages/payroll/policy/salary/salaryTemplate.vue"
+                  ).catch(() => TaskDashboard),
+              },
+              {
+                path: "salary-templateEdit/:categoryData",
+                name: "salary-templateEdit",
+                component: () =>
+                  import(
+                    "@/pages/payroll/policy/salary/salaryTemplateEdit.vue"
+                  ).catch(() => TaskDashboard),
+              },
+            ],
+          },
+          {
+            path: "penalty-policy",
+            name: "Penalitypolicy",
+            component: () =>
+              import(
+                "@/pages/payroll/policy/attendance/attendancePolicies/penalityDetails.vue"
+              ).catch(() => TaskDashboard),
+          },
+          {
+            path: "configuration",
+            name: "branches",
+            component: Branch,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "branch/add",
+            name: "branch-configuration-add",
+            component: AddBranch,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "branch/edit/:id",
+            name: "branch-configuration-edit",
+            component: EditBranch,
+            props: true,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "departement-configuration",
+            name: "departments",
+            component: Department,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "teams",
+            name: "teams",
+            component: () =>
+              import(
+                "@/pages/settings/configuration/team/teamConfiguration.vue"
+              ),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "designations",
+            name: "designations",
+            component: () =>
+              import(
+                "@/pages/settings/configuration/designation/designationConfiguration.vue"
+              ),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "reimbursement_settings",
+            name: "expense",
+            component: Reimbursement_settings,
+          },
+          {
+            path: "attendanceCycle",
+            name: "attendance-cycle",
+            component: AttendanceCycle,
+            meta: { roles: ["Admin", "Dealer"] },
+          },
+          {
+            path: "holidays",
+            name: "HolidaySettings",
+            component: HolidaySettings,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "shifts",
+            name: "ShiftSettings",
+            component: ShiftSettings,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "/settings/leave-types",
+            name: "LeaveSettings",
+            component: LeaveSettings,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "device-configurator",
+            name: "device-configurator",
+            component: DeviceDetails,
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+            children: [
+              {
+                path: "add",
+                name: "add-device",
+                component: AddDeviceDetails,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+              {
+                path: "edit/:id",
+                name: "edit-device",
+                component: AddDeviceDetails, // Reuse form for edit
+                props: true,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+            ],
+          },
+          {
+            path: "door-configurator",
+            name: "door-configurator",
+            component: Doordetails,
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+            children: [
+              {
+                path: "add",
+                name: "add-door",
+                component: AdddoorDetails,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+              {
+                path: "edit/:id",
+                name: "edit-door",
+                component: AdddoorDetails, // Reuse form for edit
+                props: true,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+            ],
+          },
+          {
+            path: "accesslevel-configurator",
+            name: "accesslevel-configurator",
+            component: accessleveldetails,
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+            children: [
+              {
+                path: "add",
+                name: "add-acceslevel",
+                component: acessleveladd,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+              {
+                path: "edit/:id",
+                name: "edit-accesslevel",
+                component: acessleveladd, // Reuse form for edit
+                props: true,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+            ],
+          },
+          {
+            path: "timerzone-configuration",
+            name: "timerzone",
+            component: timerzone,
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "antipassbackmode-configurator",
+            name: "antipassbackmode-configurator",
+            component: antipassbackMode,
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+          },
+          {
+            path: "interlockmode-configurator",
+            name: "interlockmode-configurator",
+            component: interlockMode,
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+          },
+        ],
       },
       // {
       //   path: "/payroll-verification/:employeeId",
@@ -694,27 +863,25 @@ const routes = [
       //   component: PayrollVerification,
       //   props: true,
       // },
-      {
-        path: "/attendance-verification",
-        name: "attendance-verification",
-        component: AttendanceVerification,
-        meta: { roles: ["Admin"] },
-      },
-      {
-        path: "/salary-verification/:date?",
-        name: "salary-verification",
-        component: SalaryVerification,
-        props: true,
-        meta: { roles: ["Admin"] },
-      },
+      // {
+      //   path: "/attendance-verification",
+      //   name: "attendance-verification",
+      //   component: AttendanceVerification,
+      //   meta: { roles: ["Admin"] },
+      // },
+      // {
+      //   path: "/salary-verification/:date?",
+      //   name: "salary-verification",
+      //   component: SalaryVerification,
+      //   props: true,
+      //   meta: { roles: ["Admin"] },
+      // },
 
       {
         path: "/import",
         name: "import",
         component: Import,
-        meta: {
-          roles: ["Admin", "Dealer"],
-        },
+        meta: { roles: ["Admin", "Dealer"] },
         children: [
           {
             path: "",
@@ -725,9 +892,7 @@ const routes = [
             path: "importDetails",
             name: "importDetails",
             component: importDetals,
-            meta: {
-              roles: ["Admin", "Administrator", "Dealer"],
-            },
+            meta: { roles: ["Admin", "Administrator", "Dealer"] },
           },
         ],
       },
@@ -752,14 +917,9 @@ const routes = [
             component: AttendanceDetails,
             meta: { roles: ["Admin", "Manager"] },
           },
+
           {
-            path: "workordergenerate",
-            name: "workordergenerate",
-            component: Workordergenerate,
-            meta: { roles: ["Admin", "Manager"] },
-          },
-          {
-            path: "/import",
+            path: "companyReport",
             name: "CompanyReport",
             component: CompanyReport,
             meta: { roles: ["Admin", "Manager"] },
@@ -778,24 +938,18 @@ const routes = [
         component: Connector,
         meta: { roles: ["Admin", "Manager", "Employee"] },
       },
-
       {
         path: "/reimbursement/reimbursementtab",
         name: "reimbursementtab",
         component: Reimbursementtab,
         children: [
           {
-            path: "reimbursement_card", // Relative path for nested route
+            path: "reimbursement_card",
             name: "reimbursement_card",
             component: Reimbursement_card,
           },
           {
-            path: "reimbursement_settings", // Relative path for nested route
-            name: "reimbursement_settings",
-            component: Reimbursement_settings,
-          },
-          {
-            path: "reimbursementemp", // Relative path for nested route
+            path: "reimbursementemp",
             name: "reimbursementemp",
             component: Reimbursementemp,
           },
@@ -811,7 +965,6 @@ const routes = [
         name: "tripview",
         component: Tripview,
       },
-
       {
         path: "/settings",
         name: "Settings",
@@ -823,399 +976,330 @@ const routes = [
             name: "settings",
             redirect: "/settings/organization",
           },
-
           {
             path: "/settings/plans/plans",
             name: "plan",
             component: Plans,
             meta: { roles: ["Admin", "Dealer", "Manager"] },
           },
-
           {
             path: "/settings",
             component: OrganizationSettingsTabs,
             meta: { roles: ["Admin", "Administrator", "Dealer"] },
             children: [],
           },
-          {
-            path: "/payroll",
-            component: Payroll,
-            meta: { roles: ["Admin", "Dealer", "Employee"] },
-            children: [
-              {
-                path: "",
-                redirect: { name: "PayrollManagement" },
-              },
-              {
-                path: "management",
-                name: "PayrollManagement",
-                component: () =>
-                  import(
-                    "@/pages/payroll/payrollManagement/payrollManagementDetails.vue"
-                  ),
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-              },
-              {
-                path: "attendance-verification",
-                name: "attendance-verification",
-                component: AttendanceVerification,
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-              },
-              {
-                path: "salary-verification/:date?",
-                name: "salary-verification",
-                component: SalaryVerification,
-                props: true,
-                meta: { roles: ["Admin", "Dealer"] },
-              },
-              {
-                path: "review",
-                name: "review",
-                component: () =>
-                  import(
-                    "@/pages/payroll/payrollManagement/finalizePayroll/review.vue"
-                  ),
-                props: true,
-                meta: { roles: ["Admin", "Dealer"] },
-              },
-              {
-                path: "tds",
-                name: "tds",
-                component: () => import("@/pages/payroll/tds/tdsDetails.vue"),
-                children: [
-                  {
-                    path: "deduction",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/tds/taxDeduction/taxDeductionDetails.vue"
-                      ),
-                    meta: {
-                      roles: [
-                        "Admin",
-                        "Dealer",
-                        "Employee",
-                        "Manager",
-                        "accessManager",
-                      ],
-                    },
-                    children: [
-                      {
-                        path: "",
-                        name: "TdsDeductionRoot",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/taxDeductionDetails.vue"
-                          ),
-                      },
-                      {
-                        path: ":id",
-                        name: "TdsDeductionDefault",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/taxDeductionRules.vue"
-                          ),
-                      },
-                      {
-                        path: ":id/hraRent",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/hraRent.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/hraLoan",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/homeLoan.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/travelAllowence",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/leaveTravel.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/deduction",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/sectionDeduction.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/pastTds",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/pastTds.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: "regime",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxDeduction/pastTds.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    path: "approval",
-                    component: () =>
-                      import(
-                        "@/pages/payroll/tds/taxApproval/taxApprovalDetails.vue"
-                      ),
-                    meta: { roles: ["Admin", "Dealer"] },
-                    children: [
-                      {
-                        path: "",
-                        name: "TdsApprovalRoot",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxApproval/taxApprovalDetails.vue"
-                          ),
-                      },
-                      {
-                        path: ":id",
-                        name: "TdsDefault",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxApproval/taxApprovalRules.vue"
-                          ),
-                        children: [
-                          {
-                            path: "tds-summary",
-                            name: "Tds",
-                            component: () =>
-                              import(
-                                "@/pages/payroll/tds/taxApproval/tdsSummary/tdsSummaryUi.vue"
-                              ),
-                          },
-                          {
-                            path: "declare",
-                            name: "declare",
-                            component: () =>
-                              import(
-                                "@/pages/payroll/tds/taxApproval/tdsDeclare/tdsDeclareUi.vue"
-                              ),
-                          },
-                        ],
-                      },
-                      // {
-                      //   path: "/tds-summary",
-                      //   name: "Tds",
-                      //   component: () =>
-                      //     import(
-                      //       "@/pages/payroll/tds/taxApproval/tdsSummary/tdsSummaryUi.vue"
-                      //     ),
-                      // },
-                      // {
-                      //   path: "/declare",
-                      //   name: "declare",
-                      //   component: () =>
-                      //     import(
-                      //       "@/pages/payroll/tds/taxApproval/tdsDeclare/tdsDeclareUi.vue"
-                      //     ),
-                      // },
-                      {
-                        path: ":id/hraRent",
-                        component: () =>
-                          import("@/pages/payroll/tds/taxApproval/hraRent.vue"),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/pastTds",
-                        component: () =>
-                          import("@/pages/payroll/tds/taxApproval/pastTds.vue"),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/hraLoan",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxApproval/homeLoan.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/travelAllowence",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxApproval/travelAllowence.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                      {
-                        path: ":id/deduction",
-                        component: () =>
-                          import(
-                            "@/pages/payroll/tds/taxApproval/deduction.vue"
-                          ),
-                        meta: {
-                          roles: [
-                            "Admin",
-                            "Dealer",
-                            "Employee",
-                            "Manager",
-                            "accessManager",
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    path: "taxSetting",
-                    component: () =>
-                      import("@/pages/payroll/tds/taxSettings/taxSettings.vue"),
-                    meta: {
-                      roles: [
-                        "Admin",
-                        "Dealer",
-                        "Employee",
-                        "Manager",
-                        "accessManager",
-                      ],
-                    },
-                  },
-                ],
-              },
-            ],
-          },
+          // {
+          //   path: "/payroll",
+          //   component: PayrollTab,
+          //   meta: { roles: ["Admin", "Dealer", "Employee"] },
+          //   children: [
+          //     {
+          //       path: "",
+          //       redirect: { name: "PayrollManagement" },
+          //     },
+
+          //     {
+          //       path: "tds",
+          //       name: "tds",
+          //       component: () => import("@/pages/payroll/tds/tdsDetails.vue"),
+          //       children: [
+          //         {
+          //           path: "deduction",
+          //           component: () =>
+          //             import(
+          //               "@/pages/payroll/tds/taxDeduction/taxDeductionDetails.vue"
+          //             ),
+          //           meta: {
+          //             roles: [
+          //               "Admin",
+          //               "Dealer",
+          //               "Employee",
+          //               "Manager",
+          //               "accessManager",
+          //             ],
+          //           },
+          //           children: [
+          //             {
+          //               path: "",
+          //               name: "TdsDeductionRoot",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/taxDeductionDetails.vue"
+          //                 ),
+          //             },
+          //             {
+          //               path: ":id",
+          //               name: "TdsDeductionDefault",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/taxDeductionRules.vue"
+          //                 ),
+          //             },
+          //             {
+          //               path: ":id/hraRent",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/hraRent.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/hraLoan",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/homeLoan.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/travelAllowence",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/leaveTravel.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/deduction",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/sectionDeduction.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/pastTds",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/pastTds.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: "regime",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxDeduction/pastTds.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //           ],
+          //         },
+          //         {
+          //           path: "approval",
+          //           component: () =>
+          //             import(
+          //               "@/pages/payroll/tds/taxApproval/taxApprovalDetails.vue"
+          //             ),
+          //           meta: { roles: ["Admin", "Dealer"] },
+          //           children: [
+          //             {
+          //               path: "",
+          //               name: "TdsApprovalRoot",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxApproval/taxApprovalDetails.vue"
+          //                 ),
+          //             },
+          //             {
+          //               path: ":id",
+          //               name: "TdsDefault",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxApproval/taxApprovalRules.vue"
+          //                 ),
+          //               children: [
+          //                 {
+          //                   path: "tds-summary",
+          //                   name: "Tds",
+          //                   component: () =>
+          //                     import(
+          //                       "@/pages/payroll/tds/taxApproval/tdsSummary/tdsSummaryUi.vue"
+          //                     ),
+          //                 },
+          //                 {
+          //                   path: "declare",
+          //                   name: "declare",
+          //                   component: () =>
+          //                     import(
+          //                       "@/pages/payroll/tds/taxApproval/tdsDeclare/tdsDeclareUi.vue"
+          //                     ),
+          //                 },
+          //               ],
+          //             },
+          //             // {
+          //             //   path: "/tds-summary",
+          //             //   name: "Tds",
+          //             //   component: () =>
+          //             //     import(
+          //             //       "@/pages/payroll/tds/taxApproval/tdsSummary/tdsSummaryUi.vue"
+          //             //     ),
+          //             // },
+          //             // {
+          //             //   path: "/declare",
+          //             //   name: "declare",
+          //             //   component: () =>
+          //             //     import(
+          //             //       "@/pages/payroll/tds/taxApproval/tdsDeclare/tdsDeclareUi.vue"
+          //             //     ),
+          //             // },
+          //             {
+          //               path: ":id/hraRent",
+          //               component: () =>
+          //                 import("@/pages/payroll/tds/taxApproval/hraRent.vue"),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/pastTds",
+          //               component: () =>
+          //                 import("@/pages/payroll/tds/taxApproval/pastTds.vue"),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/hraLoan",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxApproval/homeLoan.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/travelAllowence",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxApproval/travelAllowence.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //             {
+          //               path: ":id/deduction",
+          //               component: () =>
+          //                 import(
+          //                   "@/pages/payroll/tds/taxApproval/deduction.vue"
+          //                 ),
+          //               meta: {
+          //                 roles: [
+          //                   "Admin",
+          //                   "Dealer",
+          //                   "Employee",
+          //                   "Manager",
+          //                   "accessManager",
+          //                 ],
+          //               },
+          //             },
+          //           ],
+          //         },
+          //         {
+          //           path: "taxSetting",
+          //           component: () =>
+          //             import("@/pages/payroll/tds/taxSettings/taxSettings.vue"),
+          //           meta: {
+          //             roles: [
+          //               "Admin",
+          //               "Dealer",
+          //               "Employee",
+          //               "Manager",
+          //               "accessManager",
+          //             ],
+          //           },
+          //         },
+          //       ],
+          //     },
+          //   ],
+          // },
           {
             path: "/settings",
             component: ConfigurationTabs,
             meta: { roles: ["Admin", "Dealer", "Manager"] },
             children: [
-              // {
-              //   path: "",
-              //   redirect: "/settings/configuration",
-              // },
               {
                 path: "organization",
                 name: "organization-settings",
                 component: OrganizationSettings,
                 meta: { roles: ["Admin", "Administrator", "Dealer"] },
               },
-              {
-                path: "configuration",
-                name: "branch-configuration",
-                component: Branch,
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-              },
-              {
-                path: "branch/add",
-                name: "branch-configuration-add",
-                component: AddBranch,
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-              },
-              {
-                path: "branch/edit/:id",
-                name: "branch-configuration-edit",
-                component: EditBranch,
-                props: true,
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-              },
-              {
-                path: "departement-configuration", // ✅ this becomes /settings/configuration
-                name: "department-configuration",
-                component: Department,
-                meta: { roles: ["Admin", "Dealer", "Manager"] },
-              },
             ],
           },
-
-          // {
-          //   path: "/settings/leave-types",
-          //   name: "LeaveSettings",
-          //   component: LeaveSettings,
-          //   meta: { roles: ["Admin", "Dealer", "Manager"] },
-          // },
           {
             path: "/settings/roleConfigurator/roleconfig",
             name: "RoleConfigurator",
@@ -1223,10 +1307,11 @@ const routes = [
           },
         ],
       },
-
-      { path: "/taskManagement/kpi", name: "kpi", component: Kpi },
-
-      // Updated Product Management Routes
+      {
+        path: "/taskManagement/kpi",
+        name: "kpi",
+        component: Kpi,
+      },
       {
         path: "/taskManagement/productviews",
         name: "TaskManagement",
@@ -1274,7 +1359,7 @@ const routes = [
           productId: route.params.productId,
           productName: route.query.productName,
           initialDevices: JSON.parse(
-            decodeURIComponent(route.query.devices || "[]"),
+            decodeURIComponent(route.query.devices || "[]")
           ),
           status: route.query.status,
         }),
@@ -1295,7 +1380,6 @@ const routes = [
         name: "Dashboard",
         component: TaskDashboard,
       },
-
       {
         path: "/taskManagement/taskcomponents/complete-work-order/:taskId/:assignFormId",
         name: "CompleteWorkOrder",
@@ -1303,7 +1387,6 @@ const routes = [
         props: true,
         meta: { roles: ["Admin", "Employee", "Manager"] },
       },
-
       {
         path: "/taskManagement/taskcomponents",
         name: "WorkOrderTabs",
@@ -1327,7 +1410,6 @@ const routes = [
             component: FieldTrip,
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
-
           {
             path: "workflow",
             name: "workflow",
@@ -1361,34 +1443,27 @@ const getRoleLandingPage = (role) => {
 };
 
 router.beforeEach(async (to, from, next) => {
-  console.log("Navigating to:", to.fullPath, "Route name:", to.name);
-  // Update last activity for all routes except login
   if (typeof localStorage !== "undefined" && to.path !== "/login") {
     localStorage.setItem("lastActivityTime", Date.now().toString());
   }
 
-  // Check for inactivity timeout
   const lastActivity = Number.parseInt(
-    localStorage.getItem("lastActivityTime") || "0",
+    localStorage.getItem("lastActivityTime") || "0"
   );
   const currentTime = Date.now();
   const inactiveTime = currentTime - lastActivity;
-  const inactivityTimeout = 3600000; // 1 hour
+  const inactivityTimeout = 3600000;
 
   if (
     inactiveTime > inactivityTimeout &&
     to.path !== "/login" &&
-    to.path !== "/pin-verification"
+    !to.path.startsWith("/pin-verification")
   ) {
     console.log("Inactive for 1hr, redirecting to login");
     localStorage.setItem("inactivityRedirect", "true");
-    return next({
-      path: "/login",
-      query: { timeout: true },
-    });
+    return next({ path: "/login", query: { timeout: true } });
   }
 
-  // Allow access to auth pages without checks
   if (
     to.path === "/login" ||
     to.path === "/register" ||
@@ -1398,36 +1473,40 @@ router.beforeEach(async (to, from, next) => {
     return next();
   }
 
-  // Check authentication for protected routes
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!authService.isAuthenticated()) {
       return next({ path: "/login" });
     }
 
     try {
-      const phone = localStorage.getItem("userPhone");
-      const email = localStorage.getItem("email");
+      const storedPhone = authService.getPhone();
+      const storedEmail = authService.getEmail();
       let user;
-      if (email) {
-        user = await authService.getUserByEmail(email);
-      } else if (phone) {
-        user = await authService.getUserByPhone("+91" + phone);
+
+      if (storedEmail) {
+        user = await authService.getUserByEmail(storedEmail);
+      } else if (storedPhone) {
+        user = await authService.getUserByPhone(storedPhone);
       } else {
         return next({ path: "/login" });
       }
 
-      // PIN verification logic
       if (user && user.userPin) {
         const pinVerified =
           localStorage.getItem("pinVerifiedInSession") === "true";
         if (!pinVerified && !to.path.startsWith("/pin-verification")) {
           console.log(
-            "Redirecting to PIN verification - PIN not verified in this session",
+            "Redirecting to PIN verification - PIN not verified in this session"
           );
-          const redirectPath = email
-            ? `/pin-verification//${email}`
-            : `/pin-verification/${phone}`;
-          return next({ path: redirectPath });
+
+          const redirectPath = storedEmail
+            ? `/pin-verification/email/${encodeURIComponent(storedEmail)}`
+            : `/pin-verification/phone/${encodeURIComponent(storedPhone)}`;
+
+          return next({
+            path: redirectPath,
+            query: { fromPinReset: false },
+          });
         }
       } else if (user && !user.userPin) {
         const fromOtp =
@@ -1438,21 +1517,16 @@ router.beforeEach(async (to, from, next) => {
         }
       }
 
-      // Check for session timeout
-      const lastActivity = Number.parseInt(
-        localStorage.getItem("lastActivityTime") || "0",
+      const lastActivityCheck = Number.parseInt(
+        localStorage.getItem("lastActivityTime") || "0"
       );
-      const currentTime = Date.now();
-      const inactiveTime = currentTime - lastActivity;
-      if (inactiveTime > inactivityTimeout) {
+      const currentTimeCheck = Date.now();
+      const inactiveTimeCheck = currentTimeCheck - lastActivityCheck;
+      if (inactiveTimeCheck > inactivityTimeout) {
         localStorage.removeItem("pinVerifiedInSession");
-        return next({
-          path: "/login",
-          query: { timeout: true },
-        });
+        return next({ path: "/login", query: { timeout: true } });
       }
 
-      // Role-based access control
       if (
         user &&
         user.role &&

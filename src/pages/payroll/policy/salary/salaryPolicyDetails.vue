@@ -160,14 +160,8 @@
         </template>
       </data-table-wrapper>
     </div>
-    <PayrollForm
-      v-if="showForm"
-      :item-id="selectedItem"
-      @close="showForm = false"
-    />
 
-    <PayrollAdd v-if="showAddForm" @close="showAdd = false" />
-    <!-- <router-view /> -->
+    <router-view @close="handleClose" />
   </div>
 </template>
 
@@ -189,14 +183,14 @@ import ErrorState from "@/components/common/states/ErrorState.vue";
 import PayrollForm from "@/pages/payroll/policy/salary/salaryTemplateEdit.vue";
 import debounce from "lodash/debounce";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import PayrollAdd from "@/pages/payroll/policy/salary/salaryTemplate.vue";
 
 const debouncedfetchData = debounce(() => {
   page.value = 1;
   fetchData();
 }, 300);
-
+const route = useRoute();
 const router = useRouter();
 const items = ref([]);
 const loading = ref(false);
@@ -372,6 +366,9 @@ const handleRowClick = (item) => {
   if (item && item.id) {
     selectedItem.value = item.id; // store the clicked item ID
     showForm.value = true; // show the component
+    router.push({
+      path: `/configuration/payroll-policy/salary-templateEdit/${item.id}`,
+    });
   } else {
     console.error("Invalid item or item ID");
   }
@@ -387,6 +384,7 @@ const filterParams = (tabStatus = selectedStatus.value) => {
     userRole === "Administrator"
   ) {
     params[`filter[_and][${filterCount}][tenant][tenantId][_eq]`] = tenantId;
+    params[`filter[_and][${filterCount}][configName][_neq]`] = "Custom";
     filterCount++;
   }
   if (userRole === "Manager") {
@@ -481,7 +479,8 @@ const clearFilters = () => {
 };
 
 const openDialog = () => {
-  showAddForm.value = true;
+  showForm.value = true;
+  router.push({ name: "salary-template" });
 };
 
 watch(
@@ -491,9 +490,16 @@ watch(
   },
   { deep: true },
 );
+const handleClose = () => {
+  showForm.value = false;
 
-onMounted(async () => {
-  await fetchData();
+  fetchData();
+};
+onMounted(() => {
+  console.log("router", route);
+  if (route.query) {
+    fetchData();
+  } else fetchData();
 });
 </script>
 

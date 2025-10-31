@@ -921,16 +921,16 @@ const fetchUserAndLeaveData = async () => {
       monthLimits.value = newMonthLimits;
       cumulativeLimits.value = newCumulativeLimits;
 
-      try {
-        await calculateCumulativeLimits(
-          userDetails.value,
-          assignedLeaves,
-          personalModuleData.value.assignedUser?.dateOfJoining,
-        );
-      } catch (error) {
-        console.error("Failed to calculate cumulative limits:", error);
-        showErrorMessage("Unable to calculate cumulative leave limits.");
-      }
+      // try {
+      //   await calculateCumulativeLimits(
+      //     userDetails.value,
+      //     assignedLeaves,
+      //     personalModuleData.value.assignedUser?.dateOfJoining,
+      //   );
+      // } catch (error) {
+      //   console.error("Failed to calculate cumulative limits:", error);
+      //   showErrorMessage("Unable to calculate cumulative leave limits.");
+      // }
     }
   } catch (error) {
     console.error("Error fetching leave balance:", error);
@@ -938,216 +938,216 @@ const fetchUserAndLeaveData = async () => {
   }
 };
 
-const calculateCumulativeLimits = async (
-  userDetails,
-  assignedLeaves,
-  dateOfJoining,
-) => {
-  console.log("🟢 STEP 1: Function called with parameters:", {
-    userDetails,
-    assignedLeaves,
-    dateOfJoining,
-  });
+// const calculateCumulativeLimits = async (
+//   userDetails,
+//   assignedLeaves,
+//   dateOfJoining,
+// ) => {
+//   console.log("🟢 STEP 1: Function called with parameters:", {
+//     userDetails,
+//     assignedLeaves,
+//     dateOfJoining,
+//   });
 
-  try {
-    const token = getToken();
-    const userId = userDetails.id;
-    const tenantId = currentUserTenant.getTenantId();
+//   try {
+//     const token = getToken();
+//     const userId = userDetails.id;
+//     const tenantId = currentUserTenant.getTenantId();
 
-    console.log("🟢 STEP 2: Token, User ID, Tenant ID", {
-      token,
-      userId,
-      tenantId,
-    });
+//     console.log("🟢 STEP 2: Token, User ID, Tenant ID", {
+//       token,
+//       userId,
+//       tenantId,
+//     });
 
-    const joinDate = new Date(dateOfJoining);
-    if (!dateOfJoining || isNaN(joinDate.getTime())) {
-      console.error(
-        "❌ STEP 3: Invalid or missing joining date:",
-        dateOfJoining,
-      );
-      showErrorMessage("Joining date is missing or invalid.");
-      return;
-    }
-    console.log("🟢 STEP 3: Valid joining date:", joinDate.toISOString());
+//     const joinDate = new Date(dateOfJoining);
+//     if (!dateOfJoining || isNaN(joinDate.getTime())) {
+//       console.error(
+//         "❌ STEP 3: Invalid or missing joining date:",
+//         dateOfJoining,
+//       );
+//       showErrorMessage("Joining date is missing or invalid.");
+//       return;
+//     }
+//     console.log("🟢 STEP 3: Valid joining date:", joinDate.toISOString());
 
-    const leaveNamesFilter = assignedLeaves
-      .map((leave) => encodeURIComponent(leave))
-      .join(",");
-    console.log("🟢 STEP 4: Leave names filter prepared:", leaveNamesFilter);
+//     const leaveNamesFilter = assignedLeaves
+//       .map((leave) => encodeURIComponent(leave))
+//       .join(",");
+//     console.log("🟢 STEP 4: Leave names filter prepared:", leaveNamesFilter);
 
-    const leaveSettingUrl =
-      `${import.meta.env.VITE_API_URL}/items/leaveSetting?` +
-      `fields[]=leaveName,date_created&` +
-      `filter[_and][0][leaveName][_in]=${leaveNamesFilter}&` +
-      `filter[_and][1][tenant][tenantId][_eq]=${tenantId}`;
+//     const leaveSettingUrl =
+//       `${import.meta.env.VITE_API_URL}/items/leaveSetting?` +
+//       `fields[]=leaveName,date_created&` +
+//       `filter[_and][0][leaveName][_in]=${leaveNamesFilter}&` +
+//       `filter[_and][1][tenant][tenantId][_eq]=${tenantId}`;
 
-    console.log("🟢 STEP 5: Fetching leave settings:", leaveSettingUrl);
+//     console.log("🟢 STEP 5: Fetching leave settings:", leaveSettingUrl);
 
-    const leaveSettingResponse = await fetch(leaveSettingUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+//     const leaveSettingResponse = await fetch(leaveSettingUrl, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json",
+//       },
+//     });
 
-    if (!leaveSettingResponse.ok) {
-      console.error("❌ STEP 6: Failed to fetch leave settings");
-      showErrorMessage("Failed to fetch leave settings.");
-      return;
-    }
+//     if (!leaveSettingResponse.ok) {
+//       console.error("❌ STEP 6: Failed to fetch leave settings");
+//       showErrorMessage("Failed to fetch leave settings.");
+//       return;
+//     }
 
-    const leaveSettingData = await leaveSettingResponse.json();
-    console.log("🟢 STEP 6: Leave settings data received:", leaveSettingData);
+//     const leaveSettingData = await leaveSettingResponse.json();
+//     console.log("🟢 STEP 6: Leave settings data received:", leaveSettingData);
 
-    const leaveSettingsMap = new Map(
-      leaveSettingData.data.map((setting) => [
-        setting.leaveName,
-        new Date(setting.date_created),
-      ]),
-    );
-    console.log("🟢 STEP 7: Leave settings map created:", leaveSettingsMap);
+//     const leaveSettingsMap = new Map(
+//       leaveSettingData.data.map((setting) => [
+//         setting.leaveName,
+//         new Date(setting.date_created),
+//       ]),
+//     );
+//     console.log("🟢 STEP 7: Leave settings map created:", leaveSettingsMap);
 
-    for (const leaveName of assignedLeaves) {
-      console.log("🔵 STEP 8: Processing leave type:", leaveName);
+//     for (const leaveName of assignedLeaves) {
+//       console.log("🔵 STEP 8: Processing leave type:", leaveName);
 
-      const normalizedKey = leaveName.toLowerCase().replace(/\s+/g, "");
-      const leaveCreationDate = leaveSettingsMap.get(leaveName);
-      console.log("🔵 STEP 8.1: Normalized Key & Leave Creation Date:", {
-        normalizedKey,
-        leaveCreationDate,
-      });
+//       const normalizedKey = leaveName.toLowerCase().replace(/\s+/g, "");
+//       const leaveCreationDate = leaveSettingsMap.get(leaveName);
+//       console.log("🔵 STEP 8.1: Normalized Key & Leave Creation Date:", {
+//         normalizedKey,
+//         leaveCreationDate,
+//       });
 
-      if (!leaveCreationDate || isNaN(leaveCreationDate.getTime())) {
-        console.warn(
-          "⚠️ STEP 8.2: Invalid leave creation date, skipping:",
-          leaveName,
-        );
-        continue;
-      }
+//       if (!leaveCreationDate || isNaN(leaveCreationDate.getTime())) {
+//         console.warn(
+//           "⚠️ STEP 8.2: Invalid leave creation date, skipping:",
+//           leaveName,
+//         );
+//         continue;
+//       }
 
-      const startDate = new Date(
-        Math.max(joinDate.getTime(), leaveCreationDate.getTime()),
-      );
-      startDate.setDate(1);
-      startDate.setMonth(startDate.getMonth() + 1);
+//       const startDate = new Date(
+//         Math.max(joinDate.getTime(), leaveCreationDate.getTime()),
+//       );
+//       startDate.setDate(1);
+//       startDate.setMonth(startDate.getMonth() + 1);
 
-      const currentDate = new Date();
-      const monthsToProcess = [];
+//       const currentDate = new Date();
+//       const monthsToProcess = [];
 
-      let currentMonth = new Date(startDate);
-      while (currentMonth <= currentDate && !isNaN(currentMonth.getTime())) {
-        monthsToProcess.push(new Date(currentMonth));
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-      }
+//       let currentMonth = new Date(startDate);
+//       while (currentMonth <= currentDate && !isNaN(currentMonth.getTime())) {
+//         monthsToProcess.push(new Date(currentMonth));
+//         currentMonth.setMonth(currentMonth.getMonth() + 1);
+//       }
 
-      console.log(
-        "🟢 STEP 9: Months to process for",
-        leaveName,
-        monthsToProcess,
-      );
+//       console.log(
+//         "🟢 STEP 9: Months to process for",
+//         leaveName,
+//         monthsToProcess,
+//       );
 
-      if (monthLimits.value[normalizedKey] > 0) {
-        console.log(
-          "🟢 STEP 10: Monthly limit found for",
-          leaveName,
-          monthLimits.value[normalizedKey],
-        );
-        let totalCumulative = 0;
+//       if (monthLimits.value[normalizedKey] > 0) {
+//         console.log(
+//           "🟢 STEP 10: Monthly limit found for",
+//           leaveName,
+//           monthLimits.value[normalizedKey],
+//         );
+//         let totalCumulative = 0;
 
-        for (const month of monthsToProcess) {
-          if (isNaN(month.getTime())) {
-            console.warn("⚠️ STEP 11: Invalid month date, skipping:", month);
-            continue;
-          }
+//         for (const month of monthsToProcess) {
+//           if (isNaN(month.getTime())) {
+//             console.warn("⚠️ STEP 11: Invalid month date, skipping:", month);
+//             continue;
+//           }
 
-          const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-          const monthEnd = new Date(
-            month.getFullYear(),
-            month.getMonth() + 1,
-            0,
-          );
+//           const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+//           const monthEnd = new Date(
+//             month.getFullYear(),
+//             month.getMonth() + 1,
+//             0,
+//           );
 
-          console.log("🔵 STEP 12: Processing month:", {
-            leaveName,
-            monthStart: monthStart.toISOString(),
-            monthEnd: monthEnd.toISOString(),
-          });
+//           console.log("🔵 STEP 12: Processing month:", {
+//             leaveName,
+//             monthStart: monthStart.toISOString(),
+//             monthEnd: monthEnd.toISOString(),
+//           });
 
-          const requestUrl =
-            `${import.meta.env.VITE_API_URL}/items/leaveRequest?` +
-            `filter[_and][0][requestedBy][assignedUser][id][_eq]=${userId}&` +
-            `filter[_and][1][status][_in]=approved,pending&` +
-            `filter[_and][2][leaveType][_eq]=${encodeURIComponent(leaveName)}&` +
-            `filter[_and][3][fromDate][_gte]=${monthStart.toISOString().split("T")[0]}&` +
-            `filter[_and][4][fromDate][_lte]=${monthEnd.toISOString().split("T")[0]}`;
+//           const requestUrl =
+//             `${import.meta.env.VITE_API_URL}/items/leaveRequest?` +
+//             `filter[_and][0][requestedBy][assignedUser][id][_eq]=${userId}&` +
+//             `filter[_and][1][status][_in]=approved,pending&` +
+//             `filter[_and][2][leaveType][_eq]=${encodeURIComponent(leaveName)}&` +
+//             `filter[_and][3][fromDate][_gte]=${monthStart.toISOString().split("T")[0]}&` +
+//             `filter[_and][4][fromDate][_lte]=${monthEnd.toISOString().split("T")[0]}`;
 
-          console.log(
-            "🟢 STEP 13: Fetching leave requests for month:",
-            requestUrl,
-          );
+//           console.log(
+//             "🟢 STEP 13: Fetching leave requests for month:",
+//             requestUrl,
+//           );
 
-          const response = await fetch(requestUrl, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
+//           const response = await fetch(requestUrl, {
+//             headers: {
+//               Authorization: `Bearer ${token}`,
+//               "Content-Type": "application/json",
+//             },
+//           });
 
-          if (!response.ok) {
-            console.warn(
-              "⚠️ STEP 14: Failed to fetch leave requests for:",
-              leaveName,
-            );
-            continue;
-          }
+//           if (!response.ok) {
+//             console.warn(
+//               "⚠️ STEP 14: Failed to fetch leave requests for:",
+//               leaveName,
+//             );
+//             continue;
+//           }
 
-          const leaveData = await response.json();
-          console.log("🟢 STEP 15: Leave requests fetched:", leaveData);
+//           const leaveData = await response.json();
+//           console.log("🟢 STEP 15: Leave requests fetched:", leaveData);
 
-          let monthUsed = 0;
-          for (const leave of leaveData.data || []) {
-            const daysUsed = calculateDays(
-              leave.fromDate,
-              leave.toDate,
-              leave.halfDay,
-            );
-            monthUsed += daysUsed;
-            console.log("🔹 STEP 16: Calculating used days:", {
-              leaveId: leave.id,
-              from: leave.fromDate,
-              to: leave.toDate,
-              daysUsed,
-            });
-          }
+//           let monthUsed = 0;
+//           for (const leave of leaveData.data || []) {
+//             const daysUsed = calculateDays(
+//               leave.fromDate,
+//               leave.toDate,
+//               leave.halfDay,
+//             );
+//             monthUsed += daysUsed;
+//             console.log("🔹 STEP 16: Calculating used days:", {
+//               leaveId: leave.id,
+//               from: leave.fromDate,
+//               to: leave.toDate,
+//               daysUsed,
+//             });
+//           }
 
-          const monthLimit = monthLimits.value[normalizedKey];
-          const remaining = Math.max(0, monthLimit - monthUsed);
-          console.log("🟢 STEP 17: Month summary:", {
-            monthLimit,
-            monthUsed,
-            remaining,
-          });
+//           const monthLimit = monthLimits.value[normalizedKey];
+//           const remaining = Math.max(0, monthLimit - monthUsed);
+//           console.log("🟢 STEP 17: Month summary:", {
+//             monthLimit,
+//             monthUsed,
+//             remaining,
+//           });
 
-          totalCumulative += remaining;
-        }
+//           totalCumulative += remaining;
+//         }
 
-        cumulativeLimits.value[normalizedKey] = totalCumulative;
-        console.log("✅ STEP 18: Cumulative limit set:", {
-          leaveName,
-          totalCumulative,
-        });
-      } else {
-        console.warn("⚠️ STEP 19: No monthly limit found for:", leaveName);
-      }
-    }
+//         cumulativeLimits.value[normalizedKey] = totalCumulative;
+//         console.log("✅ STEP 18: Cumulative limit set:", {
+//           leaveName,
+//           totalCumulative,
+//         });
+//       } else {
+//         console.warn("⚠️ STEP 19: No monthly limit found for:", leaveName);
+//       }
+//     }
 
-    console.log("🏁 STEP 20: Final cumulative limits:", cumulativeLimits.value);
-  } catch (error) {
-    console.error("❌ STEP 21: Error calculating cumulative limits:", error);
-    showErrorMessage("Failed to calculate cumulative limits.");
-  }
-};
+//     console.log("🏁 STEP 20: Final cumulative limits:", cumulativeLimits.value);
+//   } catch (error) {
+//     console.error("❌ STEP 21: Error calculating cumulative limits:", error);
+//     showErrorMessage("Failed to calculate cumulative limits.");
+//   }
+// };
 
 const getEmployeeCycleConfig = () => {
   if (!attendanceCycle.value || !personalModuleData.value) return null;
@@ -1591,7 +1591,6 @@ const handleSave = async () => {
       console.log("Form validation result:", valid);
     } else {
       console.log("🟡 Using manual validation");
-      // Manual validation as fallback
       isValid =
         formData.value.from &&
         formData.value.to &&
@@ -1619,6 +1618,7 @@ const handleSave = async () => {
     } else {
       console.log("✅ Validation passed - continuing with save");
     }
+
     if (!validateDates(formData.value.from, formData.value.to)) {
       return;
     }
@@ -1765,6 +1765,240 @@ const handleSave = async () => {
       );
     }
 
+    // Generate all dates in the range
+    const allDates = getAllDatesInRange(formData.value.from, formData.value.to);
+    console.log(`Creating logs and attendance for dates:`, allDates);
+
+    // Check existing logs for the date range
+    const logsResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/logs?filter[_and][0][employeeId][_eq]=${payload.requestedBy}&filter[_and][1][tenant][_eq]=${tenantId}&filter[_and][2][date][_between][0]=${formData.value.from}&filter[_and][2][date][_between][1]=${formData.value.to}`,
+      {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      },
+    );
+
+    if (!logsResponse.ok) {
+      throw new Error(`Failed to check existing logs: ${logsResponse.status}`);
+    }
+    const existingLogs = await logsResponse.json();
+
+    // Process logs for each date
+    for (const date of allDates) {
+      const logPayloadBase = {
+        status: "request",
+        date: date,
+        employeeId: payload.requestedBy,
+        tenant: tenantId,
+      };
+
+      const existingLogsForDate = existingLogs.data.filter(
+        (log) => log.date === date,
+      );
+
+      const isPartialLeave =
+        formData.value.timefrom &&
+        formData.value.timeTo &&
+        leaveTypeKey !== "workfromhome";
+
+      if (isPartialLeave) {
+        // Clean up any existing logs for this date by deleting them
+        if (existingLogsForDate.length > 0) {
+          for (const log of existingLogsForDate) {
+            const deleteResponse = await fetch(
+              `${import.meta.env.VITE_API_URL}/items/logs/${log.id}`,
+              {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${getToken()}`,
+                },
+              },
+            );
+            if (!deleteResponse.ok) {
+              throw new Error(
+                `Failed to delete existing log: ${deleteResponse.status}`,
+              );
+            }
+            console.log(`🗑️ Deleted existing log for date: ${date}`);
+          }
+        }
+
+        // Create two new logs with timeStamp
+        const times = [
+          { timeStamp: formData.value.timefrom },
+          { timeStamp: formData.value.timeTo },
+        ];
+
+        for (const timeObj of times) {
+          const logPayload = { ...logPayloadBase, ...timeObj };
+          const createResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/logs`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify(logPayload),
+            },
+          );
+
+          if (!createResponse.ok) {
+            throw new Error(`Failed to create log: ${createResponse.status}`);
+          }
+          console.log(
+            `✅ Created log for date: ${date} with timeStamp: ${timeObj.timeStamp}`,
+          );
+        }
+      } else {
+        // Clean up extras if more than one, update the first or create if none
+        const logPayload = { ...logPayloadBase }; // No timeStamp
+
+        if (existingLogsForDate.length > 0) {
+          // Update the first one
+          const firstLog = existingLogsForDate[0];
+          const updateResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/logs/${firstLog.id}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify(logPayload),
+            },
+          );
+
+          if (!updateResponse.ok) {
+            throw new Error(`Failed to update log: ${updateResponse.status}`);
+          }
+          console.log(`✅ Updated log for date: ${date}`);
+
+          // Delete any extra logs
+          for (let i = 1; i < existingLogsForDate.length; i++) {
+            const deleteResponse = await fetch(
+              `${import.meta.env.VITE_API_URL}/items/logs/${existingLogsForDate[i].id}`,
+              {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${getToken()}`,
+                },
+              },
+            );
+            if (!deleteResponse.ok) {
+              throw new Error(
+                `Failed to delete extra log: ${deleteResponse.status}`,
+              );
+            }
+            console.log(`🗑️ Deleted extra log for date: ${date}`);
+          }
+        } else {
+          // Create new log
+          const createResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/items/logs`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify(logPayload),
+            },
+          );
+
+          if (!createResponse.ok) {
+            throw new Error(`Failed to create log: ${createResponse.status}`);
+          }
+          console.log(`✅ Created log for date: ${date}`);
+        }
+      }
+    }
+
+    // Check existing attendance for the date range
+    const attendanceResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/attendance?filter[_and][0][employeeId][_eq]=${payload.requestedBy}&filter[_and][1][tenant][_eq]=${tenantId}&filter[_and][2][date][_between][0]=${formData.value.from}&filter[_and][2][date][_between][1]=${formData.value.to}`,
+      {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      },
+    );
+
+    if (!attendanceResponse.ok) {
+      throw new Error(
+        `Failed to check existing attendance: ${attendanceResponse.status}`,
+      );
+    }
+    const existingAttendance = await attendanceResponse.json();
+    const existingAttendanceDates = existingAttendance.data.map(
+      (att) => att.date,
+    );
+
+    // Process attendance for each date
+    for (const date of allDates) {
+      const attendancePayload = {
+        status: "request",
+        date: date,
+        employeeId: payload.requestedBy,
+        tenant: tenantId,
+        leaveType: formData.value.leaveType,
+        attendance: "paidLeave",
+      };
+
+      if (formData.value.timefrom) {
+        attendancePayload.inTime = formData.value.timefrom; // Assuming timeFrom is inTime equivalent
+      }
+      if (formData.value.timeTo) {
+        attendancePayload.outTime = formData.value.timeTo; // Assuming timeTo is outTime equivalent
+      }
+
+      if (existingAttendanceDates.includes(date)) {
+        // Update existing attendance
+        const attendanceId = existingAttendance.data.find(
+          (att) => att.date === date,
+        ).id;
+        const updateResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/attendance/${attendanceId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify(attendancePayload),
+          },
+        );
+
+        if (!updateResponse.ok) {
+          throw new Error(
+            `Failed to update attendance: ${updateResponse.status}`,
+          );
+        }
+        console.log(`✅ Updated attendance for date: ${date}`);
+      } else {
+        // Create new attendance
+        const createResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/attendance`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify(attendancePayload),
+          },
+        );
+
+        if (!createResponse.ok) {
+          throw new Error(
+            `Failed to create attendance: ${createResponse.status}`,
+          );
+        }
+        console.log(`✅ Created attendance for date: ${date}`);
+      }
+    }
+
     if (leaveTypeKey !== "unpaidleave") {
       const normalizedType = leaveTypeKey;
       const takenKey = `t${normalizedType}`;
@@ -1815,6 +2049,20 @@ const handleSave = async () => {
   } finally {
     isSaving.value = false;
   }
+};
+
+// Helper function to generate all dates between from and to
+const getAllDatesInRange = (fromDate, toDate) => {
+  const dates = [];
+  const currentDate = new Date(fromDate);
+  const endDate = new Date(toDate);
+
+  while (currentDate <= endDate) {
+    dates.push(currentDate.toISOString().split("T")[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return dates;
 };
 
 const handleOutSave = async () => {

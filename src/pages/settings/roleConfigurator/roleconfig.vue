@@ -1,14 +1,17 @@
 <template>
   <div class="app-container">
+    <!-- Toast Container -->
+    <ToastContainer ref="toastContainer" />
+
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="loading-overlay">
       <div class="loading-spinner"></div>
       <p class="loading-text">{{ loadingMessage }}</p>
     </div>
 
-    <!-- Sidebar -->
+    <!-- ==================== LEFT SIDEBAR ==================== -->
     <div class="sidebar">
-      <div class="sidebar-header">
+      <!-- <div class="sidebar-headers">
         <div class="header-icon">
           <svg
             width="24"
@@ -24,10 +27,14 @@
           </svg>
         </div>
         <h2 class="sidebar-title">Role Configurator</h2>
-      </div>
+      </div> -->
 
       <div class="sidebar-content">
-        <button @click="showAddForm" class="add-role-btn" :disabled="isLoading">
+        <button
+          @click="showAddDrawer"
+          class="add-role-btn"
+          :disabled="isLoading"
+        >
           <svg
             width="16"
             height="16"
@@ -155,18 +162,13 @@
       </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- ==================== MAIN CONTENT ==================== -->
     <div class="main-content">
-      <!-- Add Role Form -->
-      <div
-        :class="[
-          'form-container',
-          isFormVisible ? 'form-visible' : 'form-hidden',
-        ]"
-      >
-        <div class="form-content">
-          <div class="form-header">
-            <div class="form-header-left">
+      <!-- ==================== RIGHT DRAWER (Add Role) ==================== -->
+      <transition name="drawer">
+        <div v-if="isDrawerVisible" class="right-drawer">
+          <div class="drawer-header">
+            <div class="drawer-title-section">
               <svg
                 width="20"
                 height="20"
@@ -180,10 +182,10 @@
                 <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
-              <h3 class="form-title">Create New Role</h3>
+              <h3 class="drawer-title">Create New Role</h3>
             </div>
             <button
-              @click="hideAddForm"
+              @click="hideAddDrawer"
               class="close-btn"
               :disabled="isLoading"
             >
@@ -200,7 +202,7 @@
             </button>
           </div>
 
-          <form @submit.prevent="addRole" class="role-form">
+          <form @submit.prevent="addRole" class="drawer-form">
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">
@@ -251,9 +253,9 @@
                   :disabled="isLoading"
                 >
                   <option value="">Select organization type</option>
-                  <option value="tenant">🏢 Tenant</option>
-                  <option value="distributor">🚚 Distributor</option>
-                  <option value="client">👥 Client</option>
+                  <option value="tenant">Tenant</option>
+                  <option value="distributor">Distributor</option>
+                  <option value="client">Client</option>
                 </select>
               </div>
             </div>
@@ -290,7 +292,7 @@
             <div class="form-actions">
               <button
                 type="button"
-                @click="hideAddForm"
+                @click="hideAddDrawer"
                 class="cancel-btn"
                 :disabled="isLoading"
               >
@@ -322,10 +324,10 @@
             </div>
           </form>
         </div>
-      </div>
+      </transition>
 
-      <!-- Main Configuration Screen -->
-      <div :class="['config-screen', isFormVisible ? 'config-shifted' : '']">
+      <!-- ==================== CONFIG SCREEN ==================== -->
+      <div :class="['config-screen', isDrawerVisible ? 'config-shifted' : '']">
         <div v-if="selectedRole" class="config-content">
           <div class="config-header">
             <div class="config-title-section">
@@ -741,14 +743,19 @@
 <script>
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
+import ToastContainer from "@/components/common/notifications/ToastContainer.vue";
+
 const token = authService.getToken();
 const tenantId = currentUserTenant.getTenantId();
 
 export default {
   name: "RoleConfigurator",
+  components: {
+    ToastContainer,
+  },
   data() {
     return {
-      isFormVisible: false,
+      isDrawerVisible: false,
       isLoading: false,
       loadingMessage: "",
       selectedRole: null,
@@ -783,10 +790,10 @@ export default {
         { name: "Assets Data", key: "assets" },
       ],
       scopeOptions: [
-        { value: "assigned-only", label: "🎯 Assigned Only" },
-        { value: "organization-wide", label: "🏢 Organization Wide" },
-        { value: "organization-child", label: "🌳 Organization + Child" },
-        { value: "serviceable-location", label: "📍 Serviceable Location" },
+        { value: "assigned-only", label: "Assigned Only" },
+        { value: "organization-wide", label: "Organization Wide" },
+        { value: "organization-child", label: "Organization + Child" },
+        { value: "serviceable-location", label: "Serviceable Location" },
       ],
       apiBaseUrl: `${import.meta.env.VITE_API_URL}/items/roleConfigurator?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}`,
       apiHeaders: {
@@ -796,12 +803,26 @@ export default {
     };
   },
 
-  async mounted() {
-    await this.fetchRoles();
+  mounted() {
+    this.fetchRoles();
   },
 
   methods: {
-    // API Methods
+    // === Toast Helper ===
+    showToast(message, type = "info", duration = 5000) {
+      this.$refs.toastContainer?.addToast(message, type, duration);
+    },
+
+    // === Drawer Controls ===
+    showAddDrawer() {
+      this.isDrawerVisible = true;
+    },
+    hideAddDrawer() {
+      this.isDrawerVisible = false;
+      this.resetForm();
+    },
+
+    // === API Methods ===
     async apiRequest(url, options = {}) {
       try {
         const response = await fetch(url, {
@@ -817,8 +838,7 @@ export default {
         return data;
       } catch (error) {
         console.error("API request failed:", error);
-        this.$toast?.error?.("API request failed: " + error.message) ||
-          alert("API request failed: " + error.message);
+        this.showToast("API request failed: " + error.message, "error");
         throw error;
       }
     },
@@ -850,7 +870,7 @@ export default {
         const payload = this.transformLocalRoleToApi(roleData);
         const response = await this.apiRequest(this.apiBaseUrl, {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ data: payload }),
         });
 
         if (response.data) {
@@ -860,6 +880,7 @@ export default {
         }
       } catch (error) {
         console.error("Failed to create role:", error);
+        this.showToast("Failed to create role.", "error");
         throw error;
       } finally {
         this.isLoading = false;
@@ -873,7 +894,7 @@ export default {
       try {
         const response = await this.apiRequest(`${this.apiBaseUrl}/${roleId}`, {
           method: "PATCH",
-          body: JSON.stringify(updateData),
+          body: JSON.stringify({ data: updateData }), // ← WRAP IN { data: ... }
         });
 
         if (response.data) {
@@ -886,13 +907,14 @@ export default {
         }
       } catch (error) {
         console.error("Failed to update role:", error);
+        this.showToast("Failed to save configuration.", "error");
         throw error;
       } finally {
         this.isLoading = false;
       }
     },
 
-    // Data Transformation Methods
+    // === Data Transformation ===
     transformApiRoleToLocal(apiRole) {
       return {
         id: apiRole.id,
@@ -937,10 +959,7 @@ export default {
     },
 
     parseActionData(actionData) {
-      if (!actionData) {
-        return { create: false, update: false, delete: false };
-      }
-
+      if (!actionData) return { create: false, update: false, delete: false };
       if (typeof actionData === "object") {
         return {
           create: actionData.create || false,
@@ -948,7 +967,6 @@ export default {
           delete: actionData.delete || false,
         };
       }
-
       try {
         const parsed = JSON.parse(actionData);
         return {
@@ -962,10 +980,7 @@ export default {
     },
 
     parseDataScope(dataScopeData) {
-      if (!dataScopeData) {
-        return { client: "", workorder: "", assets: "" };
-      }
-
+      if (!dataScopeData) return { client: "", workorder: "", assets: "" };
       if (typeof dataScopeData === "object") {
         return {
           client: dataScopeData.client || "",
@@ -973,7 +988,6 @@ export default {
           assets: dataScopeData.assets || "",
         };
       }
-
       try {
         const parsed = JSON.parse(dataScopeData);
         return {
@@ -986,22 +1000,9 @@ export default {
       }
     },
 
-    // UI Methods
-    showAddForm() {
-      this.isFormVisible = true;
-    },
-
-    hideAddForm() {
-      this.isFormVisible = false;
-      this.resetForm();
-    },
-
+    // === UI Methods ===
     resetForm() {
-      this.newRole = {
-        roleName: "",
-        orgType: "",
-        description: "",
-      };
+      this.newRole = { roleName: "", orgType: "", description: "" };
     },
 
     async addRole() {
@@ -1015,20 +1016,15 @@ export default {
             workorder: { create: false, update: false, delete: false },
             assets: { create: false, update: false, delete: false },
           },
-          dataScope: {
-            client: "",
-            workorder: "",
-            assets: "",
-          },
+          dataScope: { client: "", workorder: "", assets: "" },
         };
 
         const createdRole = await this.createRole(newRoleData);
         this.selectRole(createdRole);
-        this.hideAddForm();
-        this.$toast?.success?.("Role created successfully!") ||
-          alert("Role created successfully!");
+        this.hideAddDrawer();
+        this.showToast("Role created successfully!", "success");
       } catch (error) {
-        console.error("Failed to add role:", error);
+        this.showToast("Failed to create role.", "error");
       }
     },
 
@@ -1037,9 +1033,7 @@ export default {
         const confirmSwitch = confirm(
           "You have unsaved changes. Do you want to discard them and switch roles?",
         );
-        if (!confirmSwitch) {
-          return;
-        }
+        if (!confirmSwitch) return;
       }
       this.selectedRole = role;
       this.localRole = JSON.parse(JSON.stringify(role));
@@ -1071,10 +1065,9 @@ export default {
         this.localRole = JSON.parse(JSON.stringify(updatedRole));
         this.hasUnsavedChanges = false;
 
-        this.$toast?.success?.("Configuration saved successfully!") ||
-          alert("Configuration saved successfully!");
+        this.showToast("Configuration saved successfully!", "success");
       } catch (error) {
-        console.error("Failed to save configuration:", error);
+        this.showToast("Failed to save configuration.", "error");
       }
     },
   },
@@ -1082,103 +1075,71 @@ export default {
 </script>
 
 <style scoped>
-/* Main Container */
+/* === Global Layout === */
 .app-container {
   display: flex;
   height: 100vh;
-  background: white;
+  background: #f9fafb;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", sans-serif;
   position: relative;
 }
 
-/* Loading Overlay */
+/* === Loading Overlay === */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 9999;
 }
-
 .loading-spinner {
   width: 48px;
   height: 48px;
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top: 4px solid #3b82f6;
+  border-top: 4px solid #10b981;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
-
 .loading-text {
   color: white;
   margin-top: 20px;
   font-size: 16px;
   font-weight: 500;
 }
-
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }
 
-/* Sidebar Styles */
+/* === Sidebar === */
 .sidebar {
   width: 320px;
   background: white;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  border-right: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
 }
-
-.sidebar-header {
-  padding: 14px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #131e38;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-icon {
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-}
-
-.sidebar-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0;
-  color: white;
-}
-
 .sidebar-content {
-  padding: 24px;
+  padding: 20px;
   flex: 1;
   overflow-y: auto;
 }
-
 .add-role-btn {
   width: 100%;
-  background: #10192e;
+  background: linear-gradient(135deg, #10b981 0%, #059367 100%);
   color: white;
-  padding: 14px 20px;
+  padding: 12px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -1188,14 +1149,12 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
-
 .add-role-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
 }
-
 .add-role-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1205,21 +1164,21 @@ export default {
 .roles-section {
   margin-top: 8px;
 }
-
 .roles-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+  padding: 0 4px;
 }
-
 .roles-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-
 .roles-list {
   max-height: calc(100vh - 280px);
   overflow-y: auto;
@@ -1227,28 +1186,24 @@ export default {
 }
 
 .role-item {
-  padding: 16px;
-  border-radius: 12px;
+  padding: 14px;
+  border-radius: 10px;
   cursor: pointer;
-  margin-bottom: 12px;
-  background: #f8fafc;
+  margin-bottom: 10px;
+  background: #f3f4f6;
   border: 2px solid transparent;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   position: relative;
 }
-
 .role-item:hover {
-  background: #f1f5f9;
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #e5e7eb;
+  transform: translateX(2px);
 }
-
 .role-item-active {
-  background: #68ade1;
-  border-color: #3b82f6;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
-
 .role-item-modified {
   border-left: 4px solid #f59e0b;
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -1259,55 +1214,51 @@ export default {
   align-items: flex-start;
   gap: 12px;
 }
-
 .role-icon {
   padding: 8px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   color: #6b7280;
+  flex-shrink: 0;
 }
-
 .role-details {
   flex: 1;
+  min-width: 0;
 }
-
 .role-name {
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 6px;
-  font-size: 15px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
 .role-type {
   margin-bottom: 4px;
 }
-
 .org-badge {
   display: inline-block;
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
 .org-tenant {
   background: #dbeafe;
   color: #1e40af;
 }
-
 .org-distributor {
   background: #dcfce7;
   color: #166534;
 }
-
 .org-client {
   background: #fef3c7;
   color: #92400e;
 }
-
 .unsaved-indicator {
   display: flex;
   align-items: center;
@@ -1318,7 +1269,7 @@ export default {
   font-weight: 500;
 }
 
-/* Main Content */
+/* === Main Content === */
 .main-content {
   flex: 1;
   display: flex;
@@ -1326,163 +1277,61 @@ export default {
   max-height: 100vh;
 }
 
-/* Form Container */
-.form-container {
+/* === Right Drawer === */
+.right-drawer {
+  position: fixed;
+  right: 0;
+  width: 520px;
+  height: 100vh;
   background: white;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
 }
-
-.form-visible {
-  max-height: 500px;
-  opacity: 1;
-}
-
-.form-hidden {
-  max-height: 0;
-  opacity: 0;
-}
-
-.form-content {
-  padding: 32px;
-}
-
-.form-header {
+.drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 24px 0 20px;
+  border-bottom: 1px solid #e5e7eb;
   margin-bottom: 24px;
 }
-
-.form-header-left {
+.drawer-title-section {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
-.form-title {
-  font-size: 20px;
+.drawer-title {
+  font-size: 18px;
   font-weight: 700;
-  color: #1f2937;
   margin: 0;
 }
-
-.close-btn {
-  background: #f3f4f6;
-  border: none;
-  border-radius: 8px;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 8px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-btn:hover:not(:disabled) {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.role-form {
+.drawer-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+/* Drawer Transition */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(100%);
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
+/* Shift main content when drawer open */
+/* .config-shifted {
+  margin-right: 420px; */
+/* } */
 
-.form-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.form-input,
-.form-select,
-.form-textarea {
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 90px;
-  font-family: inherit;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.cancel-btn,
-.submit-btn {
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cancel-btn {
-  background: #f3f4f6;
-  color: #6b7280;
-  border: 2px solid #e5e7eb;
-}
-
-.cancel-btn:hover:not(:disabled) {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border: none;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-}
-
-/* Configuration Screen */
+/* === Config Screen === */
 .config-screen {
   flex: 1;
   padding: 12px;
@@ -1490,55 +1339,43 @@ export default {
   overflow-y: auto;
   max-height: 100vh;
 }
-
-.config-shifted {
-  transform: translateY(8px);
-}
-
 .config-content {
-  /* max-width: 1200px; */
   margin: 0 auto;
 }
-
 .config-header {
   margin-bottom: 32px;
 }
-
 .config-title-section {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-bottom: 16px;
 }
-
 .config-icon {
   padding: 12px;
-  background: #68ade1;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   border-radius: 12px;
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  color: #059367;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
-
 .config-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   color: #1f2937;
   margin: 0;
+  letter-spacing: -0.5px;
 }
-
 .config-subtitle {
   color: #6b7280;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: 15px;
 }
-
 .separator {
   color: #d1d5db;
 }
-
 .unsaved-banner {
   display: flex;
   align-items: center;
@@ -1555,84 +1392,82 @@ export default {
 /* Section Cards */
 .section-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
   margin-bottom: 24px;
   overflow: hidden;
 }
-
 .section-header {
-  padding: 24px 32px;
-  border-bottom: 1px solid #f1f5f9;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
-
 .section-header-content {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  letter-spacing: -0.3px;
 }
-
 .section-content {
-  padding: 32px;
+  padding: 28px;
 }
 
-/* Actions Grid */
-.actions-grid {
+/* Actions & Scope Grid */
+.actions-grid,
+.scope-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 32px;
+  gap: 24px;
 }
-
-.action-group {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 24px;
-  border: 2px solid #e2e8f0;
+.action-group,
+.scope-group {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1.5px solid #e5e7eb;
   transition: all 0.2s ease;
 }
-
-.action-group:hover {
-  border-color: #cbd5e1;
+.action-group:hover,
+.scope-group:hover {
+  border-color: #d1d5db;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
-.action-header {
+.action-header,
+.scope-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
-
-.action-icon {
+.action-icon,
+.scope-icon {
   padding: 8px;
   background: white;
   border-radius: 8px;
   color: #6b7280;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-
-.action-title {
+.action-title,
+.scope-title {
   font-weight: 600;
   color: #1f2937;
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
 }
 
+/* Permissions */
 .permissions-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
-
 .permission-item {
   display: flex;
   align-items: center;
@@ -1641,24 +1476,21 @@ export default {
   border-radius: 6px;
   transition: background-color 0.2s ease;
 }
-
 .permission-item:hover {
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(16, 185, 129, 0.08);
 }
-
 .permission-checkbox {
   margin-right: 12px;
-  width: 18px;
-  height: 18px;
-  accent-color: #3b82f6;
+  width: 20px;
+  height: 20px;
+  /* accent-color: #10b981; */
+  cursor: pointer;
 }
-
 .permission-content {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
 .permission-label {
   font-size: 14px;
   color: #374151;
@@ -1666,78 +1498,36 @@ export default {
   font-weight: 500;
 }
 
-/* Scope Grid */
-.scope-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 32px;
-}
-
-.scope-group {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 24px;
-  border: 2px solid #e2e8f0;
-  transition: all 0.2s ease;
-}
-
-.scope-group:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.scope-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.scope-icon {
-  padding: 8px;
-  background: white;
-  border-radius: 8px;
-  color: #6b7280;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.scope-title {
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
-  font-size: 16px;
-}
-
+/* Scope Select */
 .scope-select {
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  padding: 11px 14px;
+  border: 1.5px solid #e5e7eb;
   border-radius: 8px;
   font-size: 14px;
   background: white;
   transition: all 0.2s ease;
   width: 100%;
+  cursor: pointer;
 }
-
 .scope-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 /* Save Section */
 .save-section {
   display: flex;
   justify-content: flex-end;
-  gap: 16px;
+  gap: 12px;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e5e7eb;
 }
-
 .discard-btn,
 .save-btn {
-  padding: 14px 28px;
-  border-radius: 10px;
+  padding: 12px 24px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -1746,31 +1536,26 @@ export default {
   align-items: center;
   gap: 8px;
 }
-
 .discard-btn {
   background: #f3f4f6;
   color: #6b7280;
-  border: 2px solid #e5e7eb;
+  border: 1.5px solid #e5e7eb;
 }
-
 .discard-btn:hover:not(:disabled) {
   background: #e5e7eb;
   color: #374151;
   transform: translateY(-1px);
 }
-
 .save-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059367 100%);
   color: white;
   border: none;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
-
 .save-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
 }
-
 .discard-btn:disabled,
 .save-btn:disabled {
   opacity: 0.5;
@@ -1786,68 +1571,157 @@ export default {
   height: 100%;
   min-height: 400px;
 }
-
 .empty-content {
   text-align: center;
   max-width: 400px;
 }
-
 .empty-icon {
   margin-bottom: 24px;
-  color: #9ca3af;
+  color: #d1d5db;
 }
-
 .empty-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #374151;
   margin: 0 0 12px 0;
 }
-
 .empty-subtitle {
-  font-size: 16px;
+  font-size: 15px;
   color: #6b7280;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-/* Responsive Design */
+/* Form Elements (shared) */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 11px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: white;
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+.form-textarea {
+  resize: vertical;
+  min-height: 90px;
+  font-family: inherit;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+.cancel-btn,
+.submit-btn {
+  padding: 11px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cancel-btn {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1.5px solid #e5e7eb;
+}
+.cancel-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #374151;
+}
+.submit-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059367 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+.close-btn {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.close-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* === Responsive === */
 @media (max-width: 1024px) {
   .sidebar {
     width: 280px;
   }
-
   .actions-grid,
   .scope-grid {
     grid-template-columns: 1fr;
   }
 }
-
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;
   }
-
   .sidebar {
     width: 100%;
     height: auto;
     max-height: 40vh;
   }
-
   .form-row {
     grid-template-columns: 1fr;
   }
-
   .config-screen {
-    padding: 16px;
+    padding: 20px;
   }
-
   .section-content {
     padding: 20px;
   }
-
   .save-section {
     flex-direction: column;
+  }
+  .right-drawer {
+    width: 100%;
   }
 }
 </style>

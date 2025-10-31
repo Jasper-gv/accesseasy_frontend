@@ -1,3 +1,4 @@
+// senzrfieldopsfrontend/src/composables/workorder/completeWorkOrderForm/useTaskCompletionApi.js
 import { ref } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
@@ -5,6 +6,7 @@ import { currentUserTenant } from "@/utils/currentUserTenant";
 export const useTaskCompletionApi = () => {
   const loading = ref(false);
   const error = ref(null);
+  const locationError = ref(null);
 
   const getAuthToken = () => {
     const token = authService.getToken();
@@ -44,7 +46,6 @@ export const useTaskCompletionApi = () => {
     try {
       const token = getAuthToken();
 
-      // Validate file
       if (!file.type.startsWith("image/")) {
         throw new Error("Please select an image file only");
       }
@@ -54,13 +55,11 @@ export const useTaskCompletionApi = () => {
         throw new Error("Image size must be less than 10MB");
       }
 
-      // Get tenant ID and folder ID
       const tenantId = await currentUserTenant.getTenantId();
       if (!tenantId) throw new Error("Tenant ID not found");
 
       const workOrdersFolderId = await getWorkOrdersFolderId();
 
-      // Prepare form data
       const formData = new FormData();
       if (workOrdersFolderId) {
         formData.append("folder", workOrdersFolderId);
@@ -70,7 +69,6 @@ export const useTaskCompletionApi = () => {
       const customFileName = `${taskId || "task"}-${tenantId}.${fileExtension}`;
       formData.append("file", file, customFileName);
 
-      // Upload file
       const response = await fetch(`${import.meta.env.VITE_API_URL}/files`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -269,28 +267,21 @@ export const useTaskCompletionApi = () => {
 
     try {
       const token = getAuthToken();
-
-      // Determine status based on due time - same logic as old work order
       const isOverdue =
         completionData.task?.dueTime &&
         new Date(completionData.task.dueTime) < new Date();
       const status = isOverdue ? "overdue" : "completed";
 
-      // Build payload exactly like old work order
       const updateData = { status };
 
-      // Add completion notes if provided
       if (completionData.notes) {
         updateData.completion_notes = completionData.notes;
       }
 
-      // Map form data to task fields (same mapping as old work order)
       const formData = completionData.formData || {};
       const imageFileIds = completionData.imageFileIds || {};
 
-      // Field mapping from old work order
       const fieldMapping = {
-        // Core task fields
         description: "description",
         taskType: "taskType",
         employeeId: "employeeId",
@@ -298,20 +289,14 @@ export const useTaskCompletionApi = () => {
         dueTime: "dueTime",
         from: "from",
         title: "title",
-
-        // Financial fields
         amountExpected: "amountExpected",
         amountCollected: "amountCollected",
         eAmountCollected: "eAmountCollected",
         paymentMode: "paymentMode",
         referenceNumber: "referenceNumber",
-
-        // Location fields
         orgId: "orgId",
         orgLocation: "orgLocation",
         radiusInMeters: "radiusInMeters",
-
-        // Technical fields
         snNumber: "snNumber",
         issueReport: "issueReport",
         partsReplaced: "partsReplaced",
@@ -320,7 +305,6 @@ export const useTaskCompletionApi = () => {
         demo: "demo",
       };
 
-      // Apply form data using field mapping
       Object.entries(formData).forEach(([key, value]) => {
         const mappedField = fieldMapping[key] || key;
         if (
@@ -334,21 +318,18 @@ export const useTaskCompletionApi = () => {
         }
       });
 
-      // Add image file IDs
       Object.entries(imageFileIds).forEach(([key, fileId]) => {
         if (fileId) {
           updateData[key] = fileId;
         }
       });
 
-      // Add GPS coordinates if available
       const currentLocation = completionData.currentLocation;
       if (currentLocation?.lat !== null && currentLocation?.lng !== null) {
         updateData.currentLat = currentLocation.lat;
         updateData.currentLng = currentLocation.lng;
       }
 
-      // Add any additional payload data
       if (completionData.payload) {
         Object.entries(completionData.payload).forEach(([key, value]) => {
           if (
@@ -361,8 +342,6 @@ export const useTaskCompletionApi = () => {
           }
         });
       }
-
-      console.log("Work Order Completion Payload:", updateData);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/items/tasks/${completionData.task.id}`,
@@ -414,22 +393,16 @@ export const useTaskCompletionApi = () => {
 
     try {
       const token = getAuthToken();
-
-      // For draft, don't change status - just save form data
       const updateData = {};
 
-      // Add completion notes if provided
       if (draftData.notes) {
         updateData.completion_notes = draftData.notes;
       }
 
-      // Map form data to task fields (same as completion)
       const formData = draftData.formData || {};
       const imageFileIds = draftData.imageFileIds || {};
 
-      // Field mapping from old work order
       const fieldMapping = {
-        // Core task fields
         description: "description",
         taskType: "taskType",
         employeeId: "employeeId",
@@ -437,20 +410,14 @@ export const useTaskCompletionApi = () => {
         dueTime: "dueTime",
         from: "from",
         title: "title",
-
-        // Financial fields
         amountExpected: "amountExpected",
         amountCollected: "amountCollected",
         eAmountCollected: "eAmountCollected",
         paymentMode: "paymentMode",
         referenceNumber: "referenceNumber",
-
-        // Location fields
         orgId: "orgId",
         orgLocation: "orgLocation",
         radiusInMeters: "radiusInMeters",
-
-        // Technical fields
         snNumber: "snNumber",
         issueReport: "issueReport",
         partsReplaced: "partsReplaced",
@@ -459,7 +426,6 @@ export const useTaskCompletionApi = () => {
         demo: "demo",
       };
 
-      // Apply form data using field mapping
       Object.entries(formData).forEach(([key, value]) => {
         const mappedField = fieldMapping[key] || key;
         if (
@@ -473,21 +439,18 @@ export const useTaskCompletionApi = () => {
         }
       });
 
-      // Add image file IDs
       Object.entries(imageFileIds).forEach(([key, fileId]) => {
         if (fileId) {
           updateData[key] = fileId;
         }
       });
 
-      // Add GPS coordinates if available
       const currentLocation = draftData.currentLocation;
       if (currentLocation?.lat !== null && currentLocation?.lng !== null) {
         updateData.currentLat = currentLocation.lat;
         updateData.currentLng = currentLocation.lng;
       }
 
-      // Add any additional payload data
       if (draftData.payload) {
         Object.entries(draftData.payload).forEach(([key, value]) => {
           if (
@@ -500,8 +463,6 @@ export const useTaskCompletionApi = () => {
           }
         });
       }
-
-      console.log("Work Order Draft Payload:", updateData);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/items/tasks/${draftData.task.id}`,
@@ -596,10 +557,12 @@ export const useTaskCompletionApi = () => {
   };
 
   const fetchTaskDetails = async (taskId) => {
+    if (!taskId) {
+      console.error("fetchTaskDetails called with undefined taskId");
+      return { success: false, error: "Task ID is required" };
+    }
     try {
       const token = getAuthToken();
-
-      // Only fetch the specific fields you need
       const fields = [
         "complete_Task_Note",
         "task_priority",
@@ -612,6 +575,14 @@ export const useTaskCompletionApi = () => {
         "title",
         "employeeId.employeeId",
         "employeeId.assignedUser.first_name",
+        "dynamicFields",
+        "ratings",
+        "signature",
+        "orgLocation",
+        "orgLocation.contactDetails",
+        "radiusInMeters",
+        "orgId",
+        "verified_client_photo",
       ];
 
       const fieldsQuery = fields.map((field) => `fields[]=${field}`).join("&");
@@ -683,9 +654,107 @@ export const useTaskCompletionApi = () => {
     }
   };
 
+  const fetchOrganizationDetails = async (orgId) => {
+    if (!orgId) {
+      console.warn("orgId not provided for fetching organization details.");
+      return { success: false, error: "Organization ID is required" };
+    }
+    try {
+      const token = getAuthToken();
+      const tenantId = await currentUserTenant.getTenantId();
+      if (!tenantId) throw new Error("Tenant ID not found");
+
+      const params = new URLSearchParams([
+        ["fields[]", "orgName"],
+        ["filter[_and][0][id][_eq]", orgId],
+        ["filter[_and][1][tenant][tenantId][_eq]", tenantId],
+      ]).toString();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/organization?${params}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 401)
+          throw new Error("Unauthorized access. Token might be expired.");
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.data?.[0]) {
+        return { success: true, data: data.data[0] };
+      }
+      return { success: false, error: "Organization not found" };
+    } catch (err) {
+      console.error("Error fetching organization details:", err);
+      return {
+        success: false,
+        error: err.message || "Failed to fetch organization details.",
+      };
+    }
+  };
+
+  const fetchLocationManagementData = async (clientOrgId) => {
+    const token = getAuthToken();
+    const tenantId = await currentUserTenant.getTenantId();
+    if (!token || !tenantId || !clientOrgId) {
+      locationError.value =
+        "Missing authentication or organization details to fetch locations.";
+      return { success: false, error: locationError.value };
+    }
+
+    try {
+      const params = new URLSearchParams([
+        ["limit", "-1"],
+        ["fields[]", "locType"],
+        ["fields[]", "locmark"],
+        ["fields[]", "locdetail"],
+        ["fields[]", "locSize"],
+        ["fields[]", "orgLocation.orgName"],
+        ["fields[]", "orgLocation.id"],
+        ["fields[]", "tenant.tenantId"],
+        ["fields[]", "contactDetails"],
+        ["fields[]", "id"],
+        ["filter[_and][0][_and][0][orgLocation][id][_eq]", clientOrgId],
+        ["filter[_and][1][status][_neq]", "archived"],
+      ]).toString();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/locationManagement?${params}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch location management data: ${response.status}`,
+        );
+      }
+
+      const data = await response.json();
+      return { success: true, data: data.data };
+    } catch (err) {
+      console.error("Error fetching location management data:", err);
+      locationError.value =
+        err.message || "Failed to fetch locations. Please try again.";
+      return {
+        success: false,
+        error: locationError.value,
+      };
+    }
+  };
+
   return {
     loading,
     error,
+    locationError,
     completeInternalTask,
     completeWorkOrderTask,
     saveTaskDraft,
@@ -695,5 +764,7 @@ export const useTaskCompletionApi = () => {
     fetchTaskDetails,
     fetchTaskImageBlob,
     getWorkOrdersFolderId,
+    fetchOrganizationDetails,
+    fetchLocationManagementData,
   };
 };

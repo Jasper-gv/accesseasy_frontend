@@ -998,8 +998,9 @@ const fetchTenant = async () => {
 let lwfDeduction = 0;
 const settingVolunteryPF = ref(null);
 const onSalarySettingChange = async (id) => {
+  alert("called");
   const settingId = id || selectedCategory.value?.id;
-
+  console.log("id", id);
   if (!settingId) return;
 
   try {
@@ -1059,6 +1060,12 @@ const onSalarySettingChange = async (id) => {
 
     const data = await response.json();
     const setting = data.data;
+    console.log("56", setting);
+    if (setting.configName === "Custom") {
+      alert("called");
+      return CustomConfig;
+    }
+
     selectedCategory.value = { id: setting.id, name: setting.configName };
 
     settingVolunteryPF.value = data.data;
