@@ -130,14 +130,14 @@ const configurators = [
   //   label: "Expense Configurator",
   //   subsections: [{ id: "expense", label: "Manage Expenses" }],
   // },
-  // {
-  //   id: "payroll",
-  //   label: "Payroll Configurator",
-  //   subsections: [
-  //     { id: "Payrollpolicy", label: "Payroll Policies" },
-  //     { id: "Penalitypolicy", label: "Penalty Policies" },
-  //   ],
-  // },
+  {
+    id: "payroll",
+    label: "Payroll Configurator",
+    subsections: [
+      { id: "Payrollpolicy", label: "Payroll Policies" },
+      { id: "Penalitypolicy", label: "Penalty Policies" },
+    ],
+  },
   {
     id: "door",
     label: "Door Configurator", // ← NEW SECTION

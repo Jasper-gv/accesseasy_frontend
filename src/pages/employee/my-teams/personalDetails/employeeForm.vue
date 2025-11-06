@@ -872,7 +872,28 @@
             </v-col>
           </v-row>
         </div> -->
-
+        <!-- Access Management Section -->
+        <div v-show="currentTab === 'accessManagement'" class="form-section">
+          <div
+            v-if="loadingStates.accessManagement"
+            class="tab-loading-container"
+          >
+            <v-progress-circular
+              indeterminate
+              color="#059367"
+              size="32"
+            ></v-progress-circular>
+            <p>Loading access management settings...</p>
+          </div>
+          <div v-else>
+            <AccessManagement
+              ref="accessManagementRef"
+              :employee-data="formData"
+              :is-create-mode="true"
+              @update:employee-data="handleAccessManagementUpdate"
+            />
+          </div>
+        </div>
         <!-- App Access -->
 
         <div v-show="currentTab === 'Appaccess'" class="form-section">
@@ -1103,7 +1124,7 @@ const validatePhone = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1142,7 +1163,7 @@ const validateEmail = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1287,6 +1308,13 @@ const tabs = [
     roles: ["Admin", "Manager", "Employee", "Dealer"],
   },
   {
+    id: "accessManagement",
+    title: "Access Management",
+    icon: "mdi-key",
+    roles: ["Admin", "Dealer", "Manager", "accessManager"],
+  },
+
+  {
     id: "Appaccess",
     title: " Mobile App access",
     icon: "mdi-map-marker",
@@ -1299,12 +1327,14 @@ const tabRequiredFields = {
   // company: [],
   attendanceCategory: [],
   LeavePolicy: [],
+  accessManagement: [],
   Appaccess: [],
 };
 const loadingStates = reactive({
   personal: false,
   attendanceCategory: false,
   LeavePolicy: false,
+  accessManagement: false,
   Appaccess: false,
   government: false,
   company: false,
@@ -1319,6 +1349,7 @@ const tabDataLoaded = reactive({
   government: false,
   company: false,
   previousRecord: false,
+  accessManagement: false,
   backgroundVerification: false,
 });
 const loadTabData = async (tabId) => {
@@ -1336,6 +1367,9 @@ const loadTabData = async (tabId) => {
         break;
       case "LeavePolicy":
         await loadLeavePolicyTabData();
+        break;
+      case "accessManagement":
+        await loadAccessManagementTabData();
         break;
       case "Appaccess":
         await loadAppAccessTabData();
@@ -1432,7 +1466,7 @@ watch(
     // Load data for the new tab
     await loadTabData(newTab);
   },
-  { immediate: true },
+  { immediate: true }
 );
 const formData = reactive({
   avatar: null,
@@ -1527,7 +1561,7 @@ async function fetchLeavePolicies() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1594,7 +1628,7 @@ const saveLeaveEdit = (leave) => {
 const updateLeaveBalance = (leave) => {
   if (leave.isAssigned && leave.leaveConfig?.days !== undefined) {
     console.log(
-      `Updating ${leave.leaveName} balance to ${leave.leaveConfig.days} days`,
+      `Updating ${leave.leaveName} balance to ${leave.leaveConfig.days} days`
     );
 
     const existingChange = leaveChanges.value.get(leave.id) || {};
@@ -1697,7 +1731,7 @@ const tabHasError = (tabId) => {
   return tabRequiredFields[tabId].some(
     (field) =>
       touchedFields.value[field] &&
-      (!formData[field] || formErrors.value[field]),
+      (!formData[field] || formErrors.value[field])
   );
 };
 
@@ -1706,7 +1740,7 @@ const tabHasErrorComputed = computed(() => (tabId) => {
   return tabRequiredFields[tabId].some(
     (field) =>
       touchedFields.value[field] &&
-      (!formData[field] || formErrors.value[field]),
+      (!formData[field] || formErrors.value[field])
   );
 });
 
@@ -1744,7 +1778,7 @@ async function fetchDepartments(orgId = null) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     departmentOptions.value = data.data.map((dept) => ({
@@ -1767,7 +1801,7 @@ async function fetchLocations(orgId = null) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     locationOptions.value = data.data.map((loc) => ({
@@ -1789,7 +1823,7 @@ async function fetchCycleTypes() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1808,7 +1842,7 @@ async function fetchCycleTypes() {
         (cycle) => ({
           cycleId: cycle.cycleId,
           cycleName: cycle.cycleName,
-        }),
+        })
       );
       console.log("cycletypesformat", cycleTypeOptions);
     } else {
@@ -1832,7 +1866,7 @@ async function fetchRoles() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     roleOptions.value = data.data.map((role) => ({
@@ -1865,11 +1899,11 @@ async function filterReportingManagers() {
 
       if (selectedBranchFilter.value && selectedBranchFilter.value !== "all") {
         const selectedBranch = branchOptions.value.find(
-          (branch) => branch.id === selectedBranchFilter.value,
+          (branch) => branch.id === selectedBranchFilter.value
         );
         if (selectedBranch) {
           filters.push(
-            `filter[_and][0][branch][branchName][_icontains]=${encodeURIComponent(selectedBranch.name)}`,
+            `filter[_and][0][branch][branchName][_icontains]=${encodeURIComponent(selectedBranch.name)}`
           );
         }
       }
@@ -1879,18 +1913,18 @@ async function filterReportingManagers() {
         selectedDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedDepartmentFilter.value,
+          (dept) => dept.id === selectedDepartmentFilter.value
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][1][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`,
+            `filter[_and][1][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`
           );
         }
       }
 
       if (searchReportingManager.value) {
         filters.push(
-          `filter[_and][2][assignedUser][first_name][_icontains]=${encodeURIComponent(searchReportingManager.value)}`,
+          `filter[_and][2][assignedUser][first_name][_icontains]=${encodeURIComponent(searchReportingManager.value)}`
         );
       }
 
@@ -1929,7 +1963,7 @@ async function filterReportingManagers() {
 
       if (!response.ok) {
         throw new Error(
-          `Failed to fetch reporting managers: ${response.statusText}`,
+          `Failed to fetch reporting managers: ${response.statusText}`
         );
       }
 
@@ -1976,11 +2010,11 @@ async function filterManagesEmployee() {
         selectedManagesEmployeeBranchFilter.value !== "all"
       ) {
         const selectedEmployeesBranch = branchOptions.value.find(
-          (branch) => branch.id === selectedManagesEmployeeBranchFilter.value,
+          (branch) => branch.id === selectedManagesEmployeeBranchFilter.value
         );
         if (selectedEmployeesBranch) {
           filters.push(
-            `filter[_and][0][branch][branchName][_icontains]=${selectedEmployeesBranch.name}`,
+            `filter[_and][0][branch][branchName][_icontains]=${selectedEmployeesBranch.name}`
           );
         }
       }
@@ -1990,18 +2024,18 @@ async function filterManagesEmployee() {
         selectedManagesEmployeeDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value,
+          (dept) => dept.id === selectedManagesEmployeeDepartmentFilter.value
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][1][department][departmentName][_icontains]=${selectedDept.name}`,
+            `filter[_and][1][department][departmentName][_icontains]=${selectedDept.name}`
           );
         }
       }
 
       if (searchManagesEmployee.value) {
         filters.push(
-          `filter[_and][2][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`,
+          `filter[_and][2][assignedUser][first_name][_icontains]=${searchManagesEmployee.value}`
         );
       }
 
@@ -2077,18 +2111,18 @@ async function filterApprovers() {
         selectedApproverDepartmentFilter.value !== "all"
       ) {
         const selectedDept = departmentOptions.value.find(
-          (dept) => dept.id === selectedApproverDepartmentFilter.value,
+          (dept) => dept.id === selectedApproverDepartmentFilter.value
         );
         if (selectedDept) {
           filters.push(
-            `filter[_and][0][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`,
+            `filter[_and][0][department][departmentName][_icontains]=${encodeURIComponent(selectedDept.name)}`
           );
         }
       }
 
       if (searchApprover.value) {
         filters.push(
-          `filter[_and][1][assignedUser][first_name][_icontains]=${encodeURIComponent(searchApprover.value)}`,
+          `filter[_and][1][assignedUser][first_name][_icontains]=${encodeURIComponent(searchApprover.value)}`
         );
       }
 
@@ -2294,17 +2328,17 @@ async function createNewEmployee() {
     console.log("Cycle Type to Save:", cycleTypeToSave);
 
     const selectedDepartment = departmentOptions.value.find(
-      (dept) => dept.id === formData.department,
+      (dept) => dept.id === formData.department
     );
     console.log("Selected Department:", selectedDepartment);
 
     const selectedBranchLocation = locationOptions.value.find(
-      (loc) => loc.id === formData.branchLocation,
+      (loc) => loc.id === formData.branchLocation
     );
     console.log("Selected Branch Location:", selectedBranchLocation);
 
     const selectedRole = roleOptions.value.find(
-      (role) => role.name === formData.role,
+      (role) => role.name === formData.role
     ) || { id: "f667b169-c66c-4ec1-bef9-1831c1647c0d" };
     console.log("Selected Role:", selectedRole);
     const leavesPayload = getLeavesPayload();
@@ -2340,7 +2374,7 @@ async function createNewEmployee() {
             .map((employee, index) => {
               console.log(
                 `Processing Managed Employee ${index + 1}:`,
-                employee,
+                employee
               );
               return typeof employee === "object" ? employee.id : employee;
             })
@@ -2443,14 +2477,14 @@ async function createNewEmployee() {
       userData.dateOfJoining = formData.dateOfJoining;
       console.log(
         "Added Date of Joining to User Data:",
-        userData.dateOfJoining,
+        userData.dateOfJoining
       );
     }
     if (formData.dateOfLeaving) {
       userData.dateOfLeaving = formData.dateOfLeaving;
       console.log(
         "Added Date of Leaving to User Data:",
-        userData.dateOfLeaving,
+        userData.dateOfLeaving
       );
     }
     payload.assignedUser = { ...userData };
@@ -2465,7 +2499,7 @@ async function createNewEmployee() {
           Authorization: `Bearer ${authService.getToken()}`,
         },
         body: JSON.stringify(payload),
-      },
+      }
     );
     console.log("API Response Status:", response.status, response.statusText);
 
@@ -2473,7 +2507,7 @@ async function createNewEmployee() {
       const errorData = await response.json();
       console.error("API Error Response:", errorData);
       throw new Error(
-        errorData.errors?.[0]?.message || "Failed to save employee data",
+        errorData.errors?.[0]?.message || "Failed to save employee data"
       );
     }
 
@@ -2499,12 +2533,12 @@ async function createNewEmployee() {
           Authorization: `Bearer ${authService.getToken()}`,
         },
         body: JSON.stringify(salaryBreakdownPayload),
-      },
+      }
     );
     console.log(
       "Salary Breakdown API Response Status:",
       salaryResponse.status,
-      salaryResponse.statusText,
+      salaryResponse.statusText
     );
 
     if (!salaryResponse.ok) {
@@ -2513,7 +2547,7 @@ async function createNewEmployee() {
       // Optionally, decide whether to throw or continue (e.g., if salary is optional)
       // throw new Error(salaryErrorData.errors?.[0]?.message || "Failed to save salary breakdown");
       console.warn(
-        "Salary breakdown creation failed, but continuing with employee creation.",
+        "Salary breakdown creation failed, but continuing with employee creation."
       );
     } else {
       const salaryResponseData = await salaryResponse.json();
@@ -2532,11 +2566,11 @@ async function createNewEmployee() {
               headers: {
                 Authorization: `Bearer ${authService.getToken()}`,
               },
-            },
+            }
           );
           console.log(
             "Personal Module Response Status:",
-            personalModuleResponse.status,
+            personalModuleResponse.status
           );
           if (!personalModuleResponse.ok) {
             throw new Error("Failed to fetch personal module data");
@@ -2557,11 +2591,11 @@ async function createNewEmployee() {
                 Authorization: `Bearer ${authService.getToken()}`,
               },
               body: JSON.stringify({ avatar: avatarId }),
-            },
+            }
           );
           console.log(
             "Avatar Update Response Status:",
-            avatarUpdateResponse.status,
+            avatarUpdateResponse.status
           );
           if (!avatarUpdateResponse.ok) {
             throw new Error("Failed to update user with avatar ID");
@@ -2571,7 +2605,7 @@ async function createNewEmployee() {
       } catch (error) {
         console.error("Error handling avatar upload:", error);
         showErrorMessage(
-          `Avatar upload completed, but couldn't update profile picture: ${error.message}`,
+          `Avatar upload completed, but couldn't update profile picture: ${error.message}`
         );
       }
     }
@@ -2585,7 +2619,7 @@ async function createNewEmployee() {
   } catch (error) {
     console.error("Error in createNewEmployee:", error);
     showErrorMessage(
-      `An error occurred while saving the employee data: ${error.message}`,
+      `An error occurred while saving the employee data: ${error.message}`
     );
   }
 }
@@ -2653,7 +2687,7 @@ async function getProfileFolderId(tenantId) {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -2663,7 +2697,7 @@ async function getProfileFolderId(tenantId) {
     const data = await response.json();
     if (data.data && data.data.length > 0 && data.data[0].foldersId) {
       const profilesFolder = data.data[0].foldersId.find(
-        (folder) => folder.name === "Profiles",
+        (folder) => folder.name === "Profiles"
       );
       return profilesFolder ? profilesFolder.id : null;
     }
@@ -2691,7 +2725,7 @@ watch(
   (newValue) => {
     formData.status = newValue ? "true" : "false";
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -2706,7 +2740,7 @@ watch(
       }
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 watch(
@@ -2718,7 +2752,7 @@ watch(
       }
     });
   },
-  { deep: true },
+  { deep: true }
 );
 
 watch(
@@ -2728,7 +2762,7 @@ watch(
       formData.approver = null;
       filterApprovers();
     }
-  },
+  }
 );
 
 watch(currentTab, (newTab, oldTab) => {

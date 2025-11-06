@@ -30,6 +30,7 @@
               <v-card variant="flat" class="mt-2">
                 <v-card-text>
                   <v-form ref="formRef" @submit.prevent="handleSave">
+                    <!-- Row 1: Door Name and Door Type -->
                     <v-row dense>
                       <v-col cols="12" sm="6">
                         <v-text-field
@@ -37,7 +38,7 @@
                           label="Door Name *"
                           placeholder="Enter door name"
                           variant="outlined"
-                          dense
+                          density="comfortable"
                           class="small-field"
                           :rules="[
                             (v) => !!v || 'Door name is required',
@@ -48,8 +49,6 @@
                           required
                         ></v-text-field>
                       </v-col>
-                    </v-row>
-                    <v-row dense>
                       <v-col cols="12" sm="6">
                         <v-select
                           v-model="formData.doorType"
@@ -57,13 +56,15 @@
                           :items="doorTypes"
                           placeholder="Select door type"
                           variant="outlined"
-                          dense
+                          density="comfortable"
                           class="small-select"
                           :rules="[(v) => !!v || 'Door type is required']"
                           required
                         ></v-select>
                       </v-col>
                     </v-row>
+
+                    <!-- Row 2: Location and Branch -->
                     <v-row dense>
                       <v-col cols="12" sm="6">
                         <v-text-field
@@ -71,28 +72,26 @@
                           label="Location"
                           placeholder="Enter location details"
                           variant="outlined"
-                          dense
+                          density="comfortable"
                           class="small-field"
                         ></v-text-field>
                       </v-col>
-                    </v-row>
-                    <v-row dense>
                       <v-col cols="12" sm="6">
                         <v-select
                           v-model="formData.branchLocation"
-                          label="Branch*"
+                          label="Branch"
                           :items="branchOptions"
                           item-title="branchName"
                           item-value="id"
                           placeholder="Select branch location"
                           variant="outlined"
-                          dense
+                          density="comfortable"
                           class="small-select"
-                          :rules="[(v) => !!v || 'Branch location is required']"
-                          required
                         ></v-select>
                       </v-col>
                     </v-row>
+
+                    <!-- Row 3: Departments (full width) -->
                     <v-row dense>
                       <v-col cols="12" sm="6">
                         <v-select
@@ -103,7 +102,7 @@
                           item-value="value"
                           placeholder="Select departments"
                           variant="outlined"
-                          dense
+                          density="comfortable"
                           class="small-select"
                           multiple
                           chips
@@ -661,7 +660,7 @@ onMounted(async () => {
 <style scoped>
 .small-select,
 .small-field {
-  max-width: 200px;
+  max-width: 100%;
   font-size: 14px;
 }
 .small-select :deep(.v-field),

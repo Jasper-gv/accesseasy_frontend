@@ -104,12 +104,56 @@
                   tabindex="0"
                   role="button"
                 >
-                  <div class="quick-icon pink">
+                  <div class="quick-icon green">
                     <i class="fas fa-users" aria-hidden="true"></i>
                   </div>
                   <span>Create Employee</span>
                 </div>
                 <div
+                  class="quick-creator"
+                  @click="navigateTo('/configuration/device-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/device-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="quick-icon green">
+                    <i class="fas fa-microchip" aria-hidden="true"></i>
+                  </div>
+                  <span>Create Device</span>
+                </div>
+                <div
+                  class="quick-creator"
+                  @click="navigateTo('/configuration/door-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/door-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="quick-icon green">
+                    <i class="fas fa-door-open" aria-hidden="true"></i>
+                  </div>
+                  <span>Create Door</span>
+                </div>
+                <!-- Create Access Level -->
+                <div
+                  class="quick-creator"
+                  @click="navigateTo('/configuration/accesslevel-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/accesslevel-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="quick-icon green">
+                    <i class="fas fa-key" aria-hidden="true"></i>
+                  </div>
+                  <span>Create Access Level</span>
+                </div>
+
+                <!-- <div
                   class="quick-creator"
                   @click="
                     navigateTo('/taskManagement/taskcomponents/workorder')
@@ -124,8 +168,8 @@
                     <i class="fas fa-file-alt" aria-hidden="true"></i>
                   </div>
                   <span>Create Workorder</span>
-                </div>
-                <div
+                </div> -->
+                <!-- <div
                   class="quick-creator"
                   @click="navigateTo('/organization/orgmainui')"
                   @keydown.enter="navigateTo('/organization/orgmainui')"
@@ -136,7 +180,7 @@
                     <i class="fas fa-handshake" aria-hidden="true"></i>
                   </div>
                   <span>Create Clients</span>
-                </div>
+                </div> -->
               </div>
             </div>
           </div>
@@ -175,7 +219,53 @@
                   </div>
                   <span>Attendance<br />Configurator</span>
                 </div>
+                <!-- Device Configurator -->
                 <div
+                  class="config-item"
+                  @click="navigateTo('/configuration/device-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/device-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="config-icon green">
+                    <i class="fas fa-microchip" aria-hidden="true"></i>
+                  </div>
+                  <span>Device<br />Configurator</span>
+                </div>
+                <!-- Door Configurator -->
+                <div
+                  class="config-item"
+                  @click="navigateTo('/configuration/door-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/door-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="config-icon green">
+                    <i class="fas fa-door-open" aria-hidden="true"></i>
+                  </div>
+                  <span>Door<br />Configurator</span>
+                </div>
+
+                <!-- Access Level Configurator -->
+                <div
+                  class="config-item"
+                  @click="navigateTo('/configuration/accesslevel-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/accesslevel-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="config-icon green">
+                    <i class="fas fa-key" aria-hidden="true"></i>
+                  </div>
+                  <span>Access Level<br />Configurator</span>
+                </div>
+                <!-- <div
                   class="config-item"
                   @click="navigateToWithName('expense')"
                   @keydown.enter="navigateToWithName('expense')"
@@ -186,7 +276,7 @@
                     <i class="fas fa-wallet" aria-hidden="true"></i>
                   </div>
                   <span>Expense<br />Configurator</span>
-                </div>
+                </div> -->
                 <!-- <div
                   class="config-item"
                   @click="navigateTo('/payroll-config')"
@@ -205,84 +295,82 @@
         </div>
 
         <div class="right-column">
-          <!-- Workorder Overview Card -->
+          <!-- Access Level Overview Card -->
           <div class="content-card">
             <div class="card-header">
               <div class="card-header-left">
-                <i class="fas fa-clipboard-list card-header-icon"></i>
-                <h2 class="card-title">Workorder Overview</h2>
+                <i class="fas fa-key card-header-icon"></i>
+                <h2 class="card-title">Access Level Overview</h2>
               </div>
             </div>
             <div class="card-content">
               <div class="workorders-grid">
-                <!-- Total Workorders -->
+                <!-- Total Access Levels -->
                 <div
                   class="workorder-metric"
-                  @click="
-                    navigateTo('/taskManagement/taskcomponents/workorder')
-                  "
+                  @click="navigateTo('/configuration/accesslevel-configurator')"
                   @keydown.enter="
-                    navigateTo('/taskManagement/taskcomponents/workorder')
+                    navigateTo('/configuration/accesslevel-configurator')
                   "
                   tabindex="0"
                   role="button"
-                  :aria-label="`${taskCounts.total} Total Workorders`"
+                  :aria-label="`${accessLevelCounts.total} Total Access Levels`"
                 >
                   <div class="workorder-content">
                     <div class="workorder-number total">
-                      {{ taskCounts.total }}
+                      {{ accessLevelCounts.total }}
                     </div>
-                    <div class="workorder-label">Total Workorders</div>
+                    <div class="workorder-label">Total Access Levels</div>
                   </div>
                 </div>
 
-                <!-- Completed Workorders -->
+                <!-- Active Access Levels -->
                 <div
                   class="workorder-metric"
                   @click="
                     navigateTo(
-                      '/taskManagement/taskcomponents/workorder?status=completed',
+                      '/configuration/accesslevel-configurator?status=active'
                     )
                   "
                   @keydown.enter="
                     navigateTo(
-                      '/taskManagement/taskcomponents/workorder?status=completed',
+                      '/configuration/accesslevel-configurator?status=active'
                     )
                   "
                   tabindex="0"
                   role="button"
-                  :aria-label="`${taskCounts.completed} Completed Workorders`"
+                  :aria-label="`${accessLevelCounts.active} Active Access Levels`"
                 >
                   <div class="workorder-content">
                     <div class="workorder-number completed">
-                      {{ taskCounts.completed }}
+                      {{ accessLevelCounts.active }}
                     </div>
-                    <div class="workorder-label">Completed</div>
+                    <div class="workorder-label">Active</div>
                   </div>
                 </div>
 
-                <!-- Overdue Workorders -->
+                <!-- Inactive Access Levels -->
                 <div
                   class="workorder-metric"
                   @click="
                     navigateTo(
-                      '/taskManagement/taskcomponents/workorder?status=overdue',
+                      '/configuration/accesslevel-configurator?status=inactive'
                     )
                   "
                   @keydown.enter="
                     navigateTo(
-                      '/taskManagement/taskcomponents/workorder?status=overdue',
+                      '/configuration/accesslevel-configurator?status=inactive'
                     )
                   "
                   tabindex="0"
                   role="button"
-                  :aria-label="`${taskCounts.overdue} Overdue Workorders`"
+                  :aria-label="`${accessLevelCounts.inactive} Inactive Access Levels`"
                 >
                   <div class="workorder-content">
-                    <div class="workorder-number overdue">
-                      {{ taskCounts.overdue }}
+                    <div class="workorder-number absent">
+                      {{ accessLevelCounts.inactive }}
                     </div>
-                    <div class="workorder-label">Overdue</div>
+                    <div class="workorder-label">Inactive</div>
                   </div>
                 </div>
               </div>
@@ -295,11 +383,194 @@
                   padding: 0 1.5rem;
                 "
               >
-                Today's Workorder {{ formatShortDate(currentDate) }}
+                Access Levels Status {{ formatShortDate(currentDate) }}
               </div>
             </div>
           </div>
+          <!-- Doors Overview Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <i class="fas fa-door-open card-header-icon"></i>
+                <h2 class="card-title">Doors Overview</h2>
+              </div>
+            </div>
 
+            <div class="card-content">
+              <div class="workorders-grid">
+                <!-- Total Doors -->
+                <div
+                  class="workorder-metric"
+                  @click="navigateTo('/configuration/door-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/door-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${doorCounts.total} Total Doors`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number total">
+                      {{ doorCounts.total }}
+                    </div>
+                    <div class="workorder-label">Total Doors</div>
+                  </div>
+                </div>
+
+                <!-- Assigned Doors -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo('/configuration/door-configurator?assigned=true')
+                  "
+                  @keydown.enter="
+                    navigateTo('/configuration/door-configurator?assigned=true')
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${doorCounts.assigned} Assigned Doors`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number completed">
+                      {{ doorCounts.assigned }}
+                    </div>
+                    <div class="workorder-label">Assigned</div>
+                  </div>
+                </div>
+
+                <!-- Un-assigned Doors -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo(
+                      '/configuration/door-configurator?assigned=false'
+                    )
+                  "
+                  @keydown.enter="
+                    navigateTo(
+                      '/configuration/door-configurator?assigned=false'
+                    )
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${doorCounts.unassigned} Un-assigned Doors`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number absent">
+                      {{ doorCounts.unassigned }}
+                    </div>
+                    <div class="workorder-label">Un-assigned</div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="card-subtitle"
+                style="
+                  font-size: 14px;
+                  color: #000000;
+                  margin-bottom: 15px;
+                  padding: 0 1.5rem;
+                "
+              >
+                Doors Status {{ formatShortDate(currentDate) }}
+              </div>
+            </div>
+          </div>
+          <!-- Controller Overview Card -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <i class="fas fa-microchip card-header-icon"></i>
+                <h2 class="card-title">Controller Overview</h2>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <div class="workorders-grid">
+                <!-- Total Controllers -->
+                <div
+                  class="workorder-metric"
+                  @click="navigateTo('/configuration/controller-configurator')"
+                  @keydown.enter="
+                    navigateTo('/configuration/controller-configurator')
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${controllerCounts.total} Total Controllers`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number total">
+                      {{ controllerCounts.total }}
+                    </div>
+                    <div class="workorder-label">Total Controllers</div>
+                  </div>
+                </div>
+
+                <!-- Connected Controllers -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo(
+                      '/configuration/controller-configurator?status=connected'
+                    )
+                  "
+                  @keydown.enter="
+                    navigateTo(
+                      '/configuration/controller-configurator?status=connected'
+                    )
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${controllerCounts.connected} Connected Controllers`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number completed">
+                      {{ controllerCounts.connected }}
+                    </div>
+                    <div class="workorder-label">Connected</div>
+                  </div>
+                </div>
+
+                <!-- Waiting Controllers -->
+                <div
+                  class="workorder-metric"
+                  @click="
+                    navigateTo(
+                      '/configuration/controller-configurator?status=waiting'
+                    )
+                  "
+                  @keydown.enter="
+                    navigateTo(
+                      '/configuration/controller-configurator?status=waiting'
+                    )
+                  "
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`${controllerCounts.waiting} Waiting Controllers`"
+                >
+                  <div class="workorder-content">
+                    <div class="workorder-number absent">
+                      {{ controllerCounts.waiting }}
+                    </div>
+                    <div class="workorder-label">Waiting</div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="card-subtitle"
+                style="
+                  font-size: 14px;
+                  color: #000000;
+                  margin-bottom: 15px;
+                  padding: 0 1.5rem;
+                "
+              >
+                Controllers Status {{ formatShortDate(currentDate) }}
+              </div>
+            </div>
+          </div>
           <!-- Today's Overview Card -->
           <div class="content-card">
             <div class="card-header">
@@ -449,7 +720,7 @@
             </div>
           </div>
 
-          <div class="content-card">
+          <!-- <div class="content-card">
             <div class="card-header">
               <div class="card-header-left">
                 <h2 class="card-title">Employee KPI</h2>
@@ -507,7 +778,7 @@
                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
               </button>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
@@ -559,6 +830,21 @@ export default {
         branch: 0,
         serviceable_area: 0,
         site: 0,
+      },
+      accessLevelCounts: {
+        total: 0,
+        active: 0,
+        inactive: 0,
+      },
+      doorCounts: {
+        total: 0,
+        assigned: 0,
+        unassigned: 0,
+      },
+      controllerCounts: {
+        total: 0,
+        connected: 0,
+        waiting: 0,
       },
       leaveRequests: [],
       reimbursements: [],
@@ -665,6 +951,9 @@ export default {
         this.fetchLocationCounts(),
         this.fetchLeaveRequests(),
         this.fetchReimbursements(),
+        this.fetchAccessLevelCounts(),
+        this.fetchDoorCounts(),
+        this.fetchControllerCounts(),
       ]);
       this.loadingOverview = false;
     },
@@ -781,6 +1070,108 @@ export default {
         console.error("Error fetching task counts:", error);
       }
     },
+    async fetchAccessLevelCounts() {
+      try {
+        const baseUrl = `${this.config.apiBaseUrl}/items/accesslevels`;
+        const tenantFilter = `filter[_and][0][tenant][tenantId][_eq]=${this.config.tenantId}`;
+
+        // Total Access Levels
+        const totalUrl = `${baseUrl}?${tenantFilter}&limit=-1`;
+        const totalResponse = await fetch(totalUrl, {
+          headers: this.getApiHeaders(),
+        });
+        const totalData = await totalResponse.json();
+        this.accessLevelCounts.total = totalData.data
+          ? totalData.data.length
+          : 0;
+
+        // Active Access Levels (accessType === true)
+        const activeUrl = `${baseUrl}?${tenantFilter}&filter[_and][1][accessType][_eq]=true&limit=-1`;
+        const activeResponse = await fetch(activeUrl, {
+          headers: this.getApiHeaders(),
+        });
+        const activeData = await activeResponse.json();
+        this.accessLevelCounts.active = activeData.data
+          ? activeData.data.length
+          : 0;
+
+        // Inactive Access Levels (accessType === false or null)
+        const inactiveUrl = `${baseUrl}?${tenantFilter}&filter[_and][1][accessType][_null]=true&limit=-1`;
+        const inactiveResponse = await fetch(inactiveUrl, {
+          headers: this.getApiHeaders(),
+        });
+        const inactiveData = await inactiveResponse.json();
+        const nullCount = inactiveData.data ? inactiveData.data.length : 0;
+
+        const falseUrl = `${baseUrl}?${tenantFilter}&filter[_and][1][accessType][_eq]=false&limit=-1`;
+        const falseResponse = await fetch(falseUrl, {
+          headers: this.getApiHeaders(),
+        });
+        const falseData = await falseResponse.json();
+        const falseCount = falseData.data ? falseData.data.length : 0;
+
+        this.accessLevelCounts.inactive = nullCount + falseCount;
+      } catch (error) {
+        console.error("Error fetching access level counts:", error);
+        this.accessLevelCounts.total = 0;
+        this.accessLevelCounts.active = 0;
+        this.accessLevelCounts.inactive = 0;
+      }
+    },
+    async fetchDoorCounts() {
+      try {
+        const tenantId = this.config.tenantId;
+        const base = `${this.config.apiBaseUrl}/items/doors`;
+        const filter = `filter[_and][0][tenant][tenantId][_eq]=${tenantId}`;
+
+        // 1. Total doors
+        const totalResp = await fetch(`${base}?${filter}&limit=-1`, {
+          headers: this.getApiHeaders(),
+        });
+        const totalData = await totalResp.json();
+        const doors = totalData.data || [];
+
+        this.doorCounts.total = doors.length;
+
+        // 2. Assigned = doorsConfigure !== null
+        //    Unassigned = the rest
+        const assigned = doors.filter((d) => d.doorsConfigure !== null);
+        this.doorCounts.assigned = assigned.length;
+        this.doorCounts.unassigned =
+          this.doorCounts.total - this.doorCounts.assigned;
+      } catch (err) {
+        console.error("Error fetching door counts:", err);
+        this.doorCounts.total =
+          this.doorCounts.assigned =
+          this.doorCounts.unassigned =
+            0;
+      }
+    },
+    async fetchControllerCounts() {
+      try {
+        const tenantId = this.config.tenantId;
+        const base = `${this.config.apiBaseUrl}/items/controllers`;
+        const filter = `filter[_and][0][tenant][tenantId][_eq]=${tenantId}&fields[]=id,controllerStatus`;
+
+        const resp = await fetch(`${base}?${filter}&limit=-1`, {
+          headers: this.getApiHeaders(),
+        });
+        const { data = [] } = await resp.json();
+
+        this.controllerCounts.total = data.length;
+
+        const waiting = data.filter((c) => c.controllerStatus === "waiting");
+        this.controllerCounts.waiting = waiting.length;
+        this.controllerCounts.connected =
+          this.controllerCounts.total - this.controllerCounts.waiting;
+      } catch (err) {
+        console.error("Error fetching controller counts:", err);
+        this.controllerCounts.total =
+          this.controllerCounts.connected =
+          this.controllerCounts.waiting =
+            0;
+      }
+    },
     async fetchAttendanceCounts() {
       try {
         const { day, month, year } = this.getCurrentDateParams();
@@ -794,7 +1185,7 @@ export default {
           : 0;
         this.attendanceCounts.absent = Math.max(
           0,
-          this.attendanceCounts.total - this.attendanceCounts.present,
+          this.attendanceCounts.total - this.attendanceCounts.present
         );
       } catch (error) {
         console.error("Error fetching attendance counts:", error);
@@ -808,16 +1199,16 @@ export default {
         const organizations = orgData.data || [];
         this.organizationCounts.total = organizations.length;
         this.organizationCounts.tenantorg = organizations.filter(
-          (org) => org.orgType.toLowerCase() === "tenantorg",
+          (org) => org.orgType.toLowerCase() === "tenantorg"
         ).length;
         this.organizationCounts.distributororg = organizations.filter(
-          (org) => org.orgType.toLowerCase() === "distributororg",
+          (org) => org.orgType.toLowerCase() === "distributororg"
         ).length;
         this.organizationCounts.clientorg = organizations.filter(
-          (org) => org.orgType.toLowerCase() === "clientorg",
+          (org) => org.orgType.toLowerCase() === "clientorg"
         ).length;
         this.organizationCounts.contact = organizations.filter(
-          (org) => org.orgType.toLowerCase() === "contact",
+          (org) => org.orgType.toLowerCase() === "contact"
         ).length;
       } catch (error) {
         console.error("Error fetching organization counts:", error);
@@ -843,7 +1234,7 @@ export default {
         // Branch count (filter by tenant and locType)
         const branchResponse = await fetch(
           `${baseUrl}&filter[_and][1][locType][_eq]=branch`,
-          { headers: this.getApiHeaders() },
+          { headers: this.getApiHeaders() }
         );
         const branchData = await branchResponse.json();
         this.locationCounts.branch = branchData.data?.length || 0;
@@ -851,7 +1242,7 @@ export default {
         // Serviceable area count
         const serviceableAreaResponse = await fetch(
           `${baseUrl}&filter[_and][1][locType][_eq]=serviceable_area`,
-          { headers: this.getApiHeaders() },
+          { headers: this.getApiHeaders() }
         );
         const serviceableAreaData = await serviceableAreaResponse.json();
         this.locationCounts.serviceable_area =
@@ -860,7 +1251,7 @@ export default {
         // Site count
         const siteResponse = await fetch(
           `${baseUrl}&filter[_and][1][locType][_null]=true`,
-          { headers: this.getApiHeaders() },
+          { headers: this.getApiHeaders() }
         );
         const siteData = await siteResponse.json();
         this.locationCounts.site = siteData.data?.length || 0;
@@ -942,6 +1333,11 @@ export default {
 
 <style scoped>
 /* Global Styles */
+.quick-icon.green {
+  background-color: #c6e4dc;
+  color: #059367;
+  border: 1px solid #059367;
+}
 .dashboard {
   min-height: 100vh;
   background-color: #f8fafc;
@@ -1007,7 +1403,7 @@ export default {
   left: 0;
   right: 0;
   height: 4px;
-  background-color: #10b981; /* Green accent bar at top */
+  background-color: #10b981;
 }
 
 .card-header {
@@ -1082,7 +1478,7 @@ export default {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  border: 1px solid #059367; /* Full border around the entire table matching screenshot */
+  border: 1px solid #059367;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1096,23 +1492,23 @@ export default {
 }
 
 .kpi-table th {
-  background-color: #c6e4dc; /* Header background as specified */
+  background-color: #c6e4dc;
   font-weight: 600;
   /* text-transform: uppercase; */
   font-size: 12px;
   letter-spacing: 0.05em;
-  border-top: 1px solid #059367; /* Top border for header */
-  border-bottom: 1px solid #059367; /* Bottom border for header */
+  border-top: 1px solid #059367;
+  border-bottom: 1px solid #059367;
 }
 
 .kpi-table th:first-child {
-  border-left: 1px solid #059367; /* Left border for first header cell */
-  border-top-left-radius: 8px; /* Rounded top-left corner */
+  border-left: 1px solid #059367;
+  border-top-left-radius: 8px;
 }
 
 .kpi-table th:last-child {
-  border-right: 1px solid #059367; /* Right border for last header cell */
-  border-top-right-radius: 8px; /* Rounded top-right corner */
+  border-right: 1px solid #059367;
+  border-top-right-radius: 8px;
 }
 
 .kpi-table td {

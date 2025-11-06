@@ -105,6 +105,12 @@ const headers = ref([
     width: "200px",
     type: "switch",
   },
+  {
+    label: "Assign Doors Group",
+    key: "assignDoorsGroup",
+    sortable: true,
+    width: "200px",
+  },
 ]);
 
 // Fetch access levels from API
@@ -127,6 +133,10 @@ const fetchAccessLevels = async () => {
       "_24hrs",
       "timeZone",
       "maxWorkHours",
+      "holidays",
+      "workingHours",
+      "limitTime",
+      "Valid_hours",
     ];
 
     // Construct URL with query parameters
@@ -160,6 +170,7 @@ const fetchAccessLevels = async () => {
       console.log("🧩 Mapping item:", item);
       return {
         id: item.id,
+        assignDoorsGroup: item.assignDoorsGroup,
         name: item.accessLevelName,
         type: item.accessType,
         accessLevelNumber: item.accessLevelNumber,

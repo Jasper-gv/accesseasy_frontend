@@ -62,18 +62,51 @@
             <v-window-item value="timing">
               <v-card variant="flat" class="mt-2">
                 <v-card-text>
-                  <v-row dense>
-                    <v-col cols="12" sm="6">
+                  <!-- Current Active Option Message - MOVED TO TOP -->
+                  <v-alert
+                    v-if="
+                      access24Hours ||
+                      accessTiming ||
+                      maxWorkHours ||
+                      holidayAccess
+                    "
+                    class="mb-4"
+                    density="compact"
+                    type="info"
+                    variant="tonal"
+                  >
+                    <!-- <v-icon small class="mr-2"></v-icon> -->
+                    Current active option:
+                    <strong class="ml-1">
+                      {{ access24Hours ? "24 Hours Access" : "" }}
+                      {{ accessTiming ? "Time Zone" : "" }}
+                      {{ maxWorkHours ? "Maximum Work Hours" : "" }}
+                      {{ holidayAccess ? "Holiday Access" : "" }}
+                    </strong>
+                  </v-alert>
+
+                  <!-- 24 Hours Access -->
+                  <v-row dense class="mb-4">
+                    <v-col cols="12" sm="5">
                       <v-row align="center" no-gutters>
                         <v-col>
                           <span>24 Hours Access</span>
+                          <v-chip
+                            v-if="access24Hours"
+                            size="small"
+                            color="green"
+                            class="ml-2"
+                          >
+                            ACTIVE
+                          </v-chip>
+                          <v-chip v-else size="small" color="grey" class="ml-2">
+                            INACTIVE
+                          </v-chip>
                         </v-col>
-                        <v-col cols="auto">
+                        <v-col cols="auto" class="ml-3">
                           <v-switch
                             v-model="access24Hours"
-                            :disabled="
-                              accessTiming || maxWorkHours || holidayAccess
-                            "
+                            :disabled="isAnyOtherTimingOptionActive('24Hours')"
                             hide-details
                             color="primary"
                             inset
@@ -84,15 +117,29 @@
                       </v-row>
                     </v-col>
                   </v-row>
-                  <v-row dense>
-                    <v-col cols="12" sm="6">
+
+                  <!-- Limit Access Time -->
+                  <v-row dense class="mb-4">
+                    <v-col cols="12" sm="5">
                       <v-row align="center" no-gutters>
                         <v-col>
-                          <span>Limit Access Time</span>
+                          <span>Time Zone</span>
+                          <v-chip
+                            v-if="accessTiming"
+                            size="small"
+                            color="green"
+                            class="ml-2"
+                          >
+                            ACTIVE
+                          </v-chip>
+                          <v-chip v-else size="small" color="grey" class="ml-2">
+                            INACTIVE
+                          </v-chip>
                         </v-col>
-                        <v-col cols="auto">
+                        <v-col cols="auto" class="ml-3">
                           <v-switch
                             v-model="accessTiming"
+                            :disabled="isAnyOtherTimingOptionActive('timeZone')"
                             hide-details
                             color="primary"
                             inset
@@ -104,7 +151,7 @@
                     </v-col>
                     <v-col cols="12" sm="4" v-if="accessTiming">
                       <v-select
-                        label="Select Time Range"
+                        label="Select Time Zone"
                         :items="timeOptions"
                         :loading="loadingTimeSchedules"
                         variant="outlined"
@@ -115,16 +162,31 @@
                       ></v-select>
                     </v-col>
                   </v-row>
+
+                  <!-- Max Work Hours -->
                   <v-row dense>
-                    <v-col cols="12" sm="6">
+                    <v-col cols="12" sm="5">
                       <v-row align="center" no-gutters>
                         <v-col>
                           <span>Max Work Hours</span>
+                          <v-chip
+                            v-if="maxWorkHours"
+                            size="small"
+                            color="green"
+                            class="ml-2"
+                          >
+                            ACTIVE
+                          </v-chip>
+                          <v-chip v-else size="small" color="grey" class="ml-2">
+                            INACTIVE
+                          </v-chip>
                         </v-col>
                         <v-col cols="auto">
                           <v-switch
                             v-model="maxWorkHours"
-                            :disabled="accessTiming"
+                            :disabled="
+                              isAnyOtherTimingOptionActive('maxWorkHours')
+                            "
                             hide-details
                             color="primary"
                             inset
@@ -148,16 +210,31 @@
                       ></v-text-field>
                     </v-col>
                   </v-row>
+
+                  <!-- Holiday Access -->
                   <v-row dense>
-                    <v-col cols="12" sm="6">
+                    <v-col cols="12" sm="5">
                       <v-row align="center" no-gutters>
                         <v-col>
                           <span>Holiday Access</span>
+                          <v-chip
+                            v-if="holidayAccess"
+                            size="small"
+                            color="green"
+                            class="ml-2"
+                          >
+                            ACTIVE
+                          </v-chip>
+                          <v-chip v-else size="small" color="grey" class="ml-2">
+                            INACTIVE
+                          </v-chip>
                         </v-col>
                         <v-col cols="auto">
                           <v-switch
                             v-model="holidayAccess"
-                            :disabled="accessTiming"
+                            :disabled="
+                              isAnyOtherTimingOptionActive('holidayAccess')
+                            "
                             hide-details
                             color="primary"
                             inset
@@ -301,7 +378,7 @@ const timeFormatRule = (value) => {
 const timeOptions = computed(() => {
   return timeSchedules.value.map((schedule) => ({
     title: schedule.displayText,
-    value: schedule.id,
+    value: schedule.displayText, // CHANGED: Use displayText (entry - exit) instead of id, so Valid_hours gets the times
     raw: schedule,
   }));
 });
@@ -313,6 +390,20 @@ const filteredDoorOptions = computed(() => {
     door.doorName.toLowerCase().includes(doorSearch.value.toLowerCase())
   );
 });
+
+// Check if any other timing option is active (mutual exclusion)
+const isAnyOtherTimingOptionActive = (currentOption) => {
+  const activeOptions = [
+    { name: "24Hours", value: access24Hours.value },
+    { name: "timeZone", value: accessTiming.value },
+    { name: "maxWorkHours", value: maxWorkHours.value },
+    { name: "holidayAccess", value: holidayAccess.value },
+  ];
+
+  return activeOptions.some(
+    (option) => option.name !== currentOption && option.value === true
+  );
+};
 
 // Watch for accessTiming changes to fetch time schedules
 watch(accessTiming, (newVal) => {
@@ -377,38 +468,33 @@ const fetchDoors = async () => {
 const initializeFormData = () => {
   const data = props.accessLevelData;
   console.log("Editing access level data:", data);
-  console.log("Available doors:", doorOptions.value);
 
   accessLevelName.value = data.accessLevelName || "";
-  accessType.value = data.accessType !== undefined ? data.accessType : true; // Set accessType from data or default to true
+  accessType.value = data.accessType !== undefined ? data.accessType : true;
   accessLevelNumber.value = data.accessLevelNumber || "";
-  // Initialize selected doors - handle both doors array and assignDoorsGroup
+
+  // Initialize selected doors
   if (data.assignDoorsGroup && Array.isArray(data.assignDoorsGroup)) {
-    // If assignDoorsGroup exists, use it
     selectedDoors.value = doorOptions.value.filter((door) =>
       data.assignDoorsGroup.includes(door.id)
     );
   } else if (data.doors && Array.isArray(data.doors)) {
-    // Fallback to doors field if assignDoorsGroup doesn't exist
     selectedDoors.value = doorOptions.value.filter((door) =>
       data.doors.includes(door.id)
     );
   }
 
-  console.log("Selected doors after initialization:", selectedDoors.value);
-
   // Initialize timing options based on available fields
   if (data._24hrs) {
     access24Hours.value = true;
-  } else if (data.timerZone) {
+  } else if (data.Valid_hours) {
     accessTiming.value = true;
-    selectedTimeSchedule.value = data.timerZone;
-
+    selectedTimeSchedule.value = data.Valid_hours; // CHANGED: This now matches the time string directly
     // Fetch time schedules if needed for timing tab
     if (timeSchedules.value.length === 0) {
       fetchTimeSchedules();
     }
-  } else if (data.maxWorkHours) {
+  } else if (data.workingHours && data.maxWorkHours) {
     maxWorkHours.value = true;
     maxWorkHoursValue.value = data.maxWorkHours;
   } else if (data.holidays) {
@@ -443,6 +529,8 @@ const handleAccessTimingToggle = (value) => {
     maxWorkHours.value = false;
     holidayAccess.value = false;
     maxWorkHoursValue.value = "";
+  } else {
+    selectedTimeSchedule.value = null;
   }
 };
 
@@ -452,6 +540,8 @@ const handleMaxWorkHoursToggle = (value) => {
     accessTiming.value = false;
     holidayAccess.value = false;
     selectedTimeSchedule.value = null;
+  } else {
+    maxWorkHoursValue.value = "";
   }
 };
 
@@ -523,7 +613,7 @@ const handleSave = async () => {
 
   // Validate timing options
   if (accessTiming.value && !selectedTimeSchedule.value) {
-    alert("Please select a time schedule when 'Limit Access Time' is enabled");
+    alert("Please select a time schedule when 'Time Zone' is enabled");
     return;
   }
 
@@ -532,11 +622,15 @@ const handleSave = async () => {
     return;
   }
 
+  if (maxWorkHours.value && !timeFormatRule(maxWorkHoursValue.value)) {
+    alert("Please enter max work hours in valid hh:mm format");
+    return;
+  }
+
   isSaving.value = true;
   try {
     const payload = buildPayload();
-
-    console.log("Saving payload:", payload); // Debug log
+    console.log("Saving payload:", payload);
 
     const url = props.isEditing
       ? `${import.meta.env.VITE_API_URL}/items/accesslevels/${props.accessLevelData.id}`
@@ -603,6 +697,7 @@ async function generateSequentialAccessLevelId() {
     return "1";
   }
 }
+
 const buildPayload = () => {
   const payload = {
     accessLevelName: accessLevelName.value.trim(),
@@ -623,9 +718,11 @@ const buildPayload = () => {
   // Timing (only one active)
   if (access24Hours.value) {
     payload._24hrs = true;
+    payload.Valid_hours = "24_hours";
   } else if (accessTiming.value && selectedTimeSchedule.value) {
-    payload.timerZone = selectedTimeSchedule.value;
+    payload.Valid_hours = selectedTimeSchedule.value;
   } else if (maxWorkHours.value && maxWorkHoursValue.value) {
+    payload.workingHours = true;
     payload.maxWorkHours = maxWorkHoursValue.value;
   } else if (holidayAccess.value) {
     payload.holidays = true;
@@ -641,7 +738,7 @@ watch(
       accessLevelNumber.value = await generateSequentialAccessLevelId();
     }
   },
-  { immediate: true } // run on mount
+  { immediate: true }
 );
 </script>
 

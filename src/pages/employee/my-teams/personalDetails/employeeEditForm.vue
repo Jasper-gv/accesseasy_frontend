@@ -167,15 +167,16 @@ const tabs = [
     component: LeavePolicy,
     roles: ["Admin", "Manager", "accessManager", "Dealers"],
   },
-  /*
+
   {
     id: "access",
     title: "Access Management",
     icon: "mdi-key",
     path: "accessmodule",
     component: AccessManagement,
-    roles: ["Admin", "Dealer", "Manager",'accessManager'],
+    roles: ["Admin", "Dealer", "Manager", "accessManager"],
   },
+  /*
   {
     id: "experience",
     title: "Past Experience",
@@ -215,7 +216,7 @@ const tabs = [
 // Filter tabs based on user role
 const filteredTabs = computed(() => {
   const filtered = tabs.filter((tab) =>
-    tab.roles.includes(userRole.value || "Employee"),
+    tab.roles.includes(userRole.value || "Employee")
   );
   return filtered;
 });
@@ -277,7 +278,7 @@ const handleTabChange = async (newIndex) => {
       });
     } else {
       await router.push(
-        `/employee-details/employee/${id.value}/${newTab.path}`,
+        `/employee-details/employee/${id.value}/${newTab.path}`
       );
     }
   } catch (error) {
@@ -370,7 +371,7 @@ const validateAndRedirectIfNeeded = () => {
 
   const currentModuleValue = currentModule.value;
   const tabIndex = filteredTabs.value.findIndex(
-    (tab) => tab.path === currentModuleValue,
+    (tab) => tab.path === currentModuleValue
   );
 
   if (tabIndex !== -1) {
@@ -409,7 +410,7 @@ onMounted(async () => {
   // Set initial tab index based on current route
   const currentModuleValue = currentModule.value;
   const tabIndex = filteredTabs.value.findIndex(
-    (tab) => tab.path === currentModuleValue,
+    (tab) => tab.path === currentModuleValue
   );
 
   if (tabIndex !== -1) {
@@ -426,7 +427,7 @@ onMounted(async () => {
       });
     } else {
       await router.replace(
-        `/employee-details/employee/${id.value}/${defaultTab}`,
+        `/employee-details/employee/${id.value}/${defaultTab}`
       );
     }
   }
@@ -446,7 +447,7 @@ watch(
     if (!isInitialized.value || !newModule) return;
 
     const tabIndex = filteredTabs.value.findIndex(
-      (tab) => tab.path === newModule,
+      (tab) => tab.path === newModule
     );
 
     if (tabIndex !== -1 && currentTabIndex.value !== tabIndex) {
@@ -456,7 +457,7 @@ watch(
       });
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -465,7 +466,7 @@ watch(
     if (isInitialized.value) {
       validateAndRedirectIfNeeded();
     }
-  },
+  }
 );
 
 // Cleanup on unmount

@@ -1,188 +1,179 @@
 <template>
   <v-container fluid>
-    <v-row>
-      <!-- Left Side: Tabs -->
-      <v-col cols="3">
-        <v-tabs
-          v-model="activeTab"
-          direction="vertical"
-          color="primary"
-          class="tabs"
-        >
-          <v-tab value="basic">Basic Details</v-tab>
-          <v-tab
-            v-for="doorTab in doorTabs"
-            :key="doorTab.value"
-            :value="doorTab.value"
-          >
-            {{ doorTab.label }}
-          </v-tab>
-        </v-tabs>
+    <v-row class="mb-4" align="center">
+      <v-col cols="6">
+        <h2 class="text-h5 font-weight-bold">
+          {{ props.editingDevice ? "Edit Device" : "Create Device" }}
+        </h2>
       </v-col>
+      <v-col class="d-flex justify-end">
+        <BaseButton
+          variant="ghost"
+          text="Cancel"
+          @click="handleCancel"
+          class="mr-2"
+        ></BaseButton>
+        <BaseButton
+          variant="primary"
+          :text="props.editingDevice ? 'Update' : 'Save'"
+          :loading="isSaving"
+          @click="handleSave"
+        ></BaseButton>
+      </v-col>
+    </v-row>
 
-      <!-- Right Side: Tab Content -->
-      <v-col cols="9">
-        <v-window v-model="activeTab">
-          <!-- Basic Details Tab -->
-          <v-window-item value="basic">
-            <v-card>
-              <v-card-title>Basic Details</v-card-title>
-              <v-card-text>
-                <v-form ref="formRef" @submit.prevent="handleSave">
-                  <v-select
-                    v-model="form.controllerName"
-                    label="Device Type"
-                    :items="deviceTypes"
-                    item-title="label"
-                    item-value="value"
-                    variant="outlined"
-                    :rules="[(v) => !!v || 'Device type is required']"
-                    required
-                    @update:model-value="handleDeviceTypeChange"
-                  ></v-select>
-                  <v-text-field
-                    v-model="form.deviceName"
-                    label="Device Name"
-                    variant="outlined"
-                    :rules="[(v) => !!v || 'Device name is required']"
-                    required
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="form.serialNumber"
-                    label="Serial Number"
-                    required
-                    variant="outlined"
-                    :rules="[(v) => !!v || 'Serial number is required']"
-                  ></v-text-field>
-                  <v-select
-                    v-model="form.branch"
-                    label="Branch"
-                    :items="props.branches"
-                    item-title="locdetail.locationName"
-                    item-value="id"
-                    variant="outlined"
-                    :loading="loadingBranches"
-                    :rules="[(v) => !!v || 'Branch is required']"
-                    required
-                  ></v-select>
-                </v-form>
-              </v-card-text>
-            </v-card>
-          </v-window-item>
+    <!--  DEVICE DETAILS  -->
+    <v-card class="mb-8">
+      <v-card-title>Device Details</v-card-title>
+      <v-card-text>
+        <v-form ref="formRef" @submit.prevent="handleSave">
+          <v-row>
+            <v-col cols="6">
+              <v-select
+                v-model="form.controllerName"
+                label="Device Type"
+                :items="deviceTypes"
+                item-title="label"
+                item-value="value"
+                variant="outlined"
+                :rules="[(v) => !!v || 'Device type is required']"
+                required
+                @update:model-value="handleDeviceTypeChange"
+              ></v-select>
+            </v-col>
 
-          <!-- Dynamic Door Tabs -->
-          <v-window-item
-            v-for="doorTab in doorTabs"
-            :key="doorTab.value"
-            :value="doorTab.value"
-          >
-            <v-card>
-              <v-card-title>{{ doorTab.label }}</v-card-title>
-              <v-card-text>
-                <v-form @submit.prevent="saveDoor(doorTab.value)">
-                  <v-select
-                    v-model="form.doors[doorTab.value].selectedDoor"
-                    label="Select Door"
-                    :items="getAvailableDoorsForTab(doorTab.value)"
-                    item-title="doorName"
-                    item-value="id"
-                    variant="outlined"
-                    clearable
-                    :rules="[
-                      // Only validate if a door is selected
-                      (v) => !v || !!v || 'Please select a valid door',
-                    ]"
-                    @update:model-value="onDoorSelectionChange(doorTab.value)"
-                  ></v-select>
+            <v-col cols="6">
+              <v-text-field
+                v-model="form.deviceName"
+                label="Device Name"
+                variant="outlined"
+                :rules="[(v) => !!v || 'Device name is required']"
+                required
+              ></v-text-field>
+            </v-col>
 
-                  <!-- Configuration options (only show if door is selected) -->
-                  <div v-if="form.doors[doorTab.value].selectedDoor">
-                    <!-- Split cards in one row -->
-                    <v-row>
-                      <!-- Door Open Duration Card -->
-                      <v-col cols="6">
-                        <v-card outlined class="mb-4">
-                          <v-card-text>
-                            <v-row dense>
-                              <v-col cols="12">
-                                <div>
-                                  <span class="font-weight-medium"
-                                    >Door open duration</span
-                                  ><br />
-                                </div>
-                              </v-col>
-                              <v-col cols="12">
-                                <v-text-field
-                                  v-model.number="
-                                    form.doors[doorTab.value].dotlDuration
-                                  "
-                                  label="Duration (seconds)"
-                                  type="number"
-                                  variant="outlined"
-                                  dense
-                                  class="small-field"
-                                  :min="1"
-                                  :max="99"
-                                  :rules="[
-                                    (v) => !!v || 'Duration is required',
-                                  ]"
-                                ></v-text-field>
-                              </v-col>
-                            </v-row>
+            <v-col cols="6">
+              <v-text-field
+                v-model="form.serialNumber"
+                label="Serial Number"
+                required
+                variant="outlined"
+                :rules="[(v) => !!v || 'Serial number is required']"
+              ></v-text-field>
+            </v-col>
+
+            <v-col cols="6">
+              <v-select
+                v-model="form.branch"
+                label="Branch"
+                :items="props.branches"
+                item-title="locdetail.locationName"
+                item-value="id"
+                variant="outlined"
+                :loading="loadingBranches"
+              ></v-select>
+            </v-col>
+          </v-row>
+        </v-form>
+      </v-card-text>
+    </v-card>
+
+    <!--  DOOR CONFIGURATION  -->
+    <v-card>
+      <v-card-title>Door Configuration</v-card-title>
+      <v-card-text>
+        <div v-if="!form.controllerName" class="text-center text-grey py-8">
+          <v-icon size="64" color="grey lighten-1" class="mb-4">
+            mdi-devices
+          </v-icon>
+          <div>Please select a device type first</div>
+          <div class="text-caption">
+            Fill the Device Details section above to configure doors
+          </div>
+        </div>
+
+        <div v-else>
+          <v-row>
+            <v-col
+              v-for="doorTab in doorTabs"
+              :key="doorTab.value"
+              cols="12"
+              class="mb-4"
+            >
+              <v-card outlined class="door-card h-100" elevation="0">
+                <v-card-title class="bg-grey-lighten-3 pa-4">
+                  {{ doorTab.label.toLowerCase() }} Configuration
+                </v-card-title>
+                <v-card-text class="pa-4">
+                  <v-form @submit.prevent="saveDoor(doorTab.value)">
+                    <!-- First Row -->
+                    <v-row class="mb-4">
+                      <v-col cols="4">
+                        <v-card outlined elevation="0" class="h-100">
+                          <v-card-text class="pa-4">
+                            <div class="mb-2 font-weight-medium">
+                              Select Door
+                            </div>
+                            <v-select
+                              v-model="form.doors[doorTab.value].selectedDoor"
+                              :items="getAvailableDoorsForTab(doorTab.value)"
+                              item-title="doorName"
+                              item-value="id"
+                              variant="outlined"
+                              clearable
+                              hide-details
+                            ></v-select>
                           </v-card-text>
                         </v-card>
                       </v-col>
 
-                      <!-- DOTL Alarm Delay Card -->
-                      <v-col cols="6">
-                        <v-card outlined class="mb-4">
-                          <v-card-text>
-                            <v-row dense>
-                              <v-col cols="12">
-                                <div>
-                                  <span class="font-weight-medium"
-                                    >DOTL Alarm Delay</span
-                                  ><br />
-                                </div>
+                      <v-col cols="4">
+                        <v-card outlined elevation="0" class="h-100">
+                          <v-card-text class="pa-4">
+                            <div class="mb-2 font-weight-medium">
+                              Door open duration
+                            </div>
+                            <v-text-field
+                              v-model.number="
+                                form.doors[doorTab.value].dotlDuration
+                              "
+                              label="Duration (seconds)"
+                              type="number"
+                              variant="outlined"
+                              hide-details
+                            ></v-text-field>
+                          </v-card-text>
+                        </v-card>
+                      </v-col>
+
+                      <v-col cols="4">
+                        <v-card outlined elevation="0" class="h-100">
+                          <v-card-text class="pa-4">
+                            <div class="mb-2 font-weight-medium">
+                              DOTL Alarm Delay
+                            </div>
+                            <v-row align="center">
+                              <v-col cols="7">
+                                <v-text-field
+                                  v-model.number="
+                                    form.doors[doorTab.value].dotlDelay
+                                  "
+                                  label="Delay (seconds)"
+                                  type="number"
+                                  variant="outlined"
+                                  hide-details
+                                ></v-text-field>
                               </v-col>
-                              <v-col cols="12">
-                                <v-row dense align="center">
-                                  <v-col cols="8">
-                                    <v-text-field
-                                      v-model.number="
-                                        form.doors[doorTab.value].dotlDelay
-                                      "
-                                      label="Delay (seconds)"
-                                      type="number"
-                                      variant="outlined"
-                                      dense
-                                      class="small-field"
-                                      :min="1"
-                                      :max="99"
-                                      :disabled="
-                                        !form.doors[doorTab.value].alarmEnabled
-                                      "
-                                      :rules="[
-                                        (v) =>
-                                          !form.doors[doorTab.value]
-                                            .alarmEnabled ||
-                                          !!v ||
-                                          'Delay is required when alarm is enabled',
-                                      ]"
-                                    ></v-text-field>
-                                  </v-col>
-                                  <v-col cols="4" class="text-right">
-                                    <v-switch
-                                      v-model="
-                                        form.doors[doorTab.value].alarmEnabled
-                                      "
-                                      label="Alarm"
-                                      color="primary"
-                                      inset
-                                      hide-details
-                                    ></v-switch>
-                                  </v-col>
-                                </v-row>
+                              <v-col cols="5" class="text-right">
+                                <v-switch
+                                  v-model="
+                                    form.doors[doorTab.value].alarmEnabled
+                                  "
+                                  label="Alarm"
+                                  color="primary"
+                                  inset
+                                  hide-details
+                                ></v-switch>
                               </v-col>
                             </v-row>
                           </v-card-text>
@@ -190,135 +181,102 @@
                       </v-col>
                     </v-row>
 
-                    <v-card outlined class="mb-4">
-                      <v-card-text>
-                        <v-row dense align="center">
-                          <v-col cols="12" sm="6">
-                            <div>
-                              <span class="font-weight-medium"
-                                >Unauthorised when the door is open</span
-                              ><br />
-                            </div>
-                          </v-col>
-                          <v-col cols="12" sm="6" class="d-flex justify-end">
-                            <v-switch
-                              v-model="form.doors[doorTab.value].sensorStatus"
-                              color="primary"
-                              inset
-                              hide-details
-                            ></v-switch>
-                          </v-col>
-                        </v-row>
-                      </v-card-text>
-                    </v-card>
+                    <!-- Second Row -->
+                    <v-row>
+                      <v-col cols="4">
+                        <v-card outlined elevation="0" class="h-100">
+                          <v-card-text class="pa-4">
+                            <v-row align="center">
+                              <v-col cols="8">
+                                <div class="font-weight-medium">
+                                  Unauthorize when the door is open
+                                </div>
+                              </v-col>
+                              <v-col cols="4" class="text-right">
+                                <v-switch
+                                  v-model="
+                                    form.doors[doorTab.value].sensorStatus
+                                  "
+                                  color="primary"
+                                  inset
+                                  hide-details
+                                ></v-switch>
+                              </v-col>
+                            </v-row>
+                          </v-card-text>
+                        </v-card>
+                      </v-col>
 
-                    <v-card outlined class="mb-4">
-                      <v-card-text>
-                        <v-row dense align="center">
-                          <v-col cols="12" sm="6">
-                            <div>
-                              <span class="font-weight-medium"
-                                >Schedule door opening</span
-                              ><br />
-                            </div>
-                          </v-col>
-                          <v-col cols="12" sm="6" class="d-flex justify-end">
-                            <v-switch
-                              v-model="form.doors[doorTab.value].passageStatus"
-                              color="primary"
-                              inset
-                              hide-details
-                              @update:model-value="
-                                onPassageStatusChange(doorTab.value)
-                              "
-                            ></v-switch>
-                          </v-col>
-                          <v-col
-                            cols="12"
-                            v-if="form.doors[doorTab.value].passageStatus"
-                          >
-                            <v-radio-group
-                              v-model="form.doors[doorTab.value].passageMode"
-                              inline
-                              @update:model-value="
-                                onPassageModeChange(doorTab.value)
-                              "
+                      <!-- Updated auto door open schedule -->
+                      <v-col cols="8">
+                        <v-card outlined elevation="0" class="h-100">
+                          <v-card-text class="pa-4">
+                            <v-row
+                              align="center"
+                              class="flex-nowrap"
+                              no-gutters
                             >
-                              <v-radio
-                                label="24 Hours Access"
-                                value="24hours"
-                              ></v-radio>
-                              <v-radio
-                                label="Limit Time"
-                                value="limittime"
-                              ></v-radio>
-                            </v-radio-group>
+                              <v-col cols="5">
+                                <span class="font-weight-medium">
+                                  Auto door open schedule (passive Mode)
+                                </span>
+                              </v-col>
 
-                            <!-- Time Slot Dropdown for Limit Time -->
-                            <v-select
-                              v-if="
-                                form.doors[doorTab.value].passageMode ===
-                                'limittime'
-                              "
-                              v-model="form.doors[doorTab.value].scheduleTime"
-                              label="Select Schedule Time"
-                              :items="timeSlots"
-                              item-title="displayText"
-                              item-value="id"
-                              variant="outlined"
-                              :loading="loadingTimeSlots"
-                              :rules="[
-                                (v) =>
-                                  form.doors[doorTab.value].passageMode !==
-                                    'limittime' ||
-                                  !!v ||
-                                  'Schedule time is required for Limit Time mode',
-                              ]"
-                              clearable
-                            ></v-select>
-                          </v-col>
-                        </v-row>
-                      </v-card-text>
-                    </v-card>
-                  </div>
+                              <v-col cols="2" class="text-right">
+                                <v-switch
+                                  v-model="
+                                    form.doors[doorTab.value].passageStatus
+                                  "
+                                  color="primary"
+                                  inset
+                                  hide-details
+                                  @update:model-value="
+                                    onPassageStatusChange(doorTab.value)
+                                  "
+                                ></v-switch>
+                              </v-col>
 
-                  <!-- Message when no door is selected -->
-                  <div v-else class="text-center text-grey py-4">
-                    <v-icon size="48" color="grey lighten-1" class="mb-2">
-                      mdi-door
-                    </v-icon>
-                    <div>No door selected for this slot</div>
-                    <div class="text-caption">
-                      Select a door above to configure settings
-                    </div>
-                  </div>
-                </v-form>
-              </v-card-text>
-            </v-card>
-          </v-window-item>
-        </v-window>
+                              <v-col
+                                v-if="form.doors[doorTab.value].passageStatus"
+                                cols="5"
+                                class="d-flex align-center justify-end"
+                                style="gap: 8px"
+                              >
+                                <v-select
+                                  v-model="
+                                    form.doors[doorTab.value].scheduleTime
+                                  "
+                                  :items="timeSlots"
+                                  item-title="displayText"
+                                  item-value="id"
+                                  variant="outlined"
+                                  density="compact"
+                                  clearable
+                                  hide-details
+                                  class="timezone-select"
+                                ></v-select>
 
-        <!-- Common Action Buttons -->
-        <v-row class="mt-4">
-          <v-col class="d-flex justify-end">
-            <BaseButton
-              variant="ghost"
-              text="Cancel"
-              @click="handleCancel"
-              class="mr-2"
-            ></BaseButton>
-            <BaseButton
-              variant="primary"
-              text="Save"
-              :loading="isSaving"
-              @click="handleSave"
-            ></BaseButton>
-          </v-col>
-        </v-row>
-      </v-col>
-    </v-row>
+                                <BaseButton
+                                  variant="primary"
+                                  text="Create Time Zone"
+                                  @click="createTimeZone"
+                                  size="small"
+                                ></BaseButton>
+                              </v-col>
+                            </v-row>
+                          </v-card-text>
+                        </v-card>
+                      </v-col>
+                    </v-row>
+                  </v-form>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </div>
+      </v-card-text>
+    </v-card>
 
-    <!-- Snackbar for Toasts -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.type" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -337,6 +295,7 @@ import {
 } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import { authService } from "@/services/authService";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
   tenantId: String,
@@ -354,6 +313,7 @@ const snackbar = ref({ show: false, message: "", type: "success" });
 const loadingBranches = ref(false);
 const loadingTimeSlots = ref(false);
 const timeSlots = ref([]);
+const router = useRouter();
 
 // Device type options
 const deviceTypes = [
@@ -361,21 +321,23 @@ const deviceTypes = [
   { label: "Finger Print", value: "Finger Print" },
   { label: "AI", value: "AI" },
 ];
-
-// Dynamic door tabs based on device type
+const createTimeZone = () => {
+  router.push("/configuration/timerzone-configuration");
+};
+// Dynamic door tabs based on device type - labels changed to lowercase
 const doorTabs = computed(() => {
   if (form.controllerName === "4 Door Device") {
     return [
-      { label: "DOOR1", value: "door1" },
-      { label: "DOOR2", value: "door2" },
-      { label: "DOOR3", value: "door3" },
-      { label: "DOOR4", value: "door4" },
+      { label: "door1", value: "door1" },
+      { label: "door2", value: "door2" },
+      { label: "door3", value: "door3" },
+      { label: "door4", value: "door4" },
     ];
   } else if (
     form.controllerName === "Finger Print" ||
     form.controllerName === "AI"
   ) {
-    return [{ label: "DOOR1", value: "door1" }];
+    return [{ label: "door1", value: "door1" }];
   }
   return [];
 });
@@ -438,8 +400,8 @@ const form = reactive({
       dotlDelay: "",
       alarmEnabled: false,
       passageStatus: false,
-      passageMode: "24hours",
-      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
+      passageMode: "limittime",
+      scheduleTime: null,
     },
     door2: {
       selectedDoor: "",
@@ -448,8 +410,8 @@ const form = reactive({
       dotlDelay: "",
       alarmEnabled: false,
       passageStatus: false,
-      passageMode: "24hours",
-      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
+      passageMode: "limittime",
+      scheduleTime: null,
     },
     door3: {
       selectedDoor: "",
@@ -458,8 +420,8 @@ const form = reactive({
       dotlDelay: "",
       alarmEnabled: false,
       passageStatus: false,
-      passageMode: "24hours",
-      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
+      passageMode: "limittime",
+      scheduleTime: null,
     },
     door4: {
       selectedDoor: "",
@@ -468,8 +430,8 @@ const form = reactive({
       dotlDelay: "",
       alarmEnabled: false,
       passageStatus: false,
-      passageMode: "24hours",
-      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
+      passageMode: "limittime",
+      scheduleTime: null,
     },
   },
 });
@@ -486,7 +448,7 @@ watch(
 
 // Handle device type change
 const handleDeviceTypeChange = (newDeviceType) => {
-  activeTab.value = "basic";
+  // Reset door configurations when device type changes
   resetDoorConfigurations(newDeviceType);
 };
 
@@ -499,7 +461,7 @@ const resetDoorConfigurations = (deviceType) => {
     dotlDelay: "",
     alarmEnabled: false,
     passageStatus: false,
-    passageMode: "24hours",
+    passageMode: "limittime", // Changed default to "limittime"
     scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
   };
 
@@ -534,7 +496,8 @@ const loadTimeSlots = async () => {
     const data = await response.json();
     timeSlots.value = data.data.map((slot) => ({
       id: slot.id,
-      displayText: `${slot.entryTime} - ${slot.exitTime}`,
+      displayText: `${slot.timeZoneName} (${slot.entryTime} - ${slot.exitTime})`,
+      timeZoneName: slot.timeZoneName,
       entryTime: slot.entryTime,
       exitTime: slot.exitTime,
       tenantName: slot.tenant?.tenantName || "Unknown",
@@ -562,7 +525,7 @@ const onDoorSelectionChange = (doorKey) => {
       dotlDelay: "",
       alarmEnabled: false,
       passageStatus: false,
-      passageMode: "24hours",
+      passageMode: "limittime", // Changed default to "limittime"
       scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
     };
   }
@@ -571,22 +534,10 @@ const onDoorSelectionChange = (doorKey) => {
 // Handle passage status change
 const onPassageStatusChange = (doorKey) => {
   const doorConfig = form.doors[doorKey];
-  if (doorConfig.passageStatus && doorConfig.passageMode === "limittime") {
+  if (doorConfig.passageStatus) {
     if (timeSlots.value.length === 0 && props.tenantId) {
       loadTimeSlots();
     }
-  }
-};
-
-// Handle passage mode change
-const onPassageModeChange = (doorKey) => {
-  const doorConfig = form.doors[doorKey];
-  if (doorConfig.passageMode === "limittime" && doorConfig.passageStatus) {
-    if (timeSlots.value.length === 0 && props.tenantId) {
-      loadTimeSlots();
-    }
-  } else if (doorConfig.passageMode === "24hours") {
-    doorConfig.scheduleTime = null; // Changed from selectedTimeSlot to scheduleTime
   }
 };
 
@@ -622,16 +573,7 @@ const mapDoorConfigToBackend = (doorConfig, deviceId) => {
   let scheduleTimeValue = null;
 
   if (doorConfig.passageStatus) {
-    if (doorConfig.passageMode === "24hours") {
-      // 24-hour access → send full-day range as object
-      scheduleTimeValue = {
-        entryTime: "00:00:00",
-        exitTime: "23:59:59",
-      };
-    } else if (
-      doorConfig.passageMode === "limittime" &&
-      doorConfig.scheduleTime
-    ) {
+    if (doorConfig.scheduleTime) {
       // For limit time mode, find the selected time slot and extract entry/exit times
       const selectedTimeSlot = timeSlots.value.find(
         (slot) => slot.id === doorConfig.scheduleTime
@@ -678,11 +620,7 @@ const validateDoorConfiguration = (doorKey) => {
     return false;
   }
 
-  if (
-    doorConfig.passageStatus &&
-    doorConfig.passageMode === "limittime" &&
-    !doorConfig.scheduleTime
-  ) {
+  if (doorConfig.passageStatus && !doorConfig.scheduleTime) {
     showToast(
       `Please select a schedule time for ${doorKey.toUpperCase()}`,
       "error"
@@ -708,14 +646,14 @@ const saveDevice = async () => {
 
   if (selectedDoorsCount.value === 0) {
     showToast("Please select at least one door for the device.", "error");
-    activeTab.value = "door1";
+    activeTab.value = "doors-configure";
     return;
   }
 
   for (const doorTab of doorTabs.value) {
     const doorConfig = form.doors[doorTab.value];
     if (doorConfig.selectedDoor && !validateDoorConfiguration(doorTab.value)) {
-      activeTab.value = doorTab.value;
+      activeTab.value = "doors-configure";
       return;
     }
   }
@@ -730,9 +668,9 @@ const saveDevice = async () => {
     const selectedDoors = doorTabs.value
       .map((tab) => form.doors[tab.value].selectedDoor)
       .filter(Boolean);
-
+    const branchValue = form.branch === "" ? null : form.branch;
     const devicePayload = {
-      branchDetails: form.branch,
+      branchDetails: branchValue,
       controllerName: form.controllerName,
       deviceName: form.deviceName || form.controllerName,
       sn: form.serialNumber,
@@ -884,7 +822,11 @@ const initializeForm = () => {
     form.controllerName = props.editingDevice.controllerName || "";
     form.deviceName = props.editingDevice.deviceName || "";
     form.serialNumber = props.editingDevice.sn || "";
-    form.branch = props.editingDevice.branchDetails || "";
+    form.branch =
+      props.editingDevice.branchDetails ||
+      (props.editingDevice.branchDetails === ""
+        ? null
+        : props.editingDevice.branchDetails);
     form.connectionStatus =
       props.editingDevice.status === "approved" ? "Connected" : "Disconnected";
     form.controllerStatus = props.editingDevice.controllerStatus || "Waiting";
@@ -905,7 +847,7 @@ const initializeForm = () => {
     form.controllerName = "";
     form.deviceName = "";
     form.serialNumber = "";
-    form.branch = "";
+    form.branch = null;
     form.connectionStatus = "Disconnected";
     form.controllerStatus = "Waiting";
     resetDoorConfigurations("");
@@ -939,27 +881,16 @@ const loadDoorConfigurations = async (selectedDoorIds) => {
             ) {
               const scheduleTime = config.scheduleTime;
 
-              // Check if it's 24-hour access
-              if (
-                scheduleTime.entryTime === "00:00:00" &&
-                scheduleTime.exitTime === "23:59:59"
-              ) {
-                form.doors[tab.value].passageMode = "24hours";
-                form.doors[tab.value].scheduleTime = null;
-              } else {
-                // It's limit time - find matching time slot
-                form.doors[tab.value].passageMode = "limittime";
-                const matchingSlot = timeSlots.value.find(
-                  (slot) =>
-                    slot.entryTime === scheduleTime.entryTime &&
-                    slot.exitTime === scheduleTime.exitTime
-                );
-                form.doors[tab.value].scheduleTime = matchingSlot
-                  ? matchingSlot.id
-                  : null;
-              }
+              // It's limit time - find matching time slot
+              const matchingSlot = timeSlots.value.find(
+                (slot) =>
+                  slot.entryTime === scheduleTime.entryTime &&
+                  slot.exitTime === scheduleTime.exitTime
+              );
+              form.doors[tab.value].scheduleTime = matchingSlot
+                ? matchingSlot.id
+                : null;
             } else {
-              form.doors[tab.value].passageMode = "24hours";
               form.doors[tab.value].scheduleTime = null;
             }
           }
@@ -993,14 +924,105 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.tabs {
-  border-right: 1px solid #ddd;
+.timezone-select {
+  width: 250px !important;
+  flex-shrink: 0;
+}
+
+.timezone-select-wide {
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
+}
+
+.device-configuration-form {
   height: 100%;
 }
-.v-card {
-  padding: 16px;
+
+.tabs-container {
+  height: 100%;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
 }
-.small-field {
-  max-width: 150px;
+
+.compact-tabs {
+  height: 100%;
+}
+
+.compact-tab {
+  min-height: 48px;
+  justify-content: start;
+  padding-left: 16px;
+}
+
+.tab-text {
+  font-size: 0.875rem;
+  margin-left: 8px;
+}
+
+.content-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.compact-field {
+  max-width: 140px;
+}
+
+/* Improve visual hierarchy and spacing */
+.v-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.text-subtitle-1 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Ensure proper spacing in compact mode */
+:deep(.v-field--variant-outlined) {
+  --v-field-padding-top: 8px;
+}
+
+:deep(.v-selection-control) {
+  min-height: 40px;
+}
+
+/* Style for individual door cards */
+.door-card {
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+}
+
+.door-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Updated styles for top tabs */
+.tabs {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Compact timezone select */
+:deep(.compact-timezone-select .v-field) {
+  font-size: 0.875rem;
+}
+
+:deep(.compact-timezone-select .v-field__input) {
+  min-height: 40px;
+}
+.compact-timezone-select {
+  max-width: 260px;
+}
+
+.compact-timezone-select :deep(.v-field) {
+  font-size: 0.875rem;
+}
+
+.compact-timezone-select :deep(.v-field__input) {
+  min-height: 36px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 </style>

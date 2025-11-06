@@ -382,25 +382,25 @@ export default {
           },
         ],
       },
-      {
-        title: "Clients & Sites",
-        icon: "mdi-office-building-outline",
-        to: "/organization/locationtab",
-        roles: ["Admin"],
-      },
-      {
-        title: "Routes",
-        icon: "mdi-file-table-box-outline",
-        to: "/locate",
-        roles: ["Admin", "Manager"],
-      },
-      {
-        title: "Work Orders",
-        icon: "mdi-clipboard-text-outline",
-        to: "/taskManagement/taskcomponents/workorder",
-        roles: ["Admin", "Manager", "Employee"],
-        requiredFeature: "fieldpro",
-      },
+      // {
+      //  title: "Clients & Sites",
+      //  icon: "mdi-office-building-outline",
+      // to: "/organization/locationtab",
+      // roles: ["Admin"],
+      // },
+      // {
+      // title: "Routes",
+      // icon: "mdi-file-table-box-outline",
+      //to: "/locate",
+      //roles: ["Admin", "Manager"],
+      // },
+      // {
+      //  title: "Work Orders",
+      // icon: "mdi-clipboard-text-outline",
+      // to: "/taskManagement/taskcomponents/workorder",
+      // roles: ["Admin", "Manager", "Employee"],
+      // requiredFeature: "fieldpro",
+      // },
       {
         title: "Expenses",
         icon: "mdi-cash",
@@ -1009,7 +1009,7 @@ export default {
 <style scoped>
 .modern-sidebar {
   border-right: 1px solid #e5e7eb !important;
-  background: #1e3fa9 !important;
+  background: white !important;
   box-shadow:
     0 1px 3px 0 rgba(0, 0, 0, 0.1),
     0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
@@ -1024,7 +1024,7 @@ export default {
 .sidebar-header {
   background: white;
   border-bottom: 1px solid #35486d;
-  height: 50px;
+  height: 65px;
 }
 
 .header-content {
@@ -1117,7 +1117,7 @@ export default {
 
 .modern-sidebar :deep(.main-item) {
   font-weight: 500 !important;
-  color: rgb(255, 255, 255) !important;
+  color: #1e3fa9 !important;
 }
 
 .modern-sidebar :deep(.main-item:hover) {
@@ -1126,7 +1126,7 @@ export default {
 }
 
 .modern-sidebar :deep(.nav-icon) {
-  color: #fafbfc;
+  color: #1e3fa9;
   transition: all 0.2s ease !important;
 }
 
@@ -1154,7 +1154,7 @@ export default {
 .modern-sidebar :deep(.sub-item) {
   min-height: 40px !important;
   font-weight: 400 !important;
-  color: #ffffff !important;
+  color: #1e3fa9 !important;
   margin: 1px 0 !important;
   padding-left: 8px !important;
 }
@@ -1174,12 +1174,12 @@ export default {
 }
 
 .modern-sidebar :deep(.expand-icon) {
-  color: white !important;
+  color: #1e3fa9 !important;
   font-weight: bold !important;
   transform: scale(1.1);
   text-shadow:
-    0 0 1px white,
-    0 0 1px white;
+    0 0 1px #1e3fa9,
+    0 0 1px #1e3fa9;
   transition: transform 0.2s ease !important;
 }
 
@@ -1236,8 +1236,8 @@ export default {
   display: flex;
   align-items: center;
   border-bottom: 1px solid #e5e7eb !important;
-  background-color: #cc242d !important;
-  color: #fff !important;
+  background-color: white !important;
+  color: #000 !important;
 }
 
 .mobile-menu-btn {
@@ -1270,7 +1270,7 @@ export default {
 
 .header-profile-btn {
   text-transform: none !important;
-  color: #ffffff !important;
+  color: #000 !important;
   padding: 0 8px !important;
   font-weight: bold;
 }
@@ -1278,7 +1278,7 @@ export default {
 .header-profile-name {
   font-size: 14px;
   font-weight: bold;
-  color: #ffffff;
+  color: #000;
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
