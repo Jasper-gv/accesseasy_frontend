@@ -17,27 +17,29 @@
           style="flex: 0 0 auto; min-width: 250px; max-width: 300px"
         >
           <v-card flat>
-            <div
-              v-for="config in configurators"
-              :key="config.id"
-              class="sidebar-section"
-            >
-              <div class="sidebar-header">
-                {{ config.label }}
+            <div class="sidebar-content" style="height: 90vh; overflow-y: auto">
+              <div
+                v-for="config in configurators"
+                :key="config.id"
+                class="sidebar-section"
+              >
+                <div class="sidebar-header">
+                  {{ config.label }}
+                </div>
+                <v-list density="compact" class="py-0">
+                  <v-list-item
+                    v-for="subsection in config.subsections"
+                    :key="subsection.id"
+                    @click="switchTab(subsection.id)"
+                    :class="{ 'active-tab': activeTab === subsection.id }"
+                    class="mb-1 rounded"
+                  >
+                    <v-list-item-title class="text-body-2">
+                      {{ subsection.label }}
+                    </v-list-item-title>
+                  </v-list-item>
+                </v-list>
               </div>
-              <v-list density="compact" class="py-0">
-                <v-list-item
-                  v-for="subsection in config.subsections"
-                  :key="subsection.id"
-                  @click="switchTab(subsection.id)"
-                  :class="{ 'active-tab': activeTab === subsection.id }"
-                  class="mb-1 rounded"
-                >
-                  <v-list-item-title class="text-body-2">
-                    {{ subsection.label }}
-                  </v-list-item-title>
-                </v-list-item>
-              </v-list>
             </div>
           </v-card>
         </div>
@@ -266,6 +268,30 @@ function switchTab(tabId) {
   background-color: white;
   border-right: 1px solid #e0e0e0;
   height: 90vh !important;
+}
+
+.sidebar-content {
+  /* Scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f5f5f5;
+}
+
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .sidebar-section {

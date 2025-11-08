@@ -489,6 +489,23 @@ export default {
         to: "/settings/organization",
         roles: ["Admin", "Administrator", "Dealer"],
       },
+      {
+        title: "Face Embedding",
+        icon: "mdi-face-recognition",
+        roles: ["Admin", "Manager", "Employee"],
+        subItems: [
+          {
+            title: "AI Face Embedding",
+            to: "/face-embedding/ai-face-embedding",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+          {
+            title: "Mobile Face Embedding",
+            to: "/face-embedding/mobile-face-embedding",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+        ],
+      },
       // {
       //   title: "Role Configurator",
       //   icon: "mdi-shield-account",

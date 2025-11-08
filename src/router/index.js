@@ -41,7 +41,9 @@ import AddRegularisationRequest from "@/pages/regularisation/regularisationReque
 
 import Attendance from "../pages/logs/logTab.vue";
 import LogsTable from "@/pages/logs/log/logTable.vue";
-
+import FaceEmbeddingTabs from "@/pages/faceEmbedding/faceEmbeddingTabs.vue";
+import AiFaceEmbeddingDetails from "@/pages/faceEmbedding/aiFaceEmbedding/aiFaceEmbeddingDetails.vue";
+import MobileFaceEmbeddingDetails from "@/pages/faceEmbedding/mobileFaceEmbedding/mobileFaceEmbeddingDetails.vue";
 import Import from "@/pages/Imports/importsTabs.vue";
 import importDetals from "@/pages/Imports/import/importTable.vue";
 
@@ -497,6 +499,31 @@ const routes = [
               import(
                 "@/pages/employee/my-teams/otherDetails/otherEmployeeDetails.vue"
               ).catch(() => EmployeeDetailsTab),
+          },
+        ],
+      },
+      {
+        path: "/face-embedding",
+        name: "FaceEmbedding",
+        component: FaceEmbeddingTabs,
+        meta: { roles: ["Admin", "Manager", "Employee"] },
+        children: [
+          {
+            path: "",
+            name: "face-embedding-default",
+            redirect: { name: "ai-face-embedding" },
+          },
+          {
+            path: "ai-face-embedding",
+            name: "ai-face-embedding",
+            component: AiFaceEmbeddingDetails,
+            meta: { roles: ["Admin", "Manager", "Employee"] },
+          },
+          {
+            path: "mobile-face-embedding",
+            name: "mobile-face-embedding",
+            component: MobileFaceEmbeddingDetails,
+            meta: { roles: ["Admin", "Manager", "Employee"] },
           },
         ],
       },

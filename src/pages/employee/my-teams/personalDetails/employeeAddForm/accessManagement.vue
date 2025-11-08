@@ -485,7 +485,7 @@ const handleCardSwipe = (event) => {
 
 const processCardData = (cardData) => {
   const existingCard = assignedCards.value.find(
-    (card) => card.rfidCard === cardData,
+    (card) => card.rfidCard === cardData
   );
   if (existingCard) {
     showError("This card is already assigned to this employee");
@@ -504,7 +504,7 @@ const checkCardExistsInDatabase = async (cardNumber) => {
           Authorization: `Bearer ${authService.getToken()}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -554,7 +554,7 @@ const addNewCard = async () => {
 const removeCard = (cardId) => {
   const cardToRemove = assignedCards.value.find((card) => card.id === cardId);
   assignedCards.value = assignedCards.value.filter(
-    (card) => card.id !== cardId,
+    (card) => card.id !== cardId
   );
 
   if (cardToRemove) {
@@ -587,7 +587,7 @@ const handleAccessLevelChange = async (value) => {
   if (value) {
     // Find the selected access level object from the options
     const selectedLevel = props.accessLevelOptions.find(
-      (level) => level.accessLevelName === value,
+      (level) => level.accessLevelName === value
     );
     if (selectedLevel) {
       selectedAccessLevel.value = selectedLevel;
@@ -645,7 +645,7 @@ const fetchAccessLevelDetails = async (accessLevelName) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -663,7 +663,7 @@ const fetchAccessLevelDetails = async (accessLevelName) => {
 };
 
 const redirectToAccessLevelCategory = () => {
-  router.push("/deviceManager/accesslevelCatagory");
+  router.push("/configuration/accesslevel-configurator");
 };
 
 // Watchers
@@ -681,7 +681,7 @@ watch(
       });
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 
 watch(
@@ -689,7 +689,7 @@ watch(
   (newValue) => {
     if (newValue) {
       const selectedLevel = props.accessLevelOptions.find(
-        (level) => level.accessLevelName === newValue,
+        (level) => level.accessLevelName === newValue
       );
       if (selectedLevel) {
         selectedAccessLevel.value = selectedLevel;
@@ -699,7 +699,7 @@ watch(
       selectedAccessLevel.value = null;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // Watch for access state changes and update card states accordingly
@@ -717,7 +717,7 @@ watch(
     nextTick(() => {
       forceToggleUpdate();
     });
-  },
+  }
 );
 
 // Lifecycle

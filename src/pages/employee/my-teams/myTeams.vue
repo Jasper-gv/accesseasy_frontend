@@ -86,6 +86,11 @@ const fetchrole = async () => {
       title: "Shift Details",
       icon: "mdi-calendar-clock",
     },
+    {
+      value: "card",
+      title: "Card Management",
+      icon: "mdi-card-account-details",
+    },
     // {
     //   value: "otherDetails",
     //   title: "Employee Other Details",
@@ -98,7 +103,7 @@ watch(
   () => route.path,
   () => {
     updateActiveTabFromRoute();
-  },
+  }
 );
 
 onMounted(async () => {

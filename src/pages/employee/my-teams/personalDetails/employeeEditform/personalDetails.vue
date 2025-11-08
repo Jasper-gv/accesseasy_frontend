@@ -186,6 +186,60 @@
                     ></v-text-field>
                   </v-col>
                 </v-row>
+                <v-row class="mt-4">
+                  <v-col cols="12">
+                    <v-card variant="outlined" class="pa-4">
+                      <v-card-title
+                        class="text-subtitle-1 font-weight-medium pa-0 mb-4"
+                      >
+                        Register Face Image
+                      </v-card-title>
+                      <v-card-text class="pa-0">
+                        <v-row align="center">
+                          <v-col cols="12" md="6">
+                            <v-file-input
+                              v-model="faceImageFile"
+                              :label="'Upload Face Image'"
+                              accept="image/*"
+                              prepend-icon="mdi-camera"
+                              variant="outlined"
+                              density="comfortable"
+                              :show-size="true"
+                              :clearable="true"
+                              @update:model-value="handleFaceImageUpload"
+                              :error-messages="faceImageError"
+                            ></v-file-input>
+                          </v-col>
+                          <v-col cols="12" md="6" class="text-center">
+                            <div
+                              v-if="faceImagePreview"
+                              class="face-image-preview"
+                            >
+                              <v-img
+                                :src="faceImagePreview"
+                                max-width="150"
+                                max-height="150"
+                                class="mx-auto rounded"
+                              ></v-img>
+                              <v-btn
+                                small
+                                color="error"
+                                variant="text"
+                                @click="removeFaceImage"
+                                class="mt-2"
+                              >
+                                Remove
+                              </v-btn>
+                            </div>
+                            <div v-else class="text-caption text-grey">
+                              No image selected
+                            </div>
+                          </v-col>
+                        </v-row>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
               </div>
             </v-col>
           </v-row>
@@ -396,6 +450,10 @@ const selectedReportingTo = ref(null);
 const cycleTypeOptions = ref([]);
 const selectedCycleType = ref(null);
 const changedFields = ref({});
+const faceImageFile = ref(null);
+const faceImagePreview = ref(null);
+const faceImageError = ref("");
+const faceImageBase64 = ref("");
 
 // Add validation rules
 const rules = {
@@ -437,7 +495,79 @@ const isRoleDisabled = computed(() => {
 
   return false;
 });
+// Add this method to handle image upload and conversion
+const handleFaceImageUpload = (file) => {
+  faceImageError.value = "";
 
+  if (!file) {
+    removeFaceImage();
+    return;
+  }
+
+  // Validate file type
+  if (!file.type.startsWith("image/")) {
+    faceImageError.value = "Please select a valid image file";
+    removeFaceImage();
+    return;
+  }
+
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    faceImageError.value = "Image size should be less than 5MB";
+    removeFaceImage();
+    return;
+  }
+
+  // Create preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    faceImagePreview.value = e.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  // Convert to Base64 for API
+  const base64Reader = new FileReader();
+  base64Reader.onload = (e) => {
+    const base64String = e.target.result.split(",")[1]; // This extracts only the base64 part
+    faceImageBase64.value = base64String;
+
+    // Update the employee data with base64 string
+    const updatedData = {
+      ...props.employeeData,
+      registerFaceImages: base64String,
+    };
+    emit("update:employeeData", updatedData);
+  };
+  base64Reader.onerror = () => {
+    faceImageError.value = "Failed to process image";
+    removeFaceImage();
+  };
+  base64Reader.readAsDataURL(file);
+};
+
+// Method to remove the uploaded image
+const removeFaceImage = () => {
+  faceImageFile.value = null;
+  faceImagePreview.value = null;
+  faceImageBase64.value = "";
+  faceImageError.value = "";
+
+  // Remove from employee data
+  const updatedData = {
+    ...props.employeeData,
+    registerFaceImages: null,
+  };
+  emit("update:employeeData", updatedData);
+};
+
+// Add validation for face image if needed
+const validateFaceImage = () => {
+  if (faceImageFile.value && !faceImageBase64.value) {
+    faceImageError.value = "Image processing failed. Please try again.";
+    return false;
+  }
+  return true;
+};
 const showAadhaarView = ref(false);
 
 const aadhaarData = ref({
@@ -543,10 +673,12 @@ const hasChanges = computed(() => {
     JSON.stringify(originalEmployeeData.value) !==
     JSON.stringify(props.employeeData);
 
+  const faceImageChanged =
+    faceImageBase64.value !== originalEmployeeData.value?.registerFaceImages;
   // Check all validation errors
   const hasValidationErrors =
     Object.values(validationErrors.value).some(
-      (error) => error !== null && error !== "",
+      (error) => error !== null && error !== ""
     ) ||
     phoneErrorMessage.value ||
     emailErrorMessage.value ||
@@ -711,7 +843,7 @@ const fetchProfilesFolderId = async () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -723,7 +855,7 @@ const fetchProfilesFolderId = async () => {
     if (data.data && data.data.length > 0 && data.data[0].foldersId) {
       // Find the Profiles folder
       const profilesFolder = data.data[0].foldersId.find(
-        (folder) => folder.name === "Profiles",
+        (folder) => folder.name === "Profiles"
       );
 
       if (profilesFolder) {
@@ -791,6 +923,7 @@ const fetchEmployeeData = async () => {
       "reportingTo.id",
       "reportingTo.first_name",
       "cycleType",
+      "registerFaceImages",
     ];
 
     const queryString = `fields[]=${fields.join("&fields[]=")}`;
@@ -811,7 +944,7 @@ const fetchEmployeeData = async () => {
     if (data.data) {
       if (!data.data.assignedUser?.id) {
         showErrorMessage(
-          "Employee data is incomplete. Please refresh the page.",
+          "Employee data is incomplete. Please refresh the page."
         );
         return;
       }
@@ -831,7 +964,10 @@ const fetchEmployeeData = async () => {
         currentAvatarFileId.value = data.data.assignedUser.avatar.id;
         await fetchAndSetAvatar();
       }
-
+      if (data.data.registerFaceImages) {
+        faceImageBase64.value = data.data.registerFaceImages;
+        faceImagePreview.value = data.data.registerFaceImages; // This will show the image preview
+      }
       selectedRole.value = data.data.assignedUser?.role?.id || null;
 
       // Set company details selected values
@@ -846,7 +982,7 @@ const fetchEmployeeData = async () => {
         data.data.branchLocation?.locdetail?.locationName
       ) {
         matchBranchLocationByName(
-          data.data.branchLocation.locdetail.locationName,
+          data.data.branchLocation.locdetail.locationName
         );
       }
 
@@ -896,7 +1032,7 @@ async function fetchDepartments() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -926,7 +1062,7 @@ async function fetchDepartments() {
 const matchDepartmentByName = (departmentName) => {
   if (!departmentName || !departmentOptions.value.length) return;
   const matchedDept = departmentOptions.value.find(
-    (dept) => dept.name.toLowerCase() === departmentName.toLowerCase(),
+    (dept) => dept.name.toLowerCase() === departmentName.toLowerCase()
   );
   if (matchedDept) {
     selectedDepartment.value = matchedDept.id;
@@ -944,7 +1080,7 @@ async function fetchBranchLocations() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -963,7 +1099,7 @@ async function fetchBranchLocations() {
       !selectedBranchLocation.value
     ) {
       matchBranchLocationByName(
-        props.employeeData.branchLocation.locdetail.locationName,
+        props.employeeData.branchLocation.locdetail.locationName
       );
     }
   } catch (error) {
@@ -976,7 +1112,7 @@ async function fetchBranchLocations() {
 const matchBranchLocationByName = (locationName) => {
   if (!locationName || !branchLocationOptions.value.length) return;
   const matchedLoc = branchLocationOptions.value.find((loc) =>
-    loc.name.toLowerCase().includes(locationName.toLowerCase()),
+    loc.name.toLowerCase().includes(locationName.toLowerCase())
   );
   if (matchedLoc) {
     selectedBranchLocation.value = matchedLoc.id;
@@ -1035,8 +1171,7 @@ async function fetchReportingTo() {
 
     reportingToOptions.value = allReportingTo
       .filter(
-        (item) =>
-          item.assignedUser?.id && item.assignedUser?.first_name && true, // Adjust accessOn if needed
+        (item) => item.assignedUser?.id && item.assignedUser?.first_name && true // Adjust accessOn if needed
       )
       .map((item) => ({
         id: item.assignedUser.id,
@@ -1063,7 +1198,7 @@ async function fetchCycleTypes() {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1087,7 +1222,7 @@ async function fetchCycleTypes() {
         // After fetching options, match the current cycleType to set selectedCycleType
         if (props.employeeData?.cycleType) {
           const matchedCycle = cycleTypeOptions.value.find(
-            (cycle) => cycle.cycleId === props.employeeData.cycleType,
+            (cycle) => cycle.cycleId === props.employeeData.cycleType
           );
           if (matchedCycle) {
             selectedCycleType.value = matchedCycle.cycleId;
@@ -1111,7 +1246,7 @@ const handleBranchLocationChange = (newValue) => {
   if (newValue !== originalBranchLocation) {
     changedFields.value.branchLocation = newValue;
     const selectedLoc = branchLocationOptions.value.find(
-      (l) => l.id === newValue,
+      (l) => l.id === newValue
     );
     if (selectedLoc) {
       props.employeeData.branchLocation = {
@@ -1226,7 +1361,7 @@ const fetchVerifiedGovernmentData = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1314,7 +1449,7 @@ const fetchRoles = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     roleOptions.value = data.data.map((role) => ({
@@ -1357,7 +1492,7 @@ const deleteOldAvatarFile = async (fileId) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1398,7 +1533,7 @@ const validatePhone = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1448,7 +1583,7 @@ const validateEmail = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1490,7 +1625,7 @@ const handleAvatarChange = async (event) => {
       await fetchProfilesFolderId();
       if (!profilesFolderId.value) {
         showErrorMessage(
-          "Could not find Profiles folder. Using default upload location.",
+          "Could not find Profiles folder. Using default upload location."
         );
       }
     }
@@ -1642,7 +1777,7 @@ const validateField = (fieldName) => {
     _validationState: {
       ...props.employeeData._validationState,
       personalDetails: Object.values(validationErrors.value).every(
-        (error) => error === null,
+        (error) => error === null
       ),
     },
   };
@@ -1723,7 +1858,7 @@ const toUpperCase = (field) => {
 const fetchAndSetAvatar = async () => {
   if (props.employeeData?.assignedUser?.avatar?.id) {
     const imageUrl = await fetchAuthorizedImage(
-      `${import.meta.env.VITE_API_URL}/assets/${props.employeeData.assignedUser.avatar.id}`,
+      `${import.meta.env.VITE_API_URL}/assets/${props.employeeData.assignedUser.avatar.id}`
     );
     avatarImage.value = imageUrl;
   }
@@ -1748,11 +1883,14 @@ const updatePersonalDetails = async () => {
   const token = authService.getToken();
   if (!props.employeeData?.assignedUser?.id) {
     showErrorMessage(
-      "Employee data is incomplete. Please refresh the page and try again.",
+      "Employee data is incomplete. Please refresh the page and try again."
     );
     return;
   }
-
+  if (!validateFaceImage()) {
+    showErrorMessage("Please fix image upload errors before updating");
+    return;
+  }
   const requiredFields = ["first_name", "gender", "employeeId"];
   requiredFields.forEach((field) => {
     touchedFields.value.add(field);
@@ -1772,7 +1910,7 @@ const updatePersonalDetails = async () => {
   const missingFields = mandatoryFields.filter((field) =>
     field === "employeeId"
       ? !props.employeeData[field]
-      : !props.employeeData.assignedUser[field],
+      : !props.employeeData.assignedUser[field]
   );
 
   if (missingFields.length > 0) {
@@ -1782,21 +1920,21 @@ const updatePersonalDetails = async () => {
 
   if (
     Object.values(validationErrors.value).some(
-      (error) => error !== null && error !== "",
+      (error) => error !== null && error !== ""
     ) ||
     phoneErrorMessage.value ||
     emailErrorMessage.value
   ) {
     if (validationErrors.value["pan"] === "PAN number already exists") {
       showErrorMessage(
-        "PAN number already exists in the system. Please use a different PAN number.",
+        "PAN number already exists in the system. Please use a different PAN number."
       );
       return;
     }
 
     if (validationErrors.value["aadhar"] === "Aadhar number already exists") {
       showErrorMessage(
-        "Aadhar number already exists in the system. Please use a different Aadhar number.",
+        "Aadhar number already exists in the system. Please use a different Aadhar number."
       );
       return;
     }
@@ -1807,7 +1945,7 @@ const updatePersonalDetails = async () => {
 
   if (isPanChecking.value || isAadharChecking.value) {
     showErrorMessage(
-      "Please wait while we validate your PAN and Aadhar numbers",
+      "Please wait while we validate your PAN and Aadhar numbers"
     );
     return;
   }
@@ -1816,6 +1954,19 @@ const updatePersonalDetails = async () => {
     const personalModuleFieldsToUpdate = {};
     const assignedUserFieldsToUpdate = {};
 
+    // Handle face image if uploaded
+    if (
+      faceImageBase64.value &&
+      faceImageBase64.value !== originalEmployeeData.value?.registerFaceImages
+    ) {
+      personalModuleFieldsToUpdate.registerFaceImages = faceImageBase64.value;
+    } else if (
+      !faceImageBase64.value &&
+      originalEmployeeData.value?.registerFaceImages
+    ) {
+      // If image was removed, set to null
+      personalModuleFieldsToUpdate.registerFaceImages = null;
+    }
     // Handle workingRange
     const currentWorkingRange = props.employeeData.workingRange;
     const originalWorkingRange = originalEmployeeData.value.workingRange;
@@ -1854,7 +2005,7 @@ const updatePersonalDetails = async () => {
     }
 
     for (const [key, value] of Object.entries(
-      props.employeeData.assignedUser,
+      props.employeeData.assignedUser
     )) {
       const originalValue = originalEmployeeData.value.assignedUser[key];
       const hasChanged = value !== originalValue;
@@ -1918,7 +2069,7 @@ const updatePersonalDetails = async () => {
 
     if (Object.keys(payload).length === 0) {
       showErrorMessage(
-        "No changes to update in personal details, please make any changes to update",
+        "No changes to update in personal details, please make any changes to update"
       );
       return;
     }
@@ -1934,7 +2085,7 @@ const updatePersonalDetails = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1957,7 +2108,7 @@ const updatePersonalDetails = async () => {
     console.error("Error updating personal details:", error);
     if (error.message.includes("assignedUser.id")) {
       showErrorMessage(
-        "Error: User ID is missing. Please refresh the page and try again.",
+        "Error: User ID is missing. Please refresh the page and try again."
       );
     } else if (
       error.message.includes("duplicate") ||
@@ -1976,7 +2127,7 @@ watch(
     if (newValue && !newValue.id && props.employeeData) {
     }
   },
-  { deep: true, immediate: false },
+  { deep: true, immediate: false }
 );
 
 // Watch for changes in workingRange to validate its value
@@ -1996,7 +2147,7 @@ watch(
       workingRangeError.value = "Invalid number format";
     }
   },
-  { immediate: true }, // Run immediately to validate initial value
+  { immediate: true } // Run immediately to validate initial value
 );
 
 onMounted(async () => {
@@ -2016,7 +2167,7 @@ watch(
     if (newAvatarId && newAvatarId !== oldAvatarId) {
       fetchAndSetAvatar();
     }
-  },
+  }
 );
 
 watch(
@@ -2043,7 +2194,7 @@ watch(
       }
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 
 watch(
@@ -2054,7 +2205,7 @@ watch(
       fetchReportingTo();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 </script>
 

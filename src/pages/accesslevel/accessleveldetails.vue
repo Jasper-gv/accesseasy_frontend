@@ -56,6 +56,26 @@
               @change="onToggleAccessType(item)"
             ></v-switch>
           </template>
+
+          <!-- Custom Assign Doors Group Cell -->
+          <template #cell-assignDoorsGroup="{ item }">
+            <div
+              v-if="
+                item.assignDoorsGroupNames &&
+                item.assignDoorsGroupNames.length > 0
+              "
+            >
+              <span
+                v-for="(doorName, index) in item.assignDoorsGroupNames"
+                :key="index"
+                class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1"
+              >
+                {{ doorName }}
+              </span>
+            </div>
+            <span v-else class="text-gray-400">No doors assigned</span>
+          </template>
+
           <!-- Action Column for Editing -->
           <template #actions="{ item }">
             <BaseButton
@@ -113,6 +133,69 @@ const headers = ref([
   },
 ]);
 
+// Fetch door names based on door IDs
+const fetchDoorNames = async (doorIds) => {
+  try {
+    if (!doorIds || doorIds.length === 0) return [];
+
+    // Convert single ID to array if needed
+    const ids = Array.isArray(doorIds) ? doorIds : [doorIds];
+
+    // Filter out null/undefined values
+    const validIds = ids.filter((id) => id != null);
+
+    if (validIds.length === 0) return [];
+
+    const fields = [
+      "id",
+      "doorNumber",
+      "doorName",
+      "doorType",
+      "tenant.tenantName",
+    ];
+
+    // Construct URL with query parameters
+    const url = new URL(`${import.meta.env.VITE_API_URL}/items/doors`);
+
+    // Add fields to query
+    fields.forEach((field) => {
+      url.searchParams.append("fields[]", field);
+    });
+
+    // Add filter for multiple door IDs
+    validIds.forEach((id, index) => {
+      url.searchParams.append(`filter[_or][${index}][id][_eq]`, id);
+    });
+
+    // Also filter by tenant ID
+    url.searchParams.append("filter[tenant][tenantId][_eq]", tenantId);
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("🚪 Door Data Response:", data);
+
+    if (!data || !data.data) {
+      return [];
+    }
+
+    // Return array of door names
+    return data.data.map((door) => door.doorName || `Door ${door.doorNumber}`);
+  } catch (error) {
+    console.error("🚨 Failed to fetch door names:", error);
+    return [];
+  }
+};
+
 // Fetch access levels from API
 const fetchAccessLevels = async () => {
   try {
@@ -166,19 +249,32 @@ const fetchAccessLevels = async () => {
       throw new Error("Unexpected response structure");
     }
 
-    accessLevels.value = data.data.map((item) => {
+    // Process access levels and fetch door names for each
+    const processedAccessLevels = [];
+
+    for (const item of data.data) {
       console.log("🧩 Mapping item:", item);
-      return {
+
+      let doorNames = [];
+
+      // If assignDoorsGroup exists, fetch door names
+      if (item.assignDoorsGroup) {
+        doorNames = await fetchDoorNames(item.assignDoorsGroup);
+      }
+
+      processedAccessLevels.push({
         id: item.id,
         assignDoorsGroup: item.assignDoorsGroup,
+        assignDoorsGroupNames: doorNames, // Add door names array
         name: item.accessLevelName,
         type: item.accessType,
         accessLevelNumber: item.accessLevelNumber,
         originalData: { ...item },
-      };
-    });
+      });
+    }
 
-    console.log("✅ Final Access Levels:", accessLevels.value);
+    accessLevels.value = processedAccessLevels;
+    console.log("✅ Final Access Levels with Door Names:", accessLevels.value);
   } catch (error) {
     console.error("🚨 Failed to fetch access levels:", error);
     showToast("Failed to load access levels. Please try again.", "error");

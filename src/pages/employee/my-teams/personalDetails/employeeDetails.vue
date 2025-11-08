@@ -696,7 +696,7 @@ const fetchEmployeeAggregateCount = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!countResponse.ok) {
@@ -734,10 +734,8 @@ const fetchEmployeeData = async () => {
         "assignedUser.email",
         "branchLocation.id",
         "branchLocation.locdetail",
-
         "department.id",
         "department.departmentName",
-
         "approver.id",
         "approver.first_name",
       ],
@@ -762,7 +760,7 @@ const fetchEmployeeData = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -788,7 +786,7 @@ const fetchEmployeeData = async () => {
         }
         employeeWithAvatar.approverName = employee.approver?.first_name || "-";
         return employeeWithAvatar;
-      }),
+      })
     );
   } catch (error) {
     console.error("Error fetching employee data:", error);
@@ -871,13 +869,13 @@ const confirmDelete = async () => {
           body: JSON.stringify({
             keys: userIds,
           }),
-        },
+        }
       );
 
       if (!usersResponse.ok) {
         const errorData = await usersResponse.json();
         throw new Error(
-          `Failed to delete users: ${errorData.errors?.[0]?.message || "Unknown error"} (Status: ${usersResponse.status})`,
+          `Failed to delete users: ${errorData.errors?.[0]?.message || "Unknown error"} (Status: ${usersResponse.status})`
         );
       }
     }
@@ -895,13 +893,13 @@ const confirmDelete = async () => {
           body: JSON.stringify({
             keys: employeeIds,
           }),
-        },
+        }
       );
 
       if (!personalResponse.ok) {
         const errorData = await personalResponse.json();
         throw new Error(
-          `Failed to delete employees: ${errorData.errors?.[0]?.message || "Unknown error"} (Status: ${personalResponse.status})`,
+          `Failed to delete employees: ${errorData.errors?.[0]?.message || "Unknown error"} (Status: ${personalResponse.status})`
         );
       }
     }
@@ -1054,7 +1052,7 @@ watch(
       });
     }
   },
-  { immediate: false },
+  { immediate: false }
 );
 </script>
 

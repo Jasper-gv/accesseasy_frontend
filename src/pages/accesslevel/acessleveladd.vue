@@ -3,7 +3,8 @@
     <v-card-title class="d-flex align-center">
       <span class="text-h5">{{ isEditing ? "Edit" : "Add" }} Access Level</span>
       <v-spacer></v-spacer>
-      <!-- Access Type Toggle in Header -->
+
+      <!-- Access Type Toggle -->
       <div class="d-flex align-center">
         <span class="mr-2">Access Type:</span>
         <v-switch
@@ -18,8 +19,8 @@
     </v-card-title>
 
     <v-card-text>
-      <!-- Access Level Name Field  -->
-      <v-row dense class="mb-4">
+      <!-- Access Level Name Field with Save/Cancel Buttons -->
+      <v-row dense class="mb-6 align-center">
         <v-col cols="12" sm="6">
           <v-text-field
             label="Access Level Name"
@@ -30,298 +31,256 @@
             :rules="[requiredRule]"
           ></v-text-field>
         </v-col>
+        <v-col cols="12" sm="6" class="d-flex justify-end">
+          <div class="d-flex align-center">
+            <BaseButton
+              variant="ghost"
+              text="Cancel"
+              @click="$emit('cancel')"
+              class="mr-2"
+            ></BaseButton>
+            <BaseButton
+              variant="primary"
+              text="Save"
+              :loading="isSaving"
+              @click="handleSave"
+            ></BaseButton>
+          </div>
+        </v-col>
       </v-row>
 
-      <v-row dense>
-        <!-- Left Sidebar for Tabs -->
-        <v-col cols="3">
-          <v-list nav density="compact">
-            <v-list-item
-              @click="currentTab = 'timing'"
-              :active="currentTab === 'timing'"
-              rounded="xl"
-              value="timing"
-            >
-              <v-list-item-title>Access Timing</v-list-item-title>
-            </v-list-item>
-            <v-list-item
-              @click="currentTab = 'doors'"
-              :active="currentTab === 'doors'"
-              rounded="xl"
-              value="doors"
-            >
-              <v-list-item-title>Doors</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-col>
+      <!-- Access Timing Section -->
+      <div class="section-title mb-4">
+        <h3 class="text-h6">Access Timing</h3>
+      </div>
 
-        <!-- Right Content Area -->
-        <v-col cols="9">
-          <v-window v-model="currentTab">
-            <!-- Access Timing Tab -->
-            <v-window-item value="timing">
-              <v-card variant="flat" class="mt-2">
-                <v-card-text>
-                  <!-- Current Active Option Message - MOVED TO TOP -->
-                  <v-alert
-                    v-if="
-                      access24Hours ||
-                      accessTiming ||
-                      maxWorkHours ||
-                      holidayAccess
-                    "
-                    class="mb-4"
-                    density="compact"
-                    type="info"
-                    variant="tonal"
+      <v-card class="mb-6" variant="flat">
+        <v-card-text class="pa-4">
+          <!-- Current Active Option Message -->
+          <v-alert
+            v-if="
+              access24Hours || accessTiming || maxWorkHours || holidayAccess
+            "
+            class="mb-4"
+            density="compact"
+            type="info"
+            variant="tonal"
+          >
+            Current active option:
+            <strong class="ml-1">
+              {{ access24Hours ? "24 Hours Access" : "" }}
+              {{ accessTiming ? "Time Zone" : "" }}
+              {{ maxWorkHours ? "Maximum Work Hours" : "" }}
+              {{ holidayAccess ? "Holiday Access" : "" }}
+            </strong>
+          </v-alert>
+
+          <!-- 24 Hours Access -->
+          <v-row dense class="mb-4 align-center">
+            <v-col cols="12" sm="5">
+              <v-row align="center" no-gutters>
+                <v-col>
+                  <span>24 Hours Access</span>
+                  <v-chip
+                    v-if="access24Hours"
+                    size="small"
+                    color="green"
+                    class="ml-2"
                   >
-                    <!-- <v-icon small class="mr-2"></v-icon> -->
-                    Current active option:
-                    <strong class="ml-1">
-                      {{ access24Hours ? "24 Hours Access" : "" }}
-                      {{ accessTiming ? "Time Zone" : "" }}
-                      {{ maxWorkHours ? "Maximum Work Hours" : "" }}
-                      {{ holidayAccess ? "Holiday Access" : "" }}
-                    </strong>
-                  </v-alert>
+                    ACTIVE
+                  </v-chip>
+                  <v-chip v-else size="small" color="grey" class="ml-2">
+                    INACTIVE
+                  </v-chip>
+                </v-col>
+                <v-col cols="auto" class="ml-3">
+                  <v-switch
+                    v-model="access24Hours"
+                    :disabled="isAnyOtherTimingOptionActive('24Hours')"
+                    hide-details
+                    color="primary"
+                    inset
+                    density="compact"
+                    @change="handle24HoursToggle"
+                  ></v-switch>
+                </v-col>
+              </v-row>
+            </v-col>
+          </v-row>
 
-                  <!-- 24 Hours Access -->
-                  <v-row dense class="mb-4">
-                    <v-col cols="12" sm="5">
-                      <v-row align="center" no-gutters>
-                        <v-col>
-                          <span>24 Hours Access</span>
-                          <v-chip
-                            v-if="access24Hours"
-                            size="small"
-                            color="green"
-                            class="ml-2"
-                          >
-                            ACTIVE
-                          </v-chip>
-                          <v-chip v-else size="small" color="grey" class="ml-2">
-                            INACTIVE
-                          </v-chip>
-                        </v-col>
-                        <v-col cols="auto" class="ml-3">
-                          <v-switch
-                            v-model="access24Hours"
-                            :disabled="isAnyOtherTimingOptionActive('24Hours')"
-                            hide-details
-                            color="primary"
-                            inset
-                            density="compact"
-                            @change="handle24HoursToggle"
-                          ></v-switch>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
+          <!-- Time Zone -->
+          <v-row dense class="mb-4 align-center">
+            <v-col cols="12" sm="5">
+              <v-row align="center" no-gutters>
+                <v-col>
+                  <span>Time Zone</span>
+                  <v-chip
+                    v-if="accessTiming"
+                    size="small"
+                    color="green"
+                    class="ml-2"
+                  >
+                    ACTIVE
+                  </v-chip>
+                  <v-chip v-else size="small" color="grey" class="ml-2">
+                    INACTIVE
+                  </v-chip>
+                </v-col>
+                <v-col cols="auto" class="ml-3">
+                  <v-switch
+                    v-model="accessTiming"
+                    :disabled="isAnyOtherTimingOptionActive('timeZone')"
+                    hide-details
+                    color="primary"
+                    inset
+                    density="compact"
+                    @change="handleAccessTimingToggle"
+                  ></v-switch>
+                </v-col>
+              </v-row>
+            </v-col>
+            <v-col cols="12" sm="4" v-if="accessTiming">
+              <v-select
+                label="Select Time Zone"
+                :items="timeOptions"
+                :loading="loadingTimeSchedules"
+                variant="outlined"
+                dense
+                v-model="selectedTimeSchedule"
+                class="small-select"
+                :rules="accessTiming ? [requiredRule] : []"
+              ></v-select>
+            </v-col>
+          </v-row>
 
-                  <!-- Limit Access Time -->
-                  <v-row dense class="mb-4">
-                    <v-col cols="12" sm="5">
-                      <v-row align="center" no-gutters>
-                        <v-col>
-                          <span>Time Zone</span>
-                          <v-chip
-                            v-if="accessTiming"
-                            size="small"
-                            color="green"
-                            class="ml-2"
-                          >
-                            ACTIVE
-                          </v-chip>
-                          <v-chip v-else size="small" color="grey" class="ml-2">
-                            INACTIVE
-                          </v-chip>
-                        </v-col>
-                        <v-col cols="auto" class="ml-3">
-                          <v-switch
-                            v-model="accessTiming"
-                            :disabled="isAnyOtherTimingOptionActive('timeZone')"
-                            hide-details
-                            color="primary"
-                            inset
-                            density="compact"
-                            @change="handleAccessTimingToggle"
-                          ></v-switch>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                    <v-col cols="12" sm="4" v-if="accessTiming">
-                      <v-select
-                        label="Select Time Zone"
-                        :items="timeOptions"
-                        :loading="loadingTimeSchedules"
-                        variant="outlined"
-                        dense
-                        v-model="selectedTimeSchedule"
-                        class="small-select"
-                        :rules="accessTiming ? [requiredRule] : []"
-                      ></v-select>
-                    </v-col>
-                  </v-row>
+          <!-- Max Work Hours -->
+          <v-row dense class="mb-4 align-center">
+            <v-col cols="12" sm="5">
+              <v-row align="center" no-gutters>
+                <v-col>
+                  <span>Max Work Hours</span>
+                  <v-chip
+                    v-if="maxWorkHours"
+                    size="small"
+                    color="green"
+                    class="ml-2"
+                  >
+                    ACTIVE
+                  </v-chip>
+                  <v-chip v-else size="small" color="grey" class="ml-2">
+                    INACTIVE
+                  </v-chip>
+                </v-col>
+                <v-col cols="auto">
+                  <v-switch
+                    v-model="maxWorkHours"
+                    :disabled="isAnyOtherTimingOptionActive('maxWorkHours')"
+                    hide-details
+                    color="primary"
+                    inset
+                    density="compact"
+                    @change="handleMaxWorkHoursToggle"
+                  ></v-switch>
+                </v-col>
+              </v-row>
+            </v-col>
+            <v-col cols="12" sm="4" v-if="maxWorkHours">
+              <v-text-field
+                label="Max Hours"
+                placeholder="hh:mm"
+                variant="outlined"
+                dense
+                v-model="maxWorkHoursValue"
+                class="small-field"
+                :rules="maxWorkHours ? [requiredRule, timeFormatRule] : []"
+              ></v-text-field>
+            </v-col>
+          </v-row>
 
-                  <!-- Max Work Hours -->
-                  <v-row dense>
-                    <v-col cols="12" sm="5">
-                      <v-row align="center" no-gutters>
-                        <v-col>
-                          <span>Max Work Hours</span>
-                          <v-chip
-                            v-if="maxWorkHours"
-                            size="small"
-                            color="green"
-                            class="ml-2"
-                          >
-                            ACTIVE
-                          </v-chip>
-                          <v-chip v-else size="small" color="grey" class="ml-2">
-                            INACTIVE
-                          </v-chip>
-                        </v-col>
-                        <v-col cols="auto">
-                          <v-switch
-                            v-model="maxWorkHours"
-                            :disabled="
-                              isAnyOtherTimingOptionActive('maxWorkHours')
-                            "
-                            hide-details
-                            color="primary"
-                            inset
-                            density="compact"
-                            @change="handleMaxWorkHoursToggle"
-                          ></v-switch>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                    <v-col cols="12" sm="4" v-if="maxWorkHours">
-                      <v-text-field
-                        label="Max Hours"
-                        placeholder="hh:mm"
-                        variant="outlined"
-                        dense
-                        v-model="maxWorkHoursValue"
-                        class="small-field"
-                        :rules="
-                          maxWorkHours ? [requiredRule, timeFormatRule] : []
-                        "
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
+          <!-- Holiday Access -->
+          <v-row dense class="align-center">
+            <v-col cols="12" sm="5">
+              <v-row align="center" no-gutters>
+                <v-col>
+                  <span>Holiday Access</span>
+                  <v-chip
+                    v-if="holidayAccess"
+                    size="small"
+                    color="green"
+                    class="ml-2"
+                  >
+                    ACTIVE
+                  </v-chip>
+                  <v-chip v-else size="small" color="grey" class="ml-2">
+                    INACTIVE
+                  </v-chip>
+                </v-col>
+                <v-col cols="auto">
+                  <v-switch
+                    v-model="holidayAccess"
+                    :disabled="isAnyOtherTimingOptionActive('holidayAccess')"
+                    hide-details
+                    color="primary"
+                    inset
+                    density="compact"
+                    @change="handleHolidayAccessToggle"
+                  ></v-switch>
+                </v-col>
+              </v-row>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
 
-                  <!-- Holiday Access -->
-                  <v-row dense>
-                    <v-col cols="12" sm="5">
-                      <v-row align="center" no-gutters>
-                        <v-col>
-                          <span>Holiday Access</span>
-                          <v-chip
-                            v-if="holidayAccess"
-                            size="small"
-                            color="green"
-                            class="ml-2"
-                          >
-                            ACTIVE
-                          </v-chip>
-                          <v-chip v-else size="small" color="grey" class="ml-2">
-                            INACTIVE
-                          </v-chip>
-                        </v-col>
-                        <v-col cols="auto">
-                          <v-switch
-                            v-model="holidayAccess"
-                            :disabled="
-                              isAnyOtherTimingOptionActive('holidayAccess')
-                            "
-                            hide-details
-                            color="primary"
-                            inset
-                            density="compact"
-                            @change="handleHolidayAccessToggle"
-                          ></v-switch>
-                        </v-col>
-                      </v-row>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
-            </v-window-item>
+      <!-- Doors Section -->
+      <div class="section-title mb-4">
+        <h3 class="text-h6">Doors</h3>
+      </div>
 
-            <!-- Doors Tab -->
-            <v-window-item value="doors">
-              <v-card variant="flat" class="mt-2">
-                <v-card-text>
-                  <v-row dense>
-                    <v-col cols="12">
-                      <v-select
-                        v-model="selectedDoors"
-                        label="Door List"
-                        :items="filteredDoorOptions"
-                        item-title="doorName"
-                        item-value="id"
-                        variant="outlined"
-                        multiple
-                        chips
-                        dense
-                        return-object
-                        :loading="loadingDoors"
-                      >
-                        <!-- Custom search input slot -->
-                        <template v-slot:prepend-item>
-                          <v-text-field
-                            v-model="doorSearch"
-                            label="Search Doors"
-                            variant="outlined"
-                            dense
-                            class="ma-2"
-                            @input="filterDoors"
-                          ></v-text-field>
-                          <v-divider></v-divider>
-                        </template>
-                        <!-- Display selected doors as chips -->
-                        <template v-slot:selection="{ item, index }">
-                          <v-chip
-                            v-if="index < 3"
-                            color="primary"
-                            small
-                            class="ma-1"
-                          >
-                            {{ item.title || item.doorName }}
-                          </v-chip>
-                          <span
-                            v-if="index === 3"
-                            class="text-grey text-caption"
-                          >
-                            (+{{ selectedDoors.length - 3 }} more)
-                          </span>
-                        </template>
-                      </v-select>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
-            </v-window-item>
-          </v-window>
-        </v-col>
-      </v-row>
+      <v-card variant="flat">
+        <v-card-text class="pa-4">
+          <v-row dense>
+            <v-col cols="12">
+              <v-select
+                v-model="selectedDoors"
+                label="Door List"
+                :items="filteredDoorOptions"
+                item-title="doorName"
+                item-value="id"
+                variant="outlined"
+                multiple
+                chips
+                dense
+                return-object
+                :loading="loadingDoors"
+              >
+                <!-- Custom search input slot -->
+                <template v-slot:prepend-item>
+                  <v-text-field
+                    v-model="doorSearch"
+                    label="Search Doors"
+                    variant="outlined"
+                    dense
+                    class="ma-2"
+                    @input="filterDoors"
+                  ></v-text-field>
+                  <v-divider></v-divider>
+                </template>
+                <!-- Display selected doors as chips -->
+                <template v-slot:selection="{ item, index }">
+                  <v-chip v-if="index < 3" color="primary" small class="ma-1">
+                    {{ item.title || item.doorName }}
+                  </v-chip>
+                  <span v-if="index === 3" class="text-grey text-caption">
+                    (+{{ selectedDoors.length - 3 }} more)
+                  </span>
+                </template>
+              </v-select>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
     </v-card-text>
-
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <BaseButton
-        variant="ghost"
-        text="Cancel"
-        @click="$emit('cancel')"
-      ></BaseButton>
-      <BaseButton
-        variant="primary"
-        text="Save"
-        :loading="isSaving"
-        @click="handleSave"
-      ></BaseButton>
-    </v-card-actions>
   </v-card>
 </template>
 
@@ -347,7 +306,6 @@ const props = defineProps({
 
 const emit = defineEmits(["cancel", "saved"]);
 
-const currentTab = ref("timing");
 const accessLevelName = ref("");
 const accessType = ref(true); // Default value is true
 const access24Hours = ref(false);
@@ -756,5 +714,10 @@ watch(
 .small-select :deep(.v-select__selection-text),
 .small-field :deep(.v-input__control) {
   font-size: 14px;
+}
+
+.section-title {
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
 }
 </style>

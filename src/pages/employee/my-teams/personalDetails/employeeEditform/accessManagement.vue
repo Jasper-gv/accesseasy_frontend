@@ -179,6 +179,7 @@
               </div>
             </div>
 
+            <!-- In the doors-info section -->
             <div v-if="activeTab === 'doors'" class="doors-info">
               <div
                 v-if="
@@ -193,7 +194,7 @@
               <div v-else class="doors-grid">
                 <div
                   v-for="door in accessLevelDetails.assignedDoors"
-                  :key="door.doors_id.doorNumber"
+                  :key="door.doors_id.id"
                   class="door-item"
                 >
                   <v-icon color="primary" size="20" class="mr-2"
@@ -204,6 +205,7 @@
                       {{ door.doors_id.doorNumber }}
                     </div>
                     <div class="door-name">{{ door.doors_id.doorName }}</div>
+                    <div class="door-type">{{ door.doors_id.doorType }}</div>
                   </div>
                 </div>
               </div>
@@ -441,7 +443,7 @@ const hasChanges = computed(() => {
 
   const accessToggleChanged = accessOn.value !== originalAccessOn.value;
   const cardsChanged = assignedCards.value.some(
-    (card) => card.isNew || card.isChanged,
+    (card) => card.isNew || card.isChanged
   );
   const cardsRemoved = removedCardIds.value.length > 0;
 
@@ -466,6 +468,7 @@ const fetchEmployeeData = async () => {
       "assignedAccessLevel.holidays",
       "assignedAccessLevel.maxWorkHours",
       "assignedAccessLevel.workingHours",
+      "assignedAccessLevel.assignDoorsGroup",
       "id",
       "accessOn",
     ];
@@ -496,7 +499,7 @@ const fetchEmployeeData = async () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        },
+        }
       );
 
       if (cardsResponse.ok) {
@@ -540,12 +543,12 @@ const fetchAccessLevels = async () => {
   try {
     const tenantId = currentUserTenant.getTenantId();
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/accesslevels?filter[tenant][tenantId][_eq]=${tenantId}&fields=*,assignedDoors.doors_id.*`,
+      `${import.meta.env.VITE_API_URL}/items/accesslevels?filter[tenant][tenantId][_eq]=${tenantId}&fields=*,assignDoorsGroup`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
     const data = await response.json();
     accessLevelOptions.value = data.data.map((level) => ({
@@ -557,7 +560,7 @@ const fetchAccessLevels = async () => {
       holidays: level.holidays,
       maxWorkHours: level.maxWorkHours,
       workingHours: level.workingHours,
-      assignedDoors: level.assignedDoors,
+      assignDoorsGroup: level.assignDoorsGroup,
     }));
   } catch (error) {
     console.error("Error fetching access levels:", error);
@@ -572,12 +575,12 @@ const handleAccessLevelChange = async (value) => {
 
   try {
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/accesslevels/${value.id}?fields=*,assignedDoors.doors_id.*`,
+      `${import.meta.env.VITE_API_URL}/items/accesslevels/${value.id}?fields=*,assignDoorsGroup`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -585,13 +588,42 @@ const handleAccessLevelChange = async (value) => {
     }
 
     const data = await response.json();
+
+    // Fetch door details for the assigned door IDs
+    let assignedDoors = [];
+    if (data.data.assignDoorsGroup && data.data.assignDoorsGroup.length > 0) {
+      const doorIds = data.data.assignDoorsGroup.join(",");
+      const doorsResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/doors?filter[id][_in]=${doorIds}&fields=id,doorNumber,doorName,doorType,doorsConfigure,tenant.tenantName`,
+        {
+          headers: {
+            Authorization: `Bearer ${authService.getToken()}`,
+          },
+        }
+      );
+
+      if (doorsResponse.ok) {
+        const doorsData = await doorsResponse.json();
+        assignedDoors = doorsData.data || [];
+      }
+    }
+
     accessLevelDetails.value = {
       ...data.data,
       _24hrs: data.data._24hrs,
       holidays: data.data.holidays,
       maxWorkHours: data.data.maxWorkHours,
       workingHours: data.data.workingHours,
-      assignedDoors: data.data.assignedDoors,
+      assignedDoors: assignedDoors.map((door) => ({
+        doors_id: {
+          id: door.id,
+          doorNumber: door.doorNumber,
+          doorName: door.doorName,
+          doorType: door.doorType,
+          doorsConfigure: door.doorsConfigure,
+          tenant: door.tenant,
+        },
+      })),
     };
   } catch (error) {
     console.error("Error fetching access level details:", error);
@@ -626,7 +658,7 @@ const updateAccessCatagory = async () => {
         cardAccessLevelHex: convertToCardAccessHex(
           card.rfidCard,
           cardAccess,
-          accessLevelNumber,
+          accessLevelNumber
         ),
         employeeId: props.id,
       };
@@ -652,7 +684,7 @@ const updateAccessCatagory = async () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(cardPayload),
-          },
+          }
         );
       }
     }
@@ -666,7 +698,7 @@ const updateAccessCatagory = async () => {
           headers: {
             Authorization: `Bearer ${authService.getToken()}`,
           },
-        },
+        }
       );
     }
 
@@ -679,14 +711,14 @@ const updateAccessCatagory = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      },
+      }
     );
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("API Error response:", errorData);
       throw new Error(
-        errorData.errors?.[0]?.message || "Failed to update access category",
+        errorData.errors?.[0]?.message || "Failed to update access category"
       );
     }
 
@@ -719,7 +751,7 @@ const addNewCard = async () => {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -757,7 +789,7 @@ const updateCardAccess = async (card) => {
     card.isChanged = true;
   }
   showSuccessMessage(
-    `Card ${card.rfidCard} ${card.enabled ? "enabled" : "disabled"} successfully!`,
+    `Card ${card.rfidCard} ${card.enabled ? "enabled" : "disabled"} successfully!`
   );
 };
 
@@ -780,7 +812,7 @@ const handleCardSwipe = (event) => {
 
 const processCardData = (cardData) => {
   const existingCard = assignedCards.value.find(
-    (card) => card.rfidCard === cardData,
+    (card) => card.rfidCard === cardData
   );
   if (existingCard) {
     showErrorMessage("This card is already assigned");
@@ -799,7 +831,7 @@ const removeCard = async (cardId) => {
     }
 
     assignedCards.value = assignedCards.value.filter(
-      (card) => card.id !== cardId,
+      (card) => card.id !== cardId
     );
 
     showSuccessMessage(`Card ${cardToRemove.rfidCard} removed successfully!`);
@@ -814,12 +846,12 @@ const handleAccessToggle = async () => {
   }));
 
   showSuccessMessage(
-    `Access ${accessOn.value ? "enabled" : "disabled"} successfully! All cards have been ${accessOn.value ? "enabled" : "disabled"}.`,
+    `Access ${accessOn.value ? "enabled" : "disabled"} successfully! All cards have been ${accessOn.value ? "enabled" : "disabled"}.`
   );
 };
 
 const redirectToAccessLevelCategory = () => {
-  router.push("/deviceManager/accesslevelCatagory");
+  router.push("/configuration/accesslevel-configurator");
 };
 
 onMounted(() => {
@@ -831,7 +863,7 @@ watch(
   () => props.id,
   () => {
     fetchEmployeeData();
-  },
+  }
 );
 
 onUnmounted(() => {

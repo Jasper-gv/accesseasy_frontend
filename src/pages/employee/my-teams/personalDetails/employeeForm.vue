@@ -885,14 +885,14 @@
             ></v-progress-circular>
             <p>Loading access management settings...</p>
           </div>
-          <div v-else>
-            <AccessManagement
-              ref="accessManagementRef"
-              :employee-data="formData"
-              :is-create-mode="true"
-              @update:employee-data="handleAccessManagementUpdate"
-            />
-          </div>
+          <AccessManagement
+            ref="accessManagementRef"
+            :employee-data="formData"
+            :is-create-mode="true"
+            :access-level-options="accessLevelOptions"
+            :tenant-id="tenantId"
+            @update:employee-data="handleAccessManagementUpdate"
+          />
         </div>
         <!-- App Access -->
 
@@ -1251,6 +1251,7 @@ const searchApprover = ref("");
 const showApproverFilters = ref(false);
 const approverOptions = ref([]);
 const userRole = ref(authService.getUserRole() || "Employee");
+const accessLevelOptions = ref([]);
 
 const leaveColumns = ref([
   { key: "leaveName", label: "Leave Type", width: "200px" },
@@ -1428,7 +1429,30 @@ const loadGovernmentTabData = async () => {
   // Load government IDs data
   console.log("Loading government data...");
 };
+const loadAccessManagementTabData = async () => {
+  try {
+    const resolvedTenantId = await resolveTenantId();
 
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/accesslevels?filter[tenant][tenantId][_eq]=${resolvedTenantId}&fields=accessLevelName,accessType,_24hrs,maxWorkHours,workingHours,holidays,assignedDoors.doors_id.doorNumber,assignedDoors.doors_id.doorName`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to fetch access levels");
+
+    const data = await response.json();
+    accessLevelOptions.value = data.data || [];
+
+    console.log("Access levels loaded:", accessLevelOptions.value);
+  } catch (error) {
+    console.error("Error loading access management data:", error);
+    showErrorMessage("Failed to load access management data");
+  }
+};
 const loadCompanyTabData = async () => {
   // Load company details data
   await Promise.all([

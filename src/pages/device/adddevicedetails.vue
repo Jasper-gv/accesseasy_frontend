@@ -107,10 +107,10 @@
                 <v-card-text class="pa-4">
                   <v-form @submit.prevent="saveDoor(doorTab.value)">
                     <!-- First Row -->
-                    <v-row class="mb-4">
+                    <v-row>
                       <v-col cols="4">
                         <v-card outlined elevation="0" class="h-100">
-                          <v-card-text class="pa-4">
+                          <v-card-text>
                             <div class="mb-2 font-weight-medium">
                               Select Door
                             </div>
@@ -122,6 +122,9 @@
                               variant="outlined"
                               clearable
                               hide-details
+                              @update:model-value="
+                                onDoorSelectionChange(doorTab.value)
+                              "
                             ></v-select>
                           </v-card-text>
                         </v-card>
@@ -141,6 +144,13 @@
                               type="number"
                               variant="outlined"
                               hide-details
+                              min="0"
+                              @input="
+                                validatePositiveNumber(
+                                  doorTab.value,
+                                  'dotlDuration'
+                                )
+                              "
                             ></v-text-field>
                           </v-card-text>
                         </v-card>
@@ -162,6 +172,16 @@
                                   type="number"
                                   variant="outlined"
                                   hide-details
+                                  min="0"
+                                  :disabled="
+                                    !form.doors[doorTab.value].alarmEnabled
+                                  "
+                                  @input="
+                                    validatePositiveNumber(
+                                      doorTab.value,
+                                      'dotlDelay'
+                                    )
+                                  "
                                 ></v-text-field>
                               </v-col>
                               <v-col cols="5" class="text-right">
@@ -173,6 +193,9 @@
                                   color="primary"
                                   inset
                                   hide-details
+                                  @update:model-value="
+                                    onAlarmToggle(doorTab.value)
+                                  "
                                 ></v-switch>
                               </v-col>
                             </v-row>
@@ -182,7 +205,7 @@
                     </v-row>
 
                     <!-- Second Row -->
-                    <v-row>
+                    <v-row class="mb-14">
                       <v-col cols="4">
                         <v-card outlined elevation="0" class="h-100">
                           <v-card-text class="pa-4">
@@ -370,12 +393,32 @@ const allAssignedDoorIds = computed(() => {
 const getAvailableDoorsForTab = (currentTab) => {
   if (!props.availableDoors) return [];
 
-  return props.availableDoors.filter((door) => {
-    const isAssigned = allAssignedDoorIds.value.has(door.id);
-    const isAssignedToCurrentTab =
-      form.doors[currentTab]?.selectedDoor === door.id;
+  const currentTabSelectedDoor = form.doors[currentTab]?.selectedDoor;
 
-    return !isAssigned || isAssignedToCurrentTab;
+  return props.availableDoors.filter((door) => {
+    // Always include the door currently selected in this tab
+    if (door.id === currentTabSelectedDoor) {
+      return true;
+    }
+
+    // Check if door is assigned to any OTHER tab in the current form
+    const isAssignedToOtherTab = Object.entries(form.doors).some(
+      ([tabKey, doorConfig]) => {
+        return tabKey !== currentTab && doorConfig.selectedDoor === door.id;
+      }
+    );
+
+    // Check if door is assigned to other devices (from props)
+    const isAssignedToOtherDevice = props.availableDoors.some(
+      (availableDoor) =>
+        availableDoor.id === door.id &&
+        availableDoor.doorsConfigure &&
+        availableDoor.doorsConfigure.deviceId &&
+        availableDoor.doorsConfigure.deviceId !==
+          (props.editingDevice?.id || "")
+    );
+
+    return !isAssignedToOtherTab && !isAssignedToOtherDevice;
   });
 };
 
@@ -461,8 +504,8 @@ const resetDoorConfigurations = (deviceType) => {
     dotlDelay: "",
     alarmEnabled: false,
     passageStatus: false,
-    passageMode: "limittime", // Changed default to "limittime"
-    scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
+    passageMode: "limittime",
+    scheduleTime: null,
   };
 
   Object.keys(form.doors).forEach((key) => {
@@ -525,8 +568,8 @@ const onDoorSelectionChange = (doorKey) => {
       dotlDelay: "",
       alarmEnabled: false,
       passageStatus: false,
-      passageMode: "limittime", // Changed default to "limittime"
-      scheduleTime: null, // Changed from selectedTimeSlot to scheduleTime
+      passageMode: "limittime",
+      scheduleTime: null,
     };
   }
 };
@@ -538,6 +581,21 @@ const onPassageStatusChange = (doorKey) => {
     if (timeSlots.value.length === 0 && props.tenantId) {
       loadTimeSlots();
     }
+  }
+};
+
+// Handle alarm toggle - clear delay value when alarm is disabled
+const onAlarmToggle = (doorKey) => {
+  if (!form.doors[doorKey].alarmEnabled) {
+    form.doors[doorKey].dotlDelay = "";
+  }
+};
+
+// Validate positive numbers (no negative values)
+const validatePositiveNumber = (doorKey, field) => {
+  const value = form.doors[doorKey][field];
+  if (value < 0) {
+    form.doors[doorKey][field] = "";
   }
 };
 
@@ -584,6 +642,11 @@ const mapDoorConfigToBackend = (doorConfig, deviceId) => {
           exitTime: selectedTimeSlot.exitTime,
         };
       }
+    } else {
+      scheduleTimeValue = {
+        entryTime: "00:00",
+        exitTime: "23:59",
+      };
     }
   }
 
@@ -593,7 +656,7 @@ const mapDoorConfigToBackend = (doorConfig, deviceId) => {
     delayTimer: doorConfig.alarmEnabled ? doorConfig.dotlDelay || null : null,
     sensorMode: doorConfig.sensorStatus,
     passiveMode: doorConfig.passageStatus,
-    scheduleTime: scheduleTimeValue, // ← Now this is always an object with entryTime/exitTime or null
+    scheduleTime: scheduleTimeValue,
   };
 };
 
@@ -620,17 +683,48 @@ const validateDoorConfiguration = (doorKey) => {
     return false;
   }
 
-  if (doorConfig.passageStatus && !doorConfig.scheduleTime) {
-    showToast(
-      `Please select a schedule time for ${doorKey.toUpperCase()}`,
-      "error"
-    );
-    return false;
-  }
-
   return true;
 };
+const clearDoorConfiguration = async (doorId) => {
+  if (!doorId) return;
 
+  try {
+    const payload = {
+      doorsConfigure: null, // Clear the doorsConfigure data
+    };
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/doors/${doorId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to clear configuration for door ${doorId}`);
+      return false;
+    }
+
+    console.log(`Successfully cleared configuration for door ${doorId}`);
+    return true;
+  } catch (error) {
+    console.error(`Error clearing door configuration for ${doorId}:`, error);
+    return false;
+  }
+};
+
+// Get previously assigned doors (for editing scenario)
+const getPreviouslyAssignedDoors = () => {
+  if (!props.editingDevice || !props.editingDevice.selectedDoors) {
+    return new Set();
+  }
+  return new Set(props.editingDevice.selectedDoors);
+};
 // Save device by making API call
 const saveDevice = async () => {
   if (!formRef.value) {
@@ -665,9 +759,11 @@ const saveDevice = async () => {
 
   isSaving.value = true;
   try {
-    const selectedDoors = doorTabs.value
+    // Get current selected doors
+    const currentSelectedDoors = doorTabs.value
       .map((tab) => form.doors[tab.value].selectedDoor)
       .filter(Boolean);
+
     const branchValue = form.branch === "" ? null : form.branch;
     const devicePayload = {
       branchDetails: branchValue,
@@ -677,13 +773,40 @@ const saveDevice = async () => {
       tenant: props.tenantId,
       connectionStatus: form.connectionStatus,
       controllerStatus: form.controllerStatus,
-      selectedDoors: selectedDoors,
+      selectedDoors: currentSelectedDoors,
     };
 
     let deviceResponse;
     let deviceId;
 
     if (props.editingDevice) {
+      // For editing: Handle door removal first
+      const previouslyAssignedDoors = getPreviouslyAssignedDoors();
+      const currentlySelectedDoorsSet = new Set(currentSelectedDoors);
+
+      // Find doors that were previously assigned but are no longer selected
+      const removedDoors = [...previouslyAssignedDoors].filter(
+        (doorId) => !currentlySelectedDoorsSet.has(doorId)
+      );
+
+      // Clear configuration for removed doors
+      if (removedDoors.length > 0) {
+        console.log("Clearing configuration for removed doors:", removedDoors);
+        const clearPromises = removedDoors.map((doorId) =>
+          clearDoorConfiguration(doorId)
+        );
+
+        const clearResults = await Promise.all(clearPromises);
+        const failedClears = clearResults.filter((success) => !success);
+
+        if (failedClears.length > 0) {
+          console.warn(
+            `Failed to clear configuration for ${failedClears.length} doors`
+          );
+        }
+      }
+
+      // Update device
       deviceResponse = await fetch(
         `${import.meta.env.VITE_API_URL}/items/controllers/${props.editingDevice.id}`,
         {
@@ -699,7 +822,6 @@ const saveDevice = async () => {
     } else {
       // Create new device
       devicePayload.id = form.serialNumber;
-
       deviceResponse = await fetch(
         `${import.meta.env.VITE_API_URL}/items/controllers`,
         {
@@ -726,7 +848,7 @@ const saveDevice = async () => {
       deviceId = deviceResult.data.id;
     }
 
-    // ==================== UPDATED DOOR UPDATE LOGIC ====================
+    // Update door configurations for currently selected doors
     const doorUpdatePromises = doorTabs.value
       .map((doorTab) => {
         const doorConfig = form.doors[doorTab.value];
@@ -756,7 +878,7 @@ const saveDevice = async () => {
           }
         );
       })
-      .filter(Boolean); // Remove null entries (unselected doors)
+      .filter(Boolean);
 
     // Only run door updates if there are any
     if (doorUpdatePromises.length > 0) {
@@ -768,7 +890,6 @@ const saveDevice = async () => {
         throw new Error(`Failed to update ${failedDoors.length} door(s)`);
       }
     }
-    // =====================================================================
 
     // Emit success event
     emit("save-success", {
@@ -782,6 +903,11 @@ const saveDevice = async () => {
         }))
         .filter((door) => door.doorId),
       isEdit: !!props.editingDevice,
+      removedDoors: props.editingDevice
+        ? [...getPreviouslyAssignedDoors()].filter(
+            (doorId) => !currentSelectedDoors.includes(doorId)
+          )
+        : [],
     });
 
     showToast(
