@@ -1,5 +1,5 @@
 <template>
-  <div class="mobile-face-embedding-container">
+  <div class="mobile-finger-data-container">
     <div class="main-content">
       <DataTableWrapper
         v-model:searchQuery="search"
@@ -36,9 +36,9 @@
 
         <div v-else-if="error">
           <ErrorState
-            title="Unable to load mobile face embeddings"
+            title="Unable to load mobile finger data"
             :message="error"
-            @retry="fetchMobileFaceData"
+            @retry="fetchFingerData"
           />
         </div>
 
@@ -47,12 +47,12 @@
             :title="
               search
                 ? 'No matching records found'
-                : 'No mobile face embeddings found'
+                : 'No mobile finger data found'
             "
             :message="
               search
                 ? 'Try adjusting your search term'
-                : 'No face embedding data available'
+                : 'No finger data available'
             "
             :primaryAction="{ text: 'Clear Search' }"
             @primaryAction="clearSearch"
@@ -86,31 +86,19 @@
               </div>
             </template>
 
-            <!-- Face Embedding Column -->
-            <template #cell-faceEmbedding="{ item }">
-              <div class="face-embedding-data">
+            <!-- Finger Data Column -->
+            <template #cell-base64_UserFingers="{ item }">
+              <div class="finger-data">
                 <v-chip
                   size="small"
                   color="secondary"
                   variant="tonal"
-                  v-if="item.faceEmbedding"
+                  v-if="item.base64_UserFingers"
                 >
-                  {{ truncateText(item.faceEmbedding, 30) }}
+                  {{ truncateText(item.base64_UserFingers, 30) }}
                 </v-chip>
                 <span v-else class="null-value-small">No Data</span>
               </div>
-            </template>
-
-            <!-- Status Column -->
-            <template #cell-status="{ item }">
-              <v-chip
-                :color="getStatusColor(item.status)"
-                size="small"
-                label
-                variant="tonal"
-              >
-                {{ item.status || "Unknown" }}
-              </v-chip>
             </template>
 
             <!-- Date Created Column -->
@@ -152,7 +140,7 @@
         </v-card-title>
         <v-card-text>
           Are you sure you want to delete {{ selected.length }} selected mobile
-          face embedding record(s)? <br /><br />
+          finger data record(s)? <br /><br />
           <strong>This action cannot be undone.</strong>
         </v-card-text>
         <v-card-actions>
@@ -231,16 +219,10 @@ const columns = computed(() => [
     width: "150px",
   },
   {
-    key: "faceEmbedding",
-    label: "Face Embedding",
+    key: "base64_UserFingers",
+    label: "Finger Data",
     sortable: true,
-    width: "120px",
-  },
-  {
-    key: "status",
-    label: "Status",
-    sortable: true,
-    width: "100px",
+    width: "200px",
   },
   {
     key: "date_created",
@@ -270,19 +252,6 @@ const showSnackbar = (
 const getEmployeeName = (item) => {
   if (!item?.assignedTo?.assignedUser) return "Unknown";
   return item.assignedTo.assignedUser.first_name || "Unknown";
-};
-
-const getStatusColor = (status) => {
-  switch (status?.toLowerCase()) {
-    case "active":
-      return "success";
-    case "inactive":
-      return "error";
-    case "pending":
-      return "warning";
-    default:
-      return "grey";
-  }
 };
 
 const truncateText = (text, maxLength = 15) => {
@@ -327,7 +296,7 @@ const aggregateCount = async () => {
       .join("&");
 
     const countResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/faceId?${queryString}`,
+      `${import.meta.env.VITE_API_URL}/items/userFingers?${queryString}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -349,7 +318,7 @@ const aggregateCount = async () => {
   }
 };
 
-const fetchMobileFaceData = async () => {
+const fetchFingerData = async () => {
   await aggregateCount();
 
   if (!token) {
@@ -367,14 +336,10 @@ const fetchMobileFaceData = async () => {
   try {
     const params = {
       fields: [
-        "facialData",
-        "status",
+        "base64_UserFingers",
         "date_created",
         "date_updated",
-        "faceEmbedding",
-        "assignedTo.assignedUser.id",
         "assignedTo.assignedUser.first_name",
-        "assignedTo.assignedUser.last_name",
         "assignedTo.employeeId",
         "assignedTo.id",
         "tenant.tenantName",
@@ -397,7 +362,7 @@ const fetchMobileFaceData = async () => {
       .join("&");
 
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/faceId?${queryString}`,
+      `${import.meta.env.VITE_API_URL}/items/userFingers?${queryString}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -416,9 +381,7 @@ const fetchMobileFaceData = async () => {
     const result = await response.json();
     items.value = (result.data || []).map((item) => ({
       id: item.id,
-      facialData: item.facialData,
-      faceEmbedding: item.faceEmbedding,
-      status: item.status,
+      base64_UserFingers: item.base64_UserFingers,
       date_created: item.date_created,
       date_updated: item.date_updated,
       assignedTo: {
@@ -426,7 +389,6 @@ const fetchMobileFaceData = async () => {
         employeeId: item.assignedTo?.employeeId,
         assignedUser: {
           first_name: item.assignedTo?.assignedUser?.first_name,
-          last_name: item.assignedTo?.assignedUser?.last_name,
         },
       },
       tenant: {
@@ -435,9 +397,9 @@ const fetchMobileFaceData = async () => {
       },
     }));
   } catch (err) {
-    console.error("Error fetching mobile face data:", err);
+    console.error("Error fetching mobile finger data:", err);
     error.value =
-      err.message || "Failed to fetch mobile face data. Please try again.";
+      err.message || "Failed to fetch mobile finger data. Please try again.";
     showSnackbar(error.value, "error", "mdi-alert-circle");
   } finally {
     loading.value = false;
@@ -452,8 +414,6 @@ const filterParams = () => {
   if (search.value) {
     params["filter[_or][0][assignedTo][employeeId][_icontains]"] = search.value;
     params["filter[_or][1][assignedTo][assignedUser][first_name][_icontains]"] =
-      search.value;
-    params["filter[_or][2][assignedTo][assignedUser][last_name][_icontains]"] =
       search.value;
   }
 
@@ -482,13 +442,13 @@ const updateSortDirection = (newSortDirection) => {
 
 const handleSort = ({ field, direction }) => {
   sortBy.value = [{ key: field, order: direction }];
-  fetchMobileFaceData();
+  fetchFingerData();
 };
 
 const clearSearch = () => {
   search.value = "";
   page.value = 1;
-  fetchMobileFaceData();
+  fetchFingerData();
 };
 
 // Delete functionality
@@ -516,7 +476,7 @@ const confirmDelete = async () => {
     }
 
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/faceId`,
+      `${import.meta.env.VITE_API_URL}/items/userFingers`,
       {
         method: "DELETE",
         headers: {
@@ -541,7 +501,7 @@ const confirmDelete = async () => {
     );
 
     selected.value = [];
-    await fetchMobileFaceData();
+    await fetchFingerData();
   } catch (err) {
     console.error("Error deleting records:", err);
     showSnackbar(
@@ -557,18 +517,18 @@ const confirmDelete = async () => {
 
 const handlePageChange = (newPage) => {
   page.value = newPage;
-  fetchMobileFaceData();
+  fetchFingerData();
 };
 
 const handleItemsPerPageChange = (newItemsPerPage) => {
   itemsPerPage.value = newItemsPerPage;
   page.value = 1;
-  fetchMobileFaceData();
+  fetchFingerData();
 };
 
 const debouncedSearch = debounce(() => {
   page.value = 1;
-  fetchMobileFaceData();
+  fetchFingerData();
 }, 300);
 
 watch(search, () => {
@@ -578,18 +538,18 @@ watch(search, () => {
 watch(
   sortBy,
   () => {
-    fetchMobileFaceData();
+    fetchFingerData();
   },
   { deep: true }
 );
 
 onMounted(() => {
-  fetchMobileFaceData();
+  fetchFingerData();
 });
 </script>
 
 <style scoped>
-.mobile-face-embedding-container {
+.mobile-finger-data-container {
   height: 100vh;
   display: flex;
   overflow: hidden;
@@ -623,7 +583,7 @@ onMounted(() => {
   color: #666;
 }
 
-.face-embedding-data {
+.finger-data {
   font-family: monospace;
   font-size: 0.875rem;
 }

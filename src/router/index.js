@@ -44,6 +44,8 @@ import LogsTable from "@/pages/logs/log/logTable.vue";
 import FaceEmbeddingTabs from "@/pages/faceEmbedding/faceEmbeddingTabs.vue";
 import AiFaceEmbeddingDetails from "@/pages/faceEmbedding/aiFaceEmbedding/aiFaceEmbeddingDetails.vue";
 import MobileFaceEmbeddingDetails from "@/pages/faceEmbedding/mobileFaceEmbedding/mobileFaceEmbeddingDetails.vue";
+import FingerDataDetails from "@/pages/faceEmbedding/fingerdata/fingerDataDetails.vue";
+
 import Import from "@/pages/Imports/importsTabs.vue";
 import importDetals from "@/pages/Imports/import/importTable.vue";
 
@@ -523,6 +525,12 @@ const routes = [
             path: "mobile-face-embedding",
             name: "mobile-face-embedding",
             component: MobileFaceEmbeddingDetails,
+            meta: { roles: ["Admin", "Manager", "Employee"] },
+          },
+          {
+            path: "finger-data",
+            name: "finger-data",
+            component: FingerDataDetails,
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
         ],

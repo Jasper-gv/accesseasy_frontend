@@ -534,7 +534,7 @@ const handleFaceImageUpload = (file) => {
     // Update the employee data with base64 string
     const updatedData = {
       ...props.employeeData,
-      registerFaceImages: base64String,
+      registeredFace: base64String,
     };
     emit("update:employeeData", updatedData);
   };
@@ -555,7 +555,7 @@ const removeFaceImage = () => {
   // Remove from employee data
   const updatedData = {
     ...props.employeeData,
-    registerFaceImages: null,
+    registeredFace: null,
   };
   emit("update:employeeData", updatedData);
 };
@@ -923,7 +923,7 @@ const fetchEmployeeData = async () => {
       "reportingTo.id",
       "reportingTo.first_name",
       "cycleType",
-      "registerFaceImages",
+      "registeredFace",
     ];
 
     const queryString = `fields[]=${fields.join("&fields[]=")}`;
@@ -965,8 +965,8 @@ const fetchEmployeeData = async () => {
         await fetchAndSetAvatar();
       }
       if (data.data.registerFaceImages) {
-        faceImageBase64.value = data.data.registerFaceImages;
-        faceImagePreview.value = data.data.registerFaceImages; // This will show the image preview
+        faceImageBase64.value = data.data.registeredFace;
+        faceImagePreview.value = data.data.registeredFace; // This will show the image preview
       }
       selectedRole.value = data.data.assignedUser?.role?.id || null;
 
@@ -1957,15 +1957,15 @@ const updatePersonalDetails = async () => {
     // Handle face image if uploaded
     if (
       faceImageBase64.value &&
-      faceImageBase64.value !== originalEmployeeData.value?.registerFaceImages
+      faceImageBase64.value !== originalEmployeeData.value?.registeredFace
     ) {
-      personalModuleFieldsToUpdate.registerFaceImages = faceImageBase64.value;
+      personalModuleFieldsToUpdate.registeredFace = faceImageBase64.value;
     } else if (
       !faceImageBase64.value &&
-      originalEmployeeData.value?.registerFaceImages
+      originalEmployeeData.value?.registeredFace
     ) {
       // If image was removed, set to null
-      personalModuleFieldsToUpdate.registerFaceImages = null;
+      personalModuleFieldsToUpdate.registeredFace = null;
     }
     // Handle workingRange
     const currentWorkingRange = props.employeeData.workingRange;

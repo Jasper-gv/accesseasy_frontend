@@ -60,6 +60,91 @@
         </div>
 
         <v-row>
+          <!-- Face Attendance -->
+          <v-col cols="12" sm="6" md="4">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.face ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-account-circle </v-icon>
+              </div>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >Face Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.face"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+              ></v-switch>
+            </div>
+          </v-col>
+
+          <!-- Finger Attendance -->
+          <v-col cols="12" sm="6" md="4">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.finger ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-fingerprint </v-icon>
+              </div>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >Finger Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.finger"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+              ></v-switch>
+            </div>
+          </v-col>
+
+          <!-- RFID Attendance -->
+          <v-col cols="12" sm="6" md="4">
+            <div class="attendance-option">
+              <div
+                class="attendance-icon-wrapper"
+                :class="localData.rfid ? 'enabled' : 'disabled'"
+              >
+                <v-icon size="32" color="white"> mdi-credit-card-scan </v-icon>
+              </div>
+              <div class="text-center mt-3 mb-2">
+                <span class="text-body-1 font-weight-medium"
+                  >RFID Attendance</span
+                >
+              </div>
+              <v-switch
+                v-model="localData.rfid"
+                color="#059367"
+                hide-details
+                inset
+                class="attendance-switch"
+              ></v-switch>
+            </div>
+          </v-col>
+        </v-row>
+      </v-card>
+
+      <!-- Commented Section - Keep for reference -->
+      <!--
+      <v-card class="pa-6 mb-4" elevation="0" outlined>
+        <div class="mb-6">
+          <h2 class="text-h6 font-weight-bold mb-1">Attendance Modes</h2>
+          <p class="text-body-2 text-grey-darken-1">
+            Select the attendance tracking methods for this employee
+          </p>
+        </div>
+
+        <v-row>
           <v-col cols="12" sm="6" md="3">
             <div class="attendance-option">
               <div
@@ -155,6 +240,7 @@
           </v-col>
         </v-row>
       </v-card>
+      -->
     </v-container>
 
     <v-snackbar
@@ -210,25 +296,10 @@ const errorMessage = ref("");
 // Local data for form editing
 const localData = ref({
   appAccess: false,
-  GeoAttendance: false,
-  faceAttendance: false,
-  selfieAttendance: false,
-  QrAttendance: false,
+  face: false,
+  finger: false,
+  rfid: false,
 });
-
-// Handle Face Attendance toggle - disable Selfie when Face is enabled
-const handleFaceToggle = (value) => {
-  if (value) {
-    localData.value.selfieAttendance = false;
-  }
-};
-
-// Handle Selfie Attendance toggle - disable Face when Selfie is enabled
-const handleSelfieToggle = (value) => {
-  if (value) {
-    localData.value.faceAttendance = false;
-  }
-};
 
 // Check if there are any changes
 const hasChanges = computed(() => {
@@ -237,13 +308,9 @@ const hasChanges = computed(() => {
   return (
     localData.value.appAccess !==
       originalEmployeeData.value.assignedUser?.appAccess ||
-    localData.value.GeoAttendance !==
-      originalEmployeeData.value.GeoAttendance ||
-    localData.value.faceAttendance !==
-      originalEmployeeData.value.faceAttendance ||
-    localData.value.selfieAttendance !==
-      originalEmployeeData.value.selfieAttendance ||
-    localData.value.QrAttendance !== originalEmployeeData.value.QrAttendance
+    localData.value.face !== originalEmployeeData.value.face ||
+    localData.value.finger !== originalEmployeeData.value.finger ||
+    localData.value.rfid !== originalEmployeeData.value.rfid
   );
 });
 
@@ -260,10 +327,9 @@ const showErrorMessage = (message) => {
 const syncLocalData = (data) => {
   localData.value = {
     appAccess: data.assignedUser?.appAccess ?? false,
-    GeoAttendance: data.GeoAttendance ?? false,
-    faceAttendance: data.faceAttendance ?? false,
-    selfieAttendance: data.selfieAttendance ?? false,
-    QrAttendance: data.QrAttendance ?? false,
+    face: data.face ?? false,
+    finger: data.finger ?? false,
+    rfid: data.rfid ?? false,
   };
 };
 
@@ -274,10 +340,9 @@ const fetchEmployeeData = async () => {
       "id",
       "assignedUser.id",
       "assignedUser.appAccess",
-      "GeoAttendance",
-      "faceAttendance",
-      "selfieAttendance",
-      "QrAttendance",
+      "face",
+      "finger",
+      "rfid",
     ];
     const queryString = `fields[]=${fields.join("&fields[]=")}`;
     const response = await fetch(
@@ -287,7 +352,7 @@ const fetchEmployeeData = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -320,10 +385,9 @@ const handleUpdate = async () => {
         id: props.employeeData.assignedUser.id,
         appAccess: localData.value.appAccess,
       },
-      GeoAttendance: localData.value.GeoAttendance,
-      faceAttendance: localData.value.faceAttendance,
-      selfieAttendance: localData.value.selfieAttendance,
-      QrAttendance: localData.value.QrAttendance,
+      face: localData.value.face,
+      finger: localData.value.finger,
+      rfid: localData.value.rfid,
     };
 
     const response = await fetch(
@@ -335,7 +399,7 @@ const handleUpdate = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -367,7 +431,7 @@ watch(
       syncLocalData(newData);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 onMounted(fetchEmployeeData);

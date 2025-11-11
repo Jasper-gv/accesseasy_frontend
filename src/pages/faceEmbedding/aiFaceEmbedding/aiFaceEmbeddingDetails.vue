@@ -1,20 +1,16 @@
 <template>
   <div class="ai-face-embedding-container">
     <div class="main-content">
-      <!-- Header section with search and delete button -->
-      <div class="header-section">
-        <div class="left-section">
-          <v-text-field
-            v-model="search"
-            label="Search by Employee ID or Name"
-            prepend-inner-icon="mdi-magnify"
-            density="compact"
-            variant="outlined"
-            class="search-field ml-4"
-            hide-details
-          ></v-text-field>
-        </div>
-        <div class="right-section">
+      <DataTableWrapper
+        v-model:searchQuery="search"
+        :showSearch="true"
+        :searchPlaceholder="'Search by Employee ID or Name'"
+        :isEmpty="items.length === 0 && !search"
+        :hasError="error"
+        @update:searchQuery="debouncedSearch"
+      >
+        <!-- Delete Button -->
+        <template #before-search>
           <v-btn
             v-if="selected.length > 0"
             color="error"
@@ -27,61 +23,106 @@
           >
             Delete Selected ({{ selected.length }})
           </v-btn>
+        </template>
+
+        <!-- Table content states -->
+        <div v-if="loading">
+          <SkeletonLoader
+            variant="table-body-only"
+            :rows="items.length || 10"
+            :columns="columns.length"
+          />
         </div>
-      </div>
 
-      <!-- Table Content -->
-      <v-data-table
-        v-model="selected"
-        :headers="headers"
-        :items="items"
-        :items-per-page="-1"
-        hide-default-footer
-        class="elevation-1 ai-face-table"
-        height="calc(95vh - 240px)"
-        fixed-header
-        :loading="loading"
-        show-select
-        item-value="id"
-        @update:model-value="logSelectedItems"
-        v-model:sort-by="sortBy"
-      >
-        <template v-slot:item.assignedTo="{ item }">
-          <div class="employee-info">
-            <div class="employee-name">{{ getEmployeeName(item) }}</div>
-            <div class="employee-id">
-              {{ item.assignedTo?.employeeId || "N/A" }}
-            </div>
-          </div>
+        <div v-else-if="error">
+          <ErrorState
+            title="Unable to load AI face embeddings"
+            :message="error"
+            @retry="fetchAiFaceData"
+          />
+        </div>
+
+        <div v-else-if="items.length === 0">
+          <EmptyState
+            :title="
+              search
+                ? 'No matching records found'
+                : 'No AI face embeddings found'
+            "
+            :message="
+              search
+                ? 'Try adjusting your search term'
+                : 'No face embedding data available'
+            "
+            :primaryAction="{ text: 'Clear Search' }"
+            @primaryAction="clearSearch"
+          />
+        </div>
+
+        <div v-else>
+          <DataTable
+            :items="items"
+            :columns="columns"
+            :selectedItems="selected"
+            :showSelection="true"
+            :sortBy="sortBy[0]?.key || ''"
+            :sortDirection="sortBy[0]?.order || 'asc'"
+            :itemKey="'id'"
+            :rowClickable="false"
+            @update:selectedItems="selected = $event"
+            @update:sortBy="updateSortBy"
+            @update:sortDirection="updateSortDirection"
+            @sort="handleSort"
+          >
+            <!-- Employee Info Column -->
+            <template #cell-assignedTo="{ item }">
+              <div class="employee-info">
+                <div class="employee-name">{{ getEmployeeName(item) }}</div>
+                <div class="employee-id">
+                  {{ item.assignedTo?.employeeId || "N/A" }}
+                </div>
+              </div>
+            </template>
+
+            <!-- Base64 Data Column -->
+            <template #cell-base64Data="{ item }">
+              <div class="base64-data">
+                <v-chip
+                  size="small"
+                  color="info"
+                  variant="tonal"
+                  v-if="item.base64Data"
+                >
+                  {{ truncateText(item.base64Data, 30) }}
+                </v-chip>
+                <span v-else class="null-value">No Data</span>
+              </div>
+            </template>
+
+            <!-- Date Created Column -->
+            <template #cell-date_created="{ item }">
+              {{ formatDate(item.date_created) }}
+            </template>
+
+            <!-- Date Updated Column -->
+            <template #cell-date_updated="{ item }">
+              {{ formatDate(item.date_updated) }}
+            </template>
+          </DataTable>
+        </div>
+
+        <!-- Pagination -->
+        <template #pagination>
+          <CustomPagination
+            v-model:page="page"
+            v-model:itemsPerPage="itemsPerPage"
+            :total-items="totalItems"
+            :is-searching="!!search"
+            @update:page="handlePageChange"
+            @update:itemsPerPage="handleItemsPerPageChange"
+          />
         </template>
-
-        <template v-slot:item.base64Data="{ item }">
-          <div class="base64-data">
-            <v-chip size="small" color="info" v-if="item.base64Data">
-              {{ truncateText(item.base64Data, 30) }}
-            </v-chip>
-            <span v-else class="null-value">No Data</span>
-          </div>
-        </template>
-
-        <template v-slot:item.date_created="{ item }">
-          {{ formatDate(item.date_created) }}
-        </template>
-
-        <template v-slot:item.date_updated="{ item }">
-          {{ formatDate(item.date_updated) }}
-        </template>
-      </v-data-table>
-
-      <!-- Custom Pagination -->
-      <CustomPagination
-        v-model:page="page"
-        v-model:itemsPerPage="itemsPerPage"
-        :total-items="totalItems"
-        :is-searching="!!search"
-        @update:page="handlePageChange"
-        @update:itemsPerPage="handleItemsPerPageChange"
-      />
+      </DataTableWrapper>
     </div>
 
     <!-- Delete Confirmation Dialog -->
@@ -129,15 +170,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, reactive, onMounted, watch, computed } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
+import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
+import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
+import EmptyState from "@/components/common/states/EmptyState.vue";
+import ErrorState from "@/components/common/states/ErrorState.vue";
 import { debounce } from "lodash";
 
 // State
 const items = ref([]);
 const loading = ref(false);
+const error = ref(null);
 const search = ref("");
 const page = ref(1);
 const itemsPerPage = ref(25);
@@ -157,33 +204,29 @@ const snackbar = reactive({
   icon: "mdi-check-circle",
 });
 
-// Table Headers
-const headers = ref([
+// Define columns for DataTable
+const columns = computed(() => [
   {
-    title: "Employee Info",
-    key: "assignedTo.assignedUser.first_name",
-    align: "start",
+    key: "assignedTo",
+    label: "Employee Info",
     sortable: true,
     width: "200px",
   },
   {
-    title: "Base64 Data",
     key: "base64Data",
-    align: "start",
+    label: "Base64 Data",
     sortable: false,
     width: "200px",
   },
   {
-    title: "Date Created",
     key: "date_created",
-    align: "start",
+    label: "Date Created",
     sortable: true,
     width: "150px",
   },
   {
-    title: "Date Updated",
     key: "date_updated",
-    align: "start",
+    label: "Date Updated",
     sortable: true,
     width: "150px",
   },
@@ -234,7 +277,6 @@ const aggregateCount = async () => {
     const params = {
       "aggregate[count]": "id",
       "filter[tenant][tenantId][_eq]": tenantId,
-      // "filter[assignedTo][assignedUser][role][name][_in]": "Employee,Manager",
       ...(search.value && {
         "filter[_or][0][assignedTo][employeeId][_icontains]": search.value,
         "filter[_or][1][assignedTo][assignedUser][first_name][_icontains]":
@@ -263,8 +305,9 @@ const aggregateCount = async () => {
 
     const countData = await countResponse.json();
     totalItems.value = countData?.data?.[0]?.count?.id || 0;
-  } catch (error) {
-    console.error("Error fetching aggregate count:", error);
+  } catch (err) {
+    console.error("Error fetching aggregate count:", err);
+    error.value = "Failed to load data count";
   }
 };
 
@@ -288,6 +331,7 @@ const fetchAiFaceData = async () => {
 
   // Set loading state
   loading.value = true;
+  error.value = null;
   console.log("Loading set to true");
 
   try {
@@ -306,7 +350,7 @@ const fetchAiFaceData = async () => {
         "tenant.tenantId",
       ],
       ...filterParams(),
-      sort: "-date_updated",
+      sort: sortBy.value.length > 0 ? getSortParam() : "-date_updated",
       limit: itemsPerPage.value,
       page: page.value,
     };
@@ -372,13 +416,11 @@ const fetchAiFaceData = async () => {
 
     // Update totalItems
     console.log("Final transformed items:", items.value);
-  } catch (error) {
-    console.error("Error fetching AI face data:", error);
-    showSnackbar(
-      error.message || "Failed to fetch AI face data. Please try again.",
-      "error",
-      "mdi-alert-circle"
-    );
+  } catch (err) {
+    console.error("Error fetching AI face data:", err);
+    error.value =
+      err.message || "Failed to fetch AI face data. Please try again.";
+    showSnackbar(error.value, "error", "mdi-alert-circle");
   } finally {
     loading.value = false;
     console.log("Loading set to false, fetchAiFaceData complete");
@@ -400,17 +442,18 @@ const filterParams = () => {
       search.value;
   }
 
-  if (sortBy.value.length > 0) {
-    const sortParam = sortBy.value
-      .map((sortItem) => {
-        const direction = sortItem.order === "desc" ? "-" : "";
-        return `${direction}${sortItem.key}`;
-      })
-      .join(",");
-    params["sort"] = sortParam;
-  }
-
   return params;
+};
+
+const getSortParam = () => {
+  if (sortBy.value.length === 0) return "-date_updated";
+
+  return sortBy.value
+    .map((sortItem) => {
+      const direction = sortItem.order === "desc" ? "-" : "";
+      return `${direction}${sortItem.key}`;
+    })
+    .join(",");
 };
 
 const handlePageChange = (newPage) => {
@@ -424,27 +467,32 @@ const handleItemsPerPageChange = (newItemsPerPage) => {
   fetchAiFaceData();
 };
 
-const logSelectedItems = (selectedItems) => {
-  const itemsWithIds = selectedItems.map((item) => {
-    if (typeof item === "number" || typeof item === "string") {
-      return items.value.find((i) => i.id == item);
-    }
-    return item;
-  });
+// Sorting handlers
+const updateSortBy = (newSortBy) => {
+  sortBy.value = [{ key: newSortBy, order: sortBy.value[0]?.order || "asc" }];
 };
 
-// Your existing methods remain the same until deleteSelectedItems
+const updateSortDirection = (newSortDirection) => {
+  sortBy.value = [{ key: sortBy.value[0]?.key || "", order: newSortDirection }];
+};
+
+const handleSort = ({ field, direction }) => {
+  sortBy.value = [{ key: field, order: direction }];
+  fetchAiFaceData();
+};
+
+const clearSearch = () => {
+  search.value = "";
+  page.value = 1;
+  fetchAiFaceData();
+};
+
+// Delete functionality
 const deleteSelectedItems = () => {
   if (selected.value.length === 0) return;
-  const idsToDelete = selected.value.map((item) => {
-    if (typeof item === "object" && item !== null) {
-      return item.id;
-    }
-    return item;
-  });
-
   deleteDialog.value = true;
 };
+
 const confirmDelete = async () => {
   deleting.value = true;
   try {
@@ -543,10 +591,10 @@ const confirmDelete = async () => {
     // Refresh the data
     await fetchAiFaceData();
     selected.value = [];
-  } catch (error) {
-    console.error("Error deleting AI face data:", error);
+  } catch (err) {
+    console.error("Error deleting AI face data:", err);
     showSnackbar(
-      error.message || "Failed to delete AI face data. Please try again.",
+      err.message || "Failed to delete AI face data. Please try again.",
       "error",
       "mdi-alert-circle"
     );
@@ -564,10 +612,11 @@ const debouncedSearch = debounce(() => {
 watch(search, () => {
   debouncedSearch();
 });
+
 watch(
-  [search, sortBy], // Add sortBy to watched properties
-  async () => {
-    await fetchAiFaceData();
+  sortBy,
+  () => {
+    fetchAiFaceData();
   },
   { deep: true }
 );
@@ -590,30 +639,6 @@ onMounted(async () => {
   flex: 1;
   padding: 16px;
   overflow: auto;
-}
-
-.header-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  border-radius: 4px;
-}
-
-.left-section {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.right-section {
-  display: flex;
-  align-items: center;
-}
-
-.search-field {
-  width: 300px;
-  max-width: 300px;
 }
 
 .delete-btn {
@@ -646,37 +671,6 @@ onMounted(async () => {
   font-style: italic;
 }
 
-.ai-face-table {
-  margin-top: 16px;
-}
-
-:deep(.v-data-table) {
-  background: white;
-}
-
-:deep(.v-data-table__wrapper) {
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-:deep(
-  .v-table.v-table--fixed-header > .v-table__wrapper > table > thead > tr > th
-) {
-  background: #ebeaea !important;
-  box-shadow: inset 0 -1px 0
-    rgba(var(--v-border-color), var(--v-border-opacity));
-  color: black !important;
-  text-align: start;
-  z-index: 1;
-}
-
-:deep(.v-data-table tbody td) {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 16px;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -688,11 +682,17 @@ onMounted(async () => {
   }
 }
 
-:deep(.v-data-table tbody tr) {
-  cursor: default;
+/* Make sure the DataTableWrapper takes full height */
+:deep(.data-table-wrapper) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-:deep(.v-data-table tbody tr:hover) {
-  background-color: rgba(0, 0, 0, 0.04);
+/* Ensure proper spacing for the delete button in the header */
+:deep(.table-header) {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 </style>

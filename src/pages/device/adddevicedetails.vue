@@ -206,7 +206,7 @@
 
                     <!-- Second Row -->
                     <v-row class="mb-14">
-                      <v-col cols="4">
+                      <!-- <v-col cols="4">
                         <v-card outlined elevation="0" class="h-100">
                           <v-card-text class="pa-4">
                             <v-row align="center">
@@ -228,7 +228,7 @@
                             </v-row>
                           </v-card-text>
                         </v-card>
-                      </v-col>
+                      </v-col> -->
 
                       <!-- Updated auto door open schedule -->
                       <v-col cols="8">
@@ -571,6 +571,10 @@ const onDoorSelectionChange = (doorKey) => {
       passageMode: "limittime",
       scheduleTime: null,
     };
+  } else {
+    form.doors[doorKey].dotlDuration = 20;
+    form.doors[doorKey].alarmEnabled = true;
+    form.doors[doorKey].dotlDelay = 5;
   }
 };
 
@@ -588,6 +592,9 @@ const onPassageStatusChange = (doorKey) => {
 const onAlarmToggle = (doorKey) => {
   if (!form.doors[doorKey].alarmEnabled) {
     form.doors[doorKey].dotlDelay = "";
+  } else {
+    // When alarm is enabled, set default 5 seconds
+    form.doors[doorKey].dotlDelay = 5;
   }
 };
 

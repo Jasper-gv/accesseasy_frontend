@@ -15,6 +15,10 @@
           <v-icon start>mdi-cellphone</v-icon>
           Mobile Face Embedding
         </v-tab>
+        <v-tab value="finger" class="custom-tab">
+          <v-icon start>mdi-fingerprint</v-icon>
+          Finger Details
+        </v-tab>
       </v-tabs>
     </div>
 
@@ -40,6 +44,8 @@ watch(
       activeTab.value = "mobile";
     } else if (newPath.includes("ai-face-embedding")) {
       activeTab.value = "ai";
+    } else if (newPath.includes("finger-data")) {
+      activeTab.value = "finger";
     }
   },
   { immediate: true }
@@ -51,6 +57,8 @@ watch(activeTab, (newTab) => {
     router.push("/face-embedding/mobile-face-embedding");
   } else if (newTab === "ai") {
     router.push("/face-embedding/ai-face-embedding");
+  } else if (newTab === "finger") {
+    router.push("/face-embedding/finger-data");
   }
 });
 </script>

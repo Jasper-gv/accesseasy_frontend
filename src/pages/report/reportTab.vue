@@ -35,17 +35,17 @@ const route = useRoute();
 const tabs = [
   {
     value: "workordergenerate",
-    title: "Download Report",
+    title: "Device Report",
     icon: "mdi-file-chart",
   },
   {
     value: "attendance",
-    title: "Attendance Report",
+    title: "Accesslevel Report",
     icon: "mdi-calendar-check",
   },
   {
     value: "CompanyReport",
-    title: "Payroll Report",
+    title: "Employee Report",
     icon: "mdi-file-chart",
   },
 ];
@@ -64,7 +64,7 @@ watch(
   () => route.name,
   (newValue) => {
     activeTab.value = newValue;
-  },
+  }
 );
 </script>
 

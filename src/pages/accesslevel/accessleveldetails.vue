@@ -1,5 +1,6 @@
 <template>
   <div class="flex">
+    <!-- Add/Edit Panel -->
     <div
       v-if="showAddPanel"
       class="w-1/3 p-4 bg-gray-50 border-r border-gray-200 h-screen overflow-y-auto"
@@ -13,7 +14,7 @@
       />
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Table -->
     <div :class="showAddPanel ? 'w-2/3' : 'w-full'" class="p-4">
       <DataTableWrapper title="Access Level Configuration" :showSearch="false">
         <template #toolbar-actions>
@@ -26,7 +27,7 @@
           />
         </template>
 
-        <!-- Skeleton Loading -->
+        <!-- Loading -->
         <SkeletonLoader
           v-if="loading"
           variant="data-table"
@@ -34,7 +35,7 @@
           :columns="3"
         />
 
-        <!-- Table Section -->
+        <!-- Table -->
         <DataTable
           v-else
           :items="accessLevels"
@@ -45,7 +46,7 @@
           :row-clickable="true"
           @rowClick="handleRowClick"
         >
-          <!-- Custom Switch Cell -->
+          <!-- Status Switch -->
           <template #cell-type="{ item }">
             <v-switch
               v-model="item.type"
@@ -54,39 +55,114 @@
               hide-details
               density="compact"
               @change="onToggleAccessType(item)"
-            ></v-switch>
+            />
           </template>
 
-          <!-- Custom Assign Doors Group Cell -->
+          <!-- Doors Column: First + +N more -->
           <template #cell-assignDoorsGroup="{ item }">
-            <div
-              v-if="
-                item.assignDoorsGroupNames &&
-                item.assignDoorsGroupNames.length > 0
-              "
-            >
-              <span
-                v-for="(doorName, index) in item.assignDoorsGroupNames"
-                :key="index"
-                class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1"
+            <div class="branch-chips">
+              <!-- No Doors -->
+              <v-chip
+                v-if="
+                  !item.assignDoorsGroupNames ||
+                  item.assignDoorsGroupNames.length === 0
+                "
+                size="small"
+                color="grey"
+                variant="tonal"
+                class="mr-1 mb-1"
               >
-                {{ doorName }}
-              </span>
+                No Doors Assigned
+              </v-chip>
+
+              <!-- 1 or More Doors -->
+              <template v-else>
+                <!-- First Door -->
+                <v-chip
+                  size="small"
+                  color="#059367"
+                  variant="tonal"
+                  class="mr-1 mb-1"
+                >
+                  <v-icon icon="mdi-door" size="12" class="mr-1" />
+                  {{ item.assignDoorsGroupNames[0] }}
+                </v-chip>
+
+                <!-- +N more (only if >1) -->
+                <v-chip
+                  v-if="item.assignDoorsGroupNames.length > 1"
+                  size="small"
+                  color="grey"
+                  variant="tonal"
+                  class="mr-1 mb-1 view-more-chip"
+                  @click.stop="showDoorsDialog(item)"
+                >
+                  +{{ item.assignDoorsGroupNames.length - 1 }} more
+                </v-chip>
+              </template>
             </div>
-            <span v-else class="text-gray-400">No doors assigned</span>
           </template>
 
-          <!-- Action Column for Editing -->
+          <!-- Edit Button -->
           <template #actions="{ item }">
             <BaseButton
               variant="ghost"
               size="sm"
               text="Edit"
-              @click="handleEditAccessLevel(item)"
+              @click.stop="handleEditAccessLevel(item)"
             />
           </template>
         </DataTable>
       </DataTableWrapper>
+
+      <!-- Dialog: Show All Doors -->
+      <v-dialog v-model="showDoorViewDialog" max-width="400px">
+        <v-card>
+          <v-card-title class="pa-6 pb-4 dialog-header">
+            <div class="d-flex align-center justify-space-between w-100">
+              <h3 class="text-h6 font-weight-bold dialog-title">
+                Assigned Doors ({{
+                  selectedAccessLevelForView?.assignDoorsGroupNames?.length ||
+                  0
+                }})
+              </h3>
+              <v-btn
+                icon="mdi-close"
+                @click="showDoorViewDialog = false"
+                variant="text"
+                size="small"
+                class="rounded-lg dialog-close-btn"
+              />
+            </div>
+          </v-card-title>
+          <v-card-text>
+            <v-list>
+              <v-list-item
+                v-for="(
+                  door, index
+                ) in selectedAccessLevelForView?.assignDoorsGroupNames"
+                :key="index"
+              >
+                <v-list-item-title>
+                  <v-icon icon="mdi-door" size="16" class="mr-2" />
+                  {{ door }}
+                </v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+          <v-card-actions class="pa-6 pt-4 dialog-footer">
+            <v-spacer />
+            <BaseButton
+              text="Close"
+              variant="danger"
+              color="grey-darken-1"
+              size="md"
+              @click="showDoorViewDialog = false"
+              class="footer-btn"
+            />
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </div>
   </div>
 </template>
@@ -100,13 +176,19 @@ import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
-import { Plus, Trash } from "lucide-vue-next";
+import { Plus } from "lucide-vue-next";
+import { VIcon } from "vuetify/components";
 
 const loading = ref(true);
 const showAddPanel = ref(false);
 const isEditing = ref(false);
 const currentAccessLevelData = ref(null);
 const accessLevels = ref([]);
+
+// Dialog
+const showDoorViewDialog = ref(false);
+const selectedAccessLevelForView = ref(null);
+
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
 
@@ -129,21 +211,16 @@ const headers = ref([
     label: "Assign Doors Group",
     key: "assignDoorsGroup",
     sortable: true,
-    width: "200px",
+    width: "400px",
   },
 ]);
 
-// Fetch door names based on door IDs
+// Fetch door names
 const fetchDoorNames = async (doorIds) => {
   try {
     if (!doorIds || doorIds.length === 0) return [];
-
-    // Convert single ID to array if needed
     const ids = Array.isArray(doorIds) ? doorIds : [doorIds];
-
-    // Filter out null/undefined values
     const validIds = ids.filter((id) => id != null);
-
     if (validIds.length === 0) return [];
 
     const fields = [
@@ -153,21 +230,11 @@ const fetchDoorNames = async (doorIds) => {
       "doorType",
       "tenant.tenantName",
     ];
-
-    // Construct URL with query parameters
     const url = new URL(`${import.meta.env.VITE_API_URL}/items/doors`);
-
-    // Add fields to query
-    fields.forEach((field) => {
-      url.searchParams.append("fields[]", field);
-    });
-
-    // Add filter for multiple door IDs
-    validIds.forEach((id, index) => {
-      url.searchParams.append(`filter[_or][${index}][id][_eq]`, id);
-    });
-
-    // Also filter by tenant ID
+    fields.forEach((f) => url.searchParams.append("fields[]", f));
+    validIds.forEach((id, i) =>
+      url.searchParams.append(`filter[_or][${i}][id][_eq]`, id)
+    );
     url.searchParams.append("filter[tenant][tenantId][_eq]", tenantId);
 
     const response = await fetch(url, {
@@ -177,34 +244,20 @@ const fetchDoorNames = async (doorIds) => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    console.log("🚪 Door Data Response:", data);
-
-    if (!data || !data.data) {
-      return [];
-    }
-
-    // Return array of door names
-    return data.data.map((door) => door.doorName || `Door ${door.doorNumber}`);
+    return data.data.map((d) => d.doorName || `Door ${d.doorNumber}`);
   } catch (error) {
-    console.error("🚨 Failed to fetch door names:", error);
+    console.error("Failed to fetch door names:", error);
     return [];
   }
 };
 
-// Fetch access levels from API
+// Fetch access levels
 const fetchAccessLevels = async () => {
   try {
     loading.value = true;
-    console.log("⏳ Loading started...");
-
-    if (!token || !tenantId) {
-      throw new Error("Authentication required or tenant not found");
-    }
+    if (!token || !tenantId) throw new Error("Auth required");
 
     const fields = [
       "id",
@@ -213,20 +266,10 @@ const fetchAccessLevels = async () => {
       "accessType",
       "tenant.tenantId",
       "assignDoorsGroup",
-      "_24hrs",
-      "timeZone",
-      "maxWorkHours",
-      "holidays",
-      "workingHours",
-      "limitTime",
-      "Valid_hours",
     ];
 
-    // Construct URL with query parameters
     const url = new URL(`${import.meta.env.VITE_API_URL}/items/accesslevels`);
-    fields.forEach((field) => {
-      url.searchParams.append("fields[]", field);
-    });
+    fields.forEach((f) => url.searchParams.append("fields[]", f));
     url.searchParams.append("filter[tenant][tenantId][_eq]", tenantId);
 
     const response = await fetch(url, {
@@ -236,55 +279,35 @@ const fetchAccessLevels = async () => {
       },
     });
 
-    console.log("📥 Raw Response:", response);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    console.log("✅ Parsed Response JSON:", data);
+    if (!data?.data) throw new Error("Invalid response");
 
-    if (!data || !data.data) {
-      throw new Error("Unexpected response structure");
-    }
-
-    // Process access levels and fetch door names for each
-    const processedAccessLevels = [];
-
+    const processed = [];
     for (const item of data.data) {
-      console.log("🧩 Mapping item:", item);
-
-      let doorNames = [];
-
-      // If assignDoorsGroup exists, fetch door names
-      if (item.assignDoorsGroup) {
-        doorNames = await fetchDoorNames(item.assignDoorsGroup);
-      }
-
-      processedAccessLevels.push({
+      const doorNames = item.assignDoorsGroup
+        ? await fetchDoorNames(item.assignDoorsGroup)
+        : [];
+      processed.push({
         id: item.id,
         assignDoorsGroup: item.assignDoorsGroup,
-        assignDoorsGroupNames: doorNames, // Add door names array
+        assignDoorsGroupNames: doorNames,
         name: item.accessLevelName,
         type: item.accessType,
         accessLevelNumber: item.accessLevelNumber,
         originalData: { ...item },
       });
     }
-
-    accessLevels.value = processedAccessLevels;
-    console.log("✅ Final Access Levels with Door Names:", accessLevels.value);
+    accessLevels.value = processed;
   } catch (error) {
-    console.error("🚨 Failed to fetch access levels:", error);
-    showToast("Failed to load access levels. Please try again.", "error");
+    console.error("Failed to fetch access levels:", error);
+    showToast("Failed to load access levels.", "error");
   } finally {
     loading.value = false;
-    console.log("✅ Loading finished.");
   }
 };
 
-// Button actions
+// Panel
 const openAddPanel = () => {
   isEditing.value = false;
   currentAccessLevelData.value = null;
@@ -298,15 +321,7 @@ const closeAddPanel = () => {
 };
 
 const handleRowClick = (item) => {
-  if (item && item.id) {
-    handleEditAccessLevel(item);
-  } else {
-    console.error("Invalid item or item ID");
-    showToast(
-      "Unable to open access level details. Please try again.",
-      "error"
-    );
-  }
+  if (item?.id) handleEditAccessLevel(item);
 };
 
 const handleEditAccessLevel = (accessLevel) => {
@@ -319,32 +334,87 @@ const handleEditAccessLevel = (accessLevel) => {
     accessLevelNumber: accessLevel.accessLevelNumber,
   };
   showAddPanel.value = true;
-  showToast(`Editing access level: ${accessLevel.name}`, "info");
+  showToast(`Editing: ${accessLevel.name}`, "info");
 };
 
 const handleSaveSuccess = () => {
   fetchAccessLevels();
   closeAddPanel();
-  showToast("Access level saved successfully!", "success");
+  showToast("Access level saved!", "success");
 };
 
-// Switch handler
+// Open dialog on +N more click
+const showDoorsDialog = (accessLevel) => {
+  selectedAccessLevelForView.value = accessLevel;
+  showDoorViewDialog.value = true;
+};
+
 const onToggleAccessType = (item) => {
-  console.log("Switched:", item.name, "→", item.type);
-  showToast(`Access type updated for ${item.name}`, "info");
+  showToast(`Status updated for ${item.name}`, "info");
 };
 
-// Toast function
-const showToast = (message, type = "success") => {
-  console.log(`${type.toUpperCase()}: ${message}`);
+const showToast = (msg, type = "success") => {
+  console.log(`${type.toUpperCase()}: ${msg}`);
 };
 
-// Fetch data on component mount
 onMounted(() => {
   fetchAccessLevels();
 });
 </script>
 
 <style scoped>
-/* Optional styling for spacing and layout */
+.branch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.view-more-chip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-more-chip:hover {
+  background-color: #e0e0e0 !important;
+}
+
+/* Dialog Styling */
+.dialog-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dialog-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.dialog-close-btn {
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.dialog-close-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.dialog-footer {
+  background: #f8f9fa;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.footer-btn {
+  min-width: 100px;
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
+  height: 38px;
+}
 </style>
