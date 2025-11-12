@@ -10,68 +10,89 @@
         ></v-progress-circular>
       </div>
       <div v-else>
-        <!-- Header -->
-        <v-row dense>
-          <!-- Device Report Grid -->
-          <v-col cols="12" md="12">
-            <v-card elevation="2" class="pa-4">
-              <!-- Device Table -->
-              <v-data-table
-                :headers="deviceHeaders"
-                :items="availableDevices"
-                :loading="loadingDevices"
-                class="elevation-1 mt-4"
-              >
-                <template v-slot:top>
-                  <v-toolbar flat>
-                    <v-toolbar-title>Available Devices</v-toolbar-title>
-                    <v-spacer></v-spacer>
-                    <v-btn
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                      @click="fetchDevices"
-                      :loading="loadingDevices"
-                    >
-                      <v-icon left>mdi-refresh</v-icon>
-                      Refresh
-                    </v-btn>
-                  </v-toolbar>
-                </template>
+        <!-- Device Report Table -->
+        <DataTableWrapper title="Device Reports" :showSearch="true">
+          <template #toolbar-actions>
+            <BaseButton
+              variant="primary"
+              size="md"
+              text="Generate All Devices Report"
+              :leftIcon="Download"
+              @click="generateAllDevicesReport"
+              :loading="isGeneratingAll"
+              :disabled="isGenerating || devices.length === 0"
+              class="mr-2"
+            />
+            <!-- <BaseButton
+              variant="primary"
+              size="md"
+              text="Refresh Devices"
+              :leftIcon="RefreshCw"
+              @click="fetchDevices"
+              :loading="loadingDevices"
+            /> -->
+          </template>
 
-                <template v-slot:item.actions="{ item }">
-                  <BaseButton
-                    variant="primary"
-                    size="sm"
-                    text="Generate Report"
-                    :leftIcon="Wrench"
-                    :loading="isGenerating && selectedDevice === item.id"
-                    :disabled="isGenerating"
-                    @click="() => generateDeviceReport(item)"
-                  />
-                </template>
+          <!-- Loading State -->
+          <SkeletonLoader
+            v-if="loadingDevices"
+            variant="data-table"
+            :rows="5"
+            :columns="4"
+          />
 
-                <template v-slot:loading>
-                  <v-skeleton-loader type="table-row@5"></v-skeleton-loader>
-                </template>
+          <!-- Error State -->
+          <div v-else-if="devicesError" class="text-center p-8 text-red-500">
+            Failed to load devices: {{ devicesError }}
+            <div class="mt-4">
+              <BaseButton
+                text="Retry"
+                variant="primary"
+                size="sm"
+                @click="fetchDevices"
+              />
+            </div>
+          </div>
 
-                <template v-slot:no-data>
-                  <div class="text-center py-4">
-                    <v-icon size="48" class="mb-2">mdi-devices-off</v-icon>
-                    <p>No devices found</p>
-                    <v-btn
-                      color="primary"
-                      @click="fetchDevices"
-                      :loading="loadingDevices"
-                    >
-                      Retry
-                    </v-btn>
-                  </div>
-                </template>
-              </v-data-table>
-            </v-card>
-          </v-col>
-        </v-row>
+          <!-- Table -->
+          <DataTable
+            v-else
+            :items="formattedDevices"
+            :columns="deviceHeaders"
+            :showSelection="false"
+            :expandable="false"
+            show-header
+            :row-clickable="false"
+          >
+            <!-- Actions Cell -->
+            <template #cell-actions="{ item }">
+              <BaseButton
+                variant="primary"
+                size="sm"
+                text="Generate Report"
+                :leftIcon="Wrench"
+                :loading="isGenerating && selectedDevice === item.id"
+                :disabled="isGenerating || isGeneratingAll"
+                @click="() => generateDeviceReport(item.rawData)"
+              />
+            </template>
+
+            <template #no-data>
+              <div class="text-center py-8">
+                <v-icon size="64" color="grey" class="mb-4"
+                  >mdi-devices-off</v-icon
+                >
+                <p class="text-grey mb-4">No devices found</p>
+                <BaseButton
+                  text="Refresh"
+                  variant="primary"
+                  size="md"
+                  @click="fetchDevices"
+                />
+              </div>
+            </template>
+          </DataTable>
+        </DataTableWrapper>
 
         <!-- Error Snackbar -->
         <v-snackbar v-model="showError" color="error" :timeout="5000">
@@ -112,7 +133,10 @@ import { authService } from "@/services/authService";
 import * as XLSX from "xlsx";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
-import { Wrench, Check, XCircle } from "lucide-vue-next";
+import DataTable from "@/components/common/table/DataTable.vue";
+import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
+import { Wrench, RefreshCw, Download } from "lucide-vue-next";
+
 const emit = defineEmits(["closeAddPage"]);
 const loading = ref(false);
 const showWarning = ref(false);
@@ -120,6 +144,7 @@ const warningMessage = ref("");
 const form = ref(null);
 
 const isGenerating = ref(false);
+const isGeneratingAll = ref(false);
 const showError = ref(false);
 const errorMessage = ref("");
 const showSuccess = ref(false);
@@ -127,17 +152,44 @@ const successMessage = ref("");
 
 const devices = ref([]);
 const loadingDevices = ref(false);
+const devicesError = ref(null);
 const selectedDevice = ref(null);
 
-// Table headers for devices
+// Table headers for devices - updated for DataTable component
 const deviceHeaders = ref([
-  { title: "Device Name", key: "deviceName", sortable: true },
-  { title: "Serial Number", key: "sn", sortable: true },
-  { title: "Controller Name", key: "controllerName", sortable: true },
-  { title: "Actions", key: "actions", sortable: false, align: "center" },
+  { label: "Device Name", key: "deviceName", sortable: true, width: "200px" },
+  {
+    label: "Serial Number",
+    key: "serialNumber",
+    sortable: true,
+    width: "180px",
+  },
+  {
+    label: "Controller Name",
+    key: "controllerName",
+    sortable: true,
+    width: "200px",
+  },
+  {
+    label: "Actions",
+    key: "actions",
+    sortable: false,
+    width: "200px",
+    align: "center",
+  },
 ]);
 
-const availableDevices = computed(() => devices.value);
+// Format devices for DataTable
+const formattedDevices = computed(() => {
+  return devices.value.map((device) => ({
+    deviceName: device.deviceName || "N/A",
+    serialNumber: device.sn || "N/A",
+    controllerName: device.controllerName || "N/A",
+    actions: "", // This will be handled by the template slot
+    rawData: device,
+    id: device.id,
+  }));
+});
 
 const token = authService.getToken();
 const tenantId = currentUserTenant.getTenantId();
@@ -159,6 +211,7 @@ const showWarningToast = (message) => {
 
 const fetchDevices = async () => {
   loadingDevices.value = true;
+  devicesError.value = null;
   try {
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/items/controllers?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}&fields[]=controllerName&fields[]=id&fields[]=selectedDoors&fields[]=deviceName&fields[]=sn`,
@@ -175,12 +228,14 @@ const fetchDevices = async () => {
     devices.value = data.data || [];
   } catch (error) {
     console.error("Error fetching devices:", error);
+    devicesError.value = error.message;
     showErrorToast("Failed to load devices");
   } finally {
     loadingDevices.value = false;
   }
 };
 
+// Individual device report generation
 const generateDeviceReport = async (device) => {
   selectedDevice.value = device.id;
   isGenerating.value = true;
@@ -196,13 +251,73 @@ const generateDeviceReport = async (device) => {
   }
 };
 
+// All devices report generation
+const generateAllDevicesReport = async () => {
+  if (devices.value.length === 0) {
+    showWarningToast("No devices available to generate report");
+    return;
+  }
+
+  isGeneratingAll.value = true;
+
+  try {
+    const allDevicesData = [];
+
+    // Fetch data for all devices sequentially to avoid overwhelming the API
+    for (const device of devices.value) {
+      try {
+        const deviceData = await fetchDeviceDataForAll(device);
+        if (deviceData) {
+          allDevicesData.push(deviceData);
+        }
+      } catch (error) {
+        console.error(`Error fetching data for device ${device.id}:`, error);
+        // Continue with other devices even if one fails
+      }
+    }
+
+    if (allDevicesData.length > 0) {
+      transformAllDevicesData(allDevicesData);
+    } else {
+      showErrorToast("Failed to generate report for any devices");
+    }
+  } catch (error) {
+    console.error("Error generating all devices report:", error);
+    showErrorToast("Failed to generate all devices report");
+  } finally {
+    isGeneratingAll.value = false;
+  }
+};
+
 const fetchDeviceData = async (device) => {
   try {
-    // Get door details for each selected door
-    const doorDetails = [];
+    const doorDetails = await fetchDoorDetails(device.selectedDoors);
+    transformDeviceData(device, doorDetails, "individual");
+  } catch (error) {
+    console.error("Error fetching device data:", error);
+    throw error;
+  }
+};
 
-    if (device.selectedDoors && device.selectedDoors.length > 0) {
-      for (const doorId of device.selectedDoors) {
+const fetchDeviceDataForAll = async (device) => {
+  try {
+    const doorDetails = await fetchDoorDetails(device.selectedDoors);
+    return {
+      device,
+      doorDetails,
+    };
+  } catch (error) {
+    console.error(`Error fetching data for device ${device.id}:`, error);
+    return null;
+  }
+};
+
+const fetchDoorDetails = async (selectedDoors) => {
+  const doorDetails = [];
+
+  if (selectedDoors && selectedDoors.length > 0) {
+    for (const doorId of selectedDoors) {
+      try {
         const doorResponse = await fetch(
           `${import.meta.env.VITE_API_URL}/items/doors?filter[_and][0][_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][0][_and][1][id][_eq]=${doorId}&fields[]=id&fields[]=doorNumber&fields[]=doorName&fields[]=doorType&fields[]=doorsConfigure&fields[]=tenant.tenantName`,
           {
@@ -221,22 +336,24 @@ const fetchDeviceData = async (device) => {
         if (doorData.data && doorData.data.length > 0) {
           doorDetails.push(doorData.data[0]);
         }
+      } catch (error) {
+        console.error(`Error fetching door ${doorId}:`, error);
       }
     }
-
-    // Transform the data for Excel
-    transformDeviceData(device, doorDetails);
-  } catch (error) {
-    console.error("Error fetching device data:", error);
-    throw error;
   }
+
+  return doorDetails;
 };
 
-// Add transformDeviceData method
-const transformDeviceData = (deviceData, doorDetails) => {
+// Individual device data transformation
+const transformDeviceData = (
+  deviceData,
+  doorDetails,
+  reportType = "individual"
+) => {
   const processedData = [];
 
-  // Add device information - only once at the top
+  // Add device information
   processedData.push({
     Category: "Device Information",
     Field: "Device Name",
@@ -267,21 +384,18 @@ const transformDeviceData = (deviceData, doorDetails) => {
     Value: doorDetails.length,
   });
 
-  // Add door information without door type and door number
+  // Add door information
   if (doorDetails.length > 0) {
     doorDetails.forEach((door, index) => {
-      // Add door name only
       processedData.push({
-        Category: `Door ${index + 1}Configuration`,
+        Category: `Door ${index + 1} Configuration`,
         Field: "Door Name",
         Value: door.doorName || "N/A",
       });
 
-      // Add door configuration details
       if (door.doorsConfigure) {
         const config = door.doorsConfigure;
 
-        // Common configuration fields for all doors
         processedData.push({
           Category: ``,
           Field: "Door Open Timer",
@@ -327,7 +441,6 @@ const transformDeviceData = (deviceData, doorDetails) => {
         });
       }
 
-      // Add separator between doors (except after the last door)
       if (index < doorDetails.length - 1) {
         processedData.push({
           Category: "",
@@ -344,42 +457,180 @@ const transformDeviceData = (deviceData, doorDetails) => {
     });
   }
 
-  downloadExcel(processedData, "Device_Report", deviceData.id);
+  if (reportType === "individual") {
+    downloadExcel(processedData, "Device_Report", deviceData.id);
+  }
+
+  return processedData;
+};
+
+// All devices data transformation
+const transformAllDevicesData = (allDevicesData) => {
+  const allProcessedData = [];
+
+  allDevicesData.forEach((deviceData, deviceIndex) => {
+    const { device, doorDetails } = deviceData;
+
+    // Add device header with separator
+    if (deviceIndex > 0) {
+      // Add separator between devices
+      allProcessedData.push({
+        Category: "",
+        Field: "",
+        Value: "",
+      });
+      allProcessedData.push({
+        Category: "════════════════════════════════════════",
+        Field: "════════════════════════════════════════",
+        Value: "════════════════════════════════════════",
+      });
+      allProcessedData.push({
+        Category: "",
+        Field: "",
+        Value: "",
+      });
+    }
+
+    // Add device information
+    allProcessedData.push({
+      Category: `DEVICE ${deviceIndex + 1}`,
+      Field: "Device Name",
+      Value: device.deviceName || "N/A",
+    });
+    allProcessedData.push({
+      Category: "",
+      Field: "Controller Name",
+      Value: device.controllerName || "N/A",
+    });
+    allProcessedData.push({
+      Category: "",
+      Field: "Serial Number",
+      Value: device.sn || "N/A",
+    });
+
+    // Add separator
+    allProcessedData.push({
+      Category: "",
+      Field: "",
+      Value: "",
+    });
+
+    // Add door configuration header
+    allProcessedData.push({
+      Category: "Door Configuration",
+      Field: "Total Doors",
+      Value: doorDetails.length,
+    });
+
+    // Add door information
+    if (doorDetails.length > 0) {
+      doorDetails.forEach((door, doorIndex) => {
+        allProcessedData.push({
+          Category: `Door ${doorIndex + 1} Configuration`,
+          Field: "Door Name",
+          Value: door.doorName || "N/A",
+        });
+
+        if (door.doorsConfigure) {
+          const config = door.doorsConfigure;
+
+          allProcessedData.push({
+            Category: ``,
+            Field: "Door Open Timer",
+            Value:
+              config.doorOpenTimer !== null
+                ? `${config.doorOpenTimer} seconds`
+                : "N/A",
+          });
+          allProcessedData.push({
+            Category: ``,
+            Field: "Delay Timer",
+            Value:
+              config.delayTimer !== null
+                ? `${config.delayTimer} seconds`
+                : "N/A",
+          });
+          allProcessedData.push({
+            Category: ``,
+            Field: "Sensor Mode",
+            Value: config.sensorMode ? "Enabled" : "Disabled",
+          });
+          allProcessedData.push({
+            Category: ``,
+            Field: "Passive Mode",
+            Value: config.passiveMode ? "Enabled" : "Disabled",
+          });
+
+          if (config.scheduleTime) {
+            allProcessedData.push({
+              Category: ``,
+              Field: "Entry Time",
+              Value: config.scheduleTime.entryTime || "N/A",
+            });
+            allProcessedData.push({
+              Category: ``,
+              Field: "Exit Time",
+              Value: config.scheduleTime.exitTime || "N/A",
+            });
+          }
+        } else {
+          allProcessedData.push({
+            Category: `Door ${doorIndex + 1} Configuration`,
+            Field: "Configuration",
+            Value: "No configuration available",
+          });
+        }
+
+        // Add separator between doors (except after the last door of the last device)
+        if (doorIndex < doorDetails.length - 1) {
+          allProcessedData.push({
+            Category: "",
+            Field: "",
+            Value: "",
+          });
+        }
+      });
+    } else {
+      allProcessedData.push({
+        Category: "Door Configuration",
+        Field: "Doors",
+        Value: "No doors configured",
+      });
+    }
+  });
+
+  downloadExcel(allProcessedData, "All_Devices_Report", "all_devices");
 };
 
 const downloadExcel = (data, reportTitle, deviceId) => {
   try {
-    // For device report, we want a different format
-    if (reportTitle === "Device_Report") {
-      // Create a more structured worksheet for device report
-      const worksheet = XLSX.utils.aoa_to_sheet([]);
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
 
-      // Add headers
-      XLSX.utils.sheet_add_aoa(worksheet, [["Category", "Field", "Value"]], {
-        origin: "A1",
+    // Add headers
+    XLSX.utils.sheet_add_aoa(worksheet, [["Category", "Field", "Value"]], {
+      origin: "A1",
+    });
+
+    // Add data
+    if (data.length > 0) {
+      XLSX.utils.sheet_add_json(worksheet, data, {
+        origin: "A2",
+        skipHeader: true,
       });
-
-      // Add data
-      if (data.length > 0) {
-        XLSX.utils.sheet_add_json(worksheet, data, {
-          origin: "A2",
-          skipHeader: true,
-        });
-      }
-
-      // Set column widths
-      worksheet["!cols"] = [
-        { wch: 25 }, // Category
-        { wch: 25 }, // Field
-        { wch: 30 }, // Value
-      ];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, reportTitle);
-
-      const fileName = `Device_Report_${deviceId}_${new Date().toISOString().split("T")[0]}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
     }
+
+    // Set column widths
+    worksheet["!cols"] = [
+      { wch: 30 }, // Category
+      { wch: 25 }, // Field
+      { wch: 30 }, // Value
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, reportTitle);
+
+    const fileName = `${reportTitle}_${new Date().toISOString().split("T")[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 
     showSuccessToast(
       `${reportTitle.replace(/_/g, " ")} downloaded successfully!`
@@ -421,5 +672,9 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   max-width: 24rem;
+}
+
+.mr-2 {
+  margin-right: 8px;
 }
 </style>

@@ -4,22 +4,25 @@
       <span class="text-h5">{{ isEditing ? "Edit" : "Add" }} Access Level</span>
       <v-spacer></v-spacer>
 
-      <!-- Access Type Toggle -->
+      <!-- Save/Cancel Buttons moved to title row -->
       <div class="d-flex align-center">
-        <span class="mr-2">Access Type:</span>
-        <v-switch
-          v-model="accessType"
-          :label="accessType ? 'Active' : 'Inactive'"
-          color="primary"
-          hide-details
-          inset
-          density="compact"
-        ></v-switch>
+        <BaseButton
+          variant="ghost"
+          text="Cancel"
+          @click="$emit('cancel')"
+          class="mr-2"
+        ></BaseButton>
+        <BaseButton
+          variant="primary"
+          text="Save"
+          :loading="isSaving"
+          @click="handleSave"
+        ></BaseButton>
       </div>
     </v-card-title>
 
     <v-card-text>
-      <!-- Access Level Name Field with Save/Cancel Buttons -->
+      <!-- Access Level Name Field with Access Type Toggle -->
       <v-row dense class="mb-6 align-center">
         <v-col cols="12" sm="6">
           <v-text-field
@@ -32,19 +35,17 @@
           ></v-text-field>
         </v-col>
         <v-col cols="12" sm="6" class="d-flex justify-end">
+          <!-- Access Type Toggle moved to field row -->
           <div class="d-flex align-center">
-            <BaseButton
-              variant="ghost"
-              text="Cancel"
-              @click="$emit('cancel')"
-              class="mr-2"
-            ></BaseButton>
-            <BaseButton
-              variant="primary"
-              text="Save"
-              :loading="isSaving"
-              @click="handleSave"
-            ></BaseButton>
+            <span class="mr-2">Access Type:</span>
+            <v-switch
+              v-model="accessType"
+              :label="accessType ? 'Active' : 'Inactive'"
+              color="primary"
+              hide-details
+              inset
+              density="compact"
+            ></v-switch>
           </div>
         </v-col>
       </v-row>
@@ -80,18 +81,36 @@
             <v-col cols="12" sm="5">
               <v-row align="center" no-gutters>
                 <v-col>
-                  <span>24 Hours Access</span>
-                  <v-chip
-                    v-if="access24Hours"
-                    size="small"
-                    color="green"
-                    class="ml-2"
-                  >
-                    ACTIVE
-                  </v-chip>
-                  <v-chip v-else size="small" color="grey" class="ml-2">
-                    INACTIVE
-                  </v-chip>
+                  <div class="d-flex align-center">
+                    <span>24 Hours Access</span>
+                    <v-tooltip location="top">
+                      <template v-slot:activator="{ props }">
+                        <v-icon
+                          v-bind="props"
+                          size="small"
+                          color="grey"
+                          class="ml-2"
+                        >
+                          mdi-information
+                        </v-icon>
+                      </template>
+                      <span
+                        >This access level allows entry at any time, 24 hours a
+                        day.</span
+                      >
+                    </v-tooltip>
+                    <v-chip
+                      v-if="access24Hours"
+                      size="small"
+                      color="green"
+                      class="ml-2"
+                    >
+                      ACTIVE
+                    </v-chip>
+                    <v-chip v-else size="small" color="grey" class="ml-2">
+                      INACTIVE
+                    </v-chip>
+                  </div>
                 </v-col>
                 <v-col cols="auto" class="ml-3">
                   <v-switch
@@ -113,18 +132,36 @@
             <v-col cols="12" sm="5">
               <v-row align="center" no-gutters>
                 <v-col>
-                  <span>Time Zone</span>
-                  <v-chip
-                    v-if="accessTiming"
-                    size="small"
-                    color="green"
-                    class="ml-2"
-                  >
-                    ACTIVE
-                  </v-chip>
-                  <v-chip v-else size="small" color="grey" class="ml-2">
-                    INACTIVE
-                  </v-chip>
+                  <div class="d-flex align-center">
+                    <span>Time Zone</span>
+                    <v-tooltip location="top">
+                      <template v-slot:activator="{ props }">
+                        <v-icon
+                          v-bind="props"
+                          size="small"
+                          color="grey"
+                          class="ml-2"
+                        >
+                          mdi-information
+                        </v-icon>
+                      </template>
+                      <span
+                        >The selected time zone determines when this access
+                        level is active.</span
+                      >
+                    </v-tooltip>
+                    <v-chip
+                      v-if="accessTiming"
+                      size="small"
+                      color="green"
+                      class="ml-2"
+                    >
+                      ACTIVE
+                    </v-chip>
+                    <v-chip v-else size="small" color="grey" class="ml-2">
+                      INACTIVE
+                    </v-chip>
+                  </div>
                 </v-col>
                 <v-col cols="auto" class="ml-3">
                   <v-switch
@@ -158,18 +195,36 @@
             <v-col cols="12" sm="5">
               <v-row align="center" no-gutters>
                 <v-col>
-                  <span>Max Work Hours</span>
-                  <v-chip
-                    v-if="maxWorkHours"
-                    size="small"
-                    color="green"
-                    class="ml-2"
-                  >
-                    ACTIVE
-                  </v-chip>
-                  <v-chip v-else size="small" color="grey" class="ml-2">
-                    INACTIVE
-                  </v-chip>
+                  <div class="d-flex align-center">
+                    <span>Max Work Hours</span>
+                    <v-tooltip location="top">
+                      <template v-slot:activator="{ props }">
+                        <v-icon
+                          v-bind="props"
+                          size="small"
+                          color="grey"
+                          class="ml-2"
+                        >
+                          mdi-information
+                        </v-icon>
+                      </template>
+                      <span
+                        >The total number of working hours allowed for this
+                        access level.</span
+                      >
+                    </v-tooltip>
+                    <v-chip
+                      v-if="maxWorkHours"
+                      size="small"
+                      color="green"
+                      class="ml-2"
+                    >
+                      ACTIVE
+                    </v-chip>
+                    <v-chip v-else size="small" color="grey" class="ml-2">
+                      INACTIVE
+                    </v-chip>
+                  </div>
                 </v-col>
                 <v-col cols="auto">
                   <v-switch
@@ -202,18 +257,36 @@
             <v-col cols="12" sm="5">
               <v-row align="center" no-gutters>
                 <v-col>
-                  <span>Holiday Access</span>
-                  <v-chip
-                    v-if="holidayAccess"
-                    size="small"
-                    color="green"
-                    class="ml-2"
-                  >
-                    ACTIVE
-                  </v-chip>
-                  <v-chip v-else size="small" color="grey" class="ml-2">
-                    INACTIVE
-                  </v-chip>
+                  <div class="d-flex align-center">
+                    <span>Holiday Access</span>
+                    <v-tooltip location="top">
+                      <template v-slot:activator="{ props }">
+                        <v-icon
+                          v-bind="props"
+                          size="small"
+                          color="grey"
+                          class="ml-2"
+                        >
+                          mdi-information
+                        </v-icon>
+                      </template>
+                      <span
+                        >Allows entry even on holidays for this access
+                        level.</span
+                      >
+                    </v-tooltip>
+                    <v-chip
+                      v-if="holidayAccess"
+                      size="small"
+                      color="green"
+                      class="ml-2"
+                    >
+                      ACTIVE
+                    </v-chip>
+                    <v-chip v-else size="small" color="grey" class="ml-2">
+                      INACTIVE
+                    </v-chip>
+                  </div>
                 </v-col>
                 <v-col cols="auto">
                   <v-switch
@@ -719,5 +792,10 @@ watch(
 .section-title {
   border-bottom: 2px solid #e0e0e0;
   padding-bottom: 8px;
+}
+
+/* Optional: Add some spacing for the tooltip icons */
+.d-flex.align-center .v-icon {
+  margin-left: 4px;
 }
 </style>

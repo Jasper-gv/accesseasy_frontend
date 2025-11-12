@@ -133,8 +133,28 @@
                       <v-col cols="4">
                         <v-card outlined elevation="0" class="h-100">
                           <v-card-text class="pa-4">
-                            <div class="mb-2 font-weight-medium">
+                            <div
+                              class="mb-2 font-weight-medium d-flex align-center"
+                            >
                               Door open duration
+                              <v-tooltip location="top">
+                                <template
+                                  v-slot:activator="{ props: tooltipProps }"
+                                >
+                                  <v-icon
+                                    v-bind="tooltipProps"
+                                    size="small"
+                                    color="grey"
+                                    class="ml-1"
+                                  >
+                                    mdi-information
+                                  </v-icon>
+                                </template>
+                                <span class="custom-tooltip"
+                                  >The number of seconds the door should remain
+                                  open.</span
+                                >
+                              </v-tooltip>
                             </div>
                             <v-text-field
                               v-model.number="
@@ -159,8 +179,28 @@
                       <v-col cols="4">
                         <v-card outlined elevation="0" class="h-100">
                           <v-card-text class="pa-4">
-                            <div class="mb-2 font-weight-medium">
+                            <div
+                              class="mb-2 font-weight-medium d-flex align-center"
+                            >
                               DOTL Alarm Delay
+                              <v-tooltip location="top">
+                                <template
+                                  v-slot:activator="{ props: tooltipProps }"
+                                >
+                                  <v-icon
+                                    v-bind="tooltipProps"
+                                    size="small"
+                                    color="grey"
+                                    class="ml-1"
+                                  >
+                                    mdi-information
+                                  </v-icon>
+                                </template>
+                                <span class="custom-tooltip"
+                                  >The delay (in seconds) after the door open
+                                  duration ends before the alarm sounds.</span
+                                >
+                              </v-tooltip>
                             </div>
                             <v-row align="center">
                               <v-col cols="7">
@@ -239,9 +279,30 @@
                               class="flex-nowrap"
                               no-gutters
                             >
-                              <v-col cols="5">
-                                <span class="font-weight-medium">
+                              <v-col cols="5" class="d-flex align-center">
+                                <span
+                                  class="font-weight-medium d-flex align-center"
+                                >
                                   Auto door open schedule (passive Mode)
+                                  <v-tooltip location="top">
+                                    <template
+                                      v-slot:activator="{ props: tooltipProps }"
+                                    >
+                                      <v-icon
+                                        v-bind="tooltipProps"
+                                        size="small"
+                                        color="grey"
+                                        class="ml-1"
+                                      >
+                                        mdi-information
+                                      </v-icon>
+                                    </template>
+                                    <span class="custom-tooltip"
+                                      >When enabled, the door stays open 24
+                                      hours or as per the selected time zone
+                                      schedule.</span
+                                    >
+                                  </v-tooltip>
                                 </span>
                               </v-col>
 

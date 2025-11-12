@@ -196,10 +196,10 @@ const ALL_EXPORT_FIELDS = [
   },
   // { label: "Branch Name", key: "branch.branchName" },
   { label: "Department Name", key: "department.departmentName" },
-  // {
-  //   label: "Access Level Name",
-  //   key: "assignedAccessLevel.accessLevelName",
-  // },
+  {
+    label: "Access Level Name",
+    key: "assignedAccessLevel.accessLevelName",
+  },
   { label: "Attendance Category", key: "config.configName" },
   { label: "ID", key: "id" },
 ];
@@ -221,7 +221,7 @@ const sections = [
         "assignedUser.officeEmail",
         "assignedUser.designation",
         "id",
-      ].includes(f.key),
+      ].includes(f.key)
     ),
   },
   {
@@ -237,7 +237,7 @@ const sections = [
         "config.configName",
         "assignedUser.role.name",
         "assignedUser.appAccess",
-      ].includes(f.key),
+      ].includes(f.key)
     ),
   },
   {
@@ -258,7 +258,7 @@ const sections = [
         "assignedUser.shopAccount",
         "assignedUser.accountStatus",
         "assignedUser.accountDetails",
-      ].includes(f.key),
+      ].includes(f.key)
     ),
   },
   {
@@ -275,7 +275,7 @@ const sections = [
         "assignedUser.emergency_Contact_Relationship",
         "assignedUser.emergency_Contact_Address",
         "assignedUser.middleName",
-      ].includes(f.key),
+      ].includes(f.key)
     ),
   },
 ];
@@ -316,7 +316,7 @@ const fetchBranches = async () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      },
+      }
     );
     if (!response.ok) throw new Error("Failed to fetch branches");
     const data = await response.json();
@@ -338,7 +338,7 @@ const fetchDepartments = async () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      },
+      }
     );
     if (!response.ok) throw new Error("Failed to fetch departments");
     const data = await response.json();
@@ -355,7 +355,7 @@ const fetchRoles = async () => {
   try {
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/roles?filter[_and][0][name][_neq]=Administrator&filter[_and][1][name][_neq]=esslAdmin&filter[_and][2][name][_neq]=Dealer`,
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!response.ok) throw new Error("Failed to fetch roles");
     const data = await response.json();
@@ -400,7 +400,7 @@ const toggleSectionSelection = (title) => {
 
 const updateSelectAll = () => {
   selectAll.value = sections.every((section) =>
-    section.fields.every((field) => selectedFields[field.key]),
+    section.fields.every((field) => selectedFields[field.key])
   );
 };
 
@@ -417,7 +417,7 @@ watch(
   () => {
     updateSelectAll();
   },
-  { deep: true },
+  { deep: true }
 );
 
 const getNestedValue = (obj, path) => {
@@ -473,7 +473,7 @@ const exportData = async () => {
   isExporting.value = true;
   const token = getToken();
   let selectedFieldKeys = Object.keys(selectedFields).filter(
-    (key) => selectedFields[key],
+    (key) => selectedFields[key]
   );
 
   if (selectedFieldKeys.length === 0) {
@@ -482,7 +482,7 @@ const exportData = async () => {
 
   if (selectedFieldKeys.length === 0) {
     alert(
-      "No fields available for export. Please define fields in ALL_EXPORT_FIELDS.",
+      "No fields available for export. Please define fields in ALL_EXPORT_FIELDS."
     );
     isExporting.value = false;
     return;
@@ -625,7 +625,7 @@ const exportData = async () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
+        }
       );
       if (!response.ok)
         throw new Error("Failed to fetch selected employee data");
@@ -650,7 +650,7 @@ const exportData = async () => {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          },
+          }
         );
         if (!response.ok)
           throw new Error("Failed to fetch employee data batch");
@@ -784,7 +784,7 @@ const exportData = async () => {
       URL.revokeObjectURL(link.href);
 
       alert(
-        `Employee data exported successfully to ${selectedExportFormat.value.toUpperCase()}!`,
+        `Employee data exported successfully to ${selectedExportFormat.value.toUpperCase()}!`
       );
     } else if (selectedExportFormat.value === "pdf") {
       const doc = new jsPDF({ orientation: "landscape" });
@@ -795,7 +795,7 @@ const exportData = async () => {
 
       // Group fields by sections
       const selectedSections = sections.filter((section) =>
-        section.fields.some((field) => selectedFieldKeys.includes(field.key)),
+        section.fields.some((field) => selectedFieldKeys.includes(field.key))
       );
 
       let currentY = 30;
@@ -803,7 +803,7 @@ const exportData = async () => {
       selectedSections.forEach((section, index) => {
         // Ensure all selected fields in the section are included
         const sectionFields = section.fields.filter((field) =>
-          selectedFieldKeys.includes(field.key),
+          selectedFieldKeys.includes(field.key)
         );
         if (sectionFields.length === 0) return;
 
@@ -820,7 +820,7 @@ const exportData = async () => {
             // Map the row data using the field label to ensure correct value retrieval
             const value = row[field.label] || "";
             return value;
-          }),
+          })
         );
 
         // Add table for this section
@@ -859,7 +859,7 @@ const exportData = async () => {
               `Page ${pageCount}`,
               doc.internal.pageSize.width - 20,
               doc.internal.pageSize.height - 10,
-              { align: "right" },
+              { align: "right" }
             );
           },
         });
