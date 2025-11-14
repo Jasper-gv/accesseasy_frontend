@@ -402,11 +402,17 @@ export default {
       // requiredFeature: "fieldpro",
       // },
       {
-        title: "Expenses",
-        icon: "mdi-cash",
-        to: "/reimbursement/reimbursementtab/reimbursement_card",
-        roles: ["Admin", "Employee", "Manager"],
+        title: "Card Management",
+        icon: "mdi-card-account-details-outline",
+        to: "/card-management/cards",
+        roles: ["Admin", "Manager", "esslAdmin"],
       },
+      // {
+      //   title: "Expenses",
+      //   icon: "mdi-cash",
+      //   to: "/reimbursement/reimbursementtab/reimbursement_card",
+      //   roles: ["Admin", "Employee", "Manager"],
+      // },
       {
         title: " Requests",
         to: "/leave/leaveRequest",
@@ -1138,7 +1144,7 @@ export default {
 }
 
 .modern-sidebar :deep(.main-item:hover) {
-  background-color: #77c3ab !important;
+  background-color: rgb(229, 148, 148) !important;
   color: #000000 !important;
 }
 

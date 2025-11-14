@@ -35,84 +35,96 @@
           :columns="3"
         />
 
-        <!-- Table -->
-        <DataTable
-          v-else
-          :items="accessLevels"
-          :columns="headers"
-          :showSelection="false"
-          :expandable="false"
-          show-header
-          :row-clickable="true"
-          @rowClick="handleRowClick"
-        >
-          <!-- Status Switch -->
-          <template #cell-type="{ item }">
-            <v-switch
-              v-model="item.type"
-              color="primary"
-              inset
-              hide-details
-              density="compact"
-              @change="onToggleAccessType(item)"
-            />
-          </template>
+        <!-- Table with Pagination -->
+        <div v-else>
+          <DataTable
+            :items="paginatedAccessLevels"
+            :columns="headers"
+            :showSelection="false"
+            :expandable="false"
+            show-header
+            :row-clickable="true"
+            @rowClick="handleRowClick"
+          >
+            <!-- Status Switch -->
+            <template #cell-type="{ item }">
+              <v-switch
+                v-model="item.type"
+                color="primary"
+                inset
+                hide-details
+                density="compact"
+                @change="onToggleAccessType(item)"
+              />
+            </template>
 
-          <!-- Doors Column: First + +N more -->
-          <template #cell-assignDoorsGroup="{ item }">
-            <div class="branch-chips">
-              <!-- No Doors -->
-              <v-chip
-                v-if="
-                  !item.assignDoorsGroupNames ||
-                  item.assignDoorsGroupNames.length === 0
-                "
-                size="small"
-                color="grey"
-                variant="tonal"
-                class="mr-1 mb-1"
-              >
-                No Doors Assigned
-              </v-chip>
-
-              <!-- 1 or More Doors -->
-              <template v-else>
-                <!-- First Door -->
+            <!-- Doors Column: First + +N more -->
+            <template #cell-assignDoorsGroup="{ item }">
+              <div class="branch-chips">
+                <!-- No Doors -->
                 <v-chip
-                  size="small"
-                  color="#059367"
-                  variant="tonal"
-                  class="mr-1 mb-1"
-                >
-                  <v-icon icon="mdi-door" size="12" class="mr-1" />
-                  {{ item.assignDoorsGroupNames[0] }}
-                </v-chip>
-
-                <!-- +N more (only if >1) -->
-                <v-chip
-                  v-if="item.assignDoorsGroupNames.length > 1"
+                  v-if="
+                    !item.assignDoorsGroupNames ||
+                    item.assignDoorsGroupNames.length === 0
+                  "
                   size="small"
                   color="grey"
                   variant="tonal"
-                  class="mr-1 mb-1 view-more-chip"
-                  @click.stop="showDoorsDialog(item)"
+                  class="mr-1 mb-1"
                 >
-                  +{{ item.assignDoorsGroupNames.length - 1 }} more
+                  No Doors Assigned
                 </v-chip>
-              </template>
-            </div>
-          </template>
 
-          <!-- Edit Button -->
-          <template #actions="{ item }">
-            <BaseButton
-              variant="ghost"
-              size="sm"
-              text="Edit"
-              @click.stop="handleEditAccessLevel(item)"
-            />
-          </template>
-        </DataTable>
+                <!-- 1 or More Doors -->
+                <template v-else>
+                  <!-- First Door -->
+                  <v-chip
+                    size="small"
+                    color="#059367"
+                    variant="tonal"
+                    class="mr-1 mb-1"
+                  >
+                    <v-icon icon="mdi-door" size="12" class="mr-1" />
+                    {{ item.assignDoorsGroupNames[0] }}
+                  </v-chip>
+
+                  <!-- +N more (only if >1) -->
+                  <v-chip
+                    v-if="item.assignDoorsGroupNames.length > 1"
+                    size="small"
+                    color="grey"
+                    variant="tonal"
+                    class="mr-1 mb-1 view-more-chip"
+                    @click.stop="showDoorsDialog(item)"
+                  >
+                    +{{ item.assignDoorsGroupNames.length - 1 }} more
+                  </v-chip>
+                </template>
+              </div>
+            </template>
+
+            <!-- Edit Button -->
+            <template #actions="{ item }">
+              <BaseButton
+                variant="ghost"
+                size="sm"
+                text="Edit"
+                @click.stop="handleEditAccessLevel(item)"
+              />
+            </template>
+          </DataTable>
+
+          <!-- Pagination - MOVED OUTSIDE DataTable -->
+          <CustomPagination
+            v-if="accessLevels.length > 0"
+            :total-items="accessLevels.length"
+            :items-per-page="itemsPerPage"
+            :current-page="currentPage"
+            @page-change="handlePageChange"
+            @items-per-page-change="handleItemsPerPageChange"
+            class="mt-4"
+          />
+        </div>
       </DataTableWrapper>
 
       <!-- Dialog: Show All Doors -->
@@ -168,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import AccessLevelAdd from "@/pages/accesslevel/acessleveladd.vue";
@@ -176,6 +188,7 @@ import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
+import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import { Plus } from "lucide-vue-next";
 import { VIcon } from "vuetify/components";
 
@@ -184,6 +197,10 @@ const showAddPanel = ref(false);
 const isEditing = ref(false);
 const currentAccessLevelData = ref(null);
 const accessLevels = ref([]);
+
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = ref(25);
 
 // Dialog
 const showDoorViewDialog = ref(false);
@@ -214,6 +231,13 @@ const headers = ref([
     width: "400px",
   },
 ]);
+
+// Computed property for paginated data
+const paginatedAccessLevels = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage.value;
+  const endIndex = startIndex + itemsPerPage.value;
+  return accessLevels.value.slice(startIndex, endIndex);
+});
 
 // Fetch door names
 const fetchDoorNames = async (doorIds) => {
@@ -305,6 +329,16 @@ const fetchAccessLevels = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// Pagination handlers
+const handlePageChange = (page) => {
+  currentPage.value = page;
+};
+
+const handleItemsPerPageChange = (newItemsPerPage) => {
+  itemsPerPage.value = newItemsPerPage;
+  currentPage.value = 1; // Reset to first page
 };
 
 // Panel

@@ -41,59 +41,71 @@
           Failed to load devices: {{ error }}
         </div>
 
-        <!-- Table -->
-        <DataTable
-          v-else
-          :items="formattedDevices"
-          :columns="headers"
-          :showSelection="false"
-          :expandable="false"
-          show-header
-          :row-clickable="true"
-          @rowClick="handleRowClick"
-        >
-          <!-- Assigned Doors Cell -->
-          <template #cell-assignedDoors="{ item }">
-            <div class="branch-chips">
-              <!-- No Doors -->
-              <v-chip
-                v-if="!item.assignedDoors || item.assignedDoors.length === 0"
-                size="small"
-                color="grey"
-                variant="tonal"
-                class="mr-1 mb-1"
-              >
-                No Doors Assigned
-              </v-chip>
-
-              <!-- 1 or More Doors -->
-              <template v-else>
-                <!-- First Door -->
+        <!-- Table with Pagination -->
+        <div v-else>
+          <DataTable
+            :items="paginatedDevices"
+            :columns="headers"
+            :showSelection="false"
+            :expandable="false"
+            show-header
+            :row-clickable="true"
+            @rowClick="handleRowClick"
+          >
+            <!-- Assigned Doors Cell -->
+            <template #cell-assignedDoors="{ item }">
+              <div class="branch-chips">
+                <!-- No Doors -->
                 <v-chip
-                  size="small"
-                  color="#059367"
-                  variant="tonal"
-                  class="mr-1 mb-1"
-                >
-                  <v-icon icon="mdi-door" size="12" class="mr-1" />
-                  {{ item.assignedDoors[0] }}
-                </v-chip>
-
-                <!-- +N more -->
-                <v-chip
-                  v-if="item.assignedDoors.length > 1"
+                  v-if="!item.assignedDoors || item.assignedDoors.length === 0"
                   size="small"
                   color="grey"
                   variant="tonal"
-                  class="mr-1 mb-1 view-more-chip"
-                  @click.stop="showDoorsDialog(item)"
+                  class="mr-1 mb-1"
                 >
-                  +{{ item.assignedDoors.length - 1 }} more
+                  No Doors Assigned
                 </v-chip>
-              </template>
-            </div>
-          </template>
-        </DataTable>
+
+                <!-- 1 or More Doors -->
+                <template v-else>
+                  <!-- First Door -->
+                  <v-chip
+                    size="small"
+                    color="#059367"
+                    variant="tonal"
+                    class="mr-1 mb-1"
+                  >
+                    <v-icon icon="mdi-door" size="12" class="mr-1" />
+                    {{ item.assignedDoors[0] }}
+                  </v-chip>
+
+                  <!-- +N more -->
+                  <v-chip
+                    v-if="item.assignedDoors.length > 1"
+                    size="small"
+                    color="grey"
+                    variant="tonal"
+                    class="mr-1 mb-1 view-more-chip"
+                    @click.stop="showDoorsDialog(item)"
+                  >
+                    +{{ item.assignedDoors.length - 1 }} more
+                  </v-chip>
+                </template>
+              </div>
+            </template>
+          </DataTable>
+
+          <!-- Pagination -->
+          <CustomPagination
+            v-if="formattedDevices.length > 0"
+            :total-items="formattedDevices.length"
+            :items-per-page="itemsPerPage"
+            :current-page="currentPage"
+            @page-change="handlePageChange"
+            @items-per-page-change="handleItemsPerPageChange"
+            class="mt-4"
+          />
+        </div>
       </DataTableWrapper>
 
       <!-- Dialog: Show All Assigned Doors -->
@@ -150,6 +162,7 @@ import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import AddDeviceDetails from "@/pages/device/adddevicedetails.vue";
+import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import { Plus } from "lucide-vue-next";
@@ -161,6 +174,10 @@ const error = ref(null);
 const token = authService.getToken();
 const tenantId = ref(null);
 const editingDevice = ref(null);
+
+// Pagination state
+const currentPage = ref(1);
+const itemsPerPage = ref(25);
 
 // Dialog
 const showDoorViewDialog = ref(false);
@@ -221,6 +238,13 @@ const formattedDevices = computed(() => {
       id: device.id,
     };
   });
+});
+
+// Computed property for paginated devices
+const paginatedDevices = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage.value;
+  const endIndex = startIndex + itemsPerPage.value;
+  return formattedDevices.value.slice(startIndex, endIndex);
 });
 
 // Fetch all data
@@ -311,6 +335,9 @@ const getDeviceData = async () => {
     if (!doorResponse.ok) throw new Error("Failed to fetch doors");
     const doorData = await doorResponse.json();
     doors.value = doorData.data || [];
+
+    // Reset to first page when data changes
+    currentPage.value = 1;
   } catch (err) {
     console.error("Error fetching data:", err);
     error.value = err.message || "Failed to load data";
@@ -318,6 +345,16 @@ const getDeviceData = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// Pagination handlers
+const handlePageChange = (page) => {
+  currentPage.value = page;
+};
+
+const handleItemsPerPageChange = (newItemsPerPage) => {
+  itemsPerPage.value = newItemsPerPage;
+  currentPage.value = 1; // Reset to first page when items per page changes
 };
 
 // Row click → Edit

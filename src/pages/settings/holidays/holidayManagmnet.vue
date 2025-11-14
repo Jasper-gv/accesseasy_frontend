@@ -590,7 +590,7 @@ const fetchBranches = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -612,7 +612,7 @@ const fetchBranches = async () => {
           } catch (e) {
             console.warn(
               `Failed to parse locdetail for branch ${branch.id}:`,
-              branch.locdetail,
+              branch.locdetail
             );
           }
         }
@@ -624,7 +624,7 @@ const fetchBranches = async () => {
       } else if (branch.holidays && typeof branch.holidays !== "string") {
         console.warn(
           `Unexpected holidays format for branch ${branch.id}:`,
-          branch.holidays,
+          branch.holidays
         );
         holidays = JSON.stringify([]);
       }
@@ -664,7 +664,7 @@ const fetchHolidays = async (year) => {
             console.warn(
               `Invalid holidays JSON for branch ${branchId}:`,
               branch.holidays,
-              e,
+              e
             );
             holidayIds = [];
           }
@@ -673,7 +673,7 @@ const fetchHolidays = async (year) => {
         } else {
           console.warn(
             `Unexpected holidays format for branch ${branchId}:`,
-            branch.holidays,
+            branch.holidays
           );
           holidayIds = [];
         }
@@ -706,7 +706,7 @@ const fetchHolidays = async (year) => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        },
+        }
       );
 
       if (!response.ok) {
@@ -728,7 +728,7 @@ const fetchHolidays = async (year) => {
               locationName: branch.locationName,
             },
           ],
-        })),
+        }))
       );
     }
 
@@ -772,7 +772,7 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
           console.warn(
             `Invalid holidays JSON for branch ${branchId}:`,
             branch.holidays,
-            e,
+            e
           );
           currentHolidays = [];
         }
@@ -781,7 +781,7 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
       } else {
         console.warn(
           `Unexpected holidays format for branch ${branchId}:`,
-          branch.holidays,
+          branch.holidays
         );
         currentHolidays = [];
       }
@@ -801,7 +801,7 @@ const updateBranchWithHoliday = async (branchId, holidayId) => {
           body: JSON.stringify({
             holidays: JSON.stringify(updatedHolidays),
           }),
-        },
+        }
       );
 
       if (!response.ok) {
@@ -838,7 +838,7 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
             console.warn(
               `Invalid holidays JSON for branch ${branchId}:`,
               branch.holidays,
-              e,
+              e
             );
             currentHolidays = [];
           }
@@ -847,7 +847,7 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
         } else {
           console.warn(
             `Unexpected holidays format for branch ${branchId}:`,
-            branch.holidays,
+            branch.holidays
           );
           currentHolidays = [];
         }
@@ -867,7 +867,7 @@ const removeHolidayFromBranches = async (branchIds, holidayId) => {
             body: JSON.stringify({
               holidays: JSON.stringify(updatedHolidays),
             }),
-          },
+          }
         );
 
         if (!response.ok) {
@@ -963,7 +963,7 @@ const handleDeleteHoliday = async (holidayId) => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -991,7 +991,7 @@ const addHoliday = async () => {
     !selectedBranches.value.length
   ) {
     setErrorMessage(
-      "Holiday name, date, and at least one branch are required.",
+      "Holiday name, date, and at least one branch are required."
     );
     return;
   }
@@ -1015,7 +1015,7 @@ const addHoliday = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1048,7 +1048,7 @@ const updateHoliday = async () => {
     !selectedBranches.value.length
   ) {
     setErrorMessage(
-      "Holiday name, date, and at least one branch are required.",
+      "Holiday name, date, and at least one branch are required."
     );
     return;
   }
@@ -1068,7 +1068,7 @@ const updateHoliday = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -1079,17 +1079,17 @@ const updateHoliday = async () => {
     const newBranchIds = selectedBranches.value;
 
     const branchesToRemove = oldBranchIds.filter(
-      (id) => !newBranchIds.includes(id),
+      (id) => !newBranchIds.includes(id)
     );
     if (branchesToRemove.length) {
       await removeHolidayFromBranches(
         branchesToRemove,
-        editingHoliday.value.id,
+        editingHoliday.value.id
       );
     }
 
     const branchesToAdd = newBranchIds.filter(
-      (id) => !oldBranchIds.includes(id),
+      (id) => !oldBranchIds.includes(id)
     );
     for (const branchId of branchesToAdd) {
       await updateBranchWithHoliday(branchId, editingHoliday.value.id);

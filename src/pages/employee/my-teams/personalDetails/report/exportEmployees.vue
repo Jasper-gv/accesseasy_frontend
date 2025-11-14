@@ -203,7 +203,11 @@ const ALL_EXPORT_FIELDS = [
   { label: "Attendance Category", key: "config.configName" },
   { label: "ID", key: "id" },
 ];
-
+const RFID_FIELD = {
+  label: "RFID Card",
+  key: "rfidCard",
+  external: true,
+};
 const sections = [
   {
     title: "Employee Core Details",
@@ -226,19 +230,21 @@ const sections = [
   },
   {
     title: "Company & Access Details",
-    fields: ALL_EXPORT_FIELDS.filter((f) =>
-      [
-        "accessOn",
-        "workingRange",
-        "locationCentric",
-        "branch.branchName",
-        "department.departmentName",
-        "assignedAccessLevel.accessLevelName",
-        "config.configName",
-        "assignedUser.role.name",
-        "assignedUser.appAccess",
-      ].includes(f.key)
-    ),
+    fields: [
+      RFID_FIELD,
+      ...ALL_EXPORT_FIELDS.filter((f) =>
+        [
+          "accessOn",
+          "workingRange",
+          "locationCentric",
+          "department.departmentName",
+          "assignedAccessLevel.accessLevelName",
+          "config.configName",
+          "assignedUser.role.name",
+          "assignedUser.appAccess",
+        ].includes(f.key)
+      ),
+    ],
   },
   {
     title: "Financial & Government IDs",
@@ -364,7 +370,66 @@ const fetchRoles = async () => {
     console.error("Error fetching roles:", error);
   }
 };
+const fetchRFIDData = async (employeeIds) => {
+  const token = getToken();
 
+  if (!employeeIds || employeeIds.length === 0) {
+    return {};
+  }
+
+  try {
+    const params = new URLSearchParams({
+      fields: "employeeId.id,rfidCard",
+      "filter[tenant][tenantId][_eq]": tenantId,
+      "filter[employeeId][id][_in]": employeeIds.join(","),
+      "filter[cardAccess][_eq]": true,
+    });
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/cardManagement?${params}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        console.warn("No permission to access cardManagement collection");
+        return {};
+      }
+      throw new Error("Failed to fetch RFID data");
+    }
+
+    const data = await response.json();
+
+    // Create a mapping of employeeId to RFID cards
+    const rfidMap = {};
+
+    if (data.data && Array.isArray(data.data)) {
+      data.data.forEach((card) => {
+        const employeeId = card.employeeId?.id;
+        if (employeeId && card.rfidCard) {
+          if (!rfidMap[employeeId]) {
+            rfidMap[employeeId] = [];
+          }
+          rfidMap[employeeId].push(card.rfidCard);
+        }
+      });
+
+      // Convert arrays to comma-separated strings
+      Object.keys(rfidMap).forEach((employeeId) => {
+        rfidMap[employeeId] = rfidMap[employeeId].join(", ");
+      });
+    }
+
+    return rfidMap;
+  } catch (error) {
+    console.error("Error fetching RFID data:", error);
+    return {};
+  }
+};
 onMounted(() => {
   fetchBranches();
   fetchDepartments();
@@ -472,15 +537,21 @@ const decryptData = async (encryptedText) => {
 const exportData = async () => {
   isExporting.value = true;
   const token = getToken();
+
+  // Get selected fields excluding external ones for the main API call
   let selectedFieldKeys = Object.keys(selectedFields).filter(
-    (key) => selectedFields[key]
+    (key) => selectedFields[key] && key !== RFID_FIELD.key
   );
 
-  if (selectedFieldKeys.length === 0) {
+  // Check if RFID is selected
+  const includeRFID = selectedFields[RFID_FIELD.key];
+
+  // If no fields selected, use all available fields from personalModule
+  if (selectedFieldKeys.length === 0 && !includeRFID) {
     selectedFieldKeys = ALL_EXPORT_FIELDS.map((field) => field.key);
   }
 
-  if (selectedFieldKeys.length === 0) {
+  if (selectedFieldKeys.length === 0 && !includeRFID) {
     alert(
       "No fields available for export. Please define fields in ALL_EXPORT_FIELDS."
     );
@@ -507,42 +578,30 @@ const exportData = async () => {
       baseFilterParams[
         "filter[_or][4][department][departmentName][_icontains]"
       ] = props.search;
-      baseFilterParams["filter[_or][5][branch][branchName][_icontains]"] =
-        props.search;
-      baseFilterParams["filter[_or][6][assignedUser][phone][_icontains]"] =
+      baseFilterParams["filter[_or][5][assignedUser][phone][_icontains]"] =
         props.search;
       baseFilterParams[
-        "filter[_or][7][assignedUser][officeEmail][_icontains]"
+        "filter[_or][6][assignedUser][officeEmail][_icontains]"
       ] = props.search;
-      baseFilterParams["filter[_or][8][assignedUser][gender][_icontains]"] =
+      baseFilterParams["filter[_or][7][assignedUser][gender][_icontains]"] =
         props.search;
-      baseFilterParams["filter[_or][9][config][configName][_icontains]"] =
+      baseFilterParams["filter[_or][8][config][configName][_icontains]"] =
         props.search;
-      baseFilterParams[
-        "filter[_or][10][salaryConfig][configName][_icontains]"
-      ] = props.search;
-      baseFilterParams["filter[_or][11][assignedUser][aadhar][_icontains]"] =
+      baseFilterParams["filter[_or][9][assignedUser][aadhar][_icontains]"] =
         props.search;
       baseFilterParams[
-        "filter[_or][12][assignedUser][ESIAccountNumber][_icontains]"
+        "filter[_or][10][assignedUser][ESIAccountNumber][_icontains]"
       ] = props.search;
       baseFilterParams[
-        "filter[_or][13][assignedUser][PFAccountNumber][_icontains]"
+        "filter[_or][11][assignedUser][PFAccountNumber][_icontains]"
       ] = props.search;
-      baseFilterParams["filter[_or][14][assignedUser][pan][_icontains]"] =
+      baseFilterParams["filter[_or][12][assignedUser][pan][_icontains]"] =
         props.search;
-      baseFilterParams[
-        "filter[_or][15][assignedAccessLevels][accesslevels_id][accessLevelName][_icontains]"
-      ] = props.search;
-      baseFilterParams["filter[_or][16][controllerStatus][_icontains]"] =
+      baseFilterParams["filter[_or][13][controllerStatus][_icontains]"] =
         props.search;
     }
 
     if (props.filters) {
-      if (props.filters.branch?.length) {
-        baseFilterParams["filter[branch][branchName][_in]"] =
-          props.filters.branch.join(",");
-      }
       if (props.filters.department?.length) {
         baseFilterParams["filter[department][departmentName][_in]"] =
           props.filters.department.join(",");
@@ -579,9 +638,6 @@ const exportData = async () => {
       }
     }
 
-    if (selectedBranch.value) {
-      baseFilterParams["filter[branch][id][_eq]"] = selectedBranch.value;
-    }
     if (selectedDepartment.value) {
       baseFilterParams["filter[department][id][_eq]"] =
         selectedDepartment.value;
@@ -661,8 +717,19 @@ const exportData = async () => {
       }
     }
 
+    // Fetch RFID data if selected
+    let rfidMap = {};
+    if (includeRFID) {
+      const employeeIds = allData
+        .map((employee) => employee.id)
+        .filter((id) => id);
+      rfidMap = await fetchRFIDData(employeeIds);
+    }
+
     const flattenedDataPromises = allData.map(async (item) => {
       const row = {};
+
+      // Process regular fields from personalModule
       for (const key of selectedFieldKeys) {
         const fieldDef = ALL_EXPORT_FIELDS.find((f) => f.key === key);
         const label = fieldDef?.label || key;
@@ -673,6 +740,12 @@ const exportData = async () => {
         }
         row[label] = value;
       }
+
+      // Add RFID data if selected
+      if (includeRFID) {
+        row[RFID_FIELD.label] = rfidMap[item.id] || "";
+      }
+
       return row;
     });
 
@@ -734,11 +807,6 @@ const exportData = async () => {
         row.eachCell((cell) => {
           const isNumber = !isNaN(cell.value) && cell.value !== null;
           const isDate = cell.value instanceof Date;
-          // cell.alignment = {
-          //   horizontal: isNumber || isDate ? "right" : "left",
-          //   vertical: "middle",
-          //   wrapText: true,
-          // };
           cell.border = {
             top: { style: "thin", color: { argb: "FFD9D9D9" } },
             bottom: { style: "thin", color: { argb: "FFD9D9D9" } },
@@ -795,15 +863,21 @@ const exportData = async () => {
 
       // Group fields by sections
       const selectedSections = sections.filter((section) =>
-        section.fields.some((field) => selectedFieldKeys.includes(field.key))
+        section.fields.some(
+          (field) =>
+            selectedFields[field.key] ||
+            (field.key === RFID_FIELD.key && includeRFID)
+        )
       );
 
       let currentY = 30;
 
       selectedSections.forEach((section, index) => {
         // Ensure all selected fields in the section are included
-        const sectionFields = section.fields.filter((field) =>
-          selectedFieldKeys.includes(field.key)
+        const sectionFields = section.fields.filter(
+          (field) =>
+            selectedFields[field.key] ||
+            (field.key === RFID_FIELD.key && includeRFID)
         );
         if (sectionFields.length === 0) return;
 

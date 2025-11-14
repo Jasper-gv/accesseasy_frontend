@@ -36,70 +36,82 @@
         />
 
         <!-- Table -->
-        <DataTable
-          v-else
-          :items="doors"
-          :columns="headers"
-          :showSelection="false"
-          :expandable="false"
-          show-header
-          :row-clickable="true"
-          @rowClick="handleRowClick"
-        >
-          <!-- Departments Cell: First + +N more -->
-          <template #cell-departments="{ item }">
-            <div class="branch-chips">
-              <!-- No Departments -->
-              <v-chip
-                v-if="
-                  !item.departmentNames || item.departmentNames.length === 0
-                "
-                size="small"
-                color="grey"
-                variant="tonal"
-                class="mr-1 mb-1"
-              >
-                No Departments Assigned
-              </v-chip>
-
-              <!-- 1 or More -->
-              <template v-else>
-                <!-- First Department -->
+        <div v-else>
+          <DataTable
+            :items="paginatedDoors"
+            :columns="headers"
+            :showSelection="false"
+            :expandable="false"
+            show-header
+            :row-clickable="true"
+            @rowClick="handleRowClick"
+          >
+            <!-- Departments Cell: First + +N more -->
+            <template #cell-departments="{ item }">
+              <div class="branch-chips">
+                <!-- No Departments -->
                 <v-chip
-                  size="small"
-                  color="#059367"
-                  variant="tonal"
-                  class="mr-1 mb-1"
-                >
-                  <v-icon icon="mdi-account-group" size="12" class="mr-1" />
-                  {{ item.departmentNames[0] }}
-                </v-chip>
-
-                <!-- +N more -->
-                <v-chip
-                  v-if="item.departmentNames.length > 1"
+                  v-if="
+                    !item.departmentNames || item.departmentNames.length === 0
+                  "
                   size="small"
                   color="grey"
                   variant="tonal"
-                  class="mr-1 mb-1 view-more-chip"
-                  @click.stop="showDepartmentsDialog(item)"
+                  class="mr-1 mb-1"
                 >
-                  +{{ item.departmentNames.length - 1 }} more
+                  No Departments Assigned
                 </v-chip>
-              </template>
-            </div>
-          </template>
 
-          <!-- Edit Button -->
-          <template #actions="{ item }">
-            <BaseButton
-              variant="ghost"
-              size="sm"
-              text="Edit"
-              @click.stop="handleEditDoor(item)"
-            />
-          </template>
-        </DataTable>
+                <!-- 1 or More -->
+                <template v-else>
+                  <!-- First Department -->
+                  <v-chip
+                    size="small"
+                    color="#059367"
+                    variant="tonal"
+                    class="mr-1 mb-1"
+                  >
+                    <v-icon icon="mdi-account-group" size="12" class="mr-1" />
+                    {{ item.departmentNames[0] }}
+                  </v-chip>
+
+                  <!-- +N more -->
+                  <v-chip
+                    v-if="item.departmentNames.length > 1"
+                    size="small"
+                    color="grey"
+                    variant="tonal"
+                    class="mr-1 mb-1 view-more-chip"
+                    @click.stop="showDepartmentsDialog(item)"
+                  >
+                    +{{ item.departmentNames.length - 1 }} more
+                  </v-chip>
+                </template>
+              </div>
+            </template>
+
+            <!-- Edit Button -->
+            <template #actions="{ item }">
+              <BaseButton
+                variant="ghost"
+                size="sm"
+                text="Edit"
+                @click.stop="handleEditDoor(item)"
+              />
+            </template>
+          </DataTable>
+
+          <!-- Pagination -->
+          <CustomPagination
+            v-if="doors.length > 0"
+            :total-items="doors.length"
+            :items-per-page="itemsPerPage"
+            :current-page="currentPage"
+            @page-change="handlePageChange"
+            @items-per-page-change="handleItemsPerPageChange"
+            class="mt-4"
+          />
+        </div>
       </DataTableWrapper>
 
       <!-- Dialog: Show All Departments -->
@@ -152,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
@@ -160,6 +172,7 @@ import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import AddDoorDetails from "@/pages/door/adddoordetails.vue";
+import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import { Plus } from "lucide-vue-next";
 import { VIcon } from "vuetify/components";
 
@@ -170,6 +183,10 @@ const currentDoorData = ref(null);
 const doors = ref([]);
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
+
+// Pagination state
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
 // Dialog
 const showDeptViewDialog = ref(false);
@@ -186,6 +203,13 @@ const headers = ref([
 ]);
 
 const departmentMap = ref(new Map());
+
+// Computed property for paginated doors
+const paginatedDoors = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage.value;
+  const endIndex = startIndex + itemsPerPage.value;
+  return doors.value.slice(startIndex, endIndex);
+});
 
 const fetchDepartments = async () => {
   try {
@@ -274,12 +298,25 @@ const fetchDoors = async () => {
         originalData: { ...door, departmentIds: door.departmentIds },
       };
     });
+
+    // Reset to first page when data changes
+    currentPage.value = 1;
   } catch (error) {
     console.error("Error fetching doors:", error);
     showToast("Failed to load doors. Please try again.", "error");
   } finally {
     loading.value = false;
   }
+};
+
+// Pagination handlers
+const handlePageChange = (page) => {
+  currentPage.value = page;
+};
+
+const handleItemsPerPageChange = (newItemsPerPage) => {
+  itemsPerPage.value = newItemsPerPage;
+  currentPage.value = 1; // Reset to first page when items per page changes
 };
 
 // Row click

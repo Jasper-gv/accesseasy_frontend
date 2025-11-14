@@ -404,6 +404,35 @@ const routes = [
         ],
       },
       {
+        path: "/card-management",
+        name: "CardManagement",
+        component: () => import("@/pages/cardManagement/cardManagementTab.vue"),
+        meta: { roles: ["Admin", "Manager", "esslAdmin"] },
+        children: [
+          {
+            path: "",
+            name: "card-management-default",
+            redirect: { name: "card-details" },
+          },
+          {
+            path: "cards",
+            name: "card-details",
+            component: () =>
+              import("@/pages/cardManagement/cardDetails/cardDetails.vue"),
+            meta: { roles: ["Admin", "Manager", "esslAdmin"] },
+          },
+          {
+            path: "import",
+            name: "import-cards",
+            component: () =>
+              import(
+                "@/pages/cardManagement/importCardDetails/importCardDetails.vue"
+              ),
+            meta: { roles: ["Admin", "esslAdmin"] },
+          },
+        ],
+      },
+      {
         path: "/locate",
         name: "Locate",
         component: locateTable,
