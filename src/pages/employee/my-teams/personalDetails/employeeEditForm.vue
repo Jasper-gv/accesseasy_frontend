@@ -520,12 +520,12 @@ onBeforeUnmount(() => {});
 }
 
 .crumb:hover {
-  color: #059367;
+  color: red;
   text-decoration: underline;
 }
 
 .crumb.active {
-  color: #059367;
+  color: red;
   font-weight: 500;
   cursor: default;
 }
@@ -562,7 +562,7 @@ onBeforeUnmount(() => {});
 
 /* Individual tab as separate column with gaps */
 .tab-item {
-  background: #e8f5f0 !important;
+  background: #ffe7e6 !important;
   /* border: 1px solid #d1e7dd !important; */
   border-radius: 8px !important;
   min-height: 48px !important;
@@ -578,18 +578,24 @@ onBeforeUnmount(() => {});
 
 /* Selected tab state */
 .tab-item--active {
-  background: #059367 !important;
-  border-color: #059367 !important;
+  background: rgb(244, 84, 84) !important;
+  border-color: rgb(244, 84, 84) !important;
   box-shadow: 0 2px 8px rgba(5, 147, 103, 0.3);
 }
 
 /* Hover state for unselected tabs */
 .tab-item:not(.tab-item--active):hover {
-  background: #d1e7dd !important;
-  border-color: #a3cfbb !important;
+  background: rgb(244, 84, 84) !important;
+  border-color: rgb(244, 84, 84) !important;
   transform: translateY(-1px);
 }
+.tab-item:not(.tab-item--active):hover .tab-text {
+  color: white !important;
+}
 
+.tab-item:not(.tab-item--active):hover .tab-icon {
+  color: white !important;
+}
 .tab-contet {
   display: flex;
   align-items: center;
@@ -611,11 +617,12 @@ onBeforeUnmount(() => {});
 
 /* Unselected tab - black text and green icon */
 .tab-item:not(.tab-item--active) .tab-icon {
-  color: #059367 !important;
+  color: #122f68 !important;
+  opacity: 0.8;
 }
 
 .tab-item:not(.tab-item--active) .tab-text {
-  color: #000000 !important;
+  color: #122f68 !important;
   font-weight: 500;
 }
 

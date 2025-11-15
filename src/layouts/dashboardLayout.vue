@@ -25,7 +25,7 @@
       <!-- Header Section - Logo with Image -->
       <div class="sidebar-header" @click="toggleSidebarState">
         <v-img
-          src="/images/SEO.png"
+          src="/images/accesseasylogo.png"
           alt="Logo"
           cover
           class="logo-image-full"
@@ -431,46 +431,46 @@ export default {
       //   to: "/taskManagement/taskcomponents/workflow",
       //   roles: ["Admin"],
       // },
-      {
-        title: "Payroll",
-        icon: "mdi-cash-multiple",
-        to: "/payroll",
-        roles: ["Admin", "Dealer"],
-        requiredFeature: "payrollpro",
-        subItems: [
-          {
-            title: "Employee Salaries",
-            to: "/payroll/employee-salary/salary-details",
-            roles: ["Admin", "Dealer"],
-          },
-          {
-            title: "Run Payroll",
-            to: "/payroll/management",
-            roles: ["Admin", "Dealer"],
-          },
-          {
-            title: "Additional Pay",
-            to: "/payroll/adhoc-payments",
-            roles: ["Admin", "Dealer"],
-          },
-          {
-            title: "Advance and Loans",
-            to: "/payroll/advance-loans/advance",
-            roles: ["Admin", "Dealer"],
-          },
+      // {
+      //   title: "Payroll",
+      //   icon: "mdi-cash-multiple",
+      //   to: "/payroll",
+      //   roles: ["Admin", "Dealer"],
+      //   requiredFeature: "payrollpro",
+      //   subItems: [
+      //     {
+      //       title: "Employee Salaries",
+      //       to: "/payroll/employee-salary/salary-details",
+      //       roles: ["Admin", "Dealer"],
+      //     },
+      //     {
+      //       title: "Run Payroll",
+      //       to: "/payroll/management",
+      //       roles: ["Admin", "Dealer"],
+      //     },
+      //     {
+      //       title: "Additional Pay",
+      //       to: "/payroll/adhoc-payments",
+      //       roles: ["Admin", "Dealer"],
+      //     },
+      //     {
+      //       title: "Advance and Loans",
+      //       to: "/payroll/advance-loans/advance",
+      //       roles: ["Admin", "Dealer"],
+      //     },
 
-          // {
-          //   title: "Policies",
-          //   to: "/payroll/policy",
-          //   roles: ["Admin", "Dealer"],
-          // },
-          // {
-          //   title: "TDS",
-          //   to: "/payroll/tds",
-          //   roles: ["Admin", "Dealer", "Employee"],
-          // },
-        ],
-      },
+      //     {
+      //       title: "Policies",
+      //       to: "/payroll/policy",
+      //       roles: ["Admin", "Dealer"],
+      //     },
+      //     {
+      //       title: "TDS",
+      //       to: "/payroll/tds",
+      //       roles: ["Admin", "Dealer", "Employee"],
+      //     },
+      //   ],
+      // },
       {
         title: "Configurators",
         icon: "mdi-domain",
@@ -1143,9 +1143,19 @@ export default {
   color: #1e3fa9 !important;
 }
 
+/* Active State Styling - ADDED */
+.modern-sidebar :deep(.main-item.active) {
+  background-color: rgb(244, 84, 84) !important;
+  color: #ffffff !important;
+}
+
+.modern-sidebar :deep(.main-item.active .nav-icon) {
+  color: #fff !important;
+}
+
 .modern-sidebar :deep(.main-item:hover) {
-  background-color: rgb(229, 148, 148) !important;
-  color: #000000 !important;
+  background-color: rgb(244, 84, 84) !important;
+  color: #ffffff !important;
 }
 
 .modern-sidebar :deep(.nav-icon) {
@@ -1154,7 +1164,7 @@ export default {
 }
 
 .modern-sidebar :deep(.main-item:hover .nav-icon) {
-  color: #000000 !important;
+  color: #ffffff !important;
 }
 
 .modern-sidebar :deep(.nav-title) {
@@ -1180,6 +1190,13 @@ export default {
   color: #1e3fa9 !important;
   margin: 1px 0 !important;
   padding-left: 8px !important;
+}
+
+/* Active State Styling for Sub Items - ADDED */
+.modern-sidebar :deep(.sub-item.active) {
+  background-color: #f3f4f6 !important;
+  color: #000000 !important;
+  border-left: 2px solid #1e3fa9 !important;
 }
 
 .modern-sidebar :deep(.sub-item:hover) {
@@ -1239,6 +1256,13 @@ export default {
   min-height: 36px;
   color: #6b7280;
   cursor: pointer;
+}
+
+/* Active State Styling for Rail Submenu - ADDED */
+.rail-submenu-item.active {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  border-left: 2px solid #1e3fa9 !important;
 }
 
 .rail-submenu-item:hover {

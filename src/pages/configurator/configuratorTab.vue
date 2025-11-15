@@ -263,6 +263,12 @@ function switchTab(tabId) {
 </script>
 
 <style scoped>
+.breadcrumb {
+  color: rgb(6, 6, 6) !important;
+  border: 1px solid #f44336 !important;
+  background-color: rgb(243, 228, 227) !important;
+  border-radius: 4px;
+}
 .sidebar {
   /* width: 240px; */
   background-color: white;
@@ -302,15 +308,15 @@ function switchTab(tabId) {
   font-weight: 600;
   font-size: 14px;
   padding: 8px 12px;
-  background-color: #ecfdf5;
-  border: 1px solid #059367;
+  background-color: #f5dcda;
+  border: 1px solid red;
   border-radius: 4px;
   margin-bottom: 8px;
 }
 
 .active-tab {
-  background-color: #77c3ab !important;
-  color: black !important;
+  background-color: rgb(244, 84, 84) !important;
+  color: white !important;
   font-weight: 500;
 }
 

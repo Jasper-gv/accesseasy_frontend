@@ -41,13 +41,13 @@ const emit = defineEmits(["toggleSelectAll", "requestSort"]);
 const allSelected = computed(
   () =>
     props.allItems.length > 0 &&
-    props.selectedItems.length === props.allItems.length,
+    props.selectedItems.length === props.allItems.length
 );
 
 const someSelected = computed(
   () =>
     props.selectedItems.length > 0 &&
-    props.selectedItems.length < props.allItems.length,
+    props.selectedItems.length < props.allItems.length
 );
 
 const handleSelectAllChange = () => {
@@ -60,10 +60,10 @@ const handleSelectAllChange = () => {
   display: flex;
   padding: 0.75rem 0.5rem;
   font-weight: 600;
-  background-color: #ecfdf5 !important;
+  background-color: #f5dcda !important;
   color: black;
   font-size: 0.875rem;
-  border: 1px solid #059367;
+  border: 1px solid red;
   min-width: max-content;
   position: sticky !important;
   top: 0;
@@ -81,7 +81,7 @@ const handleSelectAllChange = () => {
   position: sticky;
   left: 0;
   z-index: 30;
-  background: #ecfdf5;
+  background: #f5dcda;
   box-shadow: 1px 0 0 #e2e8f0;
 }
 

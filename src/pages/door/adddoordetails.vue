@@ -631,21 +631,7 @@ watch(
   },
   { immediate: true, deep: true }
 );
-watch(
-  () => formData.assignedDepts,
-  (newVal) => {
-    if (newVal.includes(ALL_DEPARTMENTS_ID)) {
-      const realIds = departmentOptions.value.map((d) => d.id);
-      formData.assignedDepts = [ALL_DEPARTMENTS_ID, ...realIds];
-    } else if (
-      newVal.length === departmentOptions.value.length &&
-      departmentOptions.value.length > 0
-    ) {
-      formData.assignedDepts = [ALL_DEPARTMENTS_ID, ...newVal];
-    }
-  },
-  { deep: true }
-);
+
 // Load initial data
 onMounted(async () => {
   console.log("Component mounted");

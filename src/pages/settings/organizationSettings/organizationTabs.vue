@@ -62,7 +62,7 @@ watch(
     if (newValue && newValue !== activeTab.value) {
       activeTab.value = newValue;
     }
-  },
+  }
 );
 </script>
 

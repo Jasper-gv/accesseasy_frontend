@@ -430,6 +430,13 @@ const routes = [
               ),
             meta: { roles: ["Admin", "esslAdmin"] },
           },
+          {
+            path: "qr-generate",
+            name: "qr-generate",
+            component: () =>
+              import("@/pages/cardManagement/qrgenerate/qrgenerate.vue"),
+            meta: { roles: ["Admin", "esslAdmin"] },
+          },
         ],
       },
       {

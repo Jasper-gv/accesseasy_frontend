@@ -87,7 +87,7 @@ watch(
 
 .custom-tab {
   border-radius: 10;
-  background-color: #ecfdf5;
+  background-color: #ffe7e6;
   color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -99,10 +99,17 @@ watch(
   font-size: 16px;
   font-family: Lato, sans-serif, Arial;
 }
-
+.custom-tab:hover {
+  background-color: rgb(244, 84, 84) !important;
+  color: white !important;
+}
+.custom-tab:hover .v-icon {
+  color: white !important;
+  opacity: 1;
+}
 /* Active tab style */
 .v-tab--selected.custom-tab {
-  background-color: #059367 !important;
+  background-color: rgb(244, 84, 84) !important;
   color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }

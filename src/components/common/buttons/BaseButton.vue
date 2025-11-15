@@ -193,7 +193,7 @@ function handleClick(event) {
 }
 
 .btn-primary {
-  background: #059367;
+  background: rgb(244, 84, 84);
   color: white;
   /* border-color: #3b82f6; */
 }

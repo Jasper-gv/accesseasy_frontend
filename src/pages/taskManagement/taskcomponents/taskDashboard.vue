@@ -571,7 +571,9 @@
               </div>
             </div>
           </div>
-          <!-- Today's Overview Card -->
+
+          <!-- Today's Overview Card - Commented Out -->
+          <!--
           <div class="content-card">
             <div class="card-header">
               <div class="card-header-left">
@@ -585,7 +587,6 @@
               />
             </div>
             <div class="card-content">
-              <!-- Tab Navigation with Counts -->
               <div class="tab-navigation">
                 <button
                   class="tab-button"
@@ -611,7 +612,6 @@
                 </button>
               </div>
 
-              <!-- Loading State -->
               <div v-if="loadingOverview" class="loading-state">
                 <div class="skeleton-table">
                   <div class="skeleton-row">
@@ -629,9 +629,7 @@
                 </div>
               </div>
 
-              <!-- Content based on active tab -->
               <div v-else>
-                <!-- Leave Requests Tab -->
                 <div v-if="activeTab === 'leave'">
                   <div v-if="leaveRequests.length > 0" class="requests-table">
                     <table>
@@ -674,7 +672,6 @@
                   </div>
                 </div>
 
-                <!-- Reimbursements Tab -->
                 <div v-if="activeTab === 'reimbursement'">
                   <div v-if="reimbursements.length > 0" class="requests-table">
                     <table>
@@ -719,6 +716,7 @@
               </div>
             </div>
           </div>
+          -->
 
           <!-- <div class="content-card">
             <div class="card-header">
@@ -1334,9 +1332,9 @@ export default {
 <style scoped>
 /* Global Styles */
 .quick-icon.green {
-  background-color: #c6e4dc;
-  color: #059367;
-  border: 1px solid #059367;
+  background-color: #f443368a;
+  color: #f44336;
+  border: 1px solid #f44336;
 }
 .dashboard {
   min-height: 100vh;
@@ -1414,7 +1412,7 @@ export default {
   position: relative;
   z-index: 1;
   background: white;
-  border-bottom: 5px solid #c6e4dc;
+  border-bottom: 5px solid #f4433647;
 }
 
 .card-header-left {
@@ -1425,7 +1423,7 @@ export default {
 
 .card-header-icon {
   font-size: 1.25rem;
-  color: #10b981; /* Green color to match theme */
+  color: #f54437; /* Green color to match theme */
   width: 1.25rem;
   height: 1.25rem;
   flex-shrink: 0;
@@ -1746,9 +1744,9 @@ export default {
 }
 
 .config-icon.green {
-  background-color: #c6e4dc;
-  color: #059367;
-  border-color: #059367;
+  background-color: #f4433680;
+  color: #f44336;
+  border-color: #f44336;
 }
 
 .config-item span {
@@ -1986,7 +1984,7 @@ export default {
 
 /* Color for Present */
 .metric-number-compact.present {
-  color: #059669; /* Green color for present */
+  color: #3f51b5; /* Green color for present */
 }
 
 /* Color for Absent */
@@ -2054,7 +2052,7 @@ export default {
 
 /* Color for Completed */
 .workorder-number.completed {
-  color: #059669; /* Green color for completed */
+  color: #3f51b5; /* Green color for completed */
 }
 
 /* Color for Overdue */

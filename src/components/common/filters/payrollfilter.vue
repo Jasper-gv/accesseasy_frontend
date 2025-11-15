@@ -418,7 +418,7 @@ export default {
       }
       return getCycleById(
         this.attendanceCycles,
-        parseInt(this.localFilters.attendanceCycle),
+        parseInt(this.localFilters.attendanceCycle)
       );
     },
     selectedCycleWithDates() {
@@ -427,7 +427,7 @@ export default {
       }
       return this.calculateCycleDates(
         this.selectedCycle,
-        this.localFilters.monthYear,
+        this.localFilters.monthYear
       );
     },
   },
@@ -537,7 +537,7 @@ export default {
         actualStartDate = new Date(
           startYear,
           startMonth - 1,
-          parseInt(cycle.startDate),
+          parseInt(cycle.startDate)
         );
       }
 
@@ -574,10 +574,10 @@ export default {
 
       if (this.selectedCycleWithDates) {
         filters.cycleStartDate = this.formatDateForAPI(
-          this.selectedCycleWithDates.actualStartDate,
+          this.selectedCycleWithDates.actualStartDate
         );
         filters.cycleEndDate = this.formatDateForAPI(
-          this.selectedCycleWithDates.actualEndDate,
+          this.selectedCycleWithDates.actualEndDate
         );
         filters.cycleTotalDays = this.selectedCycleWithDates.totalDays;
         filters.cycleIncludeWeekends =
@@ -585,10 +585,10 @@ export default {
         filters.cycleIncludeHolidays =
           this.selectedCycleWithDates.includeHolidays;
         filters.cycleStartDateDisplay = this.formatDate(
-          this.selectedCycleWithDates.actualStartDate,
+          this.selectedCycleWithDates.actualStartDate
         );
         filters.cycleEndDateDisplay = this.formatDate(
-          this.selectedCycleWithDates.actualEndDate,
+          this.selectedCycleWithDates.actualEndDate
         );
       } else {
         // Clear cycle-related fields if no valid cycle is selected
@@ -733,7 +733,7 @@ export default {
           {
             headers: { Authorization: `Bearer ${token}` },
             params: { "filter[_and][0][tenant][tenantId][_eq]": this.tenantId },
-          },
+          }
         );
 
         this.organizations = res.data.data || [];
@@ -757,7 +757,7 @@ export default {
               "filter[_and][0][locType][_contains]": "branch",
               "filter[_and][1][tenant][tenantId][_eq]": this.tenantId,
             },
-          },
+          }
         );
         this.branches = res.data.data || [];
       } catch (e) {
@@ -773,7 +773,7 @@ export default {
             params: {
               "filter[_and][0][tenant][tenantId][_eq]": this.tenantId,
             },
-          },
+          }
         );
         this.departments = res.data.data || [];
       } catch (e) {
@@ -812,7 +812,7 @@ export default {
     },
     hasFilter(key) {
       return this.filterSchema.some(
-        (filter) => filter.key === key && filter.show !== false,
+        (filter) => filter.key === key && filter.show !== false
       );
     },
   },
@@ -822,8 +822,8 @@ export default {
 <style scoped>
 .filter-header {
   padding: 1rem 1.25rem;
-  border: 1px solid #059367;
-  background: #ecfdf5;
+  border: 1px solid red;
+  background: #f5dcda;
   display: flex;
   justify-content: space-between;
   align-items: center;
