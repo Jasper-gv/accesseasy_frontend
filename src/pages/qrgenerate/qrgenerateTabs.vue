@@ -1,5 +1,5 @@
 <template>
-  <div class="card-management-tabs">
+  <div class="qr-generate-tabs">
     <!-- Tabs Navigation -->
     <v-tabs
       v-model="activeTab"
@@ -39,7 +39,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 export default {
-  name: "CardManagementTabs",
+  name: "QRGenerateTabs",
   setup() {
     const route = useRoute();
     const router = useRouter();
@@ -47,25 +47,25 @@ export default {
 
     const tabs = [
       {
-        title: "Employee Card Details",
-        name: "card-details",
-        route: "/card-management/cards",
-        icon: "mdi-card-account-details",
+        title: "Employee QR Code",
+        name: "employee-qr",
+        route: "/qr-generate/employee",
+        icon: "mdi-account-qrcode",
         value: 0,
-        roles: ["Admin", "Manager", "esslAdmin"],
+        roles: ["Admin", "Manager", "Employee"],
       },
       {
-        title: "Cards Details",
-        name: "import-cards",
-        route: "/card-management/import",
-        icon: "mdi-import",
+        title: "Bulk QR Generate",
+        name: "bulk-qr",
+        route: "/qr-generate/bulk",
+        icon: "mdi-qrcode-scan",
         value: 1,
-        roles: ["Admin", "esslAdmin"],
+        roles: ["Admin", "Manager"],
       },
     ];
 
     const availableTabs = computed(() => {
-      // Filter tabs based on user role (you'll need to get user role from your auth service)
+      // Filter tabs based on user role
       const userRole = "Admin"; // Replace with actual user role from your auth service
       return tabs.filter((tab) => tab.roles.includes(userRole));
     });
@@ -109,7 +109,7 @@ export default {
 </script>
 
 <style scoped>
-.card-management-tabs {
+.qr-generate-tabs {
   width: 100%;
   padding: 0;
 }
@@ -142,6 +142,7 @@ export default {
   color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
+
 .custom-tab:hover {
   background-color: rgb(244, 84, 84) !important;
   color: white !important;
@@ -151,11 +152,13 @@ export default {
   color: white !important;
   opacity: 1;
 }
+
 /* Icon styles */
 .custom-tab .v-icon {
   color: #122f68 !important;
   opacity: 0.8;
 }
+
 .v-tab--selected .v-icon {
   color: white !important;
   opacity: 1;

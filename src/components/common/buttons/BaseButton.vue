@@ -198,7 +198,7 @@ function handleClick(event) {
   /* border-color: #3b82f6; */
 }
 .btn-primary:hover:not(:disabled) {
-  background: #059367;
+  background: rgb(244, 84, 84);
 
   transform: translateY(-1px);
 }

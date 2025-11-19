@@ -14,6 +14,14 @@
         <template #toolbar-actions>
           <BaseButton
             variant="primary"
+            @click="showAddCardDialog = true"
+            prepend-icon="mdi-plus"
+            class="add-card-btn mr-2"
+          >
+            Add Card
+          </BaseButton>
+          <BaseButton
+            variant="primary"
             @click="showImportDialog = true"
             prepend-icon="mdi-file-import"
             class="import-btn"
@@ -116,7 +124,84 @@
         </template>
       </DataTableWrapper>
     </div>
+    <v-dialog v-model="showAddCardDialog" max-width="600px" persistent>
+      <v-card class="add-card-dialog">
+        <v-card-title class="d-flex align-center">
+          <v-icon class="mr-2">mdi-plus</v-icon>
+          Add New Card
+          <v-spacer></v-spacer>
+          <BaseButton
+            icon
+            @click="closeAddCardDialog"
+            :disabled="isAddingCard"
+            variant="text"
+          >
+            <v-icon>mdi-close</v-icon>
+          </BaseButton>
+        </v-card-title>
 
+        <v-card-text class="pa-6">
+          <v-form ref="addCardForm" v-model="addCardFormValid">
+            <!-- Card Number Field -->
+            <v-text-field
+              v-model="newCard.cardNumber"
+              label="Card Number *"
+              variant="outlined"
+              :rules="cardNumberRules"
+              required
+              class="mb-4"
+            ></v-text-field>
+
+            <!-- Access Level Number Field -->
+            <v-text-field
+              v-model="newCard.accessLevelNumber"
+              label="Access Level Number"
+              variant="outlined"
+              class="mb-4"
+              placeholder="Optional"
+              type="number"
+            ></v-text-field>
+            <v-text-field
+              v-model="newCard.accessLevelName"
+              label="Access Level Name"
+              variant="outlined"
+              class="mb-4"
+              placeholder="Optional - Enter access level name"
+            ></v-text-field>
+            <!-- Type Field -->
+            <v-select
+              v-model="newCard.type"
+              label="Card Type *"
+              :items="cardTypes"
+              variant="outlined"
+              :rules="typeRules"
+              required
+              class="mb-6"
+            ></v-select>
+
+            <div class="add-card-actions d-flex justify-end">
+              <BaseButton
+                variant="outlined"
+                @click="closeAddCardDialog"
+                class="mr-2"
+                :disabled="isAddingCard"
+              >
+                CANCEL
+              </BaseButton>
+              <BaseButton
+                color="primary"
+                @click="saveSingleCard"
+                :disabled="!addCardFormValid || isAddingCard"
+                :loading="isAddingCard"
+                prepend-icon="mdi-content-save"
+              >
+                SAVE CARD
+              </BaseButton>
+            </div>
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
     <!-- Import Cards Dialog -->
     <v-dialog v-model="showImportDialog" max-width="800px" persistent>
       <v-card class="import-dialog">
@@ -190,6 +275,7 @@
                 <ul class="text-caption text-medium-emphasis">
                   <li>File must be in Excel format (.xlsx or .xls)</li>
                   <li>First column should contain card numbers</li>
+                  <li>Second column should contain access level numbers</li>
                 </ul>
               </div>
 
@@ -227,8 +313,8 @@
                       <tr>
                         <th>#</th>
                         <th>Card Number</th>
-                        <th>Access Level Name</th>
                         <th>Access Level Number</th>
+                        <th>Access Level Name</th>
                         <th>Type</th>
                         <th>Status</th>
                       </tr>
@@ -237,8 +323,8 @@
                       <tr v-for="(item, index) in previewData" :key="index">
                         <td>{{ index + 1 }}</td>
                         <td>{{ item.cardNumber }}</td>
-                        <td>{{ item.accessLevelName || "N/A" }}</td>
                         <td>{{ item.accessLevelNumber || "N/A" }}</td>
+                        <td>{{ item.accessLevelName || "N/A" }}</td>
                         <td>
                           <v-chip size="small" variant="tonal">
                             {{ item.type }}
@@ -485,14 +571,36 @@ const importLog = ref([]);
 const currentImportingCard = ref("");
 const isImporting = ref(false);
 const importController = ref(null);
+// Add Card Dialog State (new)
+const showAddCardDialog = ref(false);
+const isAddingCard = ref(false);
+const addCardForm = ref(null);
+const addCardFormValid = ref(false);
+const newCard = reactive({
+  cardNumber: "",
+  accessLevelNumber: "",
+  accessLevelName: "",
+  type: "rfid",
+});
+// Form validation rules
+const cardNumberRules = [
+  (value) => !!value || "Card number is required",
+  (value) => (value && value.length > 0) || "Card number is required",
+];
 
-/* --------------------------- Notification State --------------------------- */
+const typeRules = [(value) => !!value || "Card type is required"];
+
+const cardTypes = [
+  { title: "RFID", value: "rfid" },
+  { title: "Tag", value: "tag" },
+];
+/*  Notification State  */
 const showSuccessSnackbar = ref(false);
 const showErrorSnackbar = ref(false);
 const successMessage = ref("");
 const errorMessage = ref("");
 
-/* ------------------------------------------------- COMPUTED ------------------------------------------------- */
+/*  COMPUTED  */
 const columns = computed(() => [
   { key: "rfidCard", label: "RFID Card", sortable: true, width: "150px" },
   { key: "type", label: "Type", sortable: true, width: "100px" },
@@ -526,10 +634,10 @@ const filteredCardManagementData = computed(() =>
   }))
 );
 
-/* ------------------------------------------------- DATA ------------------------------------------------- */
+/* DATA  */
 const cardManagementData = ref([]);
 
-/* ------------------------------------------------- HELPERS ------------------------------------------------- */
+/*  HELPERS */
 const getTypeColor = (type) => {
   switch (type?.toLowerCase()) {
     case "rfid":
@@ -550,7 +658,7 @@ const showErrorMessage = (msg) => {
   showErrorSnackbar.value = true;
 };
 
-/* ------------------------------------------------- API ------------------------------------------------- */
+/*  API  */
 const aggregateCount = async () => {
   try {
     if (!token || !tenantId)
@@ -637,8 +745,97 @@ const fetchCardManagementData = async () => {
     loading.value = false;
   }
 };
+const saveSingleCard = async () => {
+  if (!addCardFormValid.value) return;
 
-/* ------------------------------------------------- SORT / PAGINATION ------------------------------------------------- */
+  isAddingCard.value = true;
+
+  try {
+    // Check for duplicate card
+    const checkResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/cardManagement?filter[rfidCard][_eq]=${newCard.cardNumber}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (!checkResponse.ok) {
+      throw new Error("Failed to check card existence");
+    }
+
+    const { data: existingCards } = await checkResponse.json();
+    if (existingCards?.length) {
+      throw new Error("Card already exists");
+    }
+    // Resolve access level (either by name or number)
+    const accessLevelInfo = await resolveAccessLevel({
+      accessLevelNumber: newCard.accessLevelNumber,
+      accessLevelName: newCard.accessLevelName,
+    });
+    // Use accessLevelNumber directly as accessLevelsId
+    const accessLevelsId = accessLevelInfo.accessLevelsId;
+
+    // Prepare payload
+    const payload = {
+      rfidCard: newCard.cardNumber,
+      type: newCard.type,
+      cardAccess: true,
+      accessLevelsId: accessLevelsId,
+      cardAccessLevelArray: `${newCard.cardNumber}:1:${accessLevelsId}`,
+      cardAccessLevelHex: convertToCardAccessHex(
+        newCard.cardNumber,
+        true,
+        accessLevelsId
+      ),
+      tenant: tenantId,
+    };
+
+    // Create card
+    const createResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/cardManagement`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json();
+      throw new Error(
+        errorData.errors?.[0]?.message || "Failed to create card"
+      );
+    }
+
+    showSuccessMessage(`Card "${newCard.cardNumber}" added successfully!`);
+    closeAddCardDialog();
+    fetchCardManagementData(); // Refresh the table
+  } catch (err) {
+    console.error("Error adding card:", err);
+    showErrorMessage(err.message || "Failed to add card");
+  } finally {
+    isAddingCard.value = false;
+  }
+};
+
+const closeAddCardDialog = () => {
+  showAddCardDialog.value = false;
+  resetAddCardForm();
+};
+
+const resetAddCardForm = () => {
+  newCard.cardNumber = "";
+  newCard.accessLevelNumber = "";
+  newCard.accessLevelName = "";
+  newCard.type = "rfid";
+  if (addCardForm.value) {
+    addCardForm.value.reset();
+  }
+};
+/*  SORT / PAGINATION  */
 const debouncedSearch = debounce(() => {
   page.value = 1;
   fetchCardManagementData();
@@ -670,17 +867,41 @@ const handleItemsPerPageChange = (n) => {
   fetchCardManagementData();
 };
 
-/* ------------------------------------------------- IMPORT LOGIC ------------------------------------------------- */
+/*  IMPORT LOGIC */
 const downloadTemplate = () => {
+  // Create worksheet with wider columns for better header visibility
   const data = [
-    ["card number", "accessLevelName", "accessLevelNumber"],
-    ["1234567890", "Admin Access", ""],
-    ["0987654321", "", "5"],
-    ["1122334455", "", ""],
+    ["Card Number", "Access Level Number", "Access Level Name"],
+    ["1234567890", "1", "Main Entrance"],
+    ["0987654321", "2", "Staff Area"],
+    ["1122334455", "3", "Admin Section"],
   ];
+
   const ws = XLSX.utils.aoa_to_sheet(data);
+
+  // Set column widths for better visibility
+  const colWidths = [
+    { wch: 15 }, // Card Number - wider
+    { wch: 20 }, // Access Level Number - wider
+    { wch: 25 }, // Access Level Name - widest
+  ];
+  ws["!cols"] = colWidths;
+
+  // Style the header row
+  const headerRange = XLSX.utils.decode_range(ws["!ref"]);
+  for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+    if (ws[cellAddress]) {
+      // Make header bold
+      ws[cellAddress].s = {
+        font: { bold: true },
+        fill: { fgColor: { rgb: "D3D3D3" } }, // Light gray background
+      };
+    }
+  }
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  XLSX.utils.book_append_sheet(wb, ws, "Card Import Template");
   XLSX.writeFile(wb, "card-import-template.xlsx");
 };
 
@@ -733,13 +954,12 @@ const processExcelData = (raw) => {
   const cardNumberIndex = headers.findIndex(
     (h) => h.includes("card") && h.includes("number")
   );
-  const accessLevelNameIndex = headers.findIndex(
-    (h) => h.includes("access") && h.includes("level") && h.includes("name")
-  );
   const accessLevelNumberIndex = headers.findIndex(
     (h) => h.includes("access") && h.includes("level") && h.includes("number")
   );
-
+  const accessLevelNameIndex = headers.findIndex(
+    (h) => h.includes("access") && h.includes("level") && h.includes("name")
+  );
   // If no proper headers, assume first row is data
   const startRow = cardNumberIndex !== -1 ? 1 : 0;
 
@@ -750,21 +970,19 @@ const processExcelData = (raw) => {
         ? String(row[cardNumberIndex] || "").trim()
         : String(row[0] || "").trim();
 
-    const accessLevelName =
-      accessLevelNameIndex !== -1
-        ? String(row[accessLevelNameIndex] || "").trim()
-        : "";
-
     const accessLevelNumber =
       accessLevelNumberIndex !== -1
         ? String(row[accessLevelNumberIndex] || "").trim()
         : "";
-
+    const accessLevelName =
+      accessLevelNameIndex !== -1
+        ? String(row[accessLevelNameIndex] || "").trim()
+        : "";
     if (cardNumber) {
       previewData.value.push({
         cardNumber,
-        accessLevelName: accessLevelName || null,
         accessLevelNumber: accessLevelNumber || null,
+        accessLevelName: accessLevelName || null,
         type: "rfid",
         valid: true,
         rowIndex: i + 1,
@@ -773,82 +991,7 @@ const processExcelData = (raw) => {
     }
   }
 };
-const findAccessLevelId = async (accessLevelName, accessLevelNumber) => {
-  const token = authService.getToken();
-  const tenantId = currentUserTenant.getTenantId();
 
-  if (!token || !tenantId) {
-    throw new Error("Authentication required");
-  }
-
-  // If access level number is provided directly, use it to find the ID
-  if (accessLevelNumber) {
-    const queryParams = new URLSearchParams({
-      "fields[]": "id,accessLevelNumber",
-      "filter[_and][0][_and][0][tenant][tenantId][_eq]": tenantId,
-      "filter[_and][0][_and][1][accessLevelNumber][_eq]": accessLevelNumber,
-    });
-
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/accesslevels?${queryParams}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: importController.value?.signal,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch access level: ${response.status}`);
-    }
-
-    const { data } = await response.json();
-
-    if (data && data.length > 0) {
-      return data[0].id; // Return the access level ID
-    } else {
-      throw new Error(`Access level number ${accessLevelNumber} not found`);
-    }
-  }
-
-  // If access level name is provided, search by name
-  if (accessLevelName) {
-    const queryParams = new URLSearchParams({
-      "fields[]":
-        "id,accessLevelNumber,accessLevelName,accessType,_24hrs,workingHours,maxWorkHours,assignDoorsGroup,Valid_hours",
-      "filter[_and][0][_and][0][tenant][tenantId][_eq]": tenantId,
-      "filter[_and][0][_and][1][accessLevelName][_icontains]": accessLevelName,
-    });
-
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/accesslevels?${queryParams}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: importController.value?.signal,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch access level: ${response.status}`);
-    }
-
-    const { data } = await response.json();
-
-    if (data && data.length > 0) {
-      // If multiple matches, use the first one
-      if (data.length > 1) {
-        console.warn(
-          `Multiple access levels found for name "${accessLevelName}", using first match`
-        );
-      }
-      return data[0].id; // Return the access level ID
-    } else {
-      throw new Error(`Access level name "${accessLevelName}" not found`);
-    }
-  }
-
-  // No access level provided
-  return null;
-};
 /* ---- Import from Step 1 (after file chosen) ---- */
 const startImportFromFile = () => {
   if (!importFile.value) return;
@@ -858,7 +1001,7 @@ const startImportFromFile = () => {
     return;
   }
   importStep.value = 3;
-  startImport(); // reuse existing import routine
+  startImport();
 };
 
 /* ---- Existing startImport (used from preview or from Step 1) ---- */
@@ -936,7 +1079,69 @@ const importCards = async (cards) => {
     message: `Import finished – ${importResults.value.success} success, ${importResults.value.failed} failed, ${importResults.value.duplicate} duplicates`,
   });
 };
+const resolveAccessLevel = async (card) => {
+  // If accessLevelName is provided, look up the access level by name
+  if (card.accessLevelName) {
+    try {
+      const token = authService.getToken();
+      const tenantId = currentUserTenant.getTenantId();
 
+      const queryParams = new URLSearchParams({
+        "filter[_and][0][_and][0][tenant][tenantId][_eq]": tenantId,
+        "filter[_and][0][_and][1][accessLevelName][_icontains]":
+          card.accessLevelName,
+        "fields[]": "id,accessLevelNumber,accessLevelName",
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/accesslevels?${queryParams}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: importController.value?.signal,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch access level: ${response.status}`);
+      }
+
+      const { data: accessLevels } = await response.json();
+
+      if (!accessLevels || accessLevels.length === 0) {
+        throw new Error(`Access level not found: "${card.accessLevelName}"`);
+      }
+
+      // Use the first matching access level
+      const accessLevel = accessLevels[0];
+      return {
+        accessLevelsId: accessLevel.accessLevelNumber,
+        accessLevelName: accessLevel.accessLevelName,
+      };
+    } catch (error) {
+      throw new Error(`Access level lookup failed: ${error.message}`);
+    }
+  }
+
+  // If accessLevelNumber is provided, use it directly
+  if (cardData.accessLevelNumber) {
+    const accessLevelsId = parseInt(cardData.accessLevelNumber);
+    if (isNaN(accessLevelsId)) {
+      throw new Error(
+        `Invalid access level number: "${cardData.accessLevelNumber}"`
+      );
+    }
+    return {
+      accessLevelsId: accessLevelsId,
+      accessLevelName: null,
+    };
+  }
+
+  // No access level provided
+  return {
+    accessLevelsId: 0,
+    accessLevelName: null,
+  };
+};
 const importSingleCard = async (card) => {
   const token = authService.getToken();
   const tenantId = currentUserTenant.getTenantId();
@@ -963,28 +1168,9 @@ const importSingleCard = async (card) => {
     throw new Error("Card already exists");
   }
 
-  // Find access level ID if provided
-  let accessLevelsId = 0; // Default value
-
-  if (card.accessLevelName || card.accessLevelNumber) {
-    try {
-      const foundAccessLevelId = await findAccessLevelId(
-        card.accessLevelName,
-        card.accessLevelNumber
-      );
-
-      if (foundAccessLevelId) {
-        accessLevelsId = foundAccessLevelId;
-      }
-      // If not found, keep default value (0)
-    } catch (error) {
-      console.warn(
-        `Access level mapping failed for card ${card.cardNumber}:`,
-        error.message
-      );
-      // Continue with default access level (0) even if mapping fails
-    }
-  }
+  // Resolve access level (either by name or number)
+  const accessLevelInfo = await resolveAccessLevel(card);
+  const accessLevelsId = accessLevelInfo.accessLevelsId;
 
   // Prepare payload
   const payload = {

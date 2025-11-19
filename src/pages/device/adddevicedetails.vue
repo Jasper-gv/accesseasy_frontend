@@ -452,11 +452,17 @@ const allAssignedDoorIds = computed(() => {
 
 // Get available doors for a specific tab (excluding already assigned doors in other tabs)
 const getAvailableDoorsForTab = (currentTab) => {
-  if (!props.availableDoors) return [];
+  // Combine all available doors from props and editing device
+  const allDoors = [
+    ...(props.availableDoors || []),
+    ...(props.editingDevice?.allAvailableDoors || []),
+  ];
+
+  if (allDoors.length === 0) return [];
 
   const currentTabSelectedDoor = form.doors[currentTab]?.selectedDoor;
 
-  return props.availableDoors.filter((door) => {
+  return allDoors.filter((door) => {
     // Always include the door currently selected in this tab
     if (door.id === currentTabSelectedDoor) {
       return true;
@@ -469,17 +475,21 @@ const getAvailableDoorsForTab = (currentTab) => {
       }
     );
 
-    // Check if door is assigned to other devices (from props)
-    const isAssignedToOtherDevice = props.availableDoors.some(
-      (availableDoor) =>
-        availableDoor.id === door.id &&
-        availableDoor.doorsConfigure &&
-        availableDoor.doorsConfigure.deviceId &&
-        availableDoor.doorsConfigure.deviceId !==
-          (props.editingDevice?.id || "")
+    // For editing scenario, allow doors that are already assigned to this device
+    const isAssignedToThisDevice = props.editingDevice?.selectedDoors?.includes(
+      door.id
     );
 
-    return !isAssignedToOtherTab && !isAssignedToOtherDevice;
+    // Check if door is assigned to other devices (excluding current device)
+    const isAssignedToOtherDevice =
+      door.doorsConfigure &&
+      door.doorsConfigure.deviceId &&
+      door.doorsConfigure.deviceId !== (props.editingDevice?.id || "");
+
+    return (
+      !isAssignedToOtherTab &&
+      (!isAssignedToOtherDevice || isAssignedToThisDevice)
+    );
   });
 };
 
@@ -570,7 +580,17 @@ const resetDoorConfigurations = (deviceType) => {
   };
 
   Object.keys(form.doors).forEach((key) => {
-    form.doors[key] = { ...defaultDoorConfig };
+    // Only reset doors that are applicable for the current device type
+    if (
+      deviceType === "4 Door Device" ||
+      (deviceType !== "4 Door Device" && key === "door1")
+    ) {
+      form.doors[key] = { ...defaultDoorConfig };
+    } else if (deviceType !== "4 Door Device" && key !== "door1") {
+      // For non-4-door devices, clear other doors completely
+      form.doors[key] = { ...defaultDoorConfig };
+      form.doors[key].selectedDoor = ""; // Ensure no door is selected
+    }
   });
 };
 
@@ -1009,18 +1029,16 @@ const showToast = (message, type = "success") => {
   snackbar.value = { show: true, message, type };
 };
 
-// Initialize form
+// Enhanced initialization function
 const initializeForm = () => {
   if (props.editingDevice) {
+    console.log("Initializing form for editing device:", props.editingDevice);
+
     // Populate form with existing device data for editing
     form.controllerName = props.editingDevice.controllerName || "";
     form.deviceName = props.editingDevice.deviceName || "";
     form.serialNumber = props.editingDevice.sn || "";
-    form.branch =
-      props.editingDevice.branchDetails ||
-      (props.editingDevice.branchDetails === ""
-        ? null
-        : props.editingDevice.branchDetails);
+    form.branch = props.editingDevice.branchDetails || null;
     form.connectionStatus =
       props.editingDevice.status === "approved" ? "Connected" : "Disconnected";
     form.controllerStatus = props.editingDevice.controllerStatus || "Waiting";
@@ -1033,8 +1051,17 @@ const initializeForm = () => {
       props.editingDevice.selectedDoors &&
       props.editingDevice.selectedDoors.length > 0
     ) {
-      // Load door configurations for each selected door
-      loadDoorConfigurations(props.editingDevice.selectedDoors);
+      console.log(
+        "Device has selected doors:",
+        props.editingDevice.selectedDoors
+      );
+
+      // Load door configurations after a brief delay to ensure form is ready
+      setTimeout(() => {
+        loadDoorConfigurations(props.editingDevice.selectedDoors);
+      }, 100);
+    } else {
+      console.log("No selected doors found for device");
     }
   } else {
     // New device - initialize empty form
@@ -1048,46 +1075,97 @@ const initializeForm = () => {
   }
 };
 
+// Enhanced function to load door configurations
 const loadDoorConfigurations = async (selectedDoorIds) => {
   try {
-    // For each door tab, try to find and populate the configuration
-    doorTabs.value.forEach((tab, index) => {
-      if (index < selectedDoorIds.length) {
-        const doorId = selectedDoorIds[index];
-        const door = props.availableDoors.find((d) => d.id === doorId);
+    console.log("Loading door configurations for doors:", selectedDoorIds);
 
-        if (door) {
+    // Reset all door configurations first
+    resetDoorConfigurations(form.controllerName);
+
+    // Create a map of door configurations by door ID for quick lookup
+    const doorConfigMap = new Map();
+
+    // Use both availableDoors prop and any additional doors from editingDevice
+    const allAvailableDoors = [
+      ...(props.availableDoors || []),
+      ...(props.editingDevice?.allAvailableDoors || []),
+    ];
+
+    console.log("All available doors:", allAvailableDoors);
+
+    // Collect door configurations
+    allAvailableDoors.forEach((door) => {
+      if (door.doorsConfigure && door.id) {
+        doorConfigMap.set(door.id, {
+          ...door.doorsConfigure,
+          doorId: door.id,
+          doorName: door.doorName,
+        });
+      }
+    });
+
+    console.log("Door configuration map:", doorConfigMap);
+
+    // Assign configurations to tabs
+    doorTabs.value.forEach((tab, tabIndex) => {
+      if (tabIndex < selectedDoorIds.length) {
+        const doorId = selectedDoorIds[tabIndex];
+        const config = doorConfigMap.get(doorId);
+
+        console.log(`Configuring ${tab.value} with door ${doorId}:`, config);
+
+        if (config) {
           form.doors[tab.value].selectedDoor = doorId;
+          form.doors[tab.value].dotlDuration = config.doorOpenTimer || 20; // Default to 20 if not set
+          form.doors[tab.value].sensorStatus = config.sensorMode || false;
+          form.doors[tab.value].dotlDelay = config.delayTimer || 5; // Default to 5 if not set
+          form.doors[tab.value].alarmEnabled =
+            config.delayTimer !== null && config.delayTimer !== undefined;
+          form.doors[tab.value].passageStatus = config.passiveMode || false;
 
-          // Populate door configuration if available
-          if (door.doorsConfigure) {
-            const config = door.doorsConfigure;
-            form.doors[tab.value].dotlDuration = config.doorOpenTimer || "";
-            form.doors[tab.value].sensorStatus = config.sensorMode || false;
-            form.doors[tab.value].dotlDelay = config.delayTimer || "";
-            form.doors[tab.value].alarmEnabled = !!config.delayTimer;
-            form.doors[tab.value].passageStatus = config.passiveMode || false;
+          // Handle scheduleTime
+          if (config.scheduleTime && typeof config.scheduleTime === "object") {
+            const scheduleTime = config.scheduleTime;
 
-            // Handle scheduleTime - it should be an object with entryTime/exitTime
-            if (
-              config.scheduleTime &&
-              typeof config.scheduleTime === "object"
-            ) {
-              const scheduleTime = config.scheduleTime;
+            // Find matching time slot
+            const matchingSlot = timeSlots.value.find(
+              (slot) =>
+                slot.entryTime === scheduleTime.entryTime &&
+                slot.exitTime === scheduleTime.exitTime
+            );
 
-              // It's limit time - find matching time slot
-              const matchingSlot = timeSlots.value.find(
-                (slot) =>
-                  slot.entryTime === scheduleTime.entryTime &&
-                  slot.exitTime === scheduleTime.exitTime
-              );
-              form.doors[tab.value].scheduleTime = matchingSlot
-                ? matchingSlot.id
-                : null;
-            } else {
-              form.doors[tab.value].scheduleTime = null;
-            }
+            form.doors[tab.value].scheduleTime = matchingSlot
+              ? matchingSlot.id
+              : null;
+
+            console.log(`Schedule time for ${tab.value}:`, {
+              scheduleTime: scheduleTime,
+              matchingSlot: matchingSlot,
+              finalValue: form.doors[tab.value].scheduleTime,
+            });
+          } else {
+            form.doors[tab.value].scheduleTime = null;
           }
+
+          console.log(
+            `Final configuration for ${tab.value}:`,
+            form.doors[tab.value]
+          );
+        } else {
+          // No configuration found - set default values
+          form.doors[tab.value].selectedDoor = doorId;
+          form.doors[tab.value].dotlDuration = 20;
+          form.doors[tab.value].sensorStatus = false;
+          form.doors[tab.value].dotlDelay = 5;
+          form.doors[tab.value].alarmEnabled = true;
+          form.doors[tab.value].passageStatus = false;
+          form.doors[tab.value].scheduleTime = null;
+
+          console.log(
+            `Default configuration for ${tab.value}:`,
+            form.doors[tab.value]
+          );
         }
       }
     });

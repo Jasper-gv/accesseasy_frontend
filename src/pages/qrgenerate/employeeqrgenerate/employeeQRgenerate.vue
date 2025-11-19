@@ -1,5 +1,5 @@
 <template>
-  <div class="card-management-container">
+  <div class="qr-management-container">
     <!-- Filter Panel -->
     <div class="filter-panel" v-if="showFilters">
       <div class="filter-content">
@@ -18,8 +18,8 @@
       <DataTableWrapper
         v-model:searchQuery="search"
         :showSearch="true"
-        :searchPlaceholder="'Search Card Details'"
-        :isEmpty="filteredCardManagementData.length === 0 && !search"
+        :searchPlaceholder="'Search QR Details'"
+        :isEmpty="filteredQRManagementData.length === 0 && !search"
         :hasError="error"
         @update:searchQuery="debouncedSearch"
       >
@@ -50,22 +50,22 @@
         <div v-if="loading">
           <SkeletonLoader
             variant="table-body-only"
-            :rows="cardManagementData.length || 10"
+            :rows="qrManagementData.length || 10"
             :columns="columns.length"
           />
         </div>
 
         <div v-else-if="error">
           <ErrorState
-            title="Unable to load card details"
+            title="Unable to load QR details"
             :message="error"
-            @retry="fetchCardManagementData"
+            @retry="fetchQRManagementData"
           />
         </div>
 
-        <div v-else-if="filteredCardManagementData.length === 0">
+        <div v-else-if="filteredQRManagementData.length === 0">
           <EmptyState
-            title="No card details found"
+            title="No QR details found"
             message="Try adjusting your filters or search term"
             :primaryAction="{ text: 'Clear Filters' }"
             @primaryAction="clearFilters"
@@ -74,7 +74,7 @@
 
         <div v-else>
           <DataTable
-            :items="filteredCardManagementData"
+            :items="filteredQRManagementData"
             :columns="columns"
             :selectedItems="selectedItems"
             :showSelection="false"
@@ -88,47 +88,30 @@
             @rowClick="handleRowClick"
             @sort="handleSort"
           >
-            <!-- Employee ID Column -->
-            <template #cell-employeeId="{ item }">
-              <span>{{ item.employeeId?.employeeId || "N/A" }}</span>
-            </template>
-
             <!-- Employee Name Column -->
             <template #cell-employeeName="{ item }">
               <span>{{ item.employeeName || "N/A" }}</span>
             </template>
 
-            <!-- RFID Card Column -->
-            <template #cell-rfidCard="{ item }">
-              <span>{{ item.rfidCard || "N/A" }}</span>
-            </template>
-
-            <!-- Type Column -->
-            <template #cell-type="{ item }">
-              <v-chip
-                :color="getTypeColor(item.type)"
-                size="small"
-                label
-                variant="tonal"
-              >
-                {{ item.type }}
-              </v-chip>
-            </template>
-
-            <!-- Card Access Column -->
-            <template #cell-cardAccess="{ item }">
-              <v-chip
-                :color="item.cardAccess ? 'success' : 'error'"
-                size="small"
-                label
-              >
-                {{ item.cardAccess ? "Enable" : "Disable" }}
-              </v-chip>
+            <!-- QR Code Column -->
+            <template #cell-qrcode="{ item }">
+              <span>{{ item.qrcode || "N/A" }}</span>
             </template>
 
             <!-- Access Level Column -->
             <template #cell-accessLevelsId="{ item }">
               <span>{{ item.accessLevelsId || "N/A" }}</span>
+            </template>
+
+            <!-- QR Access Column -->
+            <template #cell-qraccess="{ item }">
+              <v-chip
+                :color="item.qraccess ? 'success' : 'error'"
+                size="small"
+                label
+              >
+                {{ item.qraccess ? "Enable" : "Disable" }}
+              </v-chip>
             </template>
           </DataTable>
         </div>
@@ -138,9 +121,7 @@
           <div
             class="pagination-info"
             v-if="
-              !loading &&
-              filteredCardManagementData.length > 0 &&
-              totalItems > 0
+              !loading && filteredQRManagementData.length > 0 && totalItems > 0
             "
           >
             Showing {{ (page - 1) * itemsPerPage + 1 }} to
@@ -194,53 +175,37 @@ const selectedItems = ref([]);
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
 
-// Card type options
-const cardTypeOptions = ref(["rfid", "tag"]);
-
 // Define columns for DataTable
 const columns = computed(() => [
   {
-    key: "employeeId",
-    label: "EmpId",
-    sortable: false,
-    width: "120px",
-  },
-  {
     key: "employeeName",
-    label: "Name",
+    label: "Employee Name",
     sortable: false,
     width: "150px",
   },
   {
-    key: "rfidCard",
-    label: "RFID Card",
+    key: "qrcode",
+    label: "QR Code",
     sortable: true,
-    width: "150px",
-  },
-  {
-    key: "type",
-    label: "Type",
-    sortable: true,
-    width: "100px",
-  },
-  {
-    key: "cardAccess",
-    label: "Card Access",
-    sortable: true,
-    width: "120px",
+    width: "200px",
   },
   {
     key: "accessLevelsId",
     label: "Access Level",
-    sortable: false,
-    width: "130px",
+    sortable: true,
+    width: "120px",
+  },
+  {
+    key: "qraccess",
+    label: "QR Access",
+    sortable: true,
+    width: "120px",
   },
 ]);
 
 // Filters
 const filters = reactive({
-  type: [],
-  cardAccess: "all",
+  qraccess: "all",
   organization: "",
   department: "",
   branch: "",
@@ -248,34 +213,23 @@ const filters = reactive({
 
 // Filter schema for FilterComponent
 const pageFilters = [
-  // {
-  //   key: "type",
-  //   label: "Card Type",
-  //   type: "multi-select",
-  //   show: true,
-  //   options: cardTypeOptions.value.map((type) => ({
-  //     value: type,
-  //     label: type.toUpperCase(),
-  //   })),
-  // },
-  // {
-  //   key: "cardAccess",
-  //   label: "Card Access",
-  //   type: "radio",
-  //   show: true,
-  //   options: [
-  //     { value: "all", label: "All" },
-  //     { value: true, label: "Enable" },
-  //     { value: false, label: "Disable" },
-  //   ],
-  // },
+  {
+    key: "qraccess",
+    label: "QR Access",
+    type: "radio",
+    show: true,
+    options: [
+      { value: "all", label: "All" },
+      { value: true, label: "Enable" },
+      { value: false, label: "Disable" },
+    ],
+  },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
 
 const initialFilters = computed(() => ({
-  type: filters.type,
-  cardAccess: filters.cardAccess,
+  qraccess: filters.qraccess,
   organization: filters.organization,
   department: filters.department,
   branch: filters.branch,
@@ -284,8 +238,7 @@ const initialFilters = computed(() => ({
 // Computed Properties
 const hasActiveFilters = computed(() => {
   return (
-    filters.type.length > 0 ||
-    filters.cardAccess !== "all" ||
+    filters.qraccess !== "all" ||
     filters.organization ||
     filters.branch ||
     filters.department ||
@@ -294,29 +247,15 @@ const hasActiveFilters = computed(() => {
 });
 
 // Data
-const cardManagementData = ref([]);
-
-// Get color for card type
-const getTypeColor = (type) => {
-  switch (type?.toLowerCase()) {
-    case "rfid":
-      return "primary";
-    case "tag":
-      return "info";
-    default:
-      return "grey";
-  }
-};
+const qrManagementData = ref([]);
 
 // Row click handler
 const handleRowClick = (item) => {
   console.log("Row clicked:", item);
 
-  if (item && item.employeeId && item.employeeId.id) {
-    console.log("Navigating to employee:", item.employeeId.id);
-    router.push(
-      `/employee-details/employee/${item.employeeId.id}/accessmodule`
-    );
+  if (item && item.employeeId) {
+    console.log("Navigating to employee:", item.employeeId);
+    router.push(`/employee-details/employee/${item.employeeId}/accessmodule`);
   } else {
     console.error("Invalid item or employee ID not found");
     console.log("Item structure:", item);
@@ -344,7 +283,7 @@ const aggregateCount = async () => {
       .join("&");
 
     const countResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/cardManagement?${queryString}`,
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?${queryString}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -362,13 +301,13 @@ const aggregateCount = async () => {
     console.log("Total items count:", totalItems.value);
   } catch (error) {
     console.error("Error fetching aggregate count:", error);
-    error.value = "Failed to load card count";
+    error.value = "Failed to load QR count";
     totalItems.value = 0;
   }
 };
 
 // Fetch Data with correct fields
-const fetchCardManagementData = async () => {
+const fetchQRManagementData = async () => {
   try {
     loading.value = true;
     error.value = null;
@@ -386,16 +325,12 @@ const fetchCardManagementData = async () => {
     const params = {
       fields: [
         "id",
-        "tenant.tenantId",
         "accessLevelsId",
-        "cardAccessLevelArray",
-        "cardAccessLevelHex",
-        "employeeId.employeeId",
-        "rfidCard",
-        "employeeId.id",
+        "qraccess",
+        "tenant",
+        "qrcode",
         "employeeId.assignedUser.first_name",
-        "type",
-        "cardAccess",
+        "employeeId.id",
       ],
       ...filterParams(),
       sort:
@@ -419,7 +354,7 @@ const fetchCardManagementData = async () => {
 
     // Fetch data
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/cardManagement?${queryString}`,
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?${queryString}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -432,12 +367,14 @@ const fetchCardManagementData = async () => {
     }
 
     const data = await response.json();
-    cardManagementData.value = data.data;
-    console.log("Fetched card management data:", data.data);
+    qrManagementData.value = data.data;
+    console.log("Fetched QR generation data:", data.data);
   } catch (err) {
-    console.error("Error fetching card management data:", err);
-    error.value = err.message || "Failed to load card data";
-    cardManagementData.value = [];
+    console.error("Error fetching QR generation data:", err);
+    error.value = err.message || "Failed to load QR data";
+
+    // Reset data on error
+    qrManagementData.value = [];
     totalItems.value = 0;
   } finally {
     loading.value = false;
@@ -446,49 +383,40 @@ const fetchCardManagementData = async () => {
 
 const filterParams = () => {
   const params = {};
-  params["filter[tenant][tenantId][_eq]"] = tenantId;
+  params["filter[_and][0][_and][0][tenant][_eq]"] = tenantId;
 
   // Search filter
   if (search.value) {
     if (!isNaN(search.value)) {
-      params["filter[_or][0][rfidCard][_eq]"] = search.value;
-      params["filter[_or][1][accessLevelsId][_eq]"] = search.value;
-      params["filter[_or][2][employeeId][employeeId][_icontains]"] =
-        search.value;
+      params["filter[_or][0][accessLevelsId][_eq]"] = search.value;
+      params["filter[_or][1][employeeId][id][_eq]"] = search.value;
     } else {
-      params["filter[_or][0][type][_icontains]"] = search.value;
+      params["filter[_or][0][qrcode][_icontains]"] = search.value;
       params[
         "filter[_or][1][employeeId][assignedUser][first_name][_icontains]"
       ] = search.value;
-      params["filter[_or][2][employeeId][employeeId][_icontains]"] =
-        search.value;
     }
   }
 
-  // Card Type filter
-  if (filters.type.length > 0) {
-    params["filter[type][_in]"] = filters.type.join(",");
-  }
-
-  // Card Access filter (Enable/Disable)
-  if (filters.cardAccess !== "all") {
-    params["filter[cardAccess][_eq]"] = filters.cardAccess;
+  // QR Access filter (Enable/Disable)
+  if (filters.qraccess !== "all") {
+    params["filter[qraccess][_eq]"] = filters.qraccess;
   }
 
   return params;
 };
 
 // Computed - Transform the data for display
-const filteredCardManagementData = computed(() => {
-  return cardManagementData.value.map((item) => {
+const filteredQRManagementData = computed(() => {
+  return qrManagementData.value.map((item) => {
     // Handle the nested employee data structure
     const employeeName = item.employeeId?.assignedUser?.first_name || "N/A";
-    const employeeId = item.employeeId?.employeeId || "N/A";
+    const employeeId = item.employeeId?.id || "N/A";
 
     return {
       ...item,
       employeeName: employeeName,
-      employeeId: { employeeId: employeeId, id: item.employeeId?.id }, // Ensure id is preserved
+      employeeId: employeeId,
     };
   });
 });
@@ -498,7 +426,7 @@ const handleApplyFilters = (newFilters) => {
   Object.assign(filters, newFilters);
   page.value = 1;
   showFilters.value = true;
-  fetchCardManagementData();
+  fetchQRManagementData();
 };
 
 const onFilterVisibilityChanged = (isVisible) => {
@@ -508,7 +436,7 @@ const onFilterVisibilityChanged = (isVisible) => {
 // Debounced search function
 const debouncedSearch = debounce(() => {
   page.value = 1;
-  fetchCardManagementData();
+  fetchQRManagementData();
 }, 300);
 
 // Methods
@@ -517,14 +445,13 @@ const toggleFilters = () => {
 };
 
 const clearFilters = () => {
-  filters.type = [];
-  filters.cardAccess = "all";
+  filters.qraccess = "all";
   filters.organization = "";
   filters.department = "";
   filters.branch = "";
   search.value = "";
   page.value = 1;
-  fetchCardManagementData();
+  fetchQRManagementData();
 };
 
 // Sorting handlers
@@ -539,7 +466,7 @@ const updateSortDirection = (newSortDirection) => {
 const handleSort = ({ field, direction }) => {
   sortBy.value = [{ key: field, order: direction }];
   page.value = 1;
-  fetchCardManagementData();
+  fetchQRManagementData();
 };
 
 // Enhanced pagination handlers
@@ -547,7 +474,7 @@ const handlePageChange = (newPage) => {
   console.log("Page changed to:", newPage);
   if (newPage !== page.value && !loading.value) {
     page.value = newPage;
-    fetchCardManagementData();
+    fetchQRManagementData();
     // Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -558,13 +485,13 @@ const handleItemsPerPageChange = (newItemsPerPage) => {
   if (newItemsPerPage !== itemsPerPage.value) {
     itemsPerPage.value = newItemsPerPage;
     page.value = 1; // Reset to first page when items per page changes
-    fetchCardManagementData();
+    fetchQRManagementData();
   }
 };
 
 // Lifecycle hooks
 onMounted(async () => {
-  await fetchCardManagementData();
+  await fetchQRManagementData();
 });
 
 // Watch for changes in search
@@ -573,22 +500,22 @@ watch(search, () => {
 });
 
 // Watch for data changes and adjust pagination if needed
-watch([cardManagementData, totalItems], () => {
+watch([qrManagementData, totalItems], () => {
   // If no data but totalItems > 0, try going to page 1
   if (
-    cardManagementData.value.length === 0 &&
+    qrManagementData.value.length === 0 &&
     totalItems.value > 0 &&
     page.value > 1
   ) {
     console.log("No data on current page, resetting to page 1");
     page.value = 1;
-    fetchCardManagementData();
+    fetchQRManagementData();
   }
 });
 </script>
 
 <style scoped>
-.card-management-container {
+.qr-management-container {
   display: flex;
   height: 100vh;
   position: relative;
@@ -679,7 +606,7 @@ watch([cardManagementData, totalItems], () => {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .card-management-container {
+  .qr-management-container {
     flex-direction: column;
   }
 

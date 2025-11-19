@@ -318,6 +318,262 @@
               </div>
             </div>
           </div>
+          <!-- Face Assignment Status -->
+          <div class="face-assignment-section">
+            <div class="section-header">
+              <v-icon size="20" color="primary" class="mr-2"
+                >mdi-face-recognition</v-icon
+              >
+              <h2>Face Assignment Status</h2>
+            </div>
+
+            <div class="face-status-card">
+              <div class="face-status-content">
+                <div class="face-status-info">
+                  <v-icon
+                    size="24"
+                    :color="hasFaceData ? 'success' : 'grey'"
+                    class="mr-2"
+                  >
+                    {{
+                      hasFaceData ? "mdi-face-agent" : "mdi-face-man-profile"
+                    }}
+                  </v-icon>
+                  <div class="face-status-text">
+                    <div class="face-status-label">
+                      {{
+                        hasFaceData
+                          ? "Face Data Assigned"
+                          : "No Face Data Assigned"
+                      }}
+                    </div>
+                    <div class="face-status-description">
+                      {{
+                        hasFaceData
+                          ? "This employee has registered face data"
+                          : "Register face data to enable recognition"
+                      }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Face Recognition Toggle for Access Level -->
+                <v-switch
+                  v-if="accessLevelDetails && hasFaceData"
+                  v-model="accessLevelDetails.faceData"
+                  color="success"
+                  hide-details
+                  :disabled="!accessOn"
+                  @change="updateFaceAccessInAccessLevel"
+                  class="mt-2"
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2">
+                      Face Recognition:
+                      {{ accessLevelDetails.faceData ? "Enabled" : "Disabled" }}
+                    </span>
+                  </template>
+                </v-switch>
+
+                <!-- Show message if face data missing -->
+                <div
+                  v-else-if="!hasFaceData"
+                  class="text-caption text-medium-emphasis mt-2"
+                >
+                  <v-icon size="16" color="warning" class="mr-1"
+                    >mdi-alert</v-icon
+                  >
+                  Face data required to enable recognition
+                </div>
+              </div>
+
+              <div v-if="!hasFaceData" class="face-assignment-hint">
+                <v-icon size="16" color="info" class="mr-1"
+                  >mdi-information</v-icon
+                >
+                <span
+                  >To enable face recognition, register face data for this
+                  employee</span
+                >
+              </div>
+            </div>
+          </div>
+          <!-- Fingerprint Assignment Status -->
+          <div class="face-assignment-section">
+            <div class="section-header">
+              <v-icon size="20" color="primary" class="mr-2"
+                >mdi-fingerprint</v-icon
+              >
+              <h2>Fingerprint Assignment Status</h2>
+            </div>
+
+            <div class="face-status-card">
+              <div class="face-status-content">
+                <div class="face-status-info">
+                  <v-icon
+                    size="24"
+                    :color="hasFingerData ? 'success' : 'grey'"
+                    class="mr-2"
+                  >
+                    {{
+                      hasFingerData ? "mdi-fingerprint" : "mdi-fingerprint-off"
+                    }}
+                  </v-icon>
+                  <div class="face-status-text">
+                    <div class="face-status-label">
+                      {{
+                        hasFingerData
+                          ? "Fingerprint Registered"
+                          : "No Fingerprint Assigned"
+                      }}
+                    </div>
+                    <div class="face-status-description">
+                      {{
+                        hasFingerData
+                          ? "This employee has registered fingerprint"
+                          : "Register fingerprint to enable access"
+                      }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Fingerprint Toggle in Access Level -->
+                <v-switch
+                  v-if="accessLevelDetails && hasFingerData"
+                  v-model="accessLevelDetails.fingerData"
+                  color="success"
+                  hide-details
+                  :disabled="!accessOn"
+                  @change="updateFingerAccessInAccessLevel"
+                  class="mt-2"
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2">
+                      Fingerprint Access:
+                      {{
+                        accessLevelDetails.fingerData ? "Enabled" : "Disabled"
+                      }}
+                    </span>
+                  </template>
+                </v-switch>
+
+                <!-- Show message if no fingerprint -->
+                <div
+                  v-else-if="!hasFingerData"
+                  class="text-caption text-medium-emphasis mt-2"
+                >
+                  <v-icon size="16" color="warning" class="mr-1"
+                    >mdi-alert</v-icon
+                  >
+                  Fingerprint required to enable access
+                </div>
+              </div>
+
+              <div v-if="!hasFingerData" class="face-assignment-hint">
+                <v-icon size="16" color="info" class="mr-1"
+                  >mdi-information</v-icon
+                >
+                <span
+                  >To enable fingerprint access, register fingerprint for this
+                  employee</span
+                >
+              </div>
+            </div>
+          </div>
+          <!-- QR Code Generation -->
+          <div class="face-assignment-section">
+            <div class="section-header">
+              <v-icon size="20" color="primary" class="mr-2">mdi-qrcode</v-icon>
+              <h2>QR Code Access</h2>
+            </div>
+
+            <div class="face-status-card">
+              <div class="face-status-content">
+                <div class="face-status-info">
+                  <v-icon
+                    size="24"
+                    :color="hasQRCode ? 'success' : 'grey'"
+                    class="mr-2"
+                  >
+                    {{ hasQRCode ? "mdi-qrcode" : "mdi-qrcode-remove" }}
+                  </v-icon>
+                  <div class="face-status-text">
+                    <div class="face-status-label">
+                      {{
+                        hasQRCode ? "QR Code Generated" : "No QR Code Generated"
+                      }}
+                    </div>
+                    <div class="face-status-description">
+                      {{
+                        hasQRCode
+                          ? `QR Code: ${truncateQRCode(qrCodeData?.qrcode)}`
+                          : "Generate QR code to enable mobile access"
+                      }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- QR Code Toggle -->
+                <v-switch
+                  v-model="qrAccessEnabled"
+                  color="success"
+                  hide-details
+                  :disabled="!accessOn || !hasQRCode"
+                  @change="handleQRAccessToggle"
+                  class="mt-2"
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2">
+                      QR Code Access:
+                      {{ qrAccessEnabled ? "Enabled" : "Disabled" }}
+                    </span>
+                  </template>
+                </v-switch>
+              </div>
+
+              <div class="qr-actions">
+                <v-btn
+                  color="primary"
+                  variant="tonal"
+                  @click="generateQRCode"
+                  :disabled="!accessOn || !selectedAccessLevel"
+                  :loading="generatingQR"
+                  class="mr-2"
+                  prepend-icon="mdi-qrcode-plus"
+                >
+                  {{ hasQRCode ? "REGENERATE QR CODE" : "GENERATE QR CODE" }}
+                </v-btn>
+
+                <v-btn
+                  v-if="hasQRCode"
+                  color="secondary"
+                  variant="outlined"
+                  @click="downloadQRCode"
+                  :disabled="!hasQRCode"
+                  prepend-icon="mdi-download"
+                >
+                  DOWNLOAD QR
+                </v-btn>
+              </div>
+
+              <!-- QR Code Preview -->
+              <div v-if="hasQRCode && qrCodeImage" class="qr-preview mt-4">
+                <div class="qr-image-container">
+                  <img :src="qrCodeImage" alt="QR Code" class="qr-image" />
+                </div>
+              </div>
+
+              <div v-if="!hasQRCode" class="face-assignment-hint">
+                <v-icon size="16" color="info" class="mr-1"
+                  >mdi-information</v-icon
+                >
+                <span
+                  >Generate QR code to enable mobile access for this
+                  employee</span
+                >
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -388,6 +644,7 @@ import { useRouter } from "vue-router";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import { convertToCardAccessHex } from "@/utils/helpers/convertToCardAccessHex";
+import QRCode from "qrcode";
 
 const props = defineProps({
   employeeData: {
@@ -423,7 +680,31 @@ const originalAccessLevel = ref(null);
 const originalAccessOn = ref(true);
 const originalCards = ref([]);
 const removedCardIds = ref([]);
+const faceEmbedData = ref(null);
+const fingerData = ref(null);
+const qrCodeData = ref(null);
+const generatingQR = ref(false);
+const qrAccessEnabled = ref(false);
 
+// Computed properties
+const hasFaceData = computed(() => {
+  if (!faceEmbedData.value) return false;
+
+  const data = faceEmbedData.value.base64Data;
+  if (!data || typeof data !== "string") return false;
+
+  const trimmed = data.trim();
+  return trimmed !== "" && trimmed !== "<base64_string_here>";
+});
+
+const hasFingerData = computed(() => {
+  if (!fingerData.value) return false;
+  const base64 = fingerData.value.base64_UserFingers;
+  return base64 && typeof base64 === "string" && base64.trim() !== "";
+});
+const hasQRCode = computed(() => {
+  return qrCodeData.value && qrCodeData.value.qrcode;
+});
 let cardListener = null;
 
 const showSuccessMessage = (message) => {
@@ -451,11 +732,307 @@ const hasChanges = computed(() => {
     accessLevelChanged || accessToggleChanged || cardsChanged || cardsRemoved
   );
 });
+const generateUniqueQRCode = () => {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8);
+  return `QR_${timestamp}_${random}`.toUpperCase();
+};
 
-const fetchEmployeeData = async () => {
-  const token = authService.getToken();
+// Add truncate helper for display
+const truncateQRCode = (code) => {
+  if (!code) return "N/A";
+  return code.length > 20 ? `${code.substring(0, 20)}...` : code;
+};
+const updateFaceAccessInAccessLevel = async () => {
+  if (!selectedAccessLevel.value || !accessLevelDetails.value) return;
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/accesslevels/${selectedAccessLevel.value.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          faceData: accessLevelDetails.value.faceData,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(
+        err.errors?.[0]?.message || "Failed to update face access"
+      );
+    }
+
+    showSuccessMessage(
+      `Face recognition ${accessLevelDetails.value.faceData ? "enabled" : "disabled"} for this access level`
+    );
+
+    await fetchAccessLevels();
+  } catch (error) {
+    console.error("Error updating faceData in access level:", error);
+    showErrorMessage("Failed to update face recognition setting");
+    accessLevelDetails.value.faceData = !accessLevelDetails.value.faceData;
+  }
+};
+const updateFingerAccessInAccessLevel = async () => {
+  if (!selectedAccessLevel.value || !accessLevelDetails.value) return;
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/accesslevels/${selectedAccessLevel.value.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fingerData: accessLevelDetails.value.fingerData,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(
+        err.errors?.[0]?.message || "Failed to update fingerprint access"
+      );
+    }
+
+    showSuccessMessage(
+      `Fingerprint access ${accessLevelDetails.value.fingerData ? "enabled" : "disabled"} for this access level`
+    );
+
+    await fetchAccessLevels(); // refresh the list to get updated fingerData flag
+  } catch (error) {
+    console.error("Error updating fingerData in access level:", error);
+    showErrorMessage("Failed to update fingerprint access setting");
+    accessLevelDetails.value.fingerData = !accessLevelDetails.value.fingerData;
+  }
+};
+const generateQRCode = async () => {
+  if (!selectedAccessLevel.value) {
+    showErrorMessage("Please select an access level first");
+    return;
+  }
+
+  generatingQR.value = true;
+
   try {
     const tenantId = currentUserTenant.getTenantId();
+    const accessLevelsId = selectedAccessLevel.value.id;
+
+    // Check if QR code already exists for this employee and access level
+    const checkResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?filter[_and][0][_and][0][tenant][_eq]=${tenantId}&filter[_and][0][_and][1][employeeId][id][_eq]=${props.id}&filter[_and][0][_and][2][accessLevelsId][_eq]=${accessLevelsId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      }
+    );
+
+    let existingQRCode = null;
+    if (checkResponse.ok) {
+      const checkData = await checkResponse.json();
+      existingQRCode = checkData.data?.[0];
+    }
+
+    // Generate unique QR code value (like in bulk generation)
+    const qrCodeValue = generateUniqueQRCode();
+
+    const payload = {
+      employeeId: props.id,
+      accessLevelsId: accessLevelsId,
+      qraccess: qrAccessEnabled.value,
+      tenant: tenantId,
+      // Store the randomly generated QR code value instead of JSON
+      qrcode: qrCodeValue,
+    };
+
+    let response;
+    if (existingQRCode) {
+      // Update existing QR code
+      response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/qrgenerate/${existingQRCode.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${authService.getToken()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+    } else {
+      // Create new QR code
+      response = await fetch(
+        `${import.meta.env.VITE_API_URL}/items/qrgenerate`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authService.getToken()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.errors?.[0]?.message || "Failed to generate QR code"
+      );
+    }
+
+    const result = await response.json();
+    qrCodeData.value = result.data;
+
+    // Generate QR code image for preview/download
+    await generateQRCodeImage();
+
+    showSuccessMessage(
+      existingQRCode
+        ? "QR code updated successfully!"
+        : "QR code generated successfully!"
+    );
+
+    // Fetch the updated QR code data
+    await fetchQRCodeData();
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    showErrorMessage(`Failed to generate QR code: ${error.message}`);
+  } finally {
+    generatingQR.value = false;
+  }
+};
+const fetchQRCodeData = async () => {
+  if (!selectedAccessLevel.value) return;
+
+  try {
+    const tenantId = currentUserTenant.getTenantId();
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?fields=*&filter[_and][0][_and][0][tenant][_eq]=${tenantId}&filter[_and][0][_and][1][employeeId][id][_eq]=${props.id}&filter[_and][0][_and][2][accessLevelsId][_eq]=${selectedAccessLevel.value.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.data && data.data.length > 0) {
+        qrCodeData.value = data.data[0];
+        qrAccessEnabled.value = qrCodeData.value.qraccess || false;
+
+        // Generate QR code image when data is loaded
+        if (qrCodeData.value.qrcode) {
+          await generateQRCodeImage();
+        }
+      } else {
+        qrCodeData.value = null;
+        qrAccessEnabled.value = false;
+        qrCodeImage.value = null;
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching QR code data:", error);
+    qrCodeData.value = null;
+    qrAccessEnabled.value = false;
+    qrCodeImage.value = null;
+  }
+};
+// Add method to handle QR access toggle
+const handleQRAccessToggle = async () => {
+  if (!qrCodeData.value) {
+    showErrorMessage("Please generate a QR code first");
+    qrAccessEnabled.value = false;
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate/${qrCodeData.value.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${authService.getToken()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          qraccess: qrAccessEnabled.value,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update QR code access");
+    }
+
+    showSuccessMessage(
+      `QR code access ${qrAccessEnabled.value ? "enabled" : "disabled"} successfully!`
+    );
+  } catch (error) {
+    console.error("Error updating QR code access:", error);
+    showErrorMessage("Failed to update QR code access");
+    qrAccessEnabled.value = !qrAccessEnabled.value;
+  }
+};
+const generateQRCodeImage = async (size = 200) => {
+  if (!qrCodeData.value?.qrcode) return;
+
+  try {
+    const canvas = document.createElement("canvas");
+    await QRCode.toCanvas(canvas, qrCodeData.value.qrcode, {
+      width: size,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+
+    qrCodeImage.value = canvas.toDataURL("image/png");
+  } catch (err) {
+    console.error("Failed to generate QR image:", err);
+    showErrorMessage("Failed to generate QR code image");
+  }
+};
+// Add method to download QR code
+const downloadQRCode = async () => {
+  if (!qrCodeImage.value) {
+    // Generate image if not already generated
+    await generateQRCodeImage();
+  }
+
+  if (!qrCodeImage.value) {
+    showErrorMessage("No QR code available to download");
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = qrCodeImage.value;
+  link.download = `qr-code-${props.employeeData?.first_name || "employee"}-${qrCodeData.value.qrcode}.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showSuccessMessage("QR code downloaded successfully!");
+};
+const fetchEmployeeData = async () => {
+  console.log("[fetchEmployeeData] started");
+  const token = authService.getToken();
+
+  try {
+    const tenantId = currentUserTenant.getTenantId();
+
     if (!token || !tenantId) {
       throw new Error("Authentication required or tenant not found");
     }
@@ -469,6 +1046,9 @@ const fetchEmployeeData = async () => {
       "assignedAccessLevel.maxWorkHours",
       "assignedAccessLevel.workingHours",
       "assignedAccessLevel.assignDoorsGroup",
+      "assignedFaceEmbed.id",
+      "assignedFaceEmbed.base64Data",
+      "assignedFaceEmbed.assignedTo.id",
       "id",
       "accessOn",
     ];
@@ -488,19 +1068,80 @@ const fetchEmployeeData = async () => {
     }
 
     const data = await response.json();
+
     if (data.data && data.data.length > 0) {
       const employee = data.data[0];
       emit("update:employeeData", employee);
 
-      const cardsResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/items/cardManagement?filter[employeeId][_eq]=${props.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      // === FACE DATA (already working) ===
+      if (employee.assignedFaceEmbed) {
+        faceEmbedData.value = employee.assignedFaceEmbed;
+      } else {
+        faceEmbedData.value = null;
+      }
+
+      try {
+        const fingerFields = [
+          "tenant",
+          "assignedTo.employeeId",
+          "id",
+          "assignedTo.assignedUser.first_name",
+          "base64_UserFingers",
+        ];
+
+        const fingerQueryParams = new URLSearchParams();
+        fingerFields.forEach((field) => {
+          fingerQueryParams.append("fields[]", field);
+        });
+        fingerQueryParams.append(
+          "filter[_and][0][_and][0][tenant][tenantId][_eq]",
+          tenantId
+        );
+        fingerQueryParams.append(
+          "filter[_and][0][_and][1][assignedTo][id][_eq]",
+          props.id
+        );
+
+        const fingerResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/items/userFingers?${fingerQueryParams.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authService.getToken()}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (fingerResponse.ok) {
+          const fingerJson = await fingerResponse.json();
+          if (fingerJson.data && fingerJson.data.length > 0) {
+            fingerData.value = fingerJson.data[0];
+            console.log(
+              "Fingerprint data loaded:",
+              fingerData.value.base64_UserFingers ? "Present" : "Empty"
+            );
+          } else {
+            fingerData.value = null;
+            console.log("No fingerprint record found");
+          }
+        } else {
+          console.error("Failed to fetch usersFingers:", fingerResponse.status);
+          fingerData.value = null;
         }
-      );
+      } catch (err) {
+        console.error("Error fetching fingerprint data:", err);
+        fingerData.value = null;
+      }
+      // === END FINGERPRINT FETCH ===
+
+      // === REST OF YOUR EXISTING CODE (cards, access level, etc.) ===
+      const cardsUrl = `${import.meta.env.VITE_API_URL}/items/cardManagement?filter[employeeId][_eq]=${props.id}`;
+      const cardsResponse = await fetch(cardsUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (cardsResponse.ok) {
         const cardsData = await cardsResponse.json();
@@ -526,14 +1167,14 @@ const fetchEmployeeData = async () => {
 
       accessOn.value = employee.accessOn;
       originalAccessOn.value = employee.accessOn;
-
       removedCardIds.value = [];
     } else {
       throw new Error("No employee data found");
     }
+    await fetchQRCodeData();
   } catch (err) {
-    console.error("Error fetching employee data:", err);
-    error.value = err.message;
+    console.error("[fetchEmployeeData] Error:", err);
+    error.value = err.message || String(err);
   } finally {
     loading.value = false;
   }
@@ -561,6 +1202,7 @@ const fetchAccessLevels = async () => {
       maxWorkHours: level.maxWorkHours,
       workingHours: level.workingHours,
       assignDoorsGroup: level.assignDoorsGroup,
+      faceData: level.faceData || false,
     }));
   } catch (error) {
     console.error("Error fetching access levels:", error);
@@ -570,6 +1212,8 @@ const fetchAccessLevels = async () => {
 const handleAccessLevelChange = async (value) => {
   if (!value) {
     accessLevelDetails.value = null;
+    qrCodeData.value = null;
+    qrAccessEnabled.value = false;
     return;
   }
 
@@ -610,6 +1254,7 @@ const handleAccessLevelChange = async (value) => {
 
     accessLevelDetails.value = {
       ...data.data,
+      faceData: data.data.faceData || false,
       _24hrs: data.data._24hrs,
       holidays: data.data.holidays,
       maxWorkHours: data.data.maxWorkHours,
@@ -625,6 +1270,7 @@ const handleAccessLevelChange = async (value) => {
         },
       })),
     };
+    await fetchQRCodeData();
   } catch (error) {
     console.error("Error fetching access level details:", error);
     showErrorMessage("Failed to load access level details");
@@ -874,6 +1520,70 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.face-assignment-section {
+  margin-top: 24px;
+}
+
+.face-status-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.face-status-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.face-status-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.face-status-text {
+  margin-left: 8px;
+}
+
+.face-status-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.face-status-description {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.face-toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.face-assignment-hint {
+  display: flex;
+  align-items: center;
+  background: #e3f2fd;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1565c0;
+}
+
+.face-toggle-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+}
 .access-management {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;

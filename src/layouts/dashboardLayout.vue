@@ -402,10 +402,48 @@ export default {
       // requiredFeature: "fieldpro",
       // },
       {
-        title: "Card Management",
-        icon: "mdi-card-account-details-outline",
-        to: "/card-management/cards",
+        title: "Access Control",
+        icon: "mdi-shield-account-outline",
         roles: ["Admin", "Manager", "esslAdmin"],
+        subItems: [
+          {
+            title: "Card Management",
+            icon: "mdi-card-account-details-outline",
+            to: "/card-management/cards",
+            roles: ["Admin", "Manager", "esslAdmin"],
+          },
+          {
+            title: "Face Embedding",
+            icon: "mdi-face-recognition",
+            to: "/face-embedding/ai-face-embedding",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+          {
+            title: "Fingerprint Management",
+            icon: "mdi-fingerprint",
+            to: "/finger-data",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+          // QR Generate section
+          {
+            title: "QR Generate",
+            icon: "mdi-qrcode",
+            to: "/qr-generate/employee",
+            roles: ["Admin", "Manager", "Employee"],
+            subItems: [
+              {
+                title: "Bulk QR Generate",
+                to: "/qr-generate/bulk",
+                roles: ["Admin", "Manager"],
+              },
+              {
+                title: "Employee QR Generate",
+                to: "/qr-generate/employee",
+                roles: ["Admin", "Manager", "Employee"],
+              },
+            ],
+          },
+        ],
       },
       // {
       //   title: "Expenses",
@@ -495,23 +533,7 @@ export default {
         to: "/settings/organization",
         roles: ["Admin", "Administrator", "Dealer"],
       },
-      {
-        title: "Face Embedding",
-        icon: "mdi-face-recognition",
-        roles: ["Admin", "Manager", "Employee"],
-        subItems: [
-          {
-            title: "AI Face Embedding",
-            to: "/face-embedding/ai-face-embedding",
-            roles: ["Admin", "Manager", "Employee"],
-          },
-          {
-            title: "Mobile Face Embedding",
-            to: "/face-embedding/mobile-face-embedding",
-            roles: ["Admin", "Manager", "Employee"],
-          },
-        ],
-      },
+
       // {
       //   title: "Role Configurator",
       //   icon: "mdi-shield-account",
@@ -748,6 +770,9 @@ export default {
         "/attendanceLog/general": "Attendance Logs",
         "/profile": "Profile",
         "/reports/workordergenerate": "Reports",
+        "/qr-generate": "QR Generate",
+        "/qr-generate/bulk": "Bulk QR Generate",
+        "/qr-generate/employee": "Employee QR Generate",
       };
 
       if (routeTitleMap[path]) {
@@ -1194,14 +1219,14 @@ export default {
 
 /* Active State Styling for Sub Items - ADDED */
 .modern-sidebar :deep(.sub-item.active) {
-  background-color: #f3f4f6 !important;
-  color: #000000 !important;
+  background-color: rgb(244, 84, 84) !important;
+  color: #ffffff !important;
   border-left: 2px solid #1e3fa9 !important;
 }
 
 .modern-sidebar :deep(.sub-item:hover) {
-  background-color: #c6e4dc !important;
-  color: #000000 !important;
+  background-color: rgb(244, 84, 84) !important;
+  color: #ffffff !important;
 }
 
 .modern-sidebar :deep(.sub-title) {

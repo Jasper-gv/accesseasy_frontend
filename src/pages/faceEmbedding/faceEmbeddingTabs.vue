@@ -15,10 +15,6 @@
           <v-icon start>mdi-cellphone</v-icon>
           Mobile Face Embedding
         </v-tab>
-        <v-tab value="finger" class="custom-tab">
-          <v-icon start>mdi-fingerprint</v-icon>
-          Finger Details
-        </v-tab>
       </v-tabs>
     </div>
 
@@ -44,8 +40,6 @@ watch(
       activeTab.value = "mobile";
     } else if (newPath.includes("ai-face-embedding")) {
       activeTab.value = "ai";
-    } else if (newPath.includes("finger-data")) {
-      activeTab.value = "finger";
     }
   },
   { immediate: true }
@@ -90,7 +84,7 @@ watch(activeTab, (newTab) => {
 
 .custom-tab {
   border-radius: 10;
-  background-color: #ecfdf5;
+  background-color: #ffe7e6;
   color: #122f68 !important;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -106,7 +100,7 @@ watch(activeTab, (newTab) => {
 
 /* Active tab style */
 :deep(.v-tab--selected.custom-tab) {
-  background-color: #059367 !important;
+  background-color: rgb(244, 84, 84) !important;
   color: whitesmoke !important;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
@@ -143,7 +137,7 @@ watch(activeTab, (newTab) => {
 
 /* Remove old tab styles */
 :deep(.v-tab) {
-  color: #666 !important;
+  color: #122f68 !important;
 }
 
 :deep(.v-tab--selected) {

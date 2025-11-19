@@ -95,7 +95,7 @@
             <!-- Actions Column -->
             <template #cell-actions="{ item }">
               <div class="action-buttons">
-                <BaseButton
+                <!-- <BaseButton
                   icon
                   size="small"
                   variant="text"
@@ -104,6 +104,7 @@
                 >
                   <v-icon>mdi-download</v-icon>
                 </BaseButton>
+
                 <BaseButton
                   icon
                   size="small"
@@ -129,6 +130,16 @@
                   title="Delete QR Code"
                 >
                   <v-icon>mdi-delete</v-icon>
+                </BaseButton> -->
+                <BaseButton
+                  variant="primary"
+                  size="small"
+                  prepend-icon="mdi-share-variant"
+                  @click.stop="shareQRCode(item)"
+                  class="share-btn"
+                  style="padding: 8px 16px"
+                >
+                  Share
                 </BaseButton>
               </div>
             </template>
@@ -638,7 +649,7 @@ const columns = computed(() => [
     sortable: true,
     width: "150px",
   },
-  //   { key: "actions", label: "Actions", sortable: false, width: "150px" },
+  { key: "actions", label: "Actions", sortable: false, width: "150px" },
 ]);
 
 const filteredQRData = computed(() =>
@@ -1196,7 +1207,7 @@ const resetGenerateDialog = () => {
   generationController.value = null;
 };
 
-/* ------------------------------------------------- LOG HELPERS ------------------------------------------------- */
+/*  LOG HELPERS  */
 const getLogClass = (t) => `log-${t}`;
 const getLogColor = (t) =>
   ({ success: "success", error: "error", warning: "warning", info: "info" })[
@@ -1210,7 +1221,7 @@ const getLogIcon = (t) =>
     info: "mdi-information",
   })[t] || "mdi-circle";
 
-/* ------------------------------------------------- LIFECYCLE ------------------------------------------------- */
+/*  LIFECYCLE */
 onMounted(async () => {
   await Promise.all([fetchQRData(), fetchAccessLevels()]);
 });

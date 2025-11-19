@@ -5,7 +5,18 @@
       v-if="showAddDevicePanel"
       class="w-1/3 p-4 bg-gray-50 border-r border-gray-200 h-screen overflow-y-auto"
     >
+      <!-- Show loading state when fetching device details -->
+      <div v-if="loadingDeviceDetails" class="text-center p-8">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+        ></v-progress-circular>
+        <p class="mt-2">Loading device details...</p>
+      </div>
+
+      <!-- Show AddDeviceDetails only when not loading -->
       <AddDeviceDetails
+        v-else
         :tenant-id="tenantId"
         :branches="branches"
         :available-doors="doors"
@@ -174,6 +185,7 @@ const error = ref(null);
 const token = authService.getToken();
 const tenantId = ref(null);
 const editingDevice = ref(null);
+const loadingDeviceDetails = ref(false);
 
 // Pagination state
 const currentPage = ref(1);
@@ -246,6 +258,215 @@ const paginatedDevices = computed(() => {
   const endIndex = startIndex + itemsPerPage.value;
   return formattedDevices.value.slice(startIndex, endIndex);
 });
+
+// New function to fetch door configuration details
+const fetchDoorConfiguration = async (doorId) => {
+  try {
+    const doorFields = [
+      "id",
+      "doorNumber",
+      "doorName",
+      "doorType",
+      "doorsConfigure",
+      "tenant",
+      "tenant.tenantName",
+    ];
+
+    const doorUrl = new URL(`${import.meta.env.VITE_API_URL}/items/doors`);
+    doorFields.forEach((f) => doorUrl.searchParams.append("fields[]", f));
+
+    // Add filters for tenant ID and door ID
+    doorUrl.searchParams.append(
+      "filter[_and][0][_and][0][tenant][tenantId][_eq]",
+      tenantId.value
+    );
+    doorUrl.searchParams.append("filter[_and][0][_and][1][id][_eq]", doorId);
+
+    const response = await fetch(doorUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch door configuration: ${response.status}`);
+    }
+
+    const doorData = await response.json();
+    return doorData.data[0]; // Return the first (and only) door
+  } catch (error) {
+    console.error("Error in fetchDoorConfiguration:", error);
+    throw error;
+  }
+};
+const fetchAllDoorsForTenant = async () => {
+  try {
+    const doorFields = [
+      "id",
+      "doorName",
+      "doorsConfigure",
+      "doorsConfigure.doorOpenTimer",
+      "doorsConfigure.delayTimer",
+      "doorsConfigure.sensorMode",
+      "doorsConfigure.passiveMode",
+      "doorsConfigure.scheduleTime",
+      "doorsConfigure.deviceId",
+    ];
+
+    const doorUrl = new URL(`${import.meta.env.VITE_API_URL}/items/doors`);
+    doorFields.forEach((f) => doorUrl.searchParams.append("fields[]", f));
+    doorUrl.searchParams.append(
+      "filter[tenant][tenantId][_eq]",
+      tenantId.value
+    );
+
+    const response = await fetch(doorUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch doors: ${response.status}`);
+    }
+
+    const doorData = await response.json();
+    return doorData.data || [];
+  } catch (error) {
+    console.error("Error fetching doors:", error);
+    return [];
+  }
+};
+// New function to fetch all door configurations for selected doors
+const fetchAllDoorConfigurations = async (selectedDoorIds) => {
+  try {
+    const doorPromises = selectedDoorIds.map((doorId) =>
+      fetchDoorConfiguration(doorId)
+    );
+
+    const doorConfigurations = await Promise.all(doorPromises);
+    return doorConfigurations.filter((door) => door !== undefined);
+  } catch (error) {
+    console.error("Error fetching door configurations:", error);
+    throw error;
+  }
+};
+
+// Enhanced function to fetch complete device details with door configurations
+const fetchDeviceDetails = async (deviceId) => {
+  try {
+    const deviceFields = [
+      "controllerName",
+      "id",
+      "selectedDoors",
+      "deviceName",
+      "sn",
+      "tenant",
+      "tenant.tenantId",
+      "status",
+      "controllerStatus",
+      "branchDetails",
+    ];
+
+    const deviceUrl = new URL(
+      `${import.meta.env.VITE_API_URL}/items/controllers/${deviceId}`
+    );
+    deviceFields.forEach((f) => deviceUrl.searchParams.append("fields[]", f));
+
+    const deviceResponse = await fetch(deviceUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!deviceResponse.ok) {
+      throw new Error(
+        `Failed to fetch device details: ${deviceResponse.status}`
+      );
+    }
+
+    const deviceData = await deviceResponse.json();
+    const device = deviceData.data;
+
+    // Fetch ALL doors for this tenant to ensure all available doors are loaded
+    const allDoors = await fetchAllDoorsForTenant();
+
+    // Filter doors that belong to this device AND all available doors
+    const deviceDoors = allDoors.filter((door) =>
+      device.selectedDoors?.includes(door.id)
+    );
+
+    // Create door configurations map
+    device.doorConfigurations = {};
+    deviceDoors.forEach((door) => {
+      if (door.doorsConfigure) {
+        device.doorConfigurations[door.id] = {
+          ...door,
+          doorsConfigure: door.doorsConfigure,
+        };
+      }
+    });
+
+    // Add all available doors to the device object for the form
+    device.allAvailableDoors = allDoors;
+
+    return device;
+  } catch (error) {
+    console.error("Error in fetchDeviceDetails:", error);
+    throw error;
+  }
+};
+
+// Row click → Edit with API call
+const handleRowClick = async (item) => {
+  if (item?.rawData) {
+    await handleEditDevice(item.rawData);
+  }
+};
+
+const handleEditDevice = async (device) => {
+  try {
+    loadingDeviceDetails.value = true;
+
+    // Fetch complete device details from API including door configurations
+    const deviceDetails = await fetchDeviceDetails(device.id);
+
+    console.log(
+      "Fetched device details with door configurations:",
+      deviceDetails
+    );
+
+    // Log door configuration details for debugging
+    if (deviceDetails.doorConfigurations) {
+      Object.entries(deviceDetails.doorConfigurations).forEach(
+        ([doorId, doorConfig]) => {
+          console.log(`Door ${doorId} configuration:`, {
+            doorName: doorConfig.doorName,
+            doorOpenTimer: doorConfig.doorsConfigure?.doorOpenTimer,
+            delayTimer: doorConfig.doorsConfigure?.delayTimer,
+            sensorMode: doorConfig.doorsConfigure?.sensorMode,
+            passiveMode: doorConfig.doorsConfigure?.passiveMode,
+            scheduleTime: doorConfig.doorsConfigure?.scheduleTime,
+          });
+        }
+      );
+    }
+
+    // Set the editing device with complete data including door configurations
+    editingDevice.value = deviceDetails;
+
+    // Open the edit panel
+    openAddDevicePanel();
+  } catch (err) {
+    console.error("Error fetching device details:", err);
+    showToast("Failed to load device details for editing", "error");
+  } finally {
+    loadingDeviceDetails.value = false;
+  }
+};
 
 // Fetch all data
 const getDeviceData = async () => {
@@ -354,17 +575,7 @@ const handlePageChange = (page) => {
 
 const handleItemsPerPageChange = (newItemsPerPage) => {
   itemsPerPage.value = newItemsPerPage;
-  currentPage.value = 1; // Reset to first page when items per page changes
-};
-
-// Row click → Edit
-const handleRowClick = (item) => {
-  if (item?.rawData) handleEditDevice(item.rawData);
-};
-
-const handleEditDevice = (device) => {
-  editingDevice.value = device;
-  openAddDevicePanel();
+  currentPage.value = 1;
 };
 
 const openAddDevicePanel = () => {

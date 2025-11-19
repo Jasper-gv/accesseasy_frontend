@@ -44,7 +44,7 @@ import LogsTable from "@/pages/logs/log/logTable.vue";
 import FaceEmbeddingTabs from "@/pages/faceEmbedding/faceEmbeddingTabs.vue";
 import AiFaceEmbeddingDetails from "@/pages/faceEmbedding/aiFaceEmbedding/aiFaceEmbeddingDetails.vue";
 import MobileFaceEmbeddingDetails from "@/pages/faceEmbedding/mobileFaceEmbedding/mobileFaceEmbeddingDetails.vue";
-import FingerDataDetails from "@/pages/faceEmbedding/fingerdata/fingerDataDetails.vue";
+import FingerDataDetails from "@/pages/fingerData/fingerDataDetails.vue";
 
 import Import from "@/pages/Imports/importsTabs.vue";
 import importDetals from "@/pages/Imports/import/importTable.vue";
@@ -55,6 +55,10 @@ import AttendanceDetails from "@/pages/report/attendance/attendanceTable.vue";
 import Workordergenerate from "@/pages/report/workordereport/workordergenerate.vue";
 
 import VisitorFlow from "@/pages/flow/visitorFlow.vue";
+
+import QrGenerateTabs from "@/pages/qrgenerate/qrgenerateTabs.vue";
+import BulkQrGenerate from "@/pages/qrgenerate/bulkgenerate/qrgenerate.vue";
+import EmployeeQrGenerate from "@/pages/qrgenerate/employeeqrgenerate/employeeQRgenerate.vue";
 
 import SettingsTabs from "@/pages/settings/settingsTabs.vue";
 import OrganizationSettingsTabs from "@/pages/settings/organizationSettings/organizationTabs.vue";
@@ -276,12 +280,44 @@ const routes = [
         ],
       },
       {
+        path: "/qr-generate",
+        name: "QrGenerate",
+        component: QrGenerateTabs,
+        meta: { roles: ["Admin", "Manager", "Employee"] },
+        children: [
+          {
+            path: "",
+            name: "qr-generate-default",
+            redirect: { name: "bulk-qr-generate" },
+          },
+          {
+            path: "bulk",
+            name: "bulk-qr-generate",
+            component: BulkQrGenerate,
+            meta: { roles: ["Admin", "Manager"] },
+          },
+          {
+            path: "employee",
+            name: "employee-qr-generate",
+            component: EmployeeQrGenerate,
+            meta: { roles: ["Admin", "Manager", "Employee"] },
+          },
+        ],
+      },
+      {
+        path: "/finger-data",
+        name: "FingerData",
+        component: FingerDataDetails,
+        meta: { roles: ["Admin", "Manager", "Employee"] },
+      },
+      {
         path: "/settings/attendanceconfigtab",
         name: "attendanceconfigtab",
         component: Attendanceconfigtab,
         meta: { roles: ["Admin", "Dealer", "Manager"] },
         children: [],
       },
+
       {
         path: "/attendanceLog",
         name: "Attendance Logs",
@@ -430,13 +466,6 @@ const routes = [
               ),
             meta: { roles: ["Admin", "esslAdmin"] },
           },
-          {
-            path: "qr-generate",
-            name: "qr-generate",
-            component: () =>
-              import("@/pages/cardManagement/qrgenerate/qrgenerate.vue"),
-            meta: { roles: ["Admin", "esslAdmin"] },
-          },
         ],
       },
       {
@@ -561,12 +590,6 @@ const routes = [
             path: "mobile-face-embedding",
             name: "mobile-face-embedding",
             component: MobileFaceEmbeddingDetails,
-            meta: { roles: ["Admin", "Manager", "Employee"] },
-          },
-          {
-            path: "finger-data",
-            name: "finger-data",
-            component: FingerDataDetails,
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
         ],
