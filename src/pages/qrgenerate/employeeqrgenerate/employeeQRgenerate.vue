@@ -95,7 +95,15 @@
 
             <!-- QR Code Column -->
             <template #cell-qrcode="{ item }">
-              <span>{{ item.qrcode || "N/A" }}</span>
+              <div
+                class="qr-code-cell clickable"
+                @click.stop="showQRPreview(item)"
+              >
+                <v-icon color="primary" size="20" class="mr-1"
+                  >mdi-qrcode</v-icon
+                >
+                <span class="qr-text">{{ truncateQRCode(item.qrcode) }}</span>
+              </div>
             </template>
 
             <!-- Access Level Column -->
@@ -145,6 +153,47 @@
       </DataTableWrapper>
     </div>
   </div>
+  <!-- QR Code Preview Dialog -->
+  <v-dialog v-model="showQRPreviewDialog" max-width="500px">
+    <v-card>
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-qrcode-scan</v-icon>
+        QR Code Preview
+        <v-spacer></v-spacer>
+        <BaseButton icon @click="showQRPreviewDialog = false" variant="text">
+          <v-icon>mdi-close</v-icon>
+        </BaseButton>
+      </v-card-title>
+      <v-card-text class="text-center pa-6">
+        <div class="qr-preview-container">
+          <canvas ref="qrCanvas" class="qr-canvas"></canvas>
+        </div>
+        <div class="qr-info mt-4">
+          <p>
+            <strong>Employee:</strong> {{ selectedQR?.employeeName || "N/A" }}
+          </p>
+          <p><strong>QR Code:</strong> {{ selectedQR?.qrcode }}</p>
+          <p>
+            <strong>Status:</strong>
+            <v-chip
+              :color="selectedQR?.qraccess ? 'success' : 'error'"
+              size="small"
+            >
+              {{ selectedQR?.qraccess ? "Enabled" : "Disabled" }}
+            </v-chip>
+          </p>
+        </div>
+        <BaseButton
+          color="primary"
+          @click="downloadSingleQR(selectedQR)"
+          prepend-icon="mdi-download"
+          class="mt-4"
+        >
+          Download QR Code
+        </BaseButton>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -160,7 +209,9 @@ import FilterComponent from "@/components/common/filters/payrollfilter.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
 import { debounce } from "lodash";
 import { useRouter } from "vue-router";
-
+import QRCode from "qrcode";
+import { saveAs } from "file-saver";
+import { nextTick } from "vue";
 // State
 const router = useRouter();
 const loading = ref(false);
@@ -174,6 +225,9 @@ const sortBy = ref([]);
 const selectedItems = ref([]);
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
+const showQRPreviewDialog = ref(false);
+const selectedQR = ref(null);
+const qrCanvas = ref(null);
 
 // Define columns for DataTable
 const columns = computed(() => [
@@ -187,7 +241,7 @@ const columns = computed(() => [
     key: "qrcode",
     label: "QR Code",
     sortable: true,
-    width: "200px",
+    width: "250px",
   },
   {
     key: "accessLevelsId",
@@ -213,17 +267,6 @@ const filters = reactive({
 
 // Filter schema for FilterComponent
 const pageFilters = [
-  {
-    key: "qraccess",
-    label: "QR Access",
-    type: "radio",
-    show: true,
-    options: [
-      { value: "all", label: "All" },
-      { value: true, label: "Enable" },
-      { value: false, label: "Disable" },
-    ],
-  },
   { key: "branch", label: "Branch", type: "select", show: true },
   { key: "department", label: "Department", type: "select", show: true },
 ];
@@ -249,6 +292,49 @@ const hasActiveFilters = computed(() => {
 // Data
 const qrManagementData = ref([]);
 
+const truncateQRCode = (code) => {
+  if (!code) return "N/A";
+  return code.length > 20 ? `${code.substring(0, 20)}...` : code;
+};
+
+const showQRPreview = async (item) => {
+  selectedQR.value = item;
+  showQRPreviewDialog.value = true;
+
+  await nextTick();
+
+  if (qrCanvas.value && item.qrcode) {
+    try {
+      QRCode.toCanvas(qrCanvas.value, item.qrcode, {
+        width: 250,
+        margin: 2,
+        color: { dark: "#000000", light: "#FFFFFF" },
+      });
+    } catch (err) {
+      console.error("Failed to render QR preview:", err);
+    }
+  }
+};
+
+const downloadSingleQR = async (qr) => {
+  if (!qr || !qr.qrcode) return;
+
+  try {
+    const canvas = document.createElement("canvas");
+    await QRCode.toCanvas(canvas, qr.qrcode, {
+      width: 500,
+      margin: 4,
+    });
+
+    canvas.toBlob((blob) => {
+      saveAs(blob, `${qr.qrcode}.png`);
+    }, "image/png");
+
+    showSuccessMessage("QR Code downloaded successfully");
+  } catch (err) {
+    showErrorMessage("Failed to download QR code");
+  }
+};
 // Row click handler
 const handleRowClick = (item) => {
   console.log("Row clicked:", item);
@@ -270,8 +356,27 @@ const aggregateCount = async () => {
 
     const params = {
       "aggregate[count]": "id",
-      ...filterParams(),
+      "filter[_and][0][_and][0][tenant][_eq]": tenantId,
+      "filter[_and][0][_and][1][employeeId][id][_nnull]": true,
     };
+
+    // Add search filters if search term exists
+    if (search.value) {
+      if (!isNaN(search.value)) {
+        params["filter[_or][0][accessLevelsId][_eq]"] = search.value;
+        params["filter[_or][1][employeeId][id][_eq]"] = search.value;
+      } else {
+        params["filter[_or][0][qrcode][_icontains]"] = search.value;
+        params[
+          "filter[_or][1][employeeId][assignedUser][first_name][_icontains]"
+        ] = search.value;
+      }
+    }
+
+    // QR Access filter (Enable/Disable)
+    if (filters.qraccess !== "all") {
+      params["filter[qraccess][_eq]"] = filters.qraccess;
+    }
 
     // Remove pagination parameters for count
     delete params.page;
@@ -307,6 +412,7 @@ const aggregateCount = async () => {
 };
 
 // Fetch Data with correct fields
+// Fetch Data with correct fields
 const fetchQRManagementData = async () => {
   try {
     loading.value = true;
@@ -322,17 +428,17 @@ const fetchQRManagementData = async () => {
 
     await aggregateCount();
 
+    // Build the exact query parameters as specified
     const params = {
-      fields: [
-        "id",
-        "accessLevelsId",
-        "qraccess",
-        "tenant",
-        "qrcode",
-        "employeeId.assignedUser.first_name",
-        "employeeId.id",
-      ],
-      ...filterParams(),
+      "fields[]": "accessLevelsId",
+      "fields[]": "qraccess",
+      "fields[]": "tenant",
+      "fields[]": "qrcode",
+      "fields[]": "employeeId.assignedUser.first_name",
+      "fields[]": "employeeId.id",
+      "fields[]": "id",
+      "filter[_and][0][_and][0][tenant][_eq]": tenantId,
+      "filter[_and][0][_and][1][employeeId][id][_nnull]": true,
       sort:
         sortBy.value.length > 0
           ? `${sortBy.value[0].key}${sortBy.value[0].order === "desc" ? "" : ""}`
@@ -341,16 +447,45 @@ const fetchQRManagementData = async () => {
       limit: itemsPerPage.value,
     };
 
+    // Add search filters if search term exists
+    if (search.value) {
+      if (!isNaN(search.value)) {
+        params["filter[_or][0][accessLevelsId][_eq]"] = search.value;
+        params["filter[_or][1][employeeId][id][_eq]"] = search.value;
+      } else {
+        params["filter[_or][0][qrcode][_icontains]"] = search.value;
+        params[
+          "filter[_or][1][employeeId][assignedUser][first_name][_icontains]"
+        ] = search.value;
+      }
+    }
+
+    // QR Access filter (Enable/Disable)
+    if (filters.qraccess !== "all") {
+      params["filter[qraccess][_eq]"] = filters.qraccess;
+    }
+
+    console.log("Fetching data with params:", params);
+
+    // Build query string manually to handle duplicate field names
     const queryString = Object.keys(params)
       .map((key) => {
-        if (key === "fields") {
-          return params[key].map((field) => `fields[]=${field}`).join("&");
+        if (key.startsWith("fields[]")) {
+          // Handle fields separately since they have the same key
+          const fieldValues = [
+            "accessLevelsId",
+            "qraccess",
+            "tenant",
+            "qrcode",
+            "employeeId.assignedUser.first_name",
+            "employeeId.id",
+            "id",
+          ];
+          return fieldValues.map((field) => `fields[]=${field}`).join("&");
         }
         return `${key}=${params[key]}`;
       })
       .join("&");
-
-    console.log("Fetching data with params:", params);
 
     // Fetch data
     const response = await fetch(

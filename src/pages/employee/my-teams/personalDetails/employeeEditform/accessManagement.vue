@@ -684,7 +684,7 @@ const faceEmbedData = ref(null);
 const fingerData = ref(null);
 const qrCodeData = ref(null);
 const generatingQR = ref(false);
-const qrAccessEnabled = ref(false);
+const qrAccessEnabled = ref(true);
 
 // Computed properties
 const hasFaceData = computed(() => {
@@ -930,7 +930,7 @@ const fetchQRCodeData = async () => {
       const data = await response.json();
       if (data.data && data.data.length > 0) {
         qrCodeData.value = data.data[0];
-        qrAccessEnabled.value = qrCodeData.value.qraccess || false;
+        qrAccessEnabled.value = qrCodeData.value.qraccess || true;
 
         // Generate QR code image when data is loaded
         if (qrCodeData.value.qrcode) {
@@ -938,14 +938,14 @@ const fetchQRCodeData = async () => {
         }
       } else {
         qrCodeData.value = null;
-        qrAccessEnabled.value = false;
+        qrAccessEnabled.value = true;
         qrCodeImage.value = null;
       }
     }
   } catch (error) {
     console.error("Error fetching QR code data:", error);
     qrCodeData.value = null;
-    qrAccessEnabled.value = false;
+    qrAccessEnabled.value = true;
     qrCodeImage.value = null;
   }
 };
@@ -953,7 +953,7 @@ const fetchQRCodeData = async () => {
 const handleQRAccessToggle = async () => {
   if (!qrCodeData.value) {
     showErrorMessage("Please generate a QR code first");
-    qrAccessEnabled.value = false;
+    qrAccessEnabled.value = true;
     return;
   }
 
@@ -1213,7 +1213,7 @@ const handleAccessLevelChange = async (value) => {
   if (!value) {
     accessLevelDetails.value = null;
     qrCodeData.value = null;
-    qrAccessEnabled.value = false;
+    qrAccessEnabled.value = true;
     return;
   }
 

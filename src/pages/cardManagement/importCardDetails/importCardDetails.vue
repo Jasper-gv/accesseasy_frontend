@@ -605,18 +605,18 @@ const columns = computed(() => [
   { key: "rfidCard", label: "RFID Card", sortable: true, width: "150px" },
   { key: "type", label: "Type", sortable: true, width: "100px" },
   { key: "cardAccess", label: "Card Access", sortable: true, width: "120px" },
-  {
-    key: "cardAccessLevelArray",
-    label: "Access Level Array",
-    sortable: false,
-    width: "180px",
-  },
-  {
-    key: "cardAccessLevelHex",
-    label: "Access Level Hex",
-    sortable: false,
-    width: "150px",
-  },
+  // {
+  //   key: "cardAccessLevelArray",
+  //   label: "Access Level Array",
+  //   sortable: false,
+  //   width: "180px",
+  // },
+  // {
+  //   key: "cardAccessLevelHex",
+  //   label: "Access Level Hex",
+  //   sortable: false,
+  //   width: "150px",
+  // },
 ]);
 
 const hasValidCards = computed(() =>

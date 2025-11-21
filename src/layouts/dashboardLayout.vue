@@ -432,7 +432,7 @@ export default {
             roles: ["Admin", "Manager", "Employee"],
             subItems: [
               {
-                title: "Bulk QR Generate",
+                title: "QR Generate",
                 to: "/qr-generate/bulk",
                 roles: ["Admin", "Manager"],
               },
@@ -771,7 +771,7 @@ export default {
         "/profile": "Profile",
         "/reports/workordergenerate": "Reports",
         "/qr-generate": "QR Generate",
-        "/qr-generate/bulk": "Bulk QR Generate",
+        "/qr-generate/bulk": "QR Generate",
         "/qr-generate/employee": "Employee QR Generate",
       };
 
@@ -1146,7 +1146,7 @@ export default {
 }
 
 .modern-sidebar.v-navigation-drawer--rail .icon-wrapper:hover {
-  background-color: #77c3ab;
+  background-color: rgb(244, 84, 84);
 }
 
 .modern-sidebar.v-navigation-drawer--rail :deep(.v-list-item) {
@@ -1221,7 +1221,6 @@ export default {
 .modern-sidebar :deep(.sub-item.active) {
   background-color: rgb(244, 84, 84) !important;
   color: #ffffff !important;
-  border-left: 2px solid #1e3fa9 !important;
 }
 
 .modern-sidebar :deep(.sub-item:hover) {
@@ -1285,14 +1284,13 @@ export default {
 
 /* Active State Styling for Rail Submenu - ADDED */
 .rail-submenu-item.active {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
-  border-left: 2px solid #1e3fa9 !important;
+  background-color: rgb(244, 84, 84) !important;
+  color: white !important;
 }
 
 .rail-submenu-item:hover {
-  background-color: #77c3ab;
-  color: #374151;
+  background-color: rgb(244, 84, 84);
+  color: white;
 }
 
 .rail-submenu-title {
@@ -1405,12 +1403,12 @@ export default {
 }
 
 .nav-content::-webkit-scrollbar-thumb {
-  background: #77c3ab;
+  background: rgb(255, 164, 164);
   border-radius: 2px;
 }
 
 .nav-content::-webkit-scrollbar-thumb:hover {
-  background: #77c3ab;
+  background: rgb(244, 84, 84);
 }
 
 :deep(.v-tooltip .v-overlay__content) {

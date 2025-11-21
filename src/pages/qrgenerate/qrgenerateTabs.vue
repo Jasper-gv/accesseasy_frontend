@@ -55,7 +55,7 @@ export default {
         roles: ["Admin", "Manager", "Employee"],
       },
       {
-        title: "Bulk QR Generate",
+        title: "QR Generate",
         name: "bulk-qr",
         route: "/qr-generate/bulk",
         icon: "mdi-qrcode-scan",

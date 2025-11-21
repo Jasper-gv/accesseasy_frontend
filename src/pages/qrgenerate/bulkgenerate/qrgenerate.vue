@@ -750,6 +750,7 @@ const aggregateCount = async () => {
 const buildFilterParams = () => {
   const params = {
     "filter[_and][0][_and][0][tenant][_eq]": tenantId,
+    "filter[_and][0][_and][1][employeeId][id][_null]": true,
   };
 
   if (search.value) {
@@ -761,14 +762,16 @@ const buildFilterParams = () => {
 
 const buildQueryString = (params) => {
   const qp = new URLSearchParams();
+
+  // Add the specific fields you requested
   const fields = [
-    "id",
-    "tenant",
-    //"tenant.tenantId",
-    "qrcode",
+    "accessLevelsId",
     "qraccess",
-    "accessLevelsId.id",
-    "accessLevelsId.accessLevelName",
+    "tenant",
+    "qrcode",
+    "employeeId.assignedUser.first_name",
+    "employeeId.id",
+    "id",
   ];
 
   fields.forEach((f) => qp.append("fields[]", f));
