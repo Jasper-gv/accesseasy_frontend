@@ -153,21 +153,18 @@
             ></v-text-field>
 
             <!-- Access Level Number Field -->
-            <v-text-field
-              v-model="newCard.accessLevelNumber"
-              label="Access Level Number"
+            <v-select
+              v-model="selectedAccessLevel"
+              :items="accessLevels"
+              label="Access Level"
+              item-title="title"
+              item-value="value"
               variant="outlined"
+              :loading="accessLevelsLoading"
+              clearable
+              placeholder="Select access level (optional)"
               class="mb-4"
-              placeholder="Optional"
-              type="number"
-            ></v-text-field>
-            <v-text-field
-              v-model="newCard.accessLevelName"
-              label="Access Level Name"
-              variant="outlined"
-              class="mb-4"
-              placeholder="Optional - Enter access level name"
-            ></v-text-field>
+            ></v-select>
             <!-- Type Field -->
             <v-select
               v-model="newCard.type"
@@ -571,15 +568,17 @@ const importLog = ref([]);
 const currentImportingCard = ref("");
 const isImporting = ref(false);
 const importController = ref(null);
-// Add Card Dialog State (new)
 const showAddCardDialog = ref(false);
 const isAddingCard = ref(false);
 const addCardForm = ref(null);
 const addCardFormValid = ref(false);
+const accessLevels = ref([]);
+const accessLevelsLoading = ref(false);
+const selectedAccessLevel = ref(null);
 const newCard = reactive({
   cardNumber: "",
-  accessLevelNumber: "",
-  accessLevelName: "",
+  // accessLevelNumber: "",
+  // accessLevelName: "",
   type: "rfid",
 });
 // Form validation rules
@@ -657,7 +656,45 @@ const showErrorMessage = (msg) => {
   errorMessage.value = msg;
   showErrorSnackbar.value = true;
 };
+const fetchAccessLevels = async () => {
+  if (!token || !tenantId) return;
 
+  accessLevelsLoading.value = true;
+  try {
+    const params = new URLSearchParams();
+    params.append("fields[]", "id");
+    params.append("fields[]", "accessLevelNumber");
+    params.append("fields[]", "accessLevelName");
+    params.append("fields[]", "accessType");
+    params.append("fields[]", "tenant.tenantId");
+    params.append("filter[_and][0][_and][0][tenant][tenantId][_eq]", tenantId);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/accesslevels?${params.toString()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to load access levels");
+
+    const result = await response.json();
+    accessLevels.value = (result.data || [])
+      .map((item) => ({
+        title: `${item.accessLevelNumber} - ${item.accessLevelName}`,
+        value: item.accessLevelNumber,
+        name: item.accessLevelName,
+        id: item.id,
+      }))
+      .sort((a, b) => a.value - b.value); // Sort by number
+  } catch (err) {
+    console.error("Error fetching access levels:", err);
+    showErrorMessage("Failed to load access levels");
+    accessLevels.value = [];
+  } finally {
+    accessLevelsLoading.value = false;
+  }
+};
 /*  API  */
 const aggregateCount = async () => {
   try {
@@ -751,31 +788,26 @@ const saveSingleCard = async () => {
   isAddingCard.value = true;
 
   try {
-    // Check for duplicate card
+    // Check duplicate
     const checkResponse = await fetch(
       `${import.meta.env.VITE_API_URL}/items/cardManagement?filter[rfidCard][_eq]=${newCard.cardNumber}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
-
-    if (!checkResponse.ok) {
-      throw new Error("Failed to check card existence");
-    }
-
     const { data: existingCards } = await checkResponse.json();
-    if (existingCards?.length) {
-      throw new Error("Card already exists");
-    }
-    // Resolve access level (either by name or number)
-    const accessLevelInfo = await resolveAccessLevel({
-      accessLevelNumber: newCard.accessLevelNumber,
-      accessLevelName: newCard.accessLevelName,
-    });
-    // Use accessLevelNumber directly as accessLevelsId
-    const accessLevelsId = accessLevelInfo.accessLevelsId;
+    if (existingCards?.length) throw new Error("Card already exists");
 
-    // Prepare payload
+    // Determine access level ID
+    let accessLevelsId = 0;
+    if (
+      selectedAccessLevel.value !== null &&
+      selectedAccessLevel.value !== undefined
+    ) {
+      const selected = accessLevels.value.find(
+        (al) => al.value === selectedAccessLevel.value
+      );
+      if (selected) accessLevelsId = selected.value;
+    }
+
     const payload = {
       rfidCard: newCard.cardNumber,
       type: newCard.type,
@@ -790,7 +822,6 @@ const saveSingleCard = async () => {
       tenant: tenantId,
     };
 
-    // Create card
     const createResponse = await fetch(
       `${import.meta.env.VITE_API_URL}/items/cardManagement`,
       {
@@ -812,9 +843,8 @@ const saveSingleCard = async () => {
 
     showSuccessMessage(`Card "${newCard.cardNumber}" added successfully!`);
     closeAddCardDialog();
-    fetchCardManagementData(); // Refresh the table
+    fetchCardManagementData();
   } catch (err) {
-    console.error("Error adding card:", err);
     showErrorMessage(err.message || "Failed to add card");
   } finally {
     isAddingCard.value = false;
@@ -828,12 +858,9 @@ const closeAddCardDialog = () => {
 
 const resetAddCardForm = () => {
   newCard.cardNumber = "";
-  newCard.accessLevelNumber = "";
-  newCard.accessLevelName = "";
   newCard.type = "rfid";
-  if (addCardForm.value) {
-    addCardForm.value.reset();
-  }
+  selectedAccessLevel.value = null; // Reset dropdown
+  if (addCardForm.value) addCardForm.value.reset();
 };
 /*  SORT / PAGINATION  */
 const debouncedSearch = debounce(() => {
@@ -1034,6 +1061,13 @@ const importCards = async (cards) => {
   importController.value = new AbortController();
   const signal = importController.value.signal;
 
+  importResults.value = {
+    success: 0,
+    failed: 0,
+    duplicate: 0,
+    total: cards.length,
+  };
+
   for (let i = 0; i < cards.length; i++) {
     if (signal.aborted) break;
 
@@ -1080,7 +1114,6 @@ const importCards = async (cards) => {
   });
 };
 const resolveAccessLevel = async (card) => {
-  // If accessLevelName is provided, look up the access level by name
   if (card.accessLevelName) {
     try {
       const token = authService.getToken();
@@ -1123,11 +1156,12 @@ const resolveAccessLevel = async (card) => {
   }
 
   // If accessLevelNumber is provided, use it directly
-  if (cardData.accessLevelNumber) {
-    const accessLevelsId = parseInt(cardData.accessLevelNumber);
+  if (card.accessLevelNumber) {
+    // ← fixed here (was cardData)
+    const accessLevelsId = parseInt(card.accessLevelNumber);
     if (isNaN(accessLevelsId)) {
       throw new Error(
-        `Invalid access level number: "${cardData.accessLevelNumber}"`
+        `Invalid access level number: "${card.accessLevelNumber}"`
       );
     }
     return {
@@ -1136,7 +1170,7 @@ const resolveAccessLevel = async (card) => {
     };
   }
 
-  // No access level provided
+  // No access level provided → default to 0
   return {
     accessLevelsId: 0,
     accessLevelName: null,
@@ -1219,12 +1253,16 @@ const cancelImport = () => {
 };
 
 const finishImport = () => {
+  const successCount = importResults.value.success;
   showImportDialog.value = false;
   resetImportDialog();
   fetchCardManagementData();
-  showSuccessMessage(
-    `Import completed! ${importResults.value.success} cards imported.`
-  );
+
+  if (successCount > 0) {
+    showSuccessMessage(`Import completed! ${successCount} cards imported.`);
+  } else {
+    showSuccessMessage("Import completed!");
+  }
 };
 
 const closeImportDialog = () => {
@@ -1267,6 +1305,11 @@ const getLogIcon = (t) =>
   })[t] || "mdi-circle";
 
 onMounted(async () => await fetchCardManagementData());
+watch(showAddCardDialog, (newVal) => {
+  if (newVal) {
+    fetchAccessLevels();
+  }
+});
 watch(search, () => debouncedSearch());
 </script>
 

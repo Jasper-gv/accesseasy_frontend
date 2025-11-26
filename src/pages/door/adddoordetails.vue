@@ -8,144 +8,121 @@
 
     <v-card-text>
       <v-row dense>
-        <!-- Left Sidebar for Tabs -->
-        <v-col cols="3">
-          <v-list nav density="compact">
-            <v-list-item
-              @click="currentTab = 'basic'"
-              :active="currentTab === 'basic'"
-              rounded="xl"
-              value="basic"
-            >
-              <v-list-item-title>Basic Details</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-col>
+        <!-- Full width content area -->
+        <v-col cols="12">
+          <v-card variant="flat" class="mt-2">
+            <v-card-text>
+              <v-form ref="formRef" @submit.prevent="handleSave">
+                <!-- Row 1: Door Name, Door Type, and Location -->
+                <v-row dense>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="formData.doorName"
+                      label="Door Name *"
+                      placeholder="Enter door name"
+                      variant="outlined"
+                      density="comfortable"
+                      class="small-field"
+                      :rules="[
+                        (v) => !!v || 'Door name is required',
+                        (v) =>
+                          (v && v.length <= 50) ||
+                          'Door name must be 50 characters or less',
+                      ]"
+                      required
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-select
+                      v-model="formData.doorType"
+                      label="Door Type *"
+                      :items="doorTypes"
+                      placeholder="Select door type"
+                      variant="outlined"
+                      density="comfortable"
+                      class="small-select"
+                      :rules="[(v) => !!v || 'Door type is required']"
+                      required
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="formData.location"
+                      label="Location"
+                      placeholder="Enter location details"
+                      variant="outlined"
+                      density="comfortable"
+                      class="small-field"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
 
-        <!-- Right Content Area -->
-        <v-col cols="9">
-          <v-window v-model="currentTab">
-            <!-- Basic Details Tab -->
-            <v-window-item value="basic">
-              <v-card variant="flat" class="mt-2">
-                <v-card-text>
-                  <v-form ref="formRef" @submit.prevent="handleSave">
-                    <!-- Row 1: Door Name and Door Type -->
-                    <v-row dense>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.doorName"
-                          label="Door Name *"
-                          placeholder="Enter door name"
-                          variant="outlined"
-                          density="comfortable"
-                          class="small-field"
-                          :rules="[
-                            (v) => !!v || 'Door name is required',
-                            (v) =>
-                              (v && v.length <= 50) ||
-                              'Door name must be 50 characters or less',
-                          ]"
-                          required
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="6">
-                        <v-select
-                          v-model="formData.doorType"
-                          label="Door Type *"
-                          :items="doorTypes"
-                          placeholder="Select door type"
-                          variant="outlined"
-                          density="comfortable"
-                          class="small-select"
-                          :rules="[(v) => !!v || 'Door type is required']"
-                          required
-                        ></v-select>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Row 2: Location and Branch -->
-                    <v-row dense>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.location"
-                          label="Location"
-                          placeholder="Enter location details"
-                          variant="outlined"
-                          density="comfortable"
-                          class="small-field"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="6">
-                        <v-select
-                          v-model="formData.branchLocation"
-                          label="Branch"
-                          :items="branchOptions"
-                          item-title="branchName"
-                          item-value="id"
-                          placeholder="Select branch location"
-                          variant="outlined"
-                          density="comfortable"
-                          class="small-select"
-                        ></v-select>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Row 3: Departments (full width) -->
-                    <v-row dense>
-                      <v-col cols="12" sm="6">
-                        <v-select
-                          v-model="formData.assignedDepts"
-                          label="Departments"
-                          :items="departmentItems"
-                          item-title="title"
-                          item-value="value"
-                          placeholder="Select departments"
-                          variant="outlined"
-                          density="comfortable"
-                          class="small-select"
-                          multiple
-                          chips
-                          closable-chips
-                          :menu-props="{ maxHeight: 200 }"
-                        >
-                          <template v-slot:prepend-item>
-                            <v-list-item>
-                              <v-list-item-title>
-                                <span class="text-caption">
-                                  Selected:
-                                  {{
-                                    formData.assignedDepts
-                                      ? formData.assignedDepts.length
-                                      : 0
-                                  }}
-                                </span>
-                              </v-list-item-title>
-                              <template v-slot:append>
-                                <v-btn
-                                  v-if="
-                                    formData.assignedDepts &&
-                                    formData.assignedDepts.length > 0
-                                  "
-                                  variant="text"
-                                  size="small"
-                                  @click.stop="clearAllDepts"
-                                  class="text-caption"
-                                >
-                                  Clear All
-                                </v-btn>
-                              </template>
-                            </v-list-item>
-                            <v-divider class="mt-2"></v-divider>
+                <!-- Row 2: Branch and Departments -->
+                <v-row dense>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.branchLocation"
+                      label="Branch"
+                      :items="branchOptions"
+                      item-title="branchName"
+                      item-value="id"
+                      placeholder="Select branch location"
+                      variant="outlined"
+                      density="comfortable"
+                      class="small-select"
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.assignedDepts"
+                      label="Departments"
+                      :items="departmentItems"
+                      item-title="title"
+                      item-value="value"
+                      placeholder="Select departments"
+                      variant="outlined"
+                      density="comfortable"
+                      class="small-select"
+                      multiple
+                      chips
+                      closable-chips
+                      :menu-props="{ maxHeight: 200 }"
+                    >
+                      <template v-slot:prepend-item>
+                        <v-list-item>
+                          <v-list-item-title>
+                            <span class="text-caption">
+                              Selected:
+                              {{
+                                formData.assignedDepts
+                                  ? formData.assignedDepts.length
+                                  : 0
+                              }}
+                            </span>
+                          </v-list-item-title>
+                          <template v-slot:append>
+                            <v-btn
+                              v-if="
+                                formData.assignedDepts &&
+                                formData.assignedDepts.length > 0
+                              "
+                              variant="text"
+                              size="small"
+                              @click.stop="clearAllDepts"
+                              class="text-caption"
+                            >
+                              Clear All
+                            </v-btn>
                           </template>
-                        </v-select>
-                      </v-col>
-                    </v-row>
-                  </v-form>
-                </v-card-text>
-              </v-card>
-            </v-window-item>
-          </v-window>
+                        </v-list-item>
+                        <v-divider class="mt-2"></v-divider>
+                      </template>
+                    </v-select>
+                  </v-col>
+                </v-row>
+              </v-form>
+            </v-card-text>
+          </v-card>
         </v-col>
       </v-row>
     </v-card-text>
@@ -195,7 +172,6 @@ const props = defineProps({
 
 const emit = defineEmits(["save-success", "cancel"]);
 
-const currentTab = ref("basic");
 const isSaving = ref(false);
 const formRef = ref(null);
 const snackbar = ref({ show: false, message: "", type: "success" });

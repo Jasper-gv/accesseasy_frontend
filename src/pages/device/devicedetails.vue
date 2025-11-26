@@ -28,7 +28,7 @@
 
     <!-- Main Content -->
     <div :class="showAddDevicePanel ? 'w-2/3' : 'w-full'" class="p-4">
-      <DataTableWrapper title="Device Details" :showSearch="false">
+      <DataTableWrapper :showSearch="true">
         <template #toolbar-actions>
           <BaseButton
             variant="primary"

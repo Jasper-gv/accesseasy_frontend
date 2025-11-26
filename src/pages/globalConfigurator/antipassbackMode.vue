@@ -1,378 +1,436 @@
 <template>
   <v-container fluid class="pa-4">
     <v-row>
-      <!-- Main Content -->
       <v-col cols="12">
         <v-card class="pa-4">
           <v-window v-model="activeTab">
-            <!-- Antipassback Mode Tab -->
+            <!-- ==================== ANTIPASSBACK TAB ==================== -->
             <v-window-item value="antipassback">
-              <!-- Antipassback Configuration Form -->
-              <div v-if="showAntipassbackForm">
-                <div class="d-flex align-center mb-4">
+              <!-- Add / Edit Form Panel -->
+              <div v-if="showForm" class="mb-6">
+                <div class="d-flex align-center mb-6">
                   <v-btn
                     icon
                     variant="text"
                     size="small"
-                    class="mr-2"
-                    @click="closeAntipassbackForm"
+                    class="mr-3"
+                    @click="closeForm"
                   >
                     <v-icon>mdi-arrow-left</v-icon>
                   </v-btn>
-                  <v-card-title class="text-h6 font-weight-bold pa-0">
+                  <h2 class="text-h6 font-weight-bold">
                     {{
-                      isEditingAntipassback
+                      isEditing
                         ? "Edit Antipassback Rule"
                         : "Add New Antipassback Rule"
                     }}
-                  </v-card-title>
+                  </h2>
                 </div>
 
-                <v-card-text>
+                <v-form ref="formRef" v-model="formValid">
                   <v-row>
                     <v-col cols="12">
-                      <v-select
-                        label="Select Main Door"
-                        :items="[
-                          'Main Entrance',
-                          'Parking Main Gate',
-                          'Server Room Main',
-                        ]"
+                      <v-text-field
+                        v-model="form.zoneName"
+                        label="Zone Name *"
                         variant="outlined"
                         density="compact"
-                        v-model="antipassbackForm.mainDoor"
-                      ></v-select>
+                        placeholder="e.g., Server Room, Parking Area"
+                        :rules="[(v) => !!v || 'Zone name is required']"
+                      />
                     </v-col>
-                    <v-col cols="12">
+
+                    <v-col cols="12" md="6">
                       <v-select
-                        label="Select Sub Doors"
-                        :items="[
-                          'Side Door A',
-                          'Side Door B',
-                          'Emergency Exit',
-                          'Pedestrian Gate',
-                          'Service Gate',
-                        ]"
+                        v-model="form.entryDoors"
+                        :items="doorOptions"
                         multiple
+                        chips
+                        closable-chips
+                        label="Entry Doors *"
                         variant="outlined"
                         density="compact"
-                        v-model="antipassbackForm.subDoors"
-                      ></v-select>
-                      <!-- <div class="text-caption text-medium-emphasis mt-1">
-                        0/3 selected
-                      </div> -->
+                        placeholder="Select entry doors"
+                        :rules="[
+                          (v) =>
+                            v.length > 0 || 'At least one entry door required',
+                        ]"
+                      />
                     </v-col>
-                    <v-col cols="12">
-                      <v-checkbox
-                        label="Do not allow same door for entry/exit"
+
+                    <v-col cols="12" md="6">
+                      <v-select
+                        v-model="form.exitDoors"
+                        :items="doorOptions"
+                        multiple
+                        chips
+                        closable-chips
+                        label="Exit Doors *"
+                        variant="outlined"
                         density="compact"
-                        v-model="antipassbackForm.preventSameDoor"
-                      ></v-checkbox>
-                      <div class="text-caption text-medium-emphasis mt-1 ml-8">
-                        When enabled, prevents the same door from being used for
-                        both entry and exit access
-                      </div>
+                        placeholder="Select exit doors"
+                        :rules="[
+                          (v) =>
+                            v.length > 0 || 'At least one exit door required',
+                        ]"
+                      />
                     </v-col>
-                    <v-col cols="12">
-                      <div
-                        class="d-flex align-center justify-end gap-2"
-                        style="max-width: 100%"
-                      >
-                        <BaseButton
-                          variant="ghost"
-                          size="md"
-                          text="Cancel"
-                          @click="closeAntipassbackForm"
-                        />
-                        <BaseButton
-                          variant="primary"
-                          size="md"
-                          text="Save"
-                          @click="saveAntipassbackRule"
-                        />
-                      </div>
+
+                    <v-col cols="12" class="d-flex justify-end gap-3">
+                      <BaseButton
+                        variant="text"
+                        size="md"
+                        text="Cancel"
+                        @click="closeForm"
+                      />
+                      <BaseButton
+                        variant="primary"
+                        size="md"
+                        :text="isEditing ? 'Update' : 'Save'"
+                        :loading="saving"
+                        :disabled="!formValid"
+                        @click="saveRule"
+                      />
                     </v-col>
                   </v-row>
-                </v-card-text>
+                </v-form>
               </div>
 
-              <!-- Antipassback Rules List -->
+              <!-- Rules List -->
               <div v-else>
-                <div class="d-flex align-center justify-space-between mb-4">
-                  <v-card-title class="text-h6 font-weight-bold pa-0">
-                    Antipassback Configuration
-                  </v-card-title>
-                  <BaseButton
-                    variant="primary"
-                    size="md"
-                    text="Add New Rule"
-                    :leftIcon="Plus"
-                    @click="openAddAntipassbackPanel"
-                  />
-                </div>
-
-                <v-card-text>
-                  <!-- Loading State -->
-                  <SkeletonLoader
-                    v-if="antipassbackLoading"
-                    variant="data-table"
-                    :rows="5"
-                    :columns="4"
-                  />
-
-                  <!-- Antipassback Table -->
-                  <DataTableWrapper v-else :showSearch="false">
-                    <DataTable
-                      :items="antipassbackRules"
-                      :columns="[
-                        // {
-                        //   label: 'Rule Name',
-                        //   key: 'ruleName',
-                        //   sortable: true,
-                        //   width: '150px',
-                        // },
-                        {
-                          label: 'Main Door',
-                          key: 'mainDoor',
-                          sortable: true,
-                          width: '150px',
-                        },
-                        {
-                          label: 'Sub Doors',
-                          key: 'subDoors',
-                          sortable: false,
-                          width: '200px',
-                        },
-                        // {
-                        //   label: 'Created Date',
-                        //   key: 'createdDate',
-                        //   sortable: true,
-                        //   width: '120px',
-                        // },
-                      ]"
-                      :showSelection="false"
-                      :expandable="false"
-                      show-header
-                      :row-clickable="true"
-                    >
-                      <template #actions="{ item }">
-                        <BaseButton
-                          variant="ghost"
-                          size="sm"
-                          text="Edit"
-                          @click="handleEditAntipassback(item)"
-                        />
-                        <BaseButton
-                          variant="ghost"
-                          size="sm"
-                          text="Delete"
-                          :leftIcon="Trash"
-                          @click="deleteAntipassbackRule(item)"
-                        />
-                      </template>
-                    </DataTable>
-                  </DataTableWrapper>
-                </v-card-text>
-              </div>
-            </v-window-item>
-
-            <!-- Interlock Mode Tab -->
-            <v-window-item value="interlock">
-              <!-- Similar structure can be implemented for Interlock if needed -->
-              <v-card-title
-                class="text-h6 font-weight-bold d-flex align-center"
-              >
-                Interlock Configuration
-                <v-chip size="small" color="primary" class="ml-3">
-                  2 Rules
-                </v-chip>
-              </v-card-title>
-
-              <v-card-text>
-                <!-- Loading State -->
-                <SkeletonLoader
-                  v-if="interlockLoading"
-                  variant="data-table"
-                  :rows="5"
-                  :columns="4"
-                />
-
-                <!-- Interlock Table -->
                 <DataTableWrapper
-                  v-else
-                  title="Interlock Rules"
-                  :showSearch="false"
+                  subtitle="Define zones and allowed entry/exit doors to prevent passback violations"
+                  :showSearch="true"
                 >
                   <template #toolbar-actions>
                     <BaseButton
                       variant="primary"
                       size="md"
-                      text="Add New Rule"
-                      :leftIcon="Plus"
+                      text="Add Rule"
+                      :leftIcon="PlusIcon"
+                      @click="openAddForm"
                     />
                   </template>
 
+                  <!-- Loading -->
+                  <SkeletonLoader
+                    v-if="loading"
+                    variant="data-table"
+                    :rows="6"
+                    :columns="4"
+                  />
+
+                  <!-- Error -->
+                  <div v-else-if="error" class="text-center py-12">
+                    <v-icon color="error" size="64" class="mb-4"
+                      >mdi-alert-circle</v-icon
+                    >
+                    <p class="text-h6 text-error mb-4">{{ error }}</p>
+                    <BaseButton
+                      variant="primary"
+                      text="Retry"
+                      @click="fetchRules"
+                    />
+                  </div>
+
+                  <!-- Table -->
                   <DataTable
-                    :items="[
-                      {
-                        ruleName: 'Interlock 1',
-                        doorsInvolved: 'Door A, Door B',
-                        status: 'Active',
-                        createdDate: '10/19/2025',
-                      },
-                      {
-                        ruleName: 'Interlock 2',
-                        doorsInvolved: 'Door C, Door D',
-                        status: 'Inactive',
-                        createdDate: '10/17/2025',
-                      },
-                    ]"
-                    :columns="[
-                      {
-                        label: 'Doors Involved',
-                        key: 'doorsInvolved',
-                        sortable: false,
-                        width: '200px',
-                      },
-                    ]"
+                    v-else
+                    :items="antipassbackRules"
+                    :columns="tableColumns"
                     :showSelection="false"
                     :expandable="false"
                     show-header
                     :row-clickable="true"
+                    @rowClick="editRule"
                   >
-                    <template #actions="{ item }">
-                      <BaseButton variant="ghost" size="sm" text="Edit" />
-                      <BaseButton
-                        variant="ghost"
-                        size="sm"
-                        text="Delete"
-                        :leftIcon="Trash"
-                      />
+                    <!-- Entry Doors -->
+                    <template #column-entryDoors="{ item }">
+                      <div class="text-body-2">
+                        {{ formatDoors(item.entryDoors) }}
+                      </div>
+                    </template>
+
+                    <!-- Exit Doors -->
+                    <template #column-exitDoors="{ item }">
+                      <div class="text-body-2">
+                        {{ formatDoors(item.exitDoors) }}
+                      </div>
+                    </template>
+
+                    <!-- Actions -->
+                    <template #column-actions="{ item }">
+                      <div class="d-flex ga-2" @click.stop>
+                        <BaseButton
+                          variant="text"
+                          size="sm"
+                          icon="mdi-pencil"
+                          @click="editRule(item)"
+                        />
+                        <BaseButton
+                          variant="text"
+                          size="sm"
+                          :icon="TrashIcon"
+                          color="error"
+                          @click="openDeleteConfirm(item)"
+                        />
+                      </div>
                     </template>
                   </DataTable>
                 </DataTableWrapper>
-              </v-card-text>
+              </div>
+            </v-window-item>
+
+            <!-- ==================== INTERLOCK TAB (Placeholder) ==================== -->
+            <v-window-item value="interlock">
+              <!-- You can apply the same pattern here later -->
+              <p class="text-center py-12 text-h6">
+                Interlock configuration coming soon...
+              </p>
             </v-window-item>
           </v-window>
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="deleteDialog" max-width="420">
+      <v-card>
+        <v-card-title class="text-h6">Delete Rule?</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete the antipassback rule
+          <strong>"{{ ruleToDelete?.zoneName }}"</strong>? This action cannot be
+          undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <BaseButton
+            variant="text"
+            text="Cancel"
+            @click="deleteDialog = false"
+          />
+          <BaseButton
+            variant="primary"
+            color="error"
+            text="Delete"
+            :loading="deleting"
+            @click="confirmDelete"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000">
+      {{ snackbar.message }}
+    </v-snackbar>
   </v-container>
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
-import { Plus, Trash } from "lucide-vue-next";
+import { Plus as PlusIcon, Trash as TrashIcon } from "lucide-vue-next";
 
+// === Reactive State ===
 const activeTab = ref("antipassback");
-const antipassbackLoading = ref(false);
-const interlockLoading = ref(false);
-const showAntipassbackForm = ref(false);
-const isEditingAntipassback = ref(false);
 
-// Antipassback form data
-const antipassbackForm = reactive({
-  mainDoor: "",
-  subDoors: [],
-  preventSameDoor: false,
+const loading = ref(true);
+const saving = ref(false);
+const deleting = ref(false);
+const error = ref(null);
+
+const antipassbackRules = ref([]);
+const showForm = ref(false);
+const isEditing = ref(false);
+const formValid = ref(false);
+const formRef = ref(null);
+
+const deleteDialog = ref(false);
+const ruleToDelete = ref(null);
+
+// Snackbar
+const snackbar = reactive({
+  show: false,
+  message: "",
+  color: "success",
 });
 
-// Antipassback rules data
-const antipassbackRules = ref([
-  {
-    ruleName: "Rule 1",
-    mainDoor: "Main Entrance",
-    subDoors: "Side Door A, Side Door B",
-    createdDate: "10/20/2025",
-  },
-  {
-    ruleName: "Rule 2",
-    mainDoor: "Parking Main Gate",
-    subDoors: "Pedestrian Gate, Service Gate",
-    createdDate: "10/18/2025",
-  },
-  {
-    ruleName: "Rule 3",
-    mainDoor: "Server Room Main",
-    subDoors: "Server Room Emergency",
-    createdDate: "10/15/2025",
-  },
-]);
+// Form Data
+const form = reactive({
+  id: null,
+  zoneName: "",
+  entryDoors: [],
+  exitDoors: [],
+});
 
-// Methods to handle antipassback form
-const openAddAntipassbackPanel = () => {
-  showAntipassbackForm.value = true;
-  isEditingAntipassback.value = false;
-  // Reset form
-  Object.assign(antipassbackForm, {
-    mainDoor: "",
-    subDoors: [],
-    preventSameDoor: false,
+// Dummy door list (replace with API later)
+const doorOptions = [
+  "Main Entrance",
+  "Side Door A",
+  "Side Door B",
+  "Emergency Exit",
+  "Parking Main Gate",
+  "Pedestrian Gate",
+  "Service Gate",
+  "Server Room Main",
+  "Server Room Emergency",
+  "Back Entrance",
+  "Loading Dock",
+  "Front Gate",
+];
+
+// Table columns
+const tableColumns = [
+  { label: "Zone Name", key: "zoneName", sortable: true, width: "25%" },
+  { label: "Entry Doors", key: "entryDoors", sortable: false },
+  { label: "Exit Doors", key: "exitDoors", sortable: false },
+  {
+    label: "Actions",
+    key: "actions",
+    sortable: false,
+    width: "120px",
+    align: "center",
+  },
+];
+
+// === Helpers ===
+const showNotification = (message, color = "success") => {
+  snackbar.message = message;
+  snackbar.color = color;
+  snackbar.show = true;
+};
+
+const formatDoors = (doors) => {
+  if (Array.isArray(doors)) return doors.join(", ");
+  return doors || "—";
+};
+
+// === CRUD Operations ===
+const fetchRules = async () => {
+  loading.value = true;
+  error.value = null;
+  try {
+    // Replace with real API call later
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    antipassbackRules.value = [
+      {
+        id: 1,
+        zoneName: "Main Building Zone",
+        entryDoors: ["Main Entrance", "Side Door A"],
+        exitDoors: ["Emergency Exit", "Side Door B"],
+      },
+      {
+        id: 2,
+        zoneName: "Parking Zone",
+        entryDoors: ["Parking Main Gate"],
+        exitDoors: ["Pedestrian Gate", "Service Gate"],
+      },
+    ];
+  } catch (err) {
+    error.value = "Failed to load antipassback rules";
+    console.error(err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openAddForm = () => {
+  isEditing.value = false;
+  Object.assign(form, {
+    id: null,
+    zoneName: "",
+    entryDoors: [],
+    exitDoors: [],
   });
+  showForm.value = true;
 };
 
-const closeAntipassbackForm = () => {
-  showAntipassbackForm.value = false;
-  isEditingAntipassback.value = false;
+const editRule = (rule) => {
+  isEditing.value = true;
+  Object.assign(form, {
+    id: rule.id,
+    zoneName: rule.zoneName,
+    entryDoors: [...rule.entryDoors],
+    exitDoors: [...rule.exitDoors],
+  });
+  showForm.value = true;
 };
 
-const handleEditAntipassback = (item) => {
-  isEditingAntipassback.value = true;
-  showAntipassbackForm.value = true;
-
-  // Populate form with existing data
-  antipassbackForm.mainDoor = item.mainDoor;
-  antipassbackForm.subDoors = item.subDoors.split(", ");
-  // You might need additional logic to set other form fields based on your data structure
+const closeForm = () => {
+  showForm.value = false;
+  if (formRef.value) formRef.value.resetValidation();
 };
 
-const saveAntipassbackRule = () => {
-  // Handle save logic here
-  if (isEditingAntipassback.value) {
-    // Update existing rule
-    console.log("Updating rule:", antipassbackForm);
-  } else {
-    // Add new rule
-    const newRule = {
-      ruleName: `Rule ${antipassbackRules.value.length + 1}`,
-      mainDoor: antipassbackForm.mainDoor,
-      subDoors: antipassbackForm.subDoors.join(", "),
-      createdDate: new Date().toLocaleDateString(),
+const saveRule = async () => {
+  if (!formValid.value) return;
+
+  saving.value = true;
+  try {
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const payload = {
+      ...form,
+      entryDoors: [...form.entryDoors],
+      exitDoors: [...form.exitDoors],
     };
-    antipassbackRules.value.unshift(newRule);
-  }
 
-  closeAntipassbackForm();
+    if (isEditing.value) {
+      const idx = antipassbackRules.value.findIndex((r) => r.id === form.id);
+      if (idx > -1) antipassbackRules.value[idx] = payload;
+      showNotification("Rule updated successfully");
+    } else {
+      payload.id = Date.now();
+      antipassbackRules.value.unshift(payload);
+      showNotification("Rule added successfully");
+    }
+
+    closeForm();
+  } catch (err) {
+    showNotification("Failed to save rule", "error");
+  } finally {
+    saving.value = false;
+  }
 };
 
-const deleteAntipassbackRule = (item) => {
-  // Handle delete logic here
-  const index = antipassbackRules.value.findIndex(
-    (rule) => rule.ruleName === item.ruleName
-  );
-  if (index !== -1) {
-    antipassbackRules.value.splice(index, 1);
+const openDeleteConfirm = (rule) => {
+  ruleToDelete.value = rule;
+  deleteDialog.value = true;
+};
+
+const confirmDelete = async () => {
+  deleting.value = true;
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    antipassbackRules.value = antipassbackRules.value.filter(
+      (r) => r.id !== ruleToDelete.value.id
+    );
+    showNotification("Rule deleted successfully");
+  } catch (err) {
+    showNotification("Failed to delete rule", "error");
+  } finally {
+    deleting.value = false;
+    deleteDialog.value = false;
+    ruleToDelete.value = null;
   }
 };
+
+// === Lifecycle ===
+onMounted(() => {
+  fetchRules();
+});
 </script>
 
 <style scoped>
-.v-container {
-  max-width: 100%;
+.gap-3 {
+  gap: 12px;
 }
-.gap-2 {
-  gap: 8px;
-}
-.v-card-text {
-  flex: 1 1 auto;
-  font-size: 0.875rem;
-  font-weight: 400;
-  letter-spacing: 0.0178571429em;
-  opacity: var(--v-card-text-opacity, 1);
-  text-transform: none;
+:deep(.v-table tbody tr:hover) {
+  background-color: #f8fafc !important;
+  cursor: pointer;
 }
 </style>

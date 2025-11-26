@@ -16,7 +16,7 @@
 
     <!-- Main Table -->
     <div :class="showAddPanel ? 'w-2/3' : 'w-full'" class="p-4">
-      <DataTableWrapper title="Access Level Configuration" :showSearch="false">
+      <DataTableWrapper :showSearch="true">
         <template #toolbar-actions>
           <BaseButton
             variant="primary"

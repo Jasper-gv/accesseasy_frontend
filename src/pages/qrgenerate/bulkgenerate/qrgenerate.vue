@@ -565,6 +565,140 @@
       </div>
     </v-snackbar>
   </div>
+  <v-dialog v-model="showShareDialog" max-width="500px">
+    <v-card class="share-dialog">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-share-variant</v-icon>
+        Share QR Code
+        <v-spacer></v-spacer>
+        <BaseButton icon @click="closeShareDialog" variant="text">
+          <v-icon>mdi-close</v-icon>
+        </BaseButton>
+      </v-card-title>
+
+      <v-card-text class="pa-6">
+        <!-- QR Code Info -->
+        <div class="share-info mb-6">
+          <v-card variant="outlined" class="pa-4 bg-light">
+            <div class="text-caption text-medium-emphasis mb-2">
+              QR Code Details:
+            </div>
+            <p class="text-body2 font-weight-bold mb-2">
+              {{ shareQRItem?.qrcode || "N/A" }}
+            </p>
+            <v-chip
+              :color="shareQRItem?.qraccess ? 'success' : 'error'"
+              size="small"
+              label
+              class="mb-2"
+            >
+              {{ shareQRItem?.qraccess ? "Enabled" : "Disabled" }}
+            </v-chip>
+          </v-card>
+        </div>
+
+        <!-- Share Options -->
+        <div class="share-options">
+          <h4 class="mb-4">Choose how to share:</h4>
+
+          <!-- WhatsApp Option -->
+          <v-card
+            variant="outlined"
+            class="share-option mb-3 pa-4 cursor-pointer"
+            @click="shareViaWhatsApp(shareQRItem)"
+            style="cursor: pointer; transition: all 0.3s ease"
+            @mouseenter="
+              $event.target.closest('.share-option').style.boxShadow =
+                '0 4px 12px rgba(0,0,0,0.1)'
+            "
+            @mouseleave="
+              $event.target.closest('.share-option').style.boxShadow = ''
+            "
+          >
+            <div class="d-flex align-center">
+              <v-icon size="40" color="#25D366" class="mr-4">
+                mdi-whatsapp
+              </v-icon>
+              <div class="flex-grow-1">
+                <h5 class="mb-1">Share via WhatsApp</h5>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Send to your WhatsApp contacts
+                </p>
+              </div>
+              <v-icon color="primary">mdi-chevron-right</v-icon>
+            </div>
+          </v-card>
+
+          <!-- Email Option -->
+          <v-card
+            variant="outlined"
+            class="share-option mb-3 pa-4 cursor-pointer"
+            @click="shareViaEmail(shareQRItem)"
+            style="cursor: pointer; transition: all 0.3s ease"
+            @mouseenter="
+              $event.target.closest('.share-option').style.boxShadow =
+                '0 4px 12px rgba(0,0,0,0.1)'
+            "
+            @mouseleave="
+              $event.target.closest('.share-option').style.boxShadow = ''
+            "
+          >
+            <div class="d-flex align-center">
+              <v-icon size="40" color="#EA4335" class="mr-4">
+                mdi-email
+              </v-icon>
+              <div class="flex-grow-1">
+                <h5 class="mb-1">Share via Email</h5>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Send via your email client
+                </p>
+              </div>
+              <v-icon color="primary">mdi-chevron-right</v-icon>
+            </div>
+          </v-card>
+
+          <!-- Copy to Clipboard Option (Bonus) -->
+          <!-- <v-card
+            variant="outlined"
+            class="share-option pa-4 cursor-pointer"
+            @click="copyQRCodeToClipboard(shareQRItem)"
+            style="cursor: pointer; transition: all 0.3s ease"
+            @mouseenter="
+              $event.target.closest('.share-option').style.boxShadow =
+                '0 4px 12px rgba(0,0,0,0.1)'
+            "
+            @mouseleave="
+              $event.target.closest('.share-option').style.boxShadow = ''
+            "
+          >
+            <div class="d-flex align-center">
+              <v-icon size="40" color="#4285F4" class="mr-4">
+                mdi-content-copy
+              </v-icon>
+              <div class="flex-grow-1">
+                <h5 class="mb-1">Copy to Clipboard</h5>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Copy QR code ID to clipboard
+                </p>
+              </div>
+              <v-icon color="primary">mdi-chevron-right</v-icon>
+            </div>
+          </v-card> -->
+        </div>
+
+        <!-- Info Alert -->
+        <!-- <v-alert type="info" variant="tonal" class="mt-6">
+          <template v-slot:title>Sharing Information</template>
+          <ul class="mt-2 mb-0">
+            <li>Share your QR code details with others instantly</li>
+            <li>WhatsApp: Available on all devices with WhatsApp installed</li>
+            <li>Email: Uses your default email client</li>
+            <li>Copy: Save QR code ID for manual sharing</li>
+          </ul>
+        </v-alert> -->
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -595,6 +729,8 @@ const sortBy = ref([]);
 const selectedItems = ref([]);
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
+const showShareDialog = ref(false);
+const shareQRItem = ref(null);
 
 // QR Generation Dialog State
 const showGenerateDialog = ref(false);
@@ -633,6 +769,14 @@ const generationResults = ref({
 const generationLog = ref([]);
 const generatedQRs = ref([]);
 
+const shareQRCode = (item) => {
+  shareQRItem.value = item;
+  showShareDialog.value = true;
+};
+const closeShareDialog = () => {
+  showShareDialog.value = false;
+  shareQRItem.value = null;
+};
 /*  Notification State  */
 const showSuccessSnackbar = ref(false);
 const showErrorSnackbar = ref(false);
@@ -695,7 +839,84 @@ const generateUniqueQRCode = () => {
   const random = Math.random().toString(36).substring(2, 8);
   return `QR_${timestamp}_${random}`.toUpperCase();
 };
+const shareViaWhatsApp = (item) => {
+  if (!item || !item.qrcode) {
+    showErrorMessage("Unable to share: QR code not found");
+    return;
+  }
 
+  try {
+    // Create a meaningful message for WhatsApp
+    const message = encodeURIComponent(
+      `🔗 Check out this QR Code:\n\nQR Code: ${item.qrcode}\nStatus: ${
+        item.qraccess ? "Enabled" : "Disabled"
+      }\n\nAccess Level: ${
+        getAccessLevelName(item.accessLevelsId) || "Default"
+      }\n\nShared on: ${new Date().toLocaleString()}`
+    );
+
+    // Generate WhatsApp share URL
+    const whatsappUrl = `https://wa.me/?text=${message}`;
+
+    // Open WhatsApp in a new window
+    window.open(whatsappUrl, "_blank", "width=600,height=600");
+
+    showSuccessMessage("Opening WhatsApp...");
+    closeShareDialog();
+  } catch (err) {
+    console.error("WhatsApp share error:", err);
+    showErrorMessage("Failed to share via WhatsApp: " + err.message);
+  }
+};
+const shareViaEmail = async (item) => {
+  if (!item || !item.qrcode) {
+    showErrorMessage("Unable to share: QR code not found");
+    return;
+  }
+
+  try {
+    // Create email subject
+    const subject = encodeURIComponent(`QR Code: ${item.qrcode}`);
+
+    // Create email body with detailed information
+    const emailBody = encodeURIComponent(
+      `Hello,\n\nI wanted to share a QR Code with you.\n\n` +
+        `QR Code: ${item.qrcode}\n` +
+        `Status: ${item.qraccess ? "Enabled" : "Disabled"}\n` +
+        `Access Level: ${getAccessLevelName(item.accessLevelsId) || "Default"}\n` +
+        `Generated On: ${new Date().toLocaleString()}\n\n` +
+        `This QR code can be scanned for access control purposes.\n\n` +
+        `Best regards`
+    );
+
+    // Generate mailto link
+    const mailtoUrl = `mailto:?subject=${subject}&body=${emailBody}`;
+
+    // Open default email client
+    window.location.href = mailtoUrl;
+
+    showSuccessMessage("Opening email client...");
+    closeShareDialog();
+  } catch (err) {
+    console.error("Email share error:", err);
+    showErrorMessage("Failed to share via Email: " + err.message);
+  }
+};
+const copyQRCodeToClipboard = (item) => {
+  if (!item || !item.qrcode) {
+    showErrorMessage("Unable to copy: QR code not found");
+    return;
+  }
+
+  try {
+    navigator.clipboard.writeText(item.qrcode);
+    showSuccessMessage("QR Code copied to clipboard!");
+    closeShareDialog();
+  } catch (err) {
+    console.error("Copy to clipboard error:", err);
+    showErrorMessage("Failed to copy QR code: " + err.message);
+  }
+};
 /*  API  */
 const fetchAccessLevels = async () => {
   try {

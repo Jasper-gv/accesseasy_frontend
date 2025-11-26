@@ -16,7 +16,7 @@
 
     <!-- Main Content -->
     <div :class="showAddDoorPanel ? 'w-2/3' : 'w-full'" class="p-4">
-      <DataTableWrapper title="Door Configuration" :showSearch="false">
+      <DataTableWrapper :showSearch="true">
         <template #toolbar-actions>
           <BaseButton
             variant="primary"

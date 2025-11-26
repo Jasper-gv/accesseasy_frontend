@@ -2,9 +2,8 @@
   <div class="timer-zone-container">
     <!-- Timer Zones Table -->
     <DataTableWrapper
-      title="Timer Zones"
       subtitle="Manage your timer zones and their schedules"
-      :showSearch="false"
+      :showSearch="true"
     >
       <template #toolbar-actions>
         <BaseButton

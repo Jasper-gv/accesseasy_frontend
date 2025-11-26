@@ -100,7 +100,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 
 // --- Reactive state ---
-const activeTab = ref("branches"); // default active tab
+const activeTab = ref("branches");
 
 const router = useRouter();
 const route = useRoute();
@@ -160,14 +160,14 @@ const configurators = [
       { id: "timerzone", label: "Time Zones" }, // ← ADDED TIMERZONE SUBSECTION
     ],
   },
-  // {
-  //   id: "antipassbackMode",
-  //   label: "Global Configurator", // ← NEW GLOBAL CONFIGURATOR SECTION
-  //   subsections: [
-  //     { id: "antipassback-mode", label: "Anti-passback Mode" }, // ← NEW SUBSECTION
-  //     { id: "interlock-mode", label: "Interlock Mode" }, // ← NEW SUBSECTION
-  //   ],
-  // },
+  {
+    id: "antipassbackMode",
+    label: "Global Configurator",
+    subsections: [
+      { id: "antipassbackmode-configurator", label: "Anti-passback Mode" }, // ← Fixed
+      { id: "interlockmode-configurator", label: "Interlock Mode" }, // ← Fixed
+    ],
+  },
 ];
 
 // Get all valid route names from configurators
