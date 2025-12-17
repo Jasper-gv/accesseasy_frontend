@@ -1585,7 +1585,6 @@ onUnmounted(() => {
   color: #666;
 }
 .access-management {
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   margin: 0 auto;
   padding: 0;
   color: #333;

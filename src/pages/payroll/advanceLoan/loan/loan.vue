@@ -825,10 +825,6 @@ onMounted(async () => {
   display: flex;
   height: 100vh;
   position: relative;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
 }
 
 :deep(.table-container) {

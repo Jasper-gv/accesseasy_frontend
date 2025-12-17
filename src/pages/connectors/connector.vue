@@ -1419,12 +1419,6 @@ const closeFeaturePopup = () => {
 .connector {
   min-height: 100vh;
   background: #f8fafc;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
 }
 
 /* Header */

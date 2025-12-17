@@ -1104,10 +1104,6 @@ onMounted(() => {
   outline-offset: 0 !important;
 }
 .shifts-container {
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
   background: #f8f9fa;
   min-height: 100vh;
   padding: 8px;

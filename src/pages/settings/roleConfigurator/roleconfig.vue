@@ -1080,7 +1080,6 @@ export default {
   display: flex;
   height: 100vh;
   background: #f9fafb;
-    "Helvetica Neue", sans-serif;
   position: relative;
 }
 

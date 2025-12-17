@@ -1338,12 +1338,7 @@ export default {
 }
 .dashboard {
   min-height: 100vh;
-  background-color: #f8fafc;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  background-color: #f8fafc; 
   color: #1e293b;
 }
 

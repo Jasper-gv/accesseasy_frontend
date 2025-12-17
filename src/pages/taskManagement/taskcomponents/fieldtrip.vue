@@ -820,10 +820,6 @@ onBeforeMount(async () => {
   padding: 1rem;
   overflow: hidden;
   background-color: #f8f8fc;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
 }
 
 .main-content {

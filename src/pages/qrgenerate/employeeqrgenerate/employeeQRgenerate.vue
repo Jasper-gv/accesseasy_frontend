@@ -654,10 +654,6 @@ watch([qrManagementData, totalItems], () => {
   display: flex;
   height: 100vh;
   position: relative;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
 }
 
 /* Filter Panel */
