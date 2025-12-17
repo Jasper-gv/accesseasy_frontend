@@ -1599,8 +1599,6 @@ const formatCurrency = (amount) => {
 
 <style scoped>
 .tds-container {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, sans-serif;
   width: 100%;
   height: 100vh;
   display: flex;

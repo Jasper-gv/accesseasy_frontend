@@ -1171,7 +1171,6 @@ onMounted(async () => {
 }
 
 :deep(.v-data-table .time-cell) {
-  font-family: monospace;
   font-size: 0.9em;
 }
 
@@ -1192,7 +1191,6 @@ onMounted(async () => {
 }
 
 .time-display {
-  font-family: monospace;
   padding: 2px 6px;
   border-radius: 4px;
   background-color: #f5f5f5;

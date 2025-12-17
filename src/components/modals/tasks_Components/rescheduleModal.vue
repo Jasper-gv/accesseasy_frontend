@@ -247,7 +247,7 @@ const handleSubmit = () => {
 .warning-message {
   color: #dc2626;
   font-size: medium;
-  font-family: "Inter";
+
   margin-top: 0.5rem;
   padding: 0.5rem;
   background: #fee2e2;

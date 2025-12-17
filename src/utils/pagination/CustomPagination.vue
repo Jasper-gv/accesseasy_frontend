@@ -303,7 +303,6 @@ watch(
 
 <style scoped>
 .pagination-container {
-  font-family: "Inter", sans-serif;
   background-color: #f8f9fa;
   border-radius: 12px;
   padding: 1rem rem;

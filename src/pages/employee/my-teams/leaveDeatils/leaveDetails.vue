@@ -727,7 +727,6 @@ watch(
   display: flex;
   height: 100vh;
   position: relative;
-  font-family:
     "Inter",
     -apple-system,
     BlinkMacSystemFont,
@@ -959,7 +958,6 @@ watch(
   margin: 0;
   font-size: 0.85rem;
   color: #1e293b;
-  font-family:
     "Inter",
     -apple-system,
     BlinkMacSystemFont,

@@ -1339,7 +1339,6 @@ export default {
 .dashboard {
   min-height: 100vh;
   background-color: #f8fafc;
-  font-family:
     "Inter",
     -apple-system,
     BlinkMacSystemFont,

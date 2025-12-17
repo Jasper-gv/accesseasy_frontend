@@ -1407,7 +1407,7 @@ input:checked + .switch-slider:before {
 
 /* Custom Google Maps Styles */
 .modern-popup {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   min-width: 200px;
 }
 

@@ -3384,7 +3384,7 @@ onMounted(async () => {
 
 <style scoped>
 .deductions-container {
-  font-family: Arial, sans-serif;
+
   color: #333;
   max-width: 100%;
   margin: 0 auto;

@@ -219,7 +219,7 @@ onMounted(async () => {
 }
 .sidebar-title {
   font-weight: 400;
-  font-family: sans-serif;
+
 }
 
 @media (max-width: 768px) {

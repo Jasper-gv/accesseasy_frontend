@@ -171,7 +171,7 @@ const detailsOpen = ref(false);
 }
 
 .details-content pre {
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+
   font-size: 0.75rem;
   color: #374151;
   margin: 0;

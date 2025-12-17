@@ -1984,7 +1984,6 @@ watch(
 }
 
 .font-mono {
-  font-family: "Courier New", monospace;
 }
 
 .overflow-y-auto {

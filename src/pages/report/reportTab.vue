@@ -97,7 +97,6 @@ watch(
   text-transform: capitalize;
   font-weight: 550;
   font-size: 16px;
-  font-family: Lato, sans-serif, Arial;
 }
 .custom-tab:hover {
   background-color: rgb(244, 84, 84) !important;

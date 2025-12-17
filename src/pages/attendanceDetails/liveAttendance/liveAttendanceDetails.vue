@@ -800,7 +800,6 @@ onMounted(async () => {
   display: flex;
   height: 100vh;
   position: relative;
-  font-family:
     "Inter",
     -apple-system,
     BlinkMacSystemFont,

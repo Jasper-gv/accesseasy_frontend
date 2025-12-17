@@ -773,7 +773,6 @@ watch(
   padding: 0;
   overflow: hidden;
   background-color: #f8fafc;
-  font-family: "Inter";
 }
 
 .main-content {
@@ -810,7 +809,6 @@ watch(
   border-radius: 999px;
   padding: 6px 10px;
   font-size: medium;
-  font-family: "Inter";
   line-height: 1;
   border: 1px solid transparent;
   cursor: pointer;

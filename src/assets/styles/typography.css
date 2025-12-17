@@ -35,6 +35,11 @@
   --letter-spacing-wide: 0.025em;
 }
 
+body,
+#app {
+  font-family: var(--font-family-primary);
+}
+
 /* Typography classes */
 .text-xs {
   font-size: var(--font-size-xs);

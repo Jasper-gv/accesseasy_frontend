@@ -4132,7 +4132,6 @@ export default {
 
 /* payslip */
 .payslip-container-new {
-  font-family: Arial, sans-serif;
   padding: 20px;
   background-color: #fff;
 }

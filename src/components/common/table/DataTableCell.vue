@@ -71,11 +71,7 @@ const getCellStyle = computed(() => {
   line-height: 1.5;
   font-size: 0.75rem;
   color: #1a202c;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+
 }
 
 .text-left {

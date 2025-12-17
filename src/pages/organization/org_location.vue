@@ -846,7 +846,6 @@ onUnmounted(() => {
   background: #f9fafb;
   color: #111827;
   white-space: nowrap;
-  font-family: "Monaco", "Menlo", "Consolas", monospace;
   margin: 0;
   height: 18px;
   box-sizing: border-box;

@@ -373,7 +373,6 @@ export default {
 
 .custom-tab {
   font-weight: 550;
-  font-family: Lato, sans-serif, Arial;
 }
 
 .profile-main {

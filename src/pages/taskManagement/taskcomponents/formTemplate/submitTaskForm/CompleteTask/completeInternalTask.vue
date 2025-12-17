@@ -841,7 +841,6 @@ const handleSaveDraft = () => {
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   font-size: 0.875rem;
-  font-family: inherit;
   resize: vertical;
   min-height: 100px;
   transition:

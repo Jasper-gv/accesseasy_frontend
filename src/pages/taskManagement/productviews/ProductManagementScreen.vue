@@ -612,7 +612,7 @@ export default {
 .product-management {
   max-height: 100vh;
   background-color: #f8fafc;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
   overflow-y: auto;
 }
 

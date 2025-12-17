@@ -182,7 +182,7 @@ onUnmounted(() => {
 .dropdown-item-text {
   flex: 1;
   font-size: 0.875rem;
-  font-family: "Inter";
+
   color: #1e293b;
 }
 
@@ -190,7 +190,7 @@ onUnmounted(() => {
   background: #f1f5f9;
   color: #64748b;
   font-size: 0.75rem;
-  font-family: "Inter";
+
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
 }

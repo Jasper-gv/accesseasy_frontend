@@ -226,7 +226,7 @@ const handleRowClick = (item, event) => {
 }
 .expanded-header {
   font-size: medium;
-  font-family: "Inter";
+
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #1e293b;

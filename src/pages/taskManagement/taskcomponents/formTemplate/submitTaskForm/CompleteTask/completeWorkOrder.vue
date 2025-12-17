@@ -1094,7 +1094,6 @@ watch(
   overflow: hidden; /* Prevent double scrollbars */
   background: #f5f5f5;
   transition: background-color 0.3s ease;
-  font-family: "Inter", sans-serif;
 }
 
 /* Status-based background colors */
@@ -1249,7 +1248,6 @@ watch(
   text-transform: capitalize;
   letter-spacing: 0.5px;
   flex-shrink: 0;
-  font-family: "Inter", sans-serif;
   font-weight: 500;
 }
 
@@ -1264,7 +1262,6 @@ watch(
   color: #000000;
   text-transform: capitalize;
   flex: 1;
-  font-family: "Inter", sans-serif;
   font-weight: 500;
 }
 
@@ -1275,7 +1272,6 @@ watch(
 .work-hours-chips .v-chip {
   background: var(--status-light) !important;
   color: var(--status-color) !important;
-  font-family: "Inter", sans-serif;
   font-weight: 500;
   font-size: medium;
   border: 1px solid var(--status-border);

@@ -1419,7 +1419,6 @@ const closeFeaturePopup = () => {
 .connector {
   min-height: 100vh;
   background: #f8fafc;
-  font-family:
     "Inter",
     -apple-system,
     BlinkMacSystemFont,
@@ -1971,7 +1970,6 @@ const closeFeaturePopup = () => {
 .field-preview {
   font-size: 0.875rem;
   color: #1a202c;
-  font-family: monospace;
   background: #f1f5f9;
   padding: 0.5rem;
   border-radius: 4px;

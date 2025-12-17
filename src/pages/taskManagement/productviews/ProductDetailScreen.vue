@@ -807,7 +807,7 @@ export default {
 
 /* Base Styles */
 .product-detail-screen {
-  font-family: 'Inter', sans-serif;
+
   background-color: #f8f9fa;
   min-height: 100vh;
 }

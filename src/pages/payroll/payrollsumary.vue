@@ -238,7 +238,6 @@ onMounted(() => {
 .payroll-summary-container {
   display: flex;
   height: 100vh;
-  font-family: 'Inter', sans-serif;
   background-color: #f8f9fa;
 }
 

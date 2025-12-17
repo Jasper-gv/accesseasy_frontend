@@ -8,6 +8,7 @@ import * as directives from "vuetify/directives";
 import "@mdi/font/css/materialdesignicons.css";
 import "@fortawesome/fontawesome-free/css/all.css";
 import "./assets/styles/variables.css";
+import "./assets/styles/typography.css";
 
 const vuetify = createVuetify({
   components,

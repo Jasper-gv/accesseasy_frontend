@@ -236,7 +236,7 @@ const cancelChanges =() => {
 
 .sidebar-title {
   font-weight: 400;
-  font-family: sans-serif;
+
 }
 @media (max-width: 768px) {
   .sidebar-title {

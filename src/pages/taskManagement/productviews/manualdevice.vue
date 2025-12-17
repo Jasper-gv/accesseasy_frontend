@@ -785,7 +785,7 @@ handleImageFile(file) {
 /* Base Styles */
 .app-container {
   background-color: #f9fafb;
-  font-family: 'Inter', sans-serif;
+
 }
 
 /* Main Content */

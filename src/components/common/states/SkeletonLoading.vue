@@ -278,11 +278,7 @@ const getCellContentClass = (index) => {
 <style scoped>
 .skeleton-wrapper {
   width: 100%;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+
 }
 
 /* Base Shimmer Animation */

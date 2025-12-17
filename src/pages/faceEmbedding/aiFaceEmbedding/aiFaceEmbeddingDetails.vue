@@ -662,7 +662,6 @@ onMounted(async () => {
 }
 
 .base64-data {
-  font-family: monospace;
   font-size: 0.875rem;
 }
 

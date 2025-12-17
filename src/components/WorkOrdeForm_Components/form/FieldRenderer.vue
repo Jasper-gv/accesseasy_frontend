@@ -973,7 +973,7 @@ fetchFilteredOrganizations();
   color: #37474f;
   margin-bottom: 12px;
   font-size: medium;
-  font-family: "Inter";
+
 }
 
 .required-indicator {
@@ -1036,7 +1036,7 @@ fetchFilteredOrganizations();
 
 :deep(.v-text-field input[type="datetime-local"]) {
   font-size: medium;
-  font-family: "Inter";
+
   padding: 8px 12px;
   width: 100%;
 }
@@ -1074,7 +1074,7 @@ fetchFilteredOrganizations();
   bottom: 4px;
   left: 4px;
   font-size: medium;
-  font-family: "Inter";
+
   color: white;
   background: rgba(0, 0, 0, 0.5);
   padding: 2px 4px;
@@ -1097,7 +1097,7 @@ fetchFilteredOrganizations();
 
 :deep(.v-autocomplete .v-chip) {
   font-size: medium;
-  font-family: "Inter";
+
   height: 20px;
   margin-left: 8px;
 }

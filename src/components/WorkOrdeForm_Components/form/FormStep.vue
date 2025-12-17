@@ -477,7 +477,7 @@ const canEnableReschedule = computed(() => {
   color: #37474f;
   margin-bottom: 12px;
   font-size: medium;
-  font-family: "Inter";
+
 }
 
 .weekday-grid {

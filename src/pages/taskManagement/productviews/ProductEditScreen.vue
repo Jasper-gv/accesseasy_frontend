@@ -801,7 +801,7 @@ export default {
   display: flex;
   min-height: 100vh;
   background-color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
 }
 
 /* Sidebar */

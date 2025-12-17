@@ -3037,7 +3037,6 @@ onUnmounted(() => {
   color: rgb(var(--v-theme-error));
 }
 tab-section {
-  font-family: "Inter", sans-serif;
 }
 
 .custom-tabs {
@@ -3066,7 +3065,6 @@ tab-section {
   padding: 0 20px !important;
   margin: 0 !important;
   text-transform: none !important;
-  font-family: "Inter", sans-serif !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   overflow: hidden;
@@ -3115,7 +3113,6 @@ tab-section {
 /* Selected tab - white text and white icon */
 
 .tab-text {
-  font-family: "Inter", sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.2;

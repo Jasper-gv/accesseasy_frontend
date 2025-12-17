@@ -133,8 +133,6 @@ watch(activeTab, (newValue, oldValue) => {
   text-transform: capitalize;
   font-weight: 550;
   font-size: medium;
-  font-family: "Inter";
-  font-family: Lato, sans-serif, Arial;
 }
 
 /* Active tab style */

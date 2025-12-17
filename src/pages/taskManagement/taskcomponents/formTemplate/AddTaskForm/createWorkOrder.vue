@@ -1552,7 +1552,6 @@ loadFormsImmediate();
 .template-selector :deep(.v-field) {
   font-size: medium;
   border-radius: 8px;
-  font-family: "Inter";
 }
 
 .template-selector :deep(.v-field__input) {
@@ -1566,7 +1565,6 @@ loadFormsImmediate();
   min-width: 140px;
   height: 42px !important;
   font-size: medium !important;
-  font-family: "Inter";
   border-radius: 8px !important;
   font-weight: 600 !important;
   text-transform: none !important;
@@ -1603,7 +1601,6 @@ loadFormsImmediate();
 
 .section-title {
   font-size: large;
-  font-family: "Inter";
   font-weight: 600;
   margin-bottom: 20px;
   color: #059669;
@@ -1636,7 +1633,6 @@ loadFormsImmediate();
 .jobsheet-name {
   color: #059669;
   font-size: medium;
-  font-family: "Inter";
   font-weight: 600;
   flex: 1;
   padding-right: 16px;
@@ -1676,7 +1672,6 @@ loadFormsImmediate();
   font-weight: 600;
   text-transform: none;
   transition: all 0.3s ease;
-  font-family: "Inter";
 }
 
 .expand-all-btn:hover {

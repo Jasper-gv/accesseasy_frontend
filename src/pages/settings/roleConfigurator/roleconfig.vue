@@ -1080,7 +1080,6 @@ export default {
   display: flex;
   height: 100vh;
   background: #f9fafb;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", sans-serif;
   position: relative;
 }
@@ -1633,7 +1632,6 @@ export default {
 .form-textarea {
   resize: vertical;
   min-height: 90px;
-  font-family: inherit;
 }
 .form-actions {
   display: flex;

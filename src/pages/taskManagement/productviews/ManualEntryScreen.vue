@@ -707,7 +707,7 @@ export default {
 .app-container {
   min-height: 100vh;
   background-color: #f9fafb;
-  font-family: 'Inter', sans-serif;
+
 }
 
 /* Main Content */

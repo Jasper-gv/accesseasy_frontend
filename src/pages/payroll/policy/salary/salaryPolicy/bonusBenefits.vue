@@ -378,7 +378,7 @@ export default {
 
 /* Keep all your original styles exactly as they were */
 .bonus-configuration {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
   max-width: 1000px;
   margin: 0 auto;
   color: #333;

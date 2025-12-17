@@ -286,30 +286,30 @@ function handleClick(event) {
 .btn-xs {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
-  font-family: "Inter";
+
   gap: 0.25rem;
 }
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
-  font-family: "Inter";
+
   gap: 0.375rem;
 }
 .btn-md {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  font-family: "Inter";
+
   gap: 0.5rem;
 }
 .btn-lg {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  font-family: "Inter";
+
   gap: 0.5rem;
 }
 .btn-xl {
   padding: 1rem 2rem;
-  font-family: "Inter";
+
   font-size: 1.125rem;
   gap: 0.75rem;
 }
@@ -358,7 +358,7 @@ function handleClick(event) {
   background: #ef4444;
   color: white;
   font-size: medium;
-  font-family: "Inter";
+
   font-weight: 600;
   padding: 0.125rem 0.375rem;
   border-radius: 9999px;

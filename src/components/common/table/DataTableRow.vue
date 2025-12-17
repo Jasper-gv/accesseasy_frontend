@@ -112,11 +112,7 @@ const getColumnValue = (item, column) => {
   display: flex;
   align-items: center;
   min-height: 60px;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+
 
   font-size: 0.85rem;
 }
@@ -130,11 +126,7 @@ const getColumnValue = (item, column) => {
   align-items: center;
   font-size: 0.995rem;
   color: #b31d98;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+
 }
 
 /* <CHANGE> Sticky selection column in the body rows */
@@ -188,7 +180,7 @@ const getColumnValue = (item, column) => {
   padding: 1rem;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+
   font-size: 0.75rem;
   overflow-x: auto;
 }

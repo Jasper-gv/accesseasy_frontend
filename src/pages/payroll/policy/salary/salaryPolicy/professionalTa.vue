@@ -341,9 +341,7 @@ export default {
 </script>
 
 <style scoped>
-.professional-tax-lwf {
-  font-family: Arial, sans-serif;
-}
+
 
 :deep(.v-list-item) {
   min-height: 40px;

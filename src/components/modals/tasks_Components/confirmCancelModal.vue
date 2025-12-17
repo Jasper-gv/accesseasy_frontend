@@ -105,7 +105,7 @@ watch(
 
 .modal-header h2 {
   font-size: medium;
-  font-family: "Inter";
+
   font-weight: 600;
   color: #111827;
   margin: 0;
@@ -118,7 +118,7 @@ watch(
 
 .modal-body p {
   font-size: medium;
-  font-family: "Inter";
+
   color: #6b7280;
   line-height: 1.6;
   margin: 0;

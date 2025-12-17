@@ -1129,7 +1129,7 @@ export default {
             <title>QR Code - ${this.selectedDevice?.serialNumber}</title>
             <style>
               body {
-                font-family: Arial, sans-serif;
+
                 text-align: center;
                 padding: 20px;
               }
@@ -1300,11 +1300,7 @@ export default {
   padding: -1rem;
   overflow: hidden;
   background-color: #f8fafc;
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+
 }
 
 .main-content {

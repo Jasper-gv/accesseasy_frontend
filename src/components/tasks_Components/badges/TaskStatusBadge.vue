@@ -70,7 +70,7 @@ const formatStatus = (status) => {
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.6rem;
-  font-family: "Inter";
+
   font-weight: 300;
   white-space: nowrap;
 }

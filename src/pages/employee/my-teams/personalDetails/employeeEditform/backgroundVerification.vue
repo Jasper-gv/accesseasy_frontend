@@ -863,7 +863,6 @@ onMounted(async () => {
   pointer-events: none;
   height: 100%;
   overflow-y: auto;
-  font-family: "Inter", sans-serif;
   padding: 20px;
 }
 
@@ -971,7 +970,6 @@ onMounted(async () => {
 /* Original verification styles (blurred background) */
 .verification-container {
   margin: 0 auto;
-  font-family: "Inter", sans-serif;
 }
 
 .verification-header {

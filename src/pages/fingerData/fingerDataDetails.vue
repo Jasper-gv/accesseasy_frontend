@@ -584,7 +584,6 @@ onMounted(() => {
 }
 
 .finger-data {
-  font-family: monospace;
   font-size: 0.875rem;
 }
 

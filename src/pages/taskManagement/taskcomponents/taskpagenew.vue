@@ -1489,7 +1489,6 @@ onMounted(async () => {
   padding: -1rem;
   overflow: hidden;
   background-color: #f8fafc;
-  font-family:
     "Inter",
     -apple-system,
     BlinkMacSystemFont,

@@ -1195,7 +1195,7 @@ export default {
 }
 
 .bulk-upload {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
   background:white;
   min-height: 100vh;
   color: #1a202c;

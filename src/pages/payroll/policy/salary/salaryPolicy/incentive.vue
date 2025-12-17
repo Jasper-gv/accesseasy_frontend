@@ -353,7 +353,7 @@ export default {
 
 <style scoped>
 .incentive-configuration {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
   max-width: 1000px;
   margin: 0 auto;
   color: #333;

@@ -2809,7 +2809,6 @@ const goBack = () => {
   font-weight: 400;
   line-height: 1.175;
   letter-spacing: 0.0073529412em !important;
-  font-family: "Roboto", sans-serif;
   text-transform: none !important;
 }
 

@@ -887,7 +887,6 @@ onMounted(() => {
   display: flex;
   min-height: 100vh;
   background-color: #f8fafc; /* Light background */
-  font-family: "Inter", sans-serif;
   color: #1e293b;
 }
 

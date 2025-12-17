@@ -939,7 +939,6 @@ onMounted(() => {
 }
 
 .font-mono {
-  font-family: 'Roboto Mono', monospace;
   font-size: 0.8rem;
 }
 

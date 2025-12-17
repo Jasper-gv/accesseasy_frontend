@@ -528,7 +528,6 @@ const proceedToDownload = () => {
 }
 
 .role-name {
-  font-family: monospace;
   font-weight: bold;
 }
 

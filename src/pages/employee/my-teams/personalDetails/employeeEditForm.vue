@@ -481,7 +481,6 @@ onBeforeUnmount(() => {});
   background: #fff;
   width: 100%;
   max-width: 100%;
-  font-family: "Inter", sans-serif;
 }
 
 /* Header Styles */
@@ -540,7 +539,6 @@ onBeforeUnmount(() => {});
 
 /* Tab Section */
 .tab-section {
-  font-family: "Inter", sans-serif;
   background: #f8f9fa;
 }
 
@@ -570,7 +568,6 @@ onBeforeUnmount(() => {});
   padding: 0 20px !important;
   margin: 0 !important;
   text-transform: none !important;
-  font-family: "Inter", sans-serif !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   overflow: hidden;
@@ -637,7 +634,6 @@ onBeforeUnmount(() => {});
 }
 
 .tab-text {
-  font-family: "Inter", sans-serif;
   font-size: 14px;
   line-height: 1.2;
   letter-spacing: -0.1px;
