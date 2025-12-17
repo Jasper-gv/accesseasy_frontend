@@ -16,7 +16,11 @@
 
     <!-- Main Table -->
     <div :class="showAddPanel ? 'w-2/3' : 'w-full'" class="p-4">
-      <DataTableWrapper :showSearch="true">
+      <DataTableWrapper
+        :showSearch="true"
+        :search-query="searchQuery"
+        @update:search-query="searchQuery = $event"
+      >
         <template #toolbar-actions>
           <BaseButton
             variant="primary"
@@ -116,8 +120,8 @@
 
           <!-- Pagination - MOVED OUTSIDE DataTable -->
           <CustomPagination
-            v-if="accessLevels.length > 0"
-            :total-items="accessLevels.length"
+            v-if="filteredAccessLevels.length > 0"
+            :total-items="filteredAccessLevels.length"
             :items-per-page="itemsPerPage"
             :current-page="currentPage"
             @page-change="handlePageChange"
@@ -180,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import AccessLevelAdd from "@/pages/accesslevel/acessleveladd.vue";
@@ -197,7 +201,10 @@ const showAddPanel = ref(false);
 const isEditing = ref(false);
 const currentAccessLevelData = ref(null);
 const accessLevels = ref([]);
+const searchQuery = ref("");
+const debouncedSearch = ref("");
 
+let searchTimeout = null;
 // Pagination
 const currentPage = ref(1);
 const itemsPerPage = ref(25);
@@ -231,12 +238,30 @@ const headers = ref([
     width: "400px",
   },
 ]);
+// New: Filtered + Formatted Access Levels (with search)
+const filteredAccessLevels = computed(() => {
+  const query = debouncedSearch.value;
 
+  if (!query) return accessLevels.value;
+
+  return accessLevels.value.filter((item) => {
+    const searchText = [
+      item.name, // ← This is accessLevelName
+      item.accessLevelNumber?.toString(),
+      item.type,
+      item.assignDoorsGroupNames?.join(" "),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return searchText.includes(query);
+  });
+});
 // Computed property for paginated data
 const paginatedAccessLevels = computed(() => {
   const startIndex = (currentPage.value - 1) * itemsPerPage.value;
   const endIndex = startIndex + itemsPerPage.value;
-  return accessLevels.value.slice(startIndex, endIndex);
+  return filteredAccessLevels.value.slice(startIndex, endIndex);
 });
 
 // Fetch door names
@@ -390,7 +415,13 @@ const onToggleAccessType = (item) => {
 const showToast = (msg, type = "success") => {
   console.log(`${type.toUpperCase()}: ${msg}`);
 };
-
+watch(searchQuery, (newVal) => {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    debouncedSearch.value = newVal.trim().toLowerCase();
+    currentPage.value = 1; // Reset to first page on search
+  }, 300);
+});
 onMounted(() => {
   fetchAccessLevels();
 });

@@ -28,7 +28,11 @@
 
     <!-- Main Content -->
     <div :class="showAddDevicePanel ? 'w-2/3' : 'w-full'" class="p-4">
-      <DataTableWrapper :showSearch="true">
+      <DataTableWrapper
+        :showSearch="true"
+        :search-query="searchQuery"
+        @update:search-query="searchQuery = $event"
+      >
         <template #toolbar-actions>
           <BaseButton
             variant="primary"
@@ -167,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
@@ -186,6 +190,8 @@ const token = authService.getToken();
 const tenantId = ref(null);
 const editingDevice = ref(null);
 const loadingDeviceDetails = ref(false);
+const searchQuery = ref("");
+const debouncedSearch = ref("");
 
 // Pagination state
 const currentPage = ref(1);
@@ -195,6 +201,7 @@ const itemsPerPage = ref(25);
 const showDoorViewDialog = ref(false);
 const selectedDeviceDoors = ref([]);
 
+let searchTimeout = null;
 // Table headers
 const headers = ref([
   { label: "Device Type", key: "deviceType", sortable: true, width: "150px" },
@@ -252,11 +259,53 @@ const formattedDevices = computed(() => {
   });
 });
 
+const filteredDevices = computed(() => {
+  const query = debouncedSearch.value;
+
+  const formatted = devices.value.map((device) => {
+    const branch =
+      branches.value.find((b) => b.id === device.branchDetails) || {};
+    const assignedDoorNames = device.selectedDoors
+      ? device.selectedDoors.map((doorId) => {
+          const door = doors.value.find((d) => d.id === doorId);
+          return door ? door.doorName : "Unknown Door";
+        })
+      : [];
+
+    return {
+      id: device.id,
+      deviceType: device.controllerName || "N/A",
+      deviceName: device.deviceName || "N/A",
+      serialNumber: device.sn || "N/A",
+      branch: branch.locdetail?.locationName || "N/A",
+      connectionStatus:
+        device.status === "approved" ? "Connected" : "Disconnected",
+      controllerStatus: device.controllerStatus || "Waiting",
+      assignedDoors: assignedDoorNames,
+      assignedDoorsText: assignedDoorNames.join(", "),
+      rawData: device,
+    };
+  });
+
+  // Apply search filter
+  if (!query) return formatted;
+
+  return formatted.filter((device) => {
+    return (
+      device.deviceName.toLowerCase().includes(query) ||
+      device.serialNumber.toLowerCase().includes(query) ||
+      device.deviceType.toLowerCase().includes(query) ||
+      device.branch.toLowerCase().includes(query) ||
+      device.controllerStatus.toLowerCase().includes(query) ||
+      device.assignedDoorsText.toLowerCase().includes(query)
+    );
+  });
+});
 // Computed property for paginated devices
 const paginatedDevices = computed(() => {
   const startIndex = (currentPage.value - 1) * itemsPerPage.value;
   const endIndex = startIndex + itemsPerPage.value;
-  return formattedDevices.value.slice(startIndex, endIndex);
+  return filteredDevices.value.slice(startIndex, endIndex);
 });
 
 // New function to fetch door configuration details
@@ -602,7 +651,14 @@ const showDoorsDialog = (item) => {
 const showToast = (msg, type = "success") => {
   console.log(`${type.toUpperCase()}: ${msg}`);
 };
+watch(searchQuery, (newVal) => {
+  if (searchTimeout) clearTimeout(searchTimeout);
 
+  searchTimeout = setTimeout(() => {
+    debouncedSearch.value = newVal.trim().toLowerCase();
+    currentPage.value = 1; // Reset page on search
+  }, 300);
+});
 onMounted(() => {
   getDeviceData();
 });

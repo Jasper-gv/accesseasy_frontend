@@ -16,7 +16,11 @@
 
     <!-- Main Content -->
     <div :class="showAddDoorPanel ? 'w-2/3' : 'w-full'" class="p-4">
-      <DataTableWrapper :showSearch="true">
+      <DataTableWrapper
+        :showSearch="true"
+        :search-query="searchQuery"
+        @update:search-query="searchQuery = $event"
+      >
         <template #toolbar-actions>
           <BaseButton
             variant="primary"
@@ -103,8 +107,8 @@
 
           <!-- Pagination -->
           <CustomPagination
-            v-if="doors.length > 0"
-            :total-items="doors.length"
+            v-if="formattedDoors.length > 0"
+            :total-items="formattedDoors.length"
             :items-per-page="itemsPerPage"
             :current-page="currentPage"
             @page-change="handlePageChange"
@@ -164,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
@@ -183,10 +187,12 @@ const currentDoorData = ref(null);
 const doors = ref([]);
 const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
+const searchQuery = ref("");
+const debouncedSearch = ref("");
 
 // Pagination state
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(25);
 
 // Dialog
 const showDeptViewDialog = ref(false);
@@ -204,13 +210,53 @@ const headers = ref([
 
 const departmentMap = ref(new Map());
 
-// Computed property for paginated doors
+// New computed — filters formatted doors by search query
+const filteredDoors = computed(() => {
+  const query = debouncedSearch.value;
+
+  if (!query) return formattedDoors.value;
+
+  return formattedDoors.value.filter((door) => {
+    return (
+      door.doorName?.toLowerCase().includes(query) ||
+      door.doorNumber?.toLowerCase().includes(query) ||
+      door.doorType?.toLowerCase().includes(query) ||
+      door.branch?.toLowerCase().includes(query) ||
+      door.location?.toLowerCase().includes(query) ||
+      door.departments?.toLowerCase().includes(query)
+    );
+  });
+});
+
 const paginatedDoors = computed(() => {
   const startIndex = (currentPage.value - 1) * itemsPerPage.value;
   const endIndex = startIndex + itemsPerPage.value;
-  return doors.value.slice(startIndex, endIndex);
+  return filteredDoors.value.slice(startIndex, endIndex);
 });
 
+const totalItemsForPagination = computed(() => filteredDoors.value.length);
+// Add this computed
+const formattedDoors = computed(() => {
+  return doors.value.map((door) => {
+    const departmentNames = getDepartmentNamesFromIds(door.departmentIds);
+
+    return {
+      id: door.id,
+      doorNumber: door.doorNumber,
+      doorName: door.doorName,
+      doorType: door.doorType,
+      branch: door.branchLocation?.locdetail?.locationName || "N/A",
+      location: door.location || "N/A",
+      departmentNames: departmentNames,
+      departments:
+        departmentNames.length > 0
+          ? departmentNames.join(", ")
+          : "Not assigned",
+      originalData: { ...door, departmentIds: door.departmentIds }, // keep raw for editing
+    };
+  });
+});
+let searchTimeout = null;
 const fetchDepartments = async () => {
   try {
     const response = await fetch(
@@ -385,7 +431,14 @@ const showDepartmentsDialog = (item) => {
 const showToast = (msg, type = "success") => {
   console.log(`${type.toUpperCase()}: ${msg}`);
 };
+watch(searchQuery, (newVal) => {
+  if (searchTimeout) clearTimeout(searchTimeout);
 
+  searchTimeout = setTimeout(() => {
+    debouncedSearch.value = newVal.trim().toLowerCase();
+    currentPage.value = 1; // reset to first page on new search
+  }, 300);
+});
 onMounted(() => {
   fetchDoors();
 });

@@ -4,6 +4,8 @@
     <DataTableWrapper
       subtitle="Manage your timer zones and their schedules"
       :showSearch="true"
+      :search-query="searchQuery"
+      @update:search-query="searchQuery = $event"
     >
       <template #toolbar-actions>
         <BaseButton
@@ -38,7 +40,7 @@
       <!-- Table Section -->
       <DataTable
         v-else
-        :items="timerZones"
+        :items="filteredTimerZones"
         :columns="headers"
         :showSelection="false"
         :expandable="false"
@@ -229,7 +231,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
@@ -249,6 +251,10 @@ const isEditing = ref(false);
 const formValid = ref(false);
 const form = ref(null);
 const zoneToDelete = ref(null);
+const searchQuery = ref(""); // This comes from DataTableWrapper
+const debouncedSearch = ref(""); // NEW: debounced version
+
+let searchTimeout = null;
 
 // Snackbar
 const snackbar = reactive({
@@ -309,6 +315,14 @@ const token = ref(null);
 // API endpoints
 const API_BASE = import.meta.env.VITE_API_URL;
 
+const filteredTimerZones = computed(() => {
+  const query = debouncedSearch.value.trim().toLowerCase();
+  if (!query) return timerZones.value;
+
+  return timerZones.value.filter((zone) =>
+    zone.timeZoneName?.toLowerCase().includes(query)
+  );
+});
 // Methods
 const showNotification = (message, color = "success") => {
   snackbar.message = message;
@@ -554,7 +568,12 @@ const initializeAuth = async () => {
     error.value = "Authentication failed. Please log in again.";
   }
 };
-
+watch(searchQuery, (newVal) => {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    debouncedSearch.value = newVal.trim().toLowerCase();
+  }, 300);
+});
 // Lifecycle - Initialize auth first, then fetch data
 onMounted(async () => {
   await initializeAuth();
