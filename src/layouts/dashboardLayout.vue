@@ -443,6 +443,12 @@ export default {
               },
             ],
           },
+          {
+            title: "Monitoring",
+            icon: "mdi-cctv",
+            to: "/monitoring",
+            roles: ["Admin", "Manager", "esslAdmin"],
+          },
         ],
       },
       // {
@@ -773,6 +779,8 @@ export default {
         "/qr-generate": "QR Generate",
         "/qr-generate/bulk": "QR Generate",
         "/qr-generate/employee": "Employee QR Generate",
+        "/monitoring/events": "Event Monitoring",
+        "/monitoring/live": "Live Camera Feed",
       };
 
       if (routeTitleMap[path]) {

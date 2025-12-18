@@ -150,7 +150,10 @@ const configurators = [
   {
     id: "device",
     label: "Device Configurator",
-    subsections: [{ id: "device-configurator", label: "Manage Devices" }],
+    subsections: [
+      { id: "device-configurator", label: "Manage Devices" },
+      { id: "camera-management", label: "Manage Cameras" },
+    ],
   },
   {
     id: "accesslevel",

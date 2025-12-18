@@ -14,6 +14,11 @@ import DeviceManagementTabs from "../pages/devicesManager/deviceManagerTabs.vue"
 import UnapprovedDevices from "@/pages/devicesManager/unApprovedDevice/unApprovedDetails.vue";
 import DoorManagement from "@/pages/devicesManager/doors/doorDetails.vue";
 import Accesslevel from "@/pages/devicesManager/accesslevel/accesslevelCatagory.vue";
+import CameraList from "@/pages/devicesManager/camera/cameraList.vue";
+
+import MonitoringTabs from "@/pages/monitoring/monitoringTabs.vue";
+import EventLogs from "@/pages/monitoring/eventLogs.vue";
+import LiveFeed from "@/pages/monitoring/liveFeed.vue";
 
 import AttendanceDeatils from "../pages/attendanceDetails/attendanceTabs.vue";
 import LiveAttendance from "@/pages/attendanceDetails/liveAttendance/liveAttendanceDetails.vue";
@@ -504,6 +509,29 @@ const routes = [
         ],
       },
       {
+        path: "/monitoring",
+        component: MonitoringTabs,
+        meta: { roles: ["Admin", "Manager", "esslAdmin"] },
+        children: [
+          {
+            path: "",
+            redirect: { name: "event-logs" },
+          },
+          {
+            path: "events",
+            name: "event-logs",
+            component: EventLogs,
+            meta: { roles: ["Admin", "Manager", "esslAdmin"] },
+          },
+          {
+            path: "live",
+            name: "live-feed",
+            component: LiveFeed,
+            meta: { roles: ["Admin", "Manager", "esslAdmin"] },
+          },
+        ],
+      },
+      {
         path: "/employee-details",
         name: "EmployeeDetails",
         component: EmployeeDetails,
@@ -888,6 +916,12 @@ const routes = [
                 meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
               },
             ],
+          },
+          {
+            path: "camera-management",
+            name: "camera-management",
+            component: CameraList,
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
           },
           {
             path: "door-configurator",

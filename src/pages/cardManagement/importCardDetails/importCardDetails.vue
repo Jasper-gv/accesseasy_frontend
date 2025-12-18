@@ -1318,10 +1318,6 @@ watch(search, () => debouncedSearch());
   display: flex;
   height: 100vh;
   position: relative;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
 }
 
 /* Main Content */

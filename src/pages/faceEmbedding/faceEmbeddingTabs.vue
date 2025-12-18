@@ -66,85 +66,88 @@ watch(activeTab, (newTab) => {
 }
 
 .tabs-container {
-  border-bottom: 1px solid #e0e0e0;
-  background: white;
+  border-bottom: none;
+  background: transparent;
   position: sticky;
   top: 0;
   z-index: 10;
-  /* Remove flex: 1 if it exists */
-  flex: none; /* Add this to ensure it doesn't grow */
+  flex: none;
 }
 
 .custom-tabs {
-  background-color: white;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-  padding: 8px 10px 0;
+  background-color: transparent; /* Changed from white to transparent for a cleaner look */
+  padding: 8px 0 8px; /* Adjusted padding */
+  border-bottom: none;
 }
 
 .custom-tab {
-  border-radius: 10;
-  background-color: #ffe7e6;
-  color: #122f68 !important;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-  margin-right: 8px;
-  min-height: 48px;
-  transition: background-color 0.3s ease;
+  border-radius: 8px; /* Rounded all corners for pill shape */
+  background-color: #fff; /* White background for inactive */
+  color: #64748b !important; /* Softer text color */
+  border: 1px solid #e2e8f0; /* Subtle border */
+  margin-right: 12px;
+  min-height: 36px; /* Reduced height */
+  height: 36px;
+  transition: all 0.2s ease;
   text-transform: capitalize;
-  font-weight: 550;
-  font-size: 16px;
-  min-width: 200px;
+  font-weight: 600;
+  font-size: 13px; /* Reduced font size */
+  letter-spacing: 0.3px;
+  min-width: 160px; /* Reduced min-width */
 }
 
 /* Active tab style */
 :deep(.v-tab--selected.custom-tab) {
-  background-color: rgb(244, 84, 84) !important;
-  color: whitesmoke !important;
-  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+  background-color: #122f68 !important; /* Dark blue for active state */
+  color: #ffffff !important;
+  border-color: #122f68;
+  box-shadow: 0 4px 12px rgba(18, 47, 104, 0.15);
+  transform: translateY(-1px);
 }
 
 /* Icon styles */
 :deep(.custom-tab .v-icon) {
-  color: #122f68 !important;
-  opacity: 0.8;
-}
-
-:deep(.v-tab--selected .v-icon) {
-  color: white !important;
+  color: #64748b !important;
+  font-size: 18px; /* Smaller icons */
   opacity: 1;
 }
 
+:deep(.v-tab--selected .v-icon) {
+  color: #ffffff !important;
+}
+
 .tab-content {
-  /* Remove flex: 1 to prevent pushing content to bottom */
   flex: 1;
-  overflow: auto; /* Change to auto for better scrolling */
-  border-radius: 0 0 12px 12px;
+  overflow: auto;
+  border-radius: 12px;
   background: white;
-  padding: 16px;
-  /* Ensure content starts from top */
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle shadow */
+  border: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
+  margin: 0 16px 16px; /* Add margin to separate from edges */
 }
 
 /* Tab button styles */
 :deep(.v-tab.v-btn) {
-  height: var(--v-tabs-height);
-  border-radius: 10px !important;
-  min-width: 90px !important;
+  height: 36px !important; /* Force height */
+  border-radius: 8px !important;
+  min-width: auto !important; /* Allow smaller width */
+  padding: 0 16px; /* Comfortable padding */
 }
 
 /* Remove old tab styles */
 :deep(.v-tab) {
-  color: #122f68 !important;
+  color: #64748b !important;
 }
 
 :deep(.v-tab--selected) {
-  color: black !important;
+  color: #ffffff !important;
 }
 
 :deep(.v-tabs-slider) {
-  background-color: #000000 !important;
+  display: none; /* Hide slider for pill design */
 }
 
 /* Ensure router-view content starts from top */

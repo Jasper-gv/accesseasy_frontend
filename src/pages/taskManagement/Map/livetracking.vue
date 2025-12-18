@@ -108,6 +108,27 @@
                   </label>
                 </div>
               </div>
+
+              <div class="control-row">
+                <div class="control-info">
+                  <div class="control-icon camera">📷</div>
+                  <div class="control-details">
+                    <span class="control-name">Cameras</span>
+                    <span class="control-description">Surveillance cameras</span>
+                  </div>
+                </div>
+                <div class="control-actions">
+                  <span class="item-count">{{ camerasCount }}</span>
+                  <label class="modern-switch">
+                    <input 
+                      type="checkbox"
+                      v-model="layers.cameras"
+                      @change="toggleLayer('cameras')"
+                    >
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+              </div>
               
               <div class="control-row">
                 <div class="control-info">
@@ -319,6 +340,7 @@ const apiKey = 'AIzaSyCwp-gBFBiutZVlE-a-84hHnA2XeMRGE1g';
 const layers = ref({
   serviceableAreas: true,
   branches: true,
+  cameras: true,
   showRadius: true,
   showLocationNames: true // New property for location names visibility
 });
@@ -400,6 +422,8 @@ const serviceableAreasCount = computed(() =>
   filteredLocations.value.filter(loc => loc.locType === 'serviceable_area').length);
 const branchesCount = computed(() => 
   filteredLocations.value.filter(loc => loc.locType === 'branch').length);
+const camerasCount = computed(() => 
+  filteredLocations.value.filter(loc => loc.locType === 'camera').length);
 const locationsWithRadius = computed(() => 
   filteredLocations.value.filter(loc => loc.locSize && loc.locSize !== null).length);
 
@@ -475,7 +499,23 @@ const fetchLocations = async () => {
     // Log API response for debugging
     logApiResponse(locationsData);
     
-    return locationsData;
+    // Mock Camera Locations for Demo
+    const mockCameras = [
+      {
+        locType: 'camera',
+        locdetail: { locationName: 'Main Entrance Cam', address: 'Headquarters', pincode: '123456' },
+        locmark: { coordinates: [78.9629, 20.5937] }, // Near center
+        orgLocation: { orgType: 'main tenant' }
+      },
+      {
+        locType: 'camera',
+        locdetail: { locationName: 'Warehouse Cam', address: 'Warehouse A', pincode: '654321' },
+        locmark: { coordinates: [77.5946, 12.9716] }, // Bangalore
+        orgLocation: { orgType: 'main tenant' }
+      }
+    ];
+    
+    return [...locationsData, ...mockCameras];
   } catch (error) {
     console.error('Error fetching locations:', error);
     return [];
@@ -644,6 +684,13 @@ const addLocationMarkers = () => {
         radiusFill: '#EF4444',
         radiusStroke: '#DC2626'
       };
+    } else if (locationType === 'camera') {
+      colors = {
+        markerFill: '#10B981',
+        markerStroke: '#059669',
+        radiusFill: '#10B981',
+        radiusStroke: '#059669'
+      };
     }
     
     const marker = new google.maps.Marker({
@@ -787,6 +834,8 @@ const shouldShowMarker = (locationType) => {
     return layers.value.serviceableAreas;
   } else if (locationType === 'branch') {
     return layers.value.branches;
+  } else if (locationType === 'camera') {
+    return layers.value.cameras;
   }
   return false;
 };

@@ -727,10 +727,6 @@ watch(
   display: flex;
   height: 100vh;
   position: relative;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
 }
 
 /* Filter Panel */
@@ -958,10 +954,6 @@ watch(
   margin: 0;
   font-size: 0.85rem;
   color: #1e293b;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
 }
 
 /* Leave Info Cell */
