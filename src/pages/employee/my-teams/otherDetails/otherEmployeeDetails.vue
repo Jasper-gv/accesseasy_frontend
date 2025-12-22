@@ -488,7 +488,7 @@ const getStatusClass = (status) => {
 
 const getTagStatus = (item) => {
   const tagCard = item.assignedCards?.find(
-    (card) => card.cardManagement_id?.type === "tag",
+    (card) => card.cardManagement_id?.type === "tag"
   );
   if (tagCard) {
     return `${tagCard.cardManagement_id.rfidCard} (${
@@ -501,7 +501,7 @@ const getTagStatus = (item) => {
 const getRfidCardCount = (item) => {
   return (
     item.assignedCards?.filter(
-      (card) => card.cardManagement_id?.type === "rfid",
+      (card) => card.cardManagement_id?.type === "rfid"
     ).length || 0
   );
 };
@@ -509,7 +509,7 @@ const getRfidCardCount = (item) => {
 const showRfidCards = (item) => {
   const rfidCards =
     item.assignedCards?.filter(
-      (card) => card.cardManagement_id?.type === "rfid",
+      (card) => card.cardManagement_id?.type === "rfid"
     ) || [];
   rfidCardPopup.value?.open(rfidCards);
 };
@@ -541,7 +541,7 @@ const fetchManagerBranch = async () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        },
+        }
       );
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -620,7 +620,7 @@ const fetchManagerBranch = async () => {
 const fetchEmployeeData = async (
   currentPage = page.value,
   currentItemsPerPage = itemsPerPage.value,
-  searchTerm = search.value,
+  searchTerm = search.value
 ) => {
   try {
     loading.value = true;
@@ -708,12 +708,12 @@ const fetchEmployeeData = async (
     // Role-based filtering
     if (userRole.value === "Admin" || userRole.value === "Dealer") {
       filterParams.push(
-        `filter[assignedUser][tenant][tenantId][_eq]=${tenantId.value}`,
+        `filter[assignedUser][tenant][tenantId][_eq]=${tenantId.value}`
       );
     } else {
       filterParams.push(`filter[_or][0][approver][id][_eq]=${userId.value}`);
       filterParams.push(
-        `filter[_or][1][assignedUser][id][_eq]=${userId.value}`,
+        `filter[_or][1][assignedUser][id][_eq]=${userId.value}`
       );
     }
 
@@ -721,19 +721,19 @@ const fetchEmployeeData = async (
     if (searchTerm) {
       filterParams.push(`filter[_or][0][employeeId][_contains]=${searchTerm}`);
       filterParams.push(
-        `filter[_or][1][assignedUser][first_name][_contains]=${searchTerm}`,
+        `filter[_or][1][assignedUser][first_name][_contains]=${searchTerm}`
       );
       filterParams.push(
-        `filter[_or][2][assignedUser][email][_contains]=${searchTerm}`,
+        `filter[_or][2][assignedUser][email][_contains]=${searchTerm}`
       );
       filterParams.push(
-        `filter[_or][3][branch][branchName][_contains]=${searchTerm}`,
+        `filter[_or][3][branch][branchName][_contains]=${searchTerm}`
       );
     }
 
     if (filters.organization) {
       filterParams.push(
-        `filter[assignedUser][organization][id][_eq]=${filters.organization}`,
+        `filter[assignedUser][organization][id][_eq]=${filters.organization}`
       );
     }
 
@@ -749,27 +749,27 @@ const fetchEmployeeData = async (
 
     if (filters.role.length) {
       filterParams.push(
-        `filter[assignedUser][role][name][_in]=${filters.role.join(",")}`,
+        `filter[assignedUser][role][name][_in]=${filters.role.join(",")}`
       );
     }
     if (filters.accessLevel.length) {
       filterParams.push(
-        `filter[assignedAccessLevels][accesslevels_id][accessLevelName][_in]=${filters.accessLevel.join(",")}`,
+        `filter[assignedAccessLevels][accesslevels_id][accessLevelName][_in]=${filters.accessLevel.join(",")}`
       );
     }
     if (filters.gender.length) {
       filterParams.push(
-        `filter[assignedUser][gender][_in]=${filters.gender.join(",")}`,
+        `filter[assignedUser][gender][_in]=${filters.gender.join(",")}`
       );
     }
     if (filters.dateFrom) {
       filterParams.push(
-        `filter[assignedUser][dateOfJoining][_gte]=${filters.dateFrom}`,
+        `filter[assignedUser][dateOfJoining][_gte]=${filters.dateFrom}`
       );
     }
     if (filters.dateTo) {
       filterParams.push(
-        `filter[assignedUser][dateOfJoining][_lte]=${filters.dateTo}`,
+        `filter[assignedUser][dateOfJoining][_lte]=${filters.dateTo}`
       );
     }
 
@@ -797,7 +797,7 @@ const fetchEmployeeData = async (
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -810,7 +810,7 @@ const fetchEmployeeData = async (
           employee.avatarImage = await fetchAuthorizedImage(avatarUrl);
         }
         return employee;
-      }),
+      })
     );
 
     // Fetch total count
@@ -891,7 +891,7 @@ const deleteSelected = async () => {
 
   if (
     confirm(
-      `Are you sure you want to delete ${selectedItems.value.length} selected employee(s)?`,
+      `Are you sure you want to delete ${selectedItems.value.length} selected employee(s)?`
     )
   ) {
     try {
@@ -909,7 +909,7 @@ const deleteSelected = async () => {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
-            },
+            }
           ),
         ];
 
@@ -922,8 +922,8 @@ const deleteSelected = async () => {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
-              },
-            ),
+              }
+            )
           );
         }
 
@@ -940,7 +940,7 @@ const deleteSelected = async () => {
         alert("Selected employees deleted successfully");
       } else {
         alert(
-          `Operation completed with ${errors} errors. Please refresh the page.`,
+          `Operation completed with ${errors} errors. Please refresh the page.`
         );
       }
 
@@ -986,10 +986,6 @@ onUnmounted(() => {
   display: flex;
   height: 100vh;
   position: relative;
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
   background-color: #f8fafc;
 }
 
