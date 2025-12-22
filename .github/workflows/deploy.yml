@@ -1,4 +1,4 @@
-name: Deploy AccessEasy App to AWS
+name: Deploy AccessEasy App to AWS 
 
 on:
   push:
