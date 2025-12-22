@@ -25,7 +25,7 @@
       <!-- Header Section - Logo with Image -->
       <div class="sidebar-header" @click="toggleSidebarState">
         <v-img
-          src="/images/accesseasylogo.png"
+          src="/images/accesseasylogo.pngss"
           alt="Logo"
           cover
           class="logo-image-full"
@@ -38,11 +38,25 @@
         <v-list class="nav-list" density="compact">
           <template
             v-for="(item, index) in filteredMenuItems"
-            :key="item.title"
+            :key="item.title || item.header"
           >
+            <!-- Header Item -->
+            <v-list-subheader
+              v-if="item.header && !computedRail"
+              class="sidebar-group-header"
+            >
+              {{ item.header }}
+            </v-list-subheader>
+            <v-divider
+              v-else-if="item.header && computedRail"
+              class="my-2"
+            ></v-divider>
+
             <!-- Simple Menu Item (No Sub Items) -->
             <v-list-item
-              v-if="!item.subItems || item.subItems.length === 0"
+              v-else-if="
+                !item.header && (!item.subItems || item.subItems.length === 0)
+              "
               :to="item.to"
               class="nav-item main-item"
               :class="{ active: $route.path === item.to }"
@@ -86,7 +100,7 @@
             </v-list-item>
 
             <!-- Menu Item with Sub Items -->
-            <div v-else class="menu-group">
+            <div v-else-if="!item.header" class="menu-group">
               <v-list-item
                 class="nav-item main-item expandable"
                 :class="{
@@ -196,7 +210,26 @@
         </v-btn>
 
         <!-- Page Title -->
-        <v-toolbar-title>{{ getCurrentPageTitle }} </v-toolbar-title>
+        <v-toolbar-title class="d-flex align-center">
+          {{ getCurrentPageTitle }}
+          
+          <!-- Branch Filter (Only visible on Dashboard) -->
+          <div v-if="getCurrentPageTitle === 'Dashboard'" class="ml-4 branch-filter-container">
+             <select 
+              v-model="selectedBranch" 
+              class="layout-branch-select"
+            >
+              <option value="all">All Branches</option>
+              <option 
+                v-for="branch in branches" 
+                :key="branch.id" 
+                :value="branch.id"
+              >
+                {{ branch.locationName }}
+              </option>
+            </select>
+          </div>
+        </v-toolbar-title>
 
         <!-- Spacer -->
         <v-spacer />
@@ -334,6 +367,10 @@ export default {
         subItems: [],
       },
       {
+        header: "Management",
+        roles: ["Admin", "Employee", "Manager", "esslAdmin"],
+      },
+      {
         title: "Employees",
         icon: "mdi-account-group-outline",
         to: "/employee-details/employee",
@@ -443,12 +480,6 @@ export default {
               },
             ],
           },
-          {
-            title: "Monitoring",
-            icon: "mdi-cctv",
-            to: "/monitoring",
-            roles: ["Admin", "Manager", "esslAdmin"],
-          },
         ],
       },
       // {
@@ -468,6 +499,23 @@ export default {
         to: "/leave/leavePermission",
         icon: "mdi-account-check",
         roles: ["Admin"],
+      },
+      { header: "Security AI", roles: ["Admin", "Manager", "esslAdmin"] },
+      {
+        title: "Monitoring",
+        icon: "mdi-cctv",
+        to: "/monitoring/live",
+        roles: ["Admin", "Manager", "esslAdmin"],
+      },
+      {
+        title: "Alerts",
+        icon: "mdi-alert-circle-outline",
+        to: "/monitoring/events",
+        roles: ["Admin", "Manager", "esslAdmin"],
+      },
+      {
+        header: "System",
+        roles: ["Admin", "Dealer", "Manager", "Administrator"],
       },
       // {
       //   title: "Smart Forms",
@@ -546,12 +594,12 @@ export default {
       //   roles: ["Admin", "Administrator"],
       //   to: "/settings/roleConfigurator/roleconfig",
       // },
-      {
-        title: "Subscription & Plans",
-        icon: "mdi-credit-card-outline",
-        to: "/settings/plans/plans",
-        roles: ["Admin"],
-      },
+      // {
+      //   title: "Subscription & Plans",
+      //   icon: "mdi-credit-card-outline",
+      //   to: "/settings/plans/plans",
+      //   roles: ["Admin"],
+      // },
     ];
 
     const filteredMenuItems = computed(() => {
@@ -1441,5 +1489,16 @@ export default {
 }
 .v-toolbar-title {
   font-weight: bold;
+}
+
+.sidebar-group-header {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #1e3fa9 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 16px 16px 8px 16px !important;
+  height: auto !important;
+  min-height: unset !important;
 }
 </style>

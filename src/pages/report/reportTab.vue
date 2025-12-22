@@ -43,11 +43,11 @@ const tabs = [
     title: "Accesslevel Report",
     icon: "mdi-calendar-check",
   },
-  {
-    value: "CompanyReport",
-    title: "Employee Report",
-    icon: "mdi-file-chart",
-  },
+  // {
+  //   value: "CompanyReport",
+  //   title: "Employee Report",
+  //   icon: "mdi-file-chart",
+  // },
 ];
 
 const activeTab = ref(route.name);

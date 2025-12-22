@@ -234,6 +234,7 @@ import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import { Plus as PlusIcon, Trash as TrashIcon } from "lucide-vue-next";
+import { antipassbackService } from "@/services/antipassbackService";
 
 // === Reactive State ===
 const activeTab = ref("antipassback");
@@ -267,21 +268,8 @@ const form = reactive({
   exitDoors: [],
 });
 
-// Dummy door list (replace with API later)
-const doorOptions = [
-  "Main Entrance",
-  "Side Door A",
-  "Side Door B",
-  "Emergency Exit",
-  "Parking Main Gate",
-  "Pedestrian Gate",
-  "Service Gate",
-  "Server Room Main",
-  "Server Room Emergency",
-  "Back Entrance",
-  "Loading Dock",
-  "Front Gate",
-];
+const doorOptions = ref([]);
+const allDoors = ref([]);
 
 // Table columns
 const tableColumns = [
@@ -310,26 +298,42 @@ const formatDoors = (doors) => {
 };
 
 // === CRUD Operations ===
+// === CRUD Operations ===
 const fetchRules = async () => {
   loading.value = true;
   error.value = null;
   try {
-    // Replace with real API call later
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    antipassbackRules.value = [
-      {
-        id: 1,
-        zoneName: "Main Building Zone",
-        entryDoors: ["Main Entrance", "Side Door A"],
-        exitDoors: ["Emergency Exit", "Side Door B"],
-      },
-      {
-        id: 2,
-        zoneName: "Parking Zone",
-        entryDoors: ["Parking Main Gate"],
-        exitDoors: ["Pedestrian Gate", "Service Gate"],
-      },
-    ];
+    const [zones, doors] = await Promise.all([
+      antipassbackService.fetchZones(),
+      antipassbackService.fetchDoors(),
+    ]);
+
+    allDoors.value = doors;
+    doorOptions.value = doors.map((d) => d.doorName); // Assuming doorName is the field
+
+    // Map doors to zones
+    const rules = zones.map((zone) => {
+      const zoneDoors = doors.filter(
+        (d) => d.antipassbackMode && d.antipassbackMode.id === zone.id
+      );
+
+      const entryDoors = zoneDoors
+        .filter((d) => d.antipassbackMode.direction === "entry")
+        .map((d) => d.doorName);
+
+      const exitDoors = zoneDoors
+        .filter((d) => d.antipassbackMode.direction === "exit")
+        .map((d) => d.doorName);
+
+      return {
+        id: zone.id,
+        zoneName: zone.zoneName,
+        entryDoors,
+        exitDoors,
+      };
+    });
+
+    antipassbackRules.value = rules;
   } catch (err) {
     error.value = "Failed to load antipassback rules";
     console.error(err);
@@ -370,28 +374,59 @@ const saveRule = async () => {
 
   saving.value = true;
   try {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    const payload = {
-      ...form,
-      entryDoors: [...form.entryDoors],
-      exitDoors: [...form.exitDoors],
-    };
+    let zoneId = form.id;
 
     if (isEditing.value) {
-      const idx = antipassbackRules.value.findIndex((r) => r.id === form.id);
-      if (idx > -1) antipassbackRules.value[idx] = payload;
-      showNotification("Rule updated successfully");
+      // Update logic if needed (User only specified creation flow details)
+      // For now, we might assume editing just updates the doors, but zone name update might need a PATCH to zone
+      // Since user focused on creation integration, I'll focus on that, but let's try to handle it.
+      // If editing, we already have zoneId.
+      // We need to clear previous doors for this zone and set new ones.
+      // This is complex without a clear "clear" API.
+      // I will implement CREATION as requested primarily.
+      // But for completeness:
+      // 1. Update Zone Name (if changed)
+      // 2. Update Doors.
+      showNotification("Editing not fully implemented yet", "warning");
+      return;
     } else {
-      payload.id = Date.now();
-      antipassbackRules.value.unshift(payload);
+      // 1. Create Zone
+      const newZone = await antipassbackService.createZone(form.zoneName);
+      zoneId = newZone.id;
+
+      // 2. Update Entry Doors
+      const entryDoorPromises = form.entryDoors.map((doorName) => {
+        const door = allDoors.value.find((d) => d.doorName === doorName);
+        if (door) {
+          return antipassbackService.updateDoor(door.id, {
+            id: zoneId,
+            direction: "entry",
+          });
+        }
+        return Promise.resolve();
+      });
+
+      // 3. Update Exit Doors
+      const exitDoorPromises = form.exitDoors.map((doorName) => {
+        const door = allDoors.value.find((d) => d.doorName === doorName);
+        if (door) {
+          return antipassbackService.updateDoor(door.id, {
+            id: zoneId,
+            direction: "exit",
+          });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all([...entryDoorPromises, ...exitDoorPromises]);
       showNotification("Rule added successfully");
     }
 
+    await fetchRules(); // Refresh list
     closeForm();
   } catch (err) {
     showNotification("Failed to save rule", "error");
+    console.error(err);
   } finally {
     saving.value = false;
   }

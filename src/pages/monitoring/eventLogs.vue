@@ -2,15 +2,29 @@
   <div class="event-logs-container">
     <div class="header-actions mb-4">
       <h2>AI Event Logs</h2>
-      <v-btn color="primary" prepend-icon="mdi-refresh" @click="refreshLogs">
-        Refresh
-      </v-btn>
+      <div class="d-flex align-center gap-4">
+        <v-select
+          v-model="selectedLocationFilter"
+          :items="locations"
+          item-title="locationName"
+          item-value="id"
+          label="Filter by Location"
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          style="width: 200px; margin-right: 16px;"
+        ></v-select>
+        <v-btn color="primary" prepend-icon="mdi-refresh" @click="refreshLogs">
+          Refresh
+        </v-btn>
+      </div>
     </div>
 
     <v-card>
       <v-data-table
         :headers="headers"
-        :items="events"
+        :items="filteredEvents"
         :loading="loading"
         class="elevation-1"
       >
@@ -74,45 +88,73 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import VideoPlayer from '@/components/VideoPlayer.vue';
+import { useCameraData } from '@/composables/useCameraData.js';
 
-const loading = ref(false);
 const videoDialog = ref(false);
 const selectedEvent = ref(null);
+const selectedLocationFilter = ref(null);
+
+// Use shared camera data composable
+const { locations, cameras, loading, fetchLocations } = useCameraData();
 
 const headers = [
   { title: 'Snapshot', key: 'snapshot', sortable: false },
   { title: 'Timestamp', key: 'timestamp' },
   { title: 'Event Type', key: 'type' },
   { title: 'Camera', key: 'cameraName' },
-  { title: 'Location', key: 'location' },
+  { title: 'Location', key: 'locationName' },
   { title: 'Severity', key: 'severity' },
   { title: 'Actions', key: 'actions', sortable: false },
 ];
 
-const events = ref([
-  {
-    id: 1,
-    timestamp: new Date().toISOString(),
-    type: 'Unauthorized Entry',
-    cameraName: 'Main Entrance Cam',
-    location: 'Headquarters',
-    severity: 'High',
-    snapshotUrl: 'https://via.placeholder.com/160x90?text=Snapshot',
-    videoUrl: '#',
-  },
-  {
-    id: 2,
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    type: 'Tailgating Detected',
-    cameraName: 'Warehouse Back Door',
-    location: 'Warehouse A',
-    severity: 'Medium',
-    snapshotUrl: 'https://via.placeholder.com/160x90?text=Snapshot',
-    videoUrl: '#',
-  },
-]);
+// Event types for random generation
+const eventTypes = [
+  { type: 'Unauthorized Entry', severity: 'High' },
+  { type: 'Loitering Detected', severity: 'Medium' },
+  { type: 'Tailgating Detected', severity: 'High' },
+  { type: 'Object Left Behind', severity: 'Low' },
+  { type: 'Crowd Density High', severity: 'Medium' },
+  { type: 'Face Recognition Failed', severity: 'Medium' },
+  { type: 'Suspicious Activity', severity: 'High' },
+];
+
+// Generate events based on actual camera data
+const events = computed(() => {
+  const generatedEvents = [];
+  let eventId = 1;
+  
+  cameras.value.forEach((camera, index) => {
+    // Generate 1-2 events per camera
+    const numEvents = Math.floor(Math.random() * 2) + 1;
+    
+    for (let i = 0; i < numEvents; i++) {
+      const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+      const timeOffset = (index * 3600000) + (i * 1800000); // Stagger timestamps
+      
+      generatedEvents.push({
+        id: eventId++,
+        timestamp: new Date(Date.now() - timeOffset).toISOString(),
+        type: eventType.type,
+        cameraName: camera.name,
+        locationId: camera.locationId,
+        locationName: camera.locationName,
+        severity: eventType.severity,
+        snapshotUrl: `https://via.placeholder.com/160x90?text=${encodeURIComponent(camera.name)}`,
+        videoUrl: camera.videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      });
+    }
+  });
+  
+  // Sort by timestamp (newest first)
+  return generatedEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+});
+
+const filteredEvents = computed(() => {
+  if (!selectedLocationFilter.value) return events.value;
+  return events.value.filter(e => e.locationId === selectedLocationFilter.value);
+});
 
 const formatTimestamp = (isoString) => {
   return new Date(isoString).toLocaleString();
@@ -127,21 +169,28 @@ const getSeverityColor = (severity) => {
   }
 };
 
-const refreshLogs = () => {
-  loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-  }, 1000);
+const refreshLogs = async () => {
+  await fetchLocations();
 };
 
 const playVideo = (item) => {
   selectedEvent.value = item;
   videoDialog.value = true;
 };
+
+// Fetch locations and cameras on mount
+onMounted(async () => {
+  await fetchLocations();
+});
 </script>
 
 <style scoped>
 .event-logs-container {
   padding: 20px;
+}
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>
