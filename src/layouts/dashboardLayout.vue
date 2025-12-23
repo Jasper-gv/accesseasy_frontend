@@ -25,7 +25,7 @@
       <!-- Header Section - Logo with Image -->
       <div class="sidebar-header" @click="toggleSidebarState">
         <v-img
-          src="/images/accesseasylogo.pngss"
+          src="/images/accesseasylogo.png"
           alt="Logo"
           cover
           class="logo-image-full"

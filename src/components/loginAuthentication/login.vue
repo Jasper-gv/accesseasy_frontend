@@ -24,8 +24,8 @@
               <div class="card-header">
                 <div class="logo-section">
                   <img
-                    src="/public/images/project.png"
-                    alt="FieldsEasy"
+                    src="/public/images/accesseasylogo1.jpeg"
+                    alt="AccessEasy"
                     class="logo-image"
                   />
                 </div>
@@ -406,6 +406,13 @@ function handleSubmit() {
   color: rgba(255, 255, 255, 0.9);
   margin: 0;
   font-weight: 500;
+}
+
+.logo-image {
+  max-width: 250px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Card header styling - contains logo */

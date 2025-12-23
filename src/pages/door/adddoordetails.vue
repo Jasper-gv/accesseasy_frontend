@@ -241,12 +241,15 @@ const populateForm = async () => {
           formData.assignedDepts = JSON.parse(props.doorData.departmentIds);
         } else if (Array.isArray(props.doorData.departmentIds)) {
           formData.assignedDepts = [...props.doorData.departmentIds];
-        } else if (props.doorData.assignedDepts) {
-          if (typeof props.doorData.assignedDepts === "object") {
-            formData.assignedDepts = [props.doorData.assignedDepts.id];
-          } else {
-            formData.assignedDepts = [props.doorData.assignedDepts];
-          }
+        } else if (typeof props.doorData.departmentIds === "object" && props.doorData.departmentIds !== null) {
+             // It might be a single object if not an array, but usually it's an array or string
+             // If it has an ID, use it
+             if (props.doorData.departmentIds.id) {
+                 formData.assignedDepts = [props.doorData.departmentIds.id];
+             } else {
+                 // Fallback or empty
+                 formData.assignedDepts = [];
+             }
         } else {
           formData.assignedDepts = [];
         }
@@ -255,7 +258,9 @@ const populateForm = async () => {
         formData.assignedDepts = [];
       }
     } else if (props.doorData.assignedDepts) {
-      if (typeof props.doorData.assignedDepts === "object") {
+      if (Array.isArray(props.doorData.assignedDepts)) {
+          formData.assignedDepts = [...props.doorData.assignedDepts];
+      } else if (typeof props.doorData.assignedDepts === "object" && props.doorData.assignedDepts !== null) {
         formData.assignedDepts = [props.doorData.assignedDepts.id];
       } else {
         formData.assignedDepts = [props.doorData.assignedDepts];

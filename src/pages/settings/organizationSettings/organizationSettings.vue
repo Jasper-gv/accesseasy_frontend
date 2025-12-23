@@ -68,10 +68,10 @@
                 :style="{
                   width: '280px',
                   height: '280px',
-                  cursor: 'pointer',
+                  cursor: editModes.address ? 'pointer' : 'default',
                   backgroundColor: tenantData?.logo ? 'transparent' : '#f5f5f5',
                 }"
-                @click="!tenantData?.logo && $refs.logoInput.click()"
+                @click="editModes.address && $refs.logoInput.click()"
               >
                 <v-img
                   v-if="tenantData?.logo"
@@ -105,132 +105,66 @@
 
             <div class="company-info">
               <div class="company-name-section">
-                <div class="field-label">Company Name</div>
-                <div class="field-value d-flex align-center">
-                  {{ tenantData?.tenantName || "Senzr" }}
-                  <v-select
-                    v-model="tenantData.accountSettings.currency"
-                    :items="currencyOptions"
-                    label="Currency"
-                    variant="outlined"
-                    density="compact"
-                    hide-details
-                    class="ml-4"
-                    style="max-width: 120px"
-                    :disabled="!editModes.address"
-                  />
-                </div>
-              </div>
+    <div class="field-label">Company Name</div>
+    <div class="field-value d-flex align-center flex-wrap gap-3">
+      <div style="min-width: 300px;">
+        <v-text-field
+          v-if="editModes.address"
+          v-model="tenantData.tenantName"
+          label="Company Name"
+          variant="outlined"
+          density="compact"
+          hide-details
+        />
+        <v-text-field
+          v-else
+          :model-value="tenantData?.tenantName || '-'"
+          label="Company Name"
+          variant="outlined"
+          density="compact"
+          hide-details
+          readonly
+          bg-color="grey-lighten-4"
+          :disabled="!editModes.address"
+        />
+      </div>
+      <v-select
+        v-model="tenantData.accountSettings.currency"
+        :items="currencyOptions"
+        label="Currency"
+        variant="outlined"
+        density="compact"
+        hide-details
+        style="width: 140px;"
+        :disabled="!editModes.address"
+      />
+    </div>
+  </div>
 
               <div class="address-section">
                 <div class="field-label">Company Address</div>
+                <template v-if="!editModes.address">
+                  <div class="field-value">
+                    {{ tenantData?.companyAddress || "" }}
+                  </div>
+                </template>
+                <template v-else>
+                  <v-textarea
+                    v-model="tenantData.companyAddress"
+                    label="Company Address"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    rows="3"
+                  />
+                </template>
               </div>
-
-              <template v-if="!editModes.address">
-                <v-row class="address-grid">
-                  <v-col cols="12" md="4" class="address-field">
-                    <div class="field-label-small">Building No</div>
-                    <div class="field-value-small">
-                      {{ tenantData?.companyAddress?.house || "125" }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" class="address-field">
-                    <div class="field-label-small">Street</div>
-                    <div class="field-value-small">
-                      {{ tenantData?.companyAddress?.street || "arasalwar" }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" class="address-field">
-                    <div class="field-label-small">City</div>
-                    <div class="field-value-small">
-                      {{ tenantData?.companyAddress?.vtc || "srivaikundam" }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" class="address-field">
-                    <div class="field-label-small">District</div>
-                    <div class="field-value-small">
-                      {{ tenantData?.companyAddress?.dist || "thoothukudi" }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" class="address-field">
-                    <div class="field-label-small">State</div>
-                    <div class="field-value-small">
-                      {{ tenantData?.companyAddress?.state || "tamilNadu" }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" class="address-field">
-                    <div class="field-label-small">Pincode</div>
-                    <div class="field-value-small">
-                      {{ tenantData?.companyAddress?.zip || "62002" }}
-                    </div>
-                  </v-col>
-                </v-row>
-              </template>
-
-              <template v-else>
-                <v-row class="g-2">
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="tenantData.companyAddress.house"
-                      label="Building No"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                    />
-                  </v-col>
-                  <v-col cols="6" md="4">
-                    <v-text-field
-                      v-model="tenantData.companyAddress.street"
-                      label="Street"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="tenantData.companyAddress.vtc"
-                      label="City"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="tenantData.companyAddress.dist"
-                      label="District"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="tenantData.companyAddress.state"
-                      label="State"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="tenantData.companyAddress.zip"
-                      label="Pincode"
-                      variant="outlined"
-                      density="compact"
-                      hide-details
-                    />
-                  </v-col>
-                </v-row>
-              </template>
             </div>
           </v-row>
         </v-card>
 
         <!-- ESI Accounts Section -->
-        <v-card class="section-card">
+        <!-- <v-card class="section-card">
           <div class="section-header">
             <div class="section-title-wrapper">
               <v-icon class="section-icon">mdi-shield-account</v-icon>
@@ -445,10 +379,10 @@
               </v-row>
             </div>
           </div>
-        </v-card>
+        </v-card> -->
 
         <!-- Shop Accounts Section -->
-        <v-card class="section-card">
+        <!-- <v-card class="section-card">
           <div class="section-header">
             <div class="section-title-wrapper">
               <v-icon class="section-icon">mdi-store</v-icon>
@@ -558,10 +492,10 @@
               </v-row>
             </template>
           </div>
-        </v-card>
+        </v-card> -->
 
         <!-- PF Accounts Section -->
-        <v-card class="section-card">
+        <!-- <v-card class="section-card">
           <div class="section-header">
             <div class="section-title-wrapper">
               <v-icon class="section-icon">mdi-account-cash</v-icon>
@@ -653,7 +587,7 @@
               </v-row>
             </template>
           </div>
-        </v-card>
+        </v-card> -->
       </div>
     </div>
     <DeleteModal
@@ -705,7 +639,44 @@ const selectedESI = ref(null);
 const deleting = ref(false);
 
 const logoInput = ref(null);
-const stateOptions = ref([]);
+const stateOptions = ref([
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
+]);
 const currencyOptions = ref(["AED", "USD", "INR"]);
 const editModes = reactive({
   address: false,
@@ -714,7 +685,9 @@ const editModes = reactive({
   pf: false,
 });
 const tenantData = ref({
+  companyAddress: "",
   accountSettings: { currency: "INR" }, // Initialize with default currency
+  tenantName: "",
 });
 
 const originalTenantDataRef = ref(null);
@@ -761,19 +734,30 @@ const fetchCompanyData = async () => {
     const tenant = data.data[0] || null;
     if (!tenant) return null;
 
-    // Ensure companyAddress object exists with all required properties
-    tenant.companyAddress = tenant.companyAddress || {};
-
-    // Initialize all address fields with empty strings if they don't exist
-    const addressFields = ["house", "street", "vtc", "dist", "state", "zip"];
-    addressFields.forEach((field) => {
-      if (!tenant.companyAddress[field]) {
-        tenant.companyAddress[field] = "";
-      }
-    });
-
     // Ensure accountSettings exists
     tenant.accountSettings = tenant.accountSettings || { currency: "INR" };
+
+    // Handle address - support both old format (multi-field object) and new format (fullAddress field)
+    const addr = tenant.companyAddress || {};
+    let fullAddr = "";
+    
+    if (addr.fullAddress) {
+      // New format: single fullAddress field
+      fullAddr = addr.fullAddress;
+    } else {
+      // Old format: multiple fields (house, street, vtc, etc.)
+      fullAddr = [
+      addr.house || "",
+      addr.street || "",
+      addr.vtc || "",
+      addr.dist ? `${addr.dist}${addr.zip ? `-${addr.zip}` : ""}` : "",
+      addr.state || "",
+    ]
+      .filter((p) => p)
+      .join(", ");
+    }
+
+    tenant.companyAddress = fullAddr;
 
     // Map logo
     tenant.logo = tenant.logo ? await fetchAssets(tenant.logo) : null;
@@ -847,13 +831,22 @@ const saveChanges = async () => {
       JSON.stringify(originalTenantDataRef.value),
     );
 
-    const currentAddress = tenantData.value.companyAddress || {};
-    const originalAddress = originalTenantData.companyAddress || {};
-    const addressChanged = Object.keys(currentAddress).some(
-      (key) => currentAddress[key] !== originalAddress[key],
-    );
+    // Check for tenantName change
+    const nameChanged =
+      tenantData.value.tenantName !== originalTenantData.tenantName;
+    if (nameChanged) {
+      payload.tenantName = tenantData.value.tenantName;
+    }
+
+    // Check for address change
+    const addressChanged =
+      tenantData.value.companyAddress !== originalTenantData.companyAddress;
     if (addressChanged) {
-      payload.companyAddress = { ...currentAddress };
+      // Convert the string address back to JSON object format for database
+      // Since we're storing as a simple string now, we'll store it as a JSON object with a single field
+      payload.companyAddress = {
+        fullAddress: tenantData.value.companyAddress
+      };
     }
 
     if (
@@ -875,7 +868,20 @@ const saveChanges = async () => {
       };
     }
 
-    payload.documents = [...(originalTenantData.documents || [])];
+    // Initialize documents array with only serializable data (file_id, type, validity)
+    // Filter out any blob URLs or non-serializable properties
+    payload.documents = (originalTenantData.documents || []).map(doc => {
+      const cleanDoc = {
+        type: doc.type
+      };
+      if (doc.file_id) {
+        cleanDoc.file_id = doc.file_id;
+      }
+      if (doc.validity) {
+        cleanDoc.validity = doc.validity;
+      }
+      return cleanDoc;
+    });
 
     const currentPf = { pfAccount: tenantData.value.pfAccount };
     const originalPf = { pfAccount: originalTenantData.pfAccount };
@@ -995,25 +1001,7 @@ const cancelEdit = (field) => {
   tenantData.value = JSON.parse(JSON.stringify(originalTenantDataRef.value));
   editModes[field] = false;
 };
-const fetchStateOptions = async () => {
-  try {
-    const token = authService.getToken();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/locationManagement?filter[tenant]=${tenantId}&fields[]=state&fields[]=id`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-    const data = await response.json();
-    stateOptions.value = data.data
-      .map((item) => item.state)
-      .filter((state) => state);
-  } catch (error) {
-    console.error("Failed to fetch state options:", error);
-  }
-};
+
 const newESI = reactive({
   accountNumber: "",
   state: "",
@@ -1081,7 +1069,6 @@ const showAddESI = ref(false);
 const openAddESI = async () => {
   Object.keys(editModes).forEach((key) => (editModes[key] = false));
   showAddESI.value = true;
-  await fetchStateOptions();
 };
 
 const toggleEdit = (section) => {
@@ -1217,33 +1204,14 @@ onMounted(async () => {
 .field-label {
   font-size: 14px;
   color: #666;
-  margin-bottom: 4px;
+  margin-bottom: 20px;
 }
 
 .field-value {
   font-size: 16px;
   font-weight: 500;
   color: #1a1a1a;
-}
-
-.address-grid {
-  margin-top: 16px;
-}
-
-.address-field {
-  padding: 8px 12px;
-}
-
-.field-label-small {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.field-value-small {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a1a1a;
+  gap: 100px;
 }
 
 .section-content {

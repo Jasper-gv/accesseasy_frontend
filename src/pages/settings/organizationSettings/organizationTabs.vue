@@ -37,10 +37,10 @@ const router = useRouter();
 const route = useRoute();
 
 const tabs = [
-  {
-    value: "organization-settings",
-    title: "Organization Settings",
-    icon: "mdi-calendar-clock",
+ {
+   value: "organization-settings",
+   title: "Organization Settings",
+   icon: "mdi-calendar-clock",
   },
 ];
 

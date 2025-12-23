@@ -24,8 +24,8 @@
               <div class="card-header">
                 <div class="logo-section">
                   <img
-                    src="/public/images/project.png"
-                    alt="FieldsEasy"
+                    src="/public/images/accesseasylogo1.jpeg"
+                    alt="AccessEasy"
                     class="logo-image"
                   />
                 </div>

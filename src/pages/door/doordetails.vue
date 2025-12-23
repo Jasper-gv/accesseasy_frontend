@@ -209,6 +209,7 @@ const headers = ref([
 ]);
 
 const departmentMap = ref(new Map());
+const branchMap = ref(new Map());
 
 // New computed — filters formatted doors by search query
 const filteredDoors = computed(() => {
@@ -239,13 +240,23 @@ const totalItemsForPagination = computed(() => filteredDoors.value.length);
 const formattedDoors = computed(() => {
   return doors.value.map((door) => {
     const departmentNames = getDepartmentNamesFromIds(door.departmentIds);
+    
+    // Resolve branch name: try expanded object first, then map lookup
+    let branchName = "N/A";
+    if (door.branchLocation?.locdetail?.locationName) {
+      branchName = door.branchLocation.locdetail.locationName;
+    } else if (door.branchLocation && typeof door.branchLocation === 'object' && door.branchLocation.id) {
+       branchName = branchMap.value.get(door.branchLocation.id) || "N/A";
+    } else if (door.branchLocation && typeof door.branchLocation === 'string') {
+       branchName = branchMap.value.get(door.branchLocation) || "N/A";
+    }
 
     return {
       id: door.id,
       doorNumber: door.doorNumber,
       doorName: door.doorName,
       doorType: door.doorType,
-      branch: door.branchLocation?.locdetail?.locationName || "N/A",
+      branch: branchName,
       location: door.location || "N/A",
       departmentNames: departmentNames,
       departments:
@@ -257,6 +268,40 @@ const formattedDoors = computed(() => {
   });
 });
 let searchTimeout = null;
+
+const fetchBranches = async () => {
+  try {
+    const url = new URL(
+      `${import.meta.env.VITE_API_URL}/items/locationManagement`
+    );
+    // Filter for branches in this tenant
+    const params = {
+      "fields[]": ["id", "locdetail.locationName"],
+      "filter[_and][0][_and][0][tenant][tenantId][_eq]": tenantId,
+      "filter[_and][0][_and][1][locType][_contains]": "branch",
+    };
+
+    Object.keys(params).forEach((key) => {
+        url.searchParams.append(key, params[key]);
+    });
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch branches");
+    
+    const data = await response.json();
+    branchMap.value = new Map(
+      data.data.map((b) => [b.id, b.locdetail?.locationName || `Branch ${b.id}`])
+    );
+  } catch (error) {
+    console.error("Error fetching branches:", error);
+  }
+};
+
 const fetchDepartments = async () => {
   try {
     const response = await fetch(
@@ -298,7 +343,8 @@ const getDepartmentNamesFromIds = (departmentIds) => {
 const fetchDoors = async () => {
   try {
     loading.value = true;
-    await fetchDepartments();
+    // Fetch dependencies first
+    await Promise.all([fetchDepartments(), fetchBranches()]);
 
     const fields = [
       "id",
@@ -306,6 +352,7 @@ const fetchDoors = async () => {
       "doorName",
       "doorType",
       "departmentIds",
+      "branchLocation", // Get raw ID as well
       "branchLocation.id",
       "branchLocation.locdetail",
       "location",
@@ -327,22 +374,8 @@ const fetchDoors = async () => {
     const data = await response.json();
 
     doors.value = (data.data || []).map((door) => {
-      const departmentNames = getDepartmentNamesFromIds(door.departmentIds);
-
-      return {
-        id: door.id,
-        doorNumber: door.doorNumber,
-        doorName: door.doorName,
-        doorType: door.doorType,
-        branch: door.branchLocation?.locdetail?.locationName || "N/A",
-        location: door.location || "N/A",
-        departmentNames: departmentNames, // For UI
-        departments:
-          departmentNames.length > 0
-            ? departmentNames.join(", ")
-            : "Not assigned",
-        originalData: { ...door, departmentIds: door.departmentIds },
-      };
+      // Logic moved to formattedDoors computed property for consistency
+      return door;
     });
 
     // Reset to first page when data changes
