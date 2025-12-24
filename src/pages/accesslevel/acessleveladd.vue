@@ -516,21 +516,27 @@ const initializeFormData = () => {
   }
 
   // Initialize timing options based on available fields
-  if (data._24hrs) {
+  // Check in priority order: 24hrs, Time Zone, Working Hours, Holiday
+  if (data._24hrs || data.Valid_hours === "24_hours") {
+    // 24 Hours Access
     access24Hours.value = true;
-  } else if (data.Valid_hours) {
+  } else if (data.Valid_hours && data.Valid_hours !== "24_hours") {
+    // Time Zone Access - Valid_hours contains the time range (e.g., "09:00 - 17:00")
     accessTiming.value = true;
-    selectedTimeSchedule.value = data.Valid_hours; // CHANGED: This now matches the time string directly
+    selectedTimeSchedule.value = data.Valid_hours;
     // Fetch time schedules if needed for timing tab
     if (timeSchedules.value.length === 0) {
       fetchTimeSchedules();
     }
   } else if (data.workingHours && data.maxWorkHours) {
+    // Working Hours Limit - has both workingHours flag and maxWorkHours value
     maxWorkHours.value = true;
     maxWorkHoursValue.value = data.maxWorkHours;
   } else if (data.holidays) {
+    // Holiday Access
     holidayAccess.value = true;
   }
+
 
   console.log("Form initialized:", {
     accessLevelName: accessLevelName.value,
@@ -538,9 +544,24 @@ const initializeFormData = () => {
     selectedDoors: selectedDoors.value,
     access24Hours: access24Hours.value,
     accessTiming: accessTiming.value,
+    selectedTimeSchedule: selectedTimeSchedule.value,
     maxWorkHours: maxWorkHours.value,
+    maxWorkHoursValue: maxWorkHoursValue.value,
     holidayAccess: holidayAccess.value,
   });
+  
+  // Log which timing type was detected
+  if (access24Hours.value) {
+    console.log("✅ Loaded: 24 Hours Access");
+  } else if (accessTiming.value) {
+    console.log("✅ Loaded: Time Zone Access -", selectedTimeSchedule.value);
+  } else if (maxWorkHours.value) {
+    console.log("✅ Loaded: Working Hours Limit -", maxWorkHoursValue.value);
+  } else if (holidayAccess.value) {
+    console.log("✅ Loaded: Holiday Access");
+  } else {
+    console.log("⚠️ No access timing detected");
+  }
 };
 
 // Toggle handlers to ensure only one option is active

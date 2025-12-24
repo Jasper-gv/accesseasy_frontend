@@ -62,6 +62,62 @@
               />
             </template>
 
+            <!-- Access Timing Column -->
+            <template #cell-accessTiming="{ item }">
+              <div class="access-timing-cell">
+                <v-chip
+                  v-if="item.accessTimingDisplay === '24 Hours Access'"
+                  size="small"
+                  color="#059367"
+                  variant="tonal"
+                  class="mr-1"
+                >
+                  <v-icon icon="mdi-clock-time-four" size="12" class="mr-1" />
+                  24 Hours Access
+                </v-chip>
+                <v-chip
+                  v-else-if="item.accessTimingDisplay?.startsWith('Time Zone:')"
+                  size="small"
+                  color="#1976d2"
+                  variant="tonal"
+                  class="mr-1"
+                >
+                  <v-icon icon="mdi-clock-outline" size="12" class="mr-1" />
+                  {{ item.accessTimingDisplay }}
+                </v-chip>
+                <v-chip
+                  v-else-if="item.accessTimingDisplay?.startsWith('Max Hours:')"
+                  size="small"
+                  color="#f57c00"
+                  variant="tonal"
+                  class="mr-1"
+                >
+                  <v-icon icon="mdi-timer-outline" size="12" class="mr-1" />
+                  {{ item.accessTimingDisplay }}
+                </v-chip>
+                <v-chip
+                  v-else-if="item.accessTimingDisplay === 'Holiday Access'"
+                  size="small"
+                  color="#7b1fa2"
+                  variant="tonal"
+                  class="mr-1"
+                >
+                  <v-icon icon="mdi-calendar-star" size="12" class="mr-1" />
+                  Holiday Access
+                </v-chip>
+                <v-chip
+                  v-else
+                  size="small"
+                  color="grey"
+                  variant="tonal"
+                  class="mr-1"
+                >
+                  <v-icon icon="mdi-clock-alert-outline" size="12" class="mr-1" />
+                  Not Set
+                </v-chip>
+              </div>
+            </template>
+
             <!-- Doors Column: First + +N more -->
             <template #cell-assignDoorsGroup="{ item }">
               <div class="branch-chips">
@@ -221,21 +277,27 @@ const headers = ref([
     label: "Access Level Number",
     key: "accessLevelNumber",
     sortable: true,
-    width: "200px",
+    width: "150px",
   },
   { label: "Access Level Name", key: "name", sortable: true, width: "200px" },
   {
     label: "Status",
     key: "type",
     sortable: true,
-    width: "200px",
+    width: "150px",
     type: "switch",
+  },
+  {
+    label: "Access Timing",
+    key: "accessTiming",
+    sortable: true,
+    width: "250px",
   },
   {
     label: "Assign Doors Group",
     key: "assignDoorsGroup",
     sortable: true,
-    width: "400px",
+    width: "300px",
   },
 ]);
 // New: Filtered + Formatted Access Levels (with search)
@@ -250,6 +312,7 @@ const filteredAccessLevels = computed(() => {
       item.accessLevelNumber?.toString(),
       item.type,
       item.assignDoorsGroupNames?.join(" "),
+      item.accessTimingDisplay, // Include access timing in search
     ]
       .join(" ")
       .toLowerCase();
@@ -315,6 +378,11 @@ const fetchAccessLevels = async () => {
       "accessType",
       "tenant.tenantId",
       "assignDoorsGroup",
+      "_24hrs",
+      "Valid_hours",
+      "workingHours",
+      "maxWorkHours",
+      "holidays",
     ];
 
     const url = new URL(`${import.meta.env.VITE_API_URL}/items/accesslevels`);
@@ -337,6 +405,19 @@ const fetchAccessLevels = async () => {
       const doorNames = item.assignDoorsGroup
         ? await fetchDoorNames(item.assignDoorsGroup)
         : [];
+      
+      // Determine access timing display
+      let accessTimingDisplay = "Not Set";
+      if (item._24hrs || item.Valid_hours === "24_hours") {
+        accessTimingDisplay = "24 Hours Access";
+      } else if (item.Valid_hours && item.Valid_hours !== "24_hours") {
+        accessTimingDisplay = `Time Zone: ${item.Valid_hours}`;
+      } else if (item.workingHours && item.maxWorkHours) {
+        accessTimingDisplay = `Max Hours: ${item.maxWorkHours}`;
+      } else if (item.holidays) {
+        accessTimingDisplay = "Holiday Access";
+      }
+      
       processed.push({
         id: item.id,
         assignDoorsGroup: item.assignDoorsGroup,
@@ -344,6 +425,7 @@ const fetchAccessLevels = async () => {
         name: item.accessLevelName,
         type: item.accessType,
         accessLevelNumber: item.accessLevelNumber,
+        accessTimingDisplay: accessTimingDisplay,
         originalData: { ...item },
       });
     }
@@ -432,6 +514,11 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  align-items: center;
+}
+
+.access-timing-cell {
+  display: flex;
   align-items: center;
 }
 
