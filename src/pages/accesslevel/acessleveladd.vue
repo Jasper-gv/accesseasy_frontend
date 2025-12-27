@@ -247,7 +247,7 @@
                 dense
                 v-model="maxWorkHoursValue"
                 class="small-field"
-                :rules="maxWorkHours ? [requiredRule, timeFormatRule] : []"
+                :rules="maxWorkHours ? [requiredRule, maxWorkHoursRule] : []"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -523,27 +523,45 @@ const initializeFormData = () => {
   selectedTimeSchedule.value = null;
   maxWorkHoursValue.value = "";
 
-  // Determine which timing option is active (in priority order)
+  // Determine which timing option is active
   if (data._24hrs === true || data.Valid_hours === "24_hours") {
     // 24 Hours Access
     access24Hours.value = true;
     console.log("✅ Loaded: 24 Hours Access");
-  } else if (data.Valid_hours && data.Valid_hours !== "24_hours") {
-    // Time Zone Access - Valid_hours contains the time range (e.g., "09:00 - 17:00")
+  } else if (data.Valid_hours && data.Valid_hours.startsWith("MAX:")) {
+    // Max Work Hours - parse "MAX:HH:MM:SS" format
+    maxWorkHours.value = true;
+    const maxTimeMatch = data.Valid_hours.match(/MAX:(\d{2}):(\d{2}):(\d{2})/);
+    if (maxTimeMatch) {
+      const hours = maxTimeMatch[1];
+      const minutes = maxTimeMatch[2];
+      maxWorkHoursValue.value = `${hours}:${minutes}`;
+    }
+    console.log("✅ Loaded: Max Work Hours -", maxWorkHoursValue.value);
+  } else if (data.Valid_hours && data.Valid_hours.includes(" - ")) {
+    // Time Zone Access - contains a time range
     accessTiming.value = true;
-    selectedTimeSchedule.value = data.Valid_hours;
+
+    // Find matching time schedule
+    const timeMatch = data.Valid_hours.match(
+      /(\d{2}:\d{2}):\d{2} - (\d{2}:\d{2}):\d{2}/
+    );
+    if (timeMatch) {
+      const entryTime = timeMatch[1];
+      const exitTime = timeMatch[2];
+      const displayText = `${entryTime} - ${exitTime}`;
+      selectedTimeSchedule.value = displayText;
+    } else {
+      selectedTimeSchedule.value = data.Valid_hours;
+    }
+
     console.log("✅ Loaded: Time Zone Access -", selectedTimeSchedule.value);
-    
+
     // Fetch time schedules if needed
     if (timeSchedules.value.length === 0) {
       fetchTimeSchedules();
     }
-  } else if (data.workingHours === true && data.maxWorkHours) {
-    // Working Hours Limit - has both workingHours flag and maxWorkHours value
-    maxWorkHours.value = true;
-    maxWorkHoursValue.value = data.maxWorkHours;
-    console.log("✅ Loaded: Working Hours Limit -", maxWorkHoursValue.value);
-  } else if (data.holidays === true) {
+  } else if (data.holidays === true || data.Valid_hours === "HOLIDAY") {
     // Holiday Access
     holidayAccess.value = true;
     console.log("✅ Loaded: Holiday Access");
@@ -564,7 +582,17 @@ const initializeFormData = () => {
     holidayAccess: holidayAccess.value,
   });
 };
+const maxWorkHoursRule = (value) => {
+  if (!value) return "This field is required";
 
+  // Validate hh:mm format
+  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  if (!timeRegex.test(value)) {
+    return "Please use hh:mm format (00:00 to 23:59)";
+  }
+
+  return true;
+};
 // Toggle handlers to ensure only one option is active
 const handle24HoursToggle = (value) => {
   if (value) {
@@ -675,8 +703,11 @@ const handleSave = async () => {
     return;
   }
 
-  if (maxWorkHours.value && !timeFormatRule(maxWorkHoursValue.value)) {
-    alert("Please enter max work hours in valid hh:mm format");
+  if (
+    maxWorkHours.value &&
+    maxWorkHoursRule(maxWorkHoursValue.value) !== true
+  ) {
+    alert(maxWorkHoursRule(maxWorkHoursValue.value));
     return;
   }
 
@@ -770,15 +801,41 @@ const buildPayload = () => {
 
   // Timing (only one active)
   if (access24Hours.value) {
+    // For 24 hours access
     payload._24hrs = true;
     payload.Valid_hours = "24_hours";
   } else if (accessTiming.value && selectedTimeSchedule.value) {
-    payload.Valid_hours = selectedTimeSchedule.value;
+    // For Time Zone access - gets time range from time schedule
+    payload._24hrs = false;
+
+    // Find the actual time schedule to get entry/exit times
+    const selectedSchedule = timeSchedules.value.find(
+      (schedule) => schedule.displayText === selectedTimeSchedule.value
+    );
+
+    if (selectedSchedule) {
+      // Format: "HH:MM:SS - HH:MM:SS"
+      payload.Valid_hours = `${selectedSchedule.entryTime}:00 - ${selectedSchedule.exitTime}:00`;
+    } else {
+      // Fallback to just the display text
+      payload.Valid_hours = selectedTimeSchedule.value;
+    }
   } else if (maxWorkHours.value && maxWorkHoursValue.value) {
-    payload.workingHours = true;
-    payload.maxWorkHours = maxWorkHoursValue.value;
+    // For Max Work Hours - format as "MAX:HH:MM"
+    payload._24hrs = false;
+
+    // Convert hh:mm to "MAX:HH:MM:00" format
+    const [hours, minutes] = maxWorkHoursValue.value.split(":");
+    payload.Valid_hours = `MAX:${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}:00`;
   } else if (holidayAccess.value) {
+    // For Holiday Access - might use "HOLIDAY" or similar
+    payload._24hrs = false;
+    payload.Valid_hours = "HOLIDAY";
     payload.holidays = true;
+  } else {
+    // Default case if no timing option selected
+    payload._24hrs = false;
+    payload.Valid_hours = null;
   }
 
   return payload;

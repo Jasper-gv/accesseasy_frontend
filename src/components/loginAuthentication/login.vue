@@ -53,7 +53,6 @@
                   v-model="phoneRaw"
                   type="tel"
                   class="custom-input"
-                  placeholder="(555) 000-0000"
                   @input="sanitizePhone"
                   @keyup.enter="handleSubmit"
                 />
@@ -78,7 +77,7 @@
 
             <!-- Secure Login Notice -->
             <div class="secure-notice mt-6 mb-6">
-              <v-icon color="#ef4444" size="small" class="mr-2">mdi-shield-check</v-icon>
+              <v-icon color="#3b82f6" size="small" class="mr-2">mdi-shield-check</v-icon>
               <span class="notice-text">
                 <span class="notice-bold">Secure Login:</span> We will send a One-Time Password (OTP) to your registered device. No password required.
               </span>
@@ -100,13 +99,13 @@
             <!-- Footer -->
             <div class="footer-links mt-8 text-center">
               <p class="request-access">
-                New to the system? <span class="link-text">Request Access</span>
+                New to the system? <span class="link-text" @click="goToRegister">Sign Up</span>
               </p>
-              <div class="legal-links mt-2">
+              <!-- <div class="legal-links mt-2">
                 <span class="legal-link">Privacy Policy</span>
                 <span class="divider">•</span>
                 <span class="legal-link">Terms of Service</span>
-              </div>
+              </div> -->
             </div>
           </div>
         </v-col>
@@ -392,6 +391,10 @@ function handleSubmit() {
     onEmailSubmit();
   }
 }
+
+function goToRegister() {
+  router.push({ name: "Register" });
+}
 </script>
 
 <style scoped>
@@ -564,14 +567,14 @@ function handleSubmit() {
   display: flex;
   align-items: flex-start;
   padding: 16px;
-  background: #fef2f2;
-  border: 1px solid #fee2e2;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
   border-radius: 12px;
 }
 
 .notice-text {
   font-size: 13px;
-  color: #7f1d1d;
+  color: #1e40af;
   line-height: 1.5;
 }
 

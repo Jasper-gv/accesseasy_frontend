@@ -20,41 +20,70 @@ class AntipassbackService {
 
   /**
    * Create a new antipassback zone
-   * @param {string} zoneName - Name of the zone
+   * @param {Object} zoneData - Zone configuration object
    * @returns {Promise<Object>} Created zone object
    */
-  async createZone(zoneName) {
+  async createZone(zoneData) {
     try {
+      const tenantId = authService.getTenantId();
+      const payload = {
+        ...zoneData,
+        tenant: tenantId,
+      };
+      
+      console.log("Creating zone payload:", JSON.stringify(payload, null, 2));
+
       const response = await authService.protectedApi.post(
         "/items/antiPassbackModeZones",
-        {
-          zoneName: zoneName,
-        }
+        payload
       );
       return response.data.data;
     } catch (error) {
       console.error("Error creating zone:", error);
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+      }
       throw error;
     }
   }
 
   /**
-   * Update a door with antipassback configuration
-   * @param {number|string} doorId - ID of the door to update
-   * @param {Object} antipassbackData - Configuration object { id: zoneId, direction: 'entry'|'exit' }
-   * @returns {Promise<Object>} Updated door object
+   * Update an antipassback zone
+   * @param {number|string} zoneId - ID of the zone to update
+   * @param {Object} zoneData - Zone configuration object
+   * @returns {Promise<Object>} Updated zone object
    */
-  async updateDoor(doorId, antipassbackData) {
+  async updateZone(zoneId, zoneData) {
     try {
+      const tenantId = authService.getTenantId();
+      const payload = {
+        ...zoneData,
+        tenant: tenantId,
+      };
+
       const response = await authService.protectedApi.patch(
-        `/items/doors/${doorId}`,
-        {
-          antipassbackMode: antipassbackData,
-        }
+        `/items/antiPassbackModeZones/${zoneId}`,
+        payload
       );
       return response.data.data;
     } catch (error) {
-      console.error(`Error updating door ${doorId}:`, error);
+      console.error(`Error updating zone ${zoneId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an antipassback zone
+   * @param {number|string} zoneId - ID of the zone to delete
+   * @returns {Promise<void>}
+   */
+  async deleteZone(zoneId) {
+    try {
+      await authService.protectedApi.delete(
+        `/items/antiPassbackModeZones/${zoneId}`
+      );
+    } catch (error) {
+      console.error(`Error deleting zone ${zoneId}:`, error);
       throw error;
     }
   }
