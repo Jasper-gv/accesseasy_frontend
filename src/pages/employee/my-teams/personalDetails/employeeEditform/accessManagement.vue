@@ -36,563 +36,400 @@
       <!-- Main Content Columns -->
       <div class="main-content">
         <!-- Access Level Details -->
-        <div class="access-details">
-          <div class="section-header">
-            <v-icon size="20" color="primary" class="mr-2"
-              >mdi-shield-account</v-icon
-            >
-            <h2>Access Level Details</h2>
-          </div>
-
-          <!-- Access Level Selection - Moved here -->
-          <div class="access-controls">
-            <div class="access-level-container">
-              <div class="access-level-label">Access Level Category</div>
-              <v-select
-                v-model="selectedAccessLevel"
-                :items="accessLevelOptions"
-                item-title="accessLevelName"
-                item-value="id"
-                return-object
-                @update:model-value="handleAccessLevelChange"
-                variant="outlined"
-                hide-details
-                class="access-level-select"
-              >
-                <template v-slot:item="{ item, props }">
-                  <v-list-item v-bind="props" :disabled="!item.raw.accessType">
-                    <template v-slot:prepend>
-                      <v-icon
-                        :color="item.raw.accessType ? 'success' : 'error'"
-                      >
-                        {{
-                          item.raw.accessType
-                            ? "mdi-shield-check"
-                            : "mdi-shield-off"
-                        }}
-                      </v-icon>
-                    </template>
-                    <template v-slot:append>
-                      <span
-                        :class="
-                          item.raw.accessType ? 'text-success' : 'text-error'
-                        "
-                      >
-                        ({{ item.raw.accessType ? "Enabled" : "Disabled" }})
-                      </span>
-                    </template>
-                  </v-list-item>
-                </template>
-              </v-select>
-            </div>
-
-            <div class="access-toggle">
-              <v-switch
-                v-model="accessOn"
-                color="success"
-                hide-details
-                @change="handleAccessToggle"
-              >
-                <template v-slot:label>
-                  <span class="access-label"
-                    >Access: {{ accessOn ? "Enabled" : "Disabled" }}</span
-                  >
-                </template>
-              </v-switch>
-            </div>
-          </div>
-
-          <div v-if="accessLevelDetails" class="details-content">
-            <div class="tabs">
-              <div
-                class="tab"
-                :class="{ active: activeTab === 'general' }"
-                @click="activeTab = 'general'"
-              >
-                <v-icon size="18" class="mr-1">mdi-information</v-icon>
-                GENERAL
-              </div>
-              <div
-                class="tab"
-                :class="{ active: activeTab === 'doors' }"
-                @click="activeTab = 'doors'"
-              >
-                <v-icon size="18" class="mr-1">mdi-door</v-icon>
-                ASSIGNED DOORS
-              </div>
-            </div>
-
-            <div v-if="activeTab === 'general'" class="general-info">
-              <div
-                class="info-card"
-                :class="{ 'disabled-card': !accessLevelDetails._24hrs }"
-              >
-                <div class="info-header">
-                  <v-icon
-                    :color="accessLevelDetails._24hrs ? 'success' : 'error'"
-                    size="24"
-                    class="mr-2"
-                  >
-                    mdi-clock-time-four
-                  </v-icon>
-                  <span class="info-title">24 Hours Access</span>
-                </div>
-                <div class="info-value">
-                  {{ accessLevelDetails._24hrs ? "Enabled" : "Disabled" }}
-                </div>
-              </div>
-
-              <div class="info-card">
-                <div class="info-header">
-                  <v-icon color="primary" size="24" class="mr-2"
-                    >mdi-timer-outline</v-icon
-                  >
-                  <span class="info-title">Max Hours</span>
-                </div>
-                <div class="info-value">
-                  {{ accessLevelDetails.maxWorkHours }} hours
-                </div>
-              </div>
-
-              <div class="info-card">
-                <div class="info-header">
-                  <v-icon color="primary" size="24" class="mr-2"
-                    >mdi-calendar-clock</v-icon
-                  >
-                  <span class="info-title">Working Hours</span>
-                </div>
-                <div class="info-value">
-                  {{ accessLevelDetails.workingHours || "Not set" }}
-                </div>
-              </div>
-
-              <div class="info-card">
-                <div class="info-header">
-                  <v-icon color="primary" size="24" class="mr-2"
-                    >mdi-calendar-star</v-icon
-                  >
-                  <span class="info-title">Holidays</span>
-                </div>
-                <div class="info-value">
-                  {{ accessLevelDetails.holidays ? "Allowed" : "Not Allowed" }}
-                </div>
-              </div>
-            </div>
-
-            <!-- In the doors-info section -->
-            <div v-if="activeTab === 'doors'" class="doors-info">
-              <div
-                v-if="
-                  !accessLevelDetails.assignedDoors ||
-                  accessLevelDetails.assignedDoors.length === 0
-                "
-                class="no-doors"
-              >
-                No doors assigned to this access level
-              </div>
-
-              <div v-else class="doors-grid">
-                <div
-                  v-for="door in accessLevelDetails.assignedDoors"
-                  :key="door.doors_id.id"
-                  class="door-item"
+        <div class="left-column">
+          <div class="access-details">
+            <!-- Access Level Selection - Moved here -->
+            <div class="access-controls">
+              <div class="access-level-container">
+                <div class="access-level-label">Access Level Category</div>
+                <v-select
+                  v-model="selectedAccessLevel"
+                  :items="accessLevelOptions"
+                  item-title="accessLevelName"
+                  item-value="id"
+                  return-object
+                  @update:model-value="handleAccessLevelChange"
+                  variant="outlined"
+                  hide-details
+                  class="access-level-select"
                 >
-                  <v-icon color="primary" size="20" class="mr-2"
-                    >mdi-door</v-icon
+                  <template v-slot:item="{ item, props }">
+                    <v-list-item
+                      v-bind="props"
+                      :disabled="!item.raw.accessType"
+                    >
+                      <template v-slot:prepend>
+                        <v-icon
+                          :color="item.raw.accessType ? 'success' : 'error'"
+                        >
+                          {{
+                            item.raw.accessType
+                              ? "mdi-shield-check"
+                              : "mdi-shield-off"
+                          }}
+                        </v-icon>
+                      </template>
+                      <template v-slot:append>
+                        <span
+                          :class="
+                            item.raw.accessType ? 'text-success' : 'text-error'
+                          "
+                        >
+                          ({{ item.raw.accessType ? "Enabled" : "Disabled" }})
+                        </span>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+              </div>
+
+              <div class="access-toggle">
+                <v-switch
+                  v-model="accessOn"
+                  color="success"
+                  hide-details
+                  @change="handleAccessToggle"
+                >
+                  <template v-slot:label>
+                    <span class="access-label"
+                      >Access: {{ accessOn ? "Enabled" : "Disabled" }}</span
+                    >
+                  </template>
+                </v-switch>
+              </div>
+            </div>
+
+            <div v-if="accessLevelDetails" class="details-content">
+              <div class="tabs">
+                <div
+                  class="tab"
+                  :class="{ active: activeTab === 'general' }"
+                  @click="activeTab = 'general'"
+                >
+                  <v-icon size="18" class="mr-1">mdi-information</v-icon>
+                  GENERAL
+                </div>
+                <div
+                  class="tab"
+                  :class="{ active: activeTab === 'doors' }"
+                  @click="activeTab = 'doors'"
+                >
+                  <v-icon size="18" class="mr-1">mdi-door</v-icon>
+                  ASSIGNED DOORS
+                </div>
+              </div>
+
+              <div v-if="activeTab === 'general'" class="general-info">
+                <div
+                  class="info-card"
+                  :class="{ 'disabled-card': !accessLevelDetails._24hrs }"
+                >
+                  <div class="info-header">
+                    <v-icon
+                      :color="accessLevelDetails._24hrs ? 'success' : 'error'"
+                      size="24"
+                      class="mr-2"
+                    >
+                      mdi-clock-time-four
+                    </v-icon>
+                    <span class="info-title">24 Hours Access</span>
+                  </div>
+                  <div class="info-value">
+                    {{ accessLevelDetails._24hrs ? "Enabled" : "Disabled" }}
+                  </div>
+                </div>
+
+                <div class="info-card">
+                  <div class="info-header">
+                    <v-icon color="primary" size="24" class="mr-2"
+                      >mdi-timer-outline</v-icon
+                    >
+                    <span class="info-title">Max Hours</span>
+                  </div>
+                  <div class="info-value">
+                    {{ accessLevelDetails.maxWorkHours }} hours
+                  </div>
+                </div>
+
+                <div class="info-card">
+                  <div class="info-header">
+                    <v-icon color="primary" size="24" class="mr-2"
+                      >mdi-calendar-clock</v-icon
+                    >
+                    <span class="info-title">Working Hours</span>
+                  </div>
+                  <div class="info-value">
+                    {{ accessLevelDetails.workingHours || "Not set" }}
+                  </div>
+                </div>
+
+                <div class="info-card">
+                  <div class="info-header">
+                    <v-icon color="primary" size="24" class="mr-2"
+                      >mdi-calendar-star</v-icon
+                    >
+                    <span class="info-title">Holidays</span>
+                  </div>
+                  <div class="info-value">
+                    {{
+                      accessLevelDetails.holidays ? "Allowed" : "Not Allowed"
+                    }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- In the doors-info section -->
+              <div v-if="activeTab === 'doors'" class="doors-info">
+                <div
+                  v-if="
+                    !accessLevelDetails.assignedDoors ||
+                    accessLevelDetails.assignedDoors.length === 0
+                  "
+                  class="no-doors"
+                >
+                  No doors assigned to this access level
+                </div>
+
+                <div v-else class="doors-grid">
+                  <div
+                    v-for="door in accessLevelDetails.assignedDoors"
+                    :key="door.doors_id.id"
+                    class="door-item"
                   >
-                  <div>
-                    <div class="door-number">
-                      {{ door.doors_id.doorNumber }}
+                    <v-icon color="primary" size="20" class="mr-2"
+                      >mdi-door</v-icon
+                    >
+                    <div>
+                      <div class="door-number">
+                        {{ door.doors_id.doorNumber }}
+                      </div>
+                      <div class="door-name">{{ door.doors_id.doorName }}</div>
+                      <div class="door-type">{{ door.doors_id.doorType }}</div>
                     </div>
-                    <div class="door-name">{{ door.doors_id.doorName }}</div>
-                    <div class="door-type">{{ door.doors_id.doorType }}</div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div v-else class="no-access-level">
+              <v-icon size="40" color="grey" class="mb-2"
+                >mdi-shield-off</v-icon
+              >
+              <div>No access level selected</div>
+            </div>
           </div>
 
-          <div v-else class="no-access-level">
-            <v-icon size="40" color="grey" class="mb-2">mdi-shield-off</v-icon>
-            <div>No access level selected</div>
+          <!-- Configure Access Levels Link -->
+          <div
+            class="configure-access-card"
+            @click="redirectToAccessLevelCategory"
+          >
+            <span class="configure-text">Configure Access Levels</span>
+            <v-icon color="#D32F2F">mdi-arrow-right</v-icon>
           </div>
         </div>
 
-        <!-- Card Management -->
-        <div class="card-management">
-          <div class="section-header">
-            <v-icon size="20" color="primary" class="mr-2"
-              >mdi-credit-card-multiple</v-icon
-            >
-            <h2>Card Management</h2>
-          </div>
-
-          <div class="card-input-container">
-            <v-text-field
-              v-model="cardInput"
-              label="Swipe card to enter"
-              variant="outlined"
-              type="number"
-              density="comfortable"
-              @focus="handleCardFocus"
-              :disabled="!accessOn"
-              maxlength="10"
-              minlength="10"
-              @input="handleCardInput"
-              hide-details
-              class="card-input"
-            ></v-text-field>
-
-            <v-select
-              v-model="selectedCardType"
-              :items="['rfid', 'tag']"
-              variant="outlined"
-              density="comfortable"
-              :disabled="!accessOn"
-              hide-details
-              class="card-type"
-            ></v-select>
-          </div>
-
-          <v-btn
-            color="black"
-            variant="elevated"
-            @click="addNewCard"
-            :disabled="!cardInput || !accessOn"
-            class="add-card-btn"
-            prepend-icon="mdi-plus"
-          >
-            ADD NEW CARD
-          </v-btn>
-
-          <div class="assigned-cards">
-            <div class="assigned-cards-header">
-              <span>Assigned Cards</span>
-              <span class="card-count">{{ assignedCards.length }} cards</span>
-            </div>
-
-            <div class="cards-list">
-              <div v-if="assignedCards.length === 0" class="no-cards">
-                No cards assigned
+        <!-- Credentials & Biometrics Section -->
+        <div class="credentials-biometrics-section">
+          <div class="credentials-grid">
+            <!-- RFID Card Card -->
+            <div class="credential-card">
+              <div class="card-header">
+                <div class="header-left">
+                  <div class="icon-box blue-bg">
+                    <v-icon color="#1976D2">mdi-credit-card</v-icon>
+                  </div>
+                  <div class="header-text">
+                    <h3>RFID Card</h3>
+                    <p>Physical access card management</p>
+                  </div>
+                </div>
+                <div
+                  class="status-dot"
+                  :class="{ active: assignedCards.length > 0 }"
+                ></div>
               </div>
 
-              <div
-                v-for="card in assignedCards"
-                :key="card.id"
-                class="card-item"
-              >
-                <div class="card-info">
-                  <v-icon size="20" color="primary" class="mr-2"
-                    >mdi-credit-card</v-icon
+              <div class="card-content">
+                <div v-if="assignedCards.length === 0" class="empty-state">
+                  No active cards assigned
+                </div>
+                <div v-else class="assigned-list">
+                  <div
+                    v-for="card in assignedCards"
+                    :key="card.id"
+                    class="list-item"
                   >
-                  <div>
-                    <div class="card-number">{{ card.rfidCard }}</div>
-                    <div class="card-type-label">
-                      Type: {{ card.type.toUpperCase() }}
-                    </div>
+                    <span class="card-number">{{ card.rfidCard }}</span>
+                    <v-btn
+                      icon="mdi-close"
+                      variant="text"
+                      size="x-small"
+                      color="grey"
+                      @click="removeCard(card.id)"
+                      :disabled="!accessOn"
+                    ></v-btn>
                   </div>
                 </div>
 
-                <div class="card-actions">
-                  <v-switch
-                    v-model="card.enabled"
-                    :disabled="!accessOn"
-                    color="success"
+                <div class="action-row">
+                  <v-text-field
+                    v-model="cardInput"
+                    placeholder="Card Number"
+                    variant="outlined"
                     density="compact"
                     hide-details
-                    @change="updateCardAccess(card)"
-                    class="card-toggle"
-                  ></v-switch>
-
-                  <v-btn
-                    icon
-                    variant="text"
-                    color="error"
-                    @click="removeCard(card.id)"
+                    class="card-input"
+                    append-inner-icon="mdi-credit-card-scan"
+                    @focus="handleCardFocus"
                     :disabled="!accessOn"
-                    class="delete-btn"
+                  ></v-text-field>
+                  <v-btn
+                    color="#2563EB"
+                    class="add-btn"
+                    @click="addNewCard"
+                    :disabled="!cardInput || !accessOn"
                   >
-                    <v-icon>mdi-delete</v-icon>
+                    + Add
                   </v-btn>
                 </div>
               </div>
             </div>
-          </div>
-          <!-- Face Assignment Status -->
-          <div class="face-assignment-section">
-            <div class="section-header">
-              <v-icon size="20" color="primary" class="mr-2"
-                >mdi-face-recognition</v-icon
-              >
-              <h2>Face Assignment Status</h2>
-            </div>
 
-            <div class="face-status-card">
-              <div class="face-status-content">
-                <div class="face-status-info">
-                  <v-icon
-                    size="24"
-                    :color="hasFaceData ? 'success' : 'grey'"
-                    class="mr-2"
-                  >
-                    {{
-                      hasFaceData ? "mdi-face-agent" : "mdi-face-man-profile"
-                    }}
-                  </v-icon>
-                  <div class="face-status-text">
-                    <div class="face-status-label">
-                      {{
-                        hasFaceData
-                          ? "Face Data Assigned"
-                          : "No Face Data Assigned"
-                      }}
-                    </div>
-                    <div class="face-status-description">
-                      {{
-                        hasFaceData
-                          ? "This employee has registered face data"
-                          : "Register face data to enable recognition"
-                      }}
-                    </div>
+            <!-- Fingerprint Card -->
+            <div class="credential-card">
+              <div class="card-header">
+                <div class="header-left">
+                  <div class="icon-box purple-bg">
+                    <v-icon color="#9333EA">mdi-fingerprint</v-icon>
+                  </div>
+                  <div class="header-text">
+                    <h3>Fingerprint</h3>
+                    <p>Biometric security data</p>
                   </div>
                 </div>
-
-                <!-- Face Recognition Toggle for Access Level -->
-                <v-switch
-                  v-if="accessLevelDetails && hasFaceData"
-                  v-model="accessLevelDetails.faceData"
-                  color="success"
-                  hide-details
-                  :disabled="!accessOn"
-                  @change="updateFaceAccessInAccessLevel"
-                  class="mt-2"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-2">
-                      Face Recognition:
-                      {{ accessLevelDetails.faceData ? "Enabled" : "Disabled" }}
-                    </span>
-                  </template>
-                </v-switch>
-
-                <!-- Show message if face data missing -->
                 <div
-                  v-else-if="!hasFaceData"
-                  class="text-caption text-medium-emphasis mt-2"
-                >
-                  <v-icon size="16" color="warning" class="mr-1"
-                    >mdi-alert</v-icon
-                  >
-                  Face data required to enable recognition
-                </div>
+                  class="status-dot"
+                  :class="{ active: hasFingerData }"
+                ></div>
               </div>
 
-              <div v-if="!hasFaceData" class="face-assignment-hint">
-                <v-icon size="16" color="info" class="mr-1"
-                  >mdi-information</v-icon
-                >
-                <span
-                  >To enable face recognition, register face data for this
-                  employee</span
-                >
-              </div>
-            </div>
-          </div>
-          <!-- Fingerprint Assignment Status -->
-          <div class="face-assignment-section">
-            <div class="section-header">
-              <v-icon size="20" color="primary" class="mr-2"
-                >mdi-fingerprint</v-icon
-              >
-              <h2>Fingerprint Assignment Status</h2>
-            </div>
-
-            <div class="face-status-card">
-              <div class="face-status-content">
-                <div class="face-status-info">
+              <div class="card-content centered">
+                <div class="status-display">
                   <v-icon
-                    size="24"
-                    :color="hasFingerData ? 'success' : 'grey'"
-                    class="mr-2"
+                    size="48"
+                    :color="hasFingerData ? '#9333EA' : '#E5E7EB'"
                   >
                     {{
                       hasFingerData ? "mdi-fingerprint" : "mdi-fingerprint-off"
                     }}
                   </v-icon>
-                  <div class="face-status-text">
-                    <div class="face-status-label">
-                      {{
-                        hasFingerData
-                          ? "Fingerprint Registered"
-                          : "No Fingerprint Assigned"
-                      }}
-                    </div>
-                    <div class="face-status-description">
-                      {{
-                        hasFingerData
-                          ? "This employee has registered fingerprint"
-                          : "Register fingerprint to enable access"
-                      }}
-                    </div>
+                  <span class="status-text">{{
+                    hasFingerData ? "Enrolled" : "Not enrolled"
+                  }}</span>
+                </div>
+
+                <v-btn
+                  variant="outlined"
+                  block
+                  class="action-btn"
+                  prepend-icon="mdi-plus-circle"
+                  :disabled="true"
+                >
+                  Enroll Fingerprint
+                </v-btn>
+              </div>
+            </div>
+
+            <!-- Face ID Card -->
+            <div class="credential-card">
+              <div class="card-header">
+                <div class="header-left">
+                  <div class="icon-box orange-bg">
+                    <v-icon color="#F59E0B">mdi-face-recognition</v-icon>
+                  </div>
+                  <div class="header-text">
+                    <h3>Face ID</h3>
+                    <p>Facial recognition profile</p>
                   </div>
                 </div>
-
-                <!-- Fingerprint Toggle in Access Level -->
-                <v-switch
-                  v-if="accessLevelDetails && hasFingerData"
-                  v-model="accessLevelDetails.fingerData"
-                  color="success"
-                  hide-details
-                  :disabled="!accessOn"
-                  @change="updateFingerAccessInAccessLevel"
-                  class="mt-2"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-2">
-                      Fingerprint Access:
-                      {{
-                        accessLevelDetails.fingerData ? "Enabled" : "Disabled"
-                      }}
-                    </span>
-                  </template>
-                </v-switch>
-
-                <!-- Show message if no fingerprint -->
-                <div
-                  v-else-if="!hasFingerData"
-                  class="text-caption text-medium-emphasis mt-2"
-                >
-                  <v-icon size="16" color="warning" class="mr-1"
-                    >mdi-alert</v-icon
-                  >
-                  Fingerprint required to enable access
-                </div>
+                <div class="status-dot" :class="{ active: hasFaceData }"></div>
               </div>
 
-              <div v-if="!hasFingerData" class="face-assignment-hint">
-                <v-icon size="16" color="info" class="mr-1"
-                  >mdi-information</v-icon
-                >
-                <span
-                  >To enable fingerprint access, register fingerprint for this
-                  employee</span
-                >
-              </div>
-            </div>
-          </div>
-          <!-- QR Code Generation -->
-          <div class="face-assignment-section">
-            <div class="section-header">
-              <v-icon size="20" color="primary" class="mr-2">mdi-qrcode</v-icon>
-              <h2>QR Code Access</h2>
-            </div>
-
-            <div class="face-status-card">
-              <div class="face-status-content">
-                <div class="face-status-info">
+              <div class="card-content centered">
+                <div class="status-display">
                   <v-icon
-                    size="24"
-                    :color="hasQRCode ? 'success' : 'grey'"
-                    class="mr-2"
+                    size="48"
+                    :color="hasFaceData ? '#F59E0B' : '#E5E7EB'"
                   >
-                    {{ hasQRCode ? "mdi-qrcode" : "mdi-qrcode-remove" }}
+                    {{ hasFaceData ? "mdi-face-man" : "mdi-face-man-shimmer" }}
                   </v-icon>
-                  <div class="face-status-text">
-                    <div class="face-status-label">
-                      {{
-                        hasQRCode ? "QR Code Generated" : "No QR Code Generated"
-                      }}
-                    </div>
-                    <div class="face-status-description">
-                      {{
-                        hasQRCode
-                          ? `QR Code: ${truncateQRCode(qrCodeData?.qrcode)}`
-                          : "Generate QR code to enable mobile access"
-                      }}
-                    </div>
-                  </div>
+                  <span class="status-text">{{
+                    hasFaceData ? "Face Data Active" : "No face data"
+                  }}</span>
                 </div>
 
-                <!-- QR Code Toggle -->
+                <v-btn
+                  variant="outlined"
+                  block
+                  class="action-btn"
+                  prepend-icon="mdi-camera"
+                  :disabled="true"
+                >
+                  Capture Face
+                </v-btn>
+              </div>
+            </div>
+
+            <!-- Mobile QR Card -->
+            <div class="credential-card">
+              <div class="card-header">
+                <div class="header-left">
+                  <div class="icon-box green-bg">
+                    <v-icon color="#10B981">mdi-qrcode</v-icon>
+                  </div>
+                  <div class="header-text">
+                    <h3>Mobile QR</h3>
+                    <p>Temporary visitor access</p>
+                  </div>
+                </div>
                 <v-switch
                   v-model="qrAccessEnabled"
                   color="success"
                   hide-details
+                  density="compact"
+                  inset
                   :disabled="!accessOn || !hasQRCode"
                   @change="handleQRAccessToggle"
-                  class="mt-2"
-                >
-                  <template v-slot:label>
-                    <span class="text-body-2">
-                      QR Code Access:
-                      {{ qrAccessEnabled ? "Enabled" : "Disabled" }}
-                    </span>
-                  </template>
-                </v-switch>
+                ></v-switch>
               </div>
 
-              <div class="qr-actions">
-                <v-btn
-                  color="primary"
-                  variant="tonal"
-                  @click="generateQRCode"
-                  :disabled="!accessOn || !selectedAccessLevel"
-                  :loading="generatingQR"
-                  class="mr-2"
-                  prepend-icon="mdi-qrcode-plus"
-                >
-                  {{ hasQRCode ? "REGENERATE QR CODE" : "GENERATE QR CODE" }}
-                </v-btn>
-
-                <v-btn
-                  v-if="hasQRCode"
-                  color="secondary"
-                  variant="outlined"
-                  @click="downloadQRCode"
-                  :disabled="!hasQRCode"
-                  prepend-icon="mdi-download"
-                >
-                  DOWNLOAD QR
-                </v-btn>
-              </div>
-
-              <!-- QR Code Preview -->
-              <div v-if="hasQRCode && qrCodeImage" class="qr-preview mt-4">
-                <div class="qr-image-container">
-                  <img :src="qrCodeImage" alt="QR Code" class="qr-image" />
+              <div class="card-content centered">
+                <div class="status-display">
+                  <v-icon size="48" :color="hasQRCode ? '#10B981' : '#E5E7EB'">
+                    {{ hasQRCode ? "mdi-qrcode" : "mdi-qrcode-scan" }}
+                  </v-icon>
+                  <span class="status-text">{{
+                    hasQRCode ? "Active" : "Generate to activate"
+                  }}</span>
                 </div>
-              </div>
 
-              <div v-if="!hasQRCode" class="face-assignment-hint">
-                <v-icon size="16" color="info" class="mr-1"
-                  >mdi-information</v-icon
+                <v-btn
+                  color="#ECFDF5"
+                  variant="flat"
+                  block
+                  class="action-btn green-text"
+                  prepend-icon="mdi-refresh"
+                  @click="generateQRCode"
+                  :loading="generatingQR"
+                  :disabled="!accessOn"
                 >
-                <span
-                  >Generate QR code to enable mobile access for this
-                  employee</span
-                >
+                  {{ hasQRCode ? "Regenerate QR" : "Generate New QR" }}
+                </v-btn>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="footer">
-        <div class="info-text">
-          <v-icon color="info" size="18" class="mr-2">mdi-information</v-icon>
-          <span>Need to modify access level categories?</span>
-        </div>
-
-        <v-btn
-          color="primary"
-          variant="tonal"
-          @click="redirectToAccessLevelCategory"
-          class="settings-btn"
-          prepend-icon="mdi-cog"
-        >
-          ACCESS LEVEL CATEGORY SETTINGS
-        </v-btn>
       </div>
     </div>
 
@@ -683,6 +520,7 @@ const removedCardIds = ref([]);
 const faceEmbedData = ref(null);
 const fingerData = ref(null);
 const qrCodeData = ref(null);
+const qrCodeImage = ref(null);
 const generatingQR = ref(false);
 const qrAccessEnabled = ref(true);
 
@@ -1601,7 +1439,6 @@ onUnmounted(() => {
 .content-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 
 /* Header */
@@ -1642,7 +1479,7 @@ onUnmounted(() => {
 /* Main Content */
 .main-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 40% 60%;
   gap: 24px;
   min-height: 0vh !important;
 }
@@ -1894,25 +1731,6 @@ onUnmounted(() => {
   color: #888;
 }
 
-/* Footer */
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-top: 8px;
-}
-
-.info-text {
-  display: flex;
-  align-items: center;
-  color: #1976d2;
-  font-size: 14px;
-}
-
 /* No Data */
 .no-data {
   display: flex;
@@ -1964,5 +1782,244 @@ onUnmounted(() => {
   .settings-btn {
     width: 100%;
   }
+}
+/* Credentials & Biometrics Section */
+.credentials-biometrics-section {
+  margin-top: 32px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.user-id-badge {
+  background: #f3f4f6;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.credentials-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.credential-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 280px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.header-left {
+  display: flex;
+  gap: 16px;
+}
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blue-bg {
+  background: #eff6ff;
+}
+.purple-bg {
+  background: #f3e8ff;
+}
+.orange-bg {
+  background: #fff7ed;
+}
+.green-bg {
+  background: #ecfdf5;
+}
+
+.header-text h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.header-text p {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e5e7eb;
+}
+
+.status-dot.active {
+  background: #ef4444; /* Red for active/alert, or green depending on design */
+}
+
+/* For fingerprint/face/QR active states, maybe green or specific color */
+.credential-card:nth-child(2) .status-dot.active,
+.credential-card:nth-child(3) .status-dot.active,
+.credential-card:nth-child(4) .status-dot.active {
+  background: #10b981; /* Green */
+}
+/* Override for RFID to match design image (red dot) */
+.credential-card:nth-child(1) .status-dot.active {
+  background: #ef4444;
+}
+
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-content.centered {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* RFID Specific */
+.empty-state {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  margin-bottom: auto;
+}
+
+.assigned-list {
+  margin-bottom: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.card-number {
+  font-family: monospace;
+  font-weight: 500;
+  color: #374151;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.card-input {
+  flex: 1;
+}
+
+.add-btn {
+  height: 40px;
+  text-transform: none;
+  font-weight: 600;
+}
+
+/* Biometrics Specific */
+.status-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.action-btn {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  border-radius: 8px;
+  height: 44px;
+}
+
+.green-text {
+  color: #059669 !important;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .credentials-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.configure-access-card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.configure-access-card:hover {
+  background-color: #f8f9fa;
+  border-color: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.configure-text {
+  color: #d32f2f;
+  font-weight: 500;
+  font-size: 14px;
 }
 </style>

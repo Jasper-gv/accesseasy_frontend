@@ -515,30 +515,52 @@ const initializeFormData = () => {
     );
   }
 
-  // Initialize timing options based on available fields
-  if (data._24hrs) {
+  // Reset all timing options first
+  access24Hours.value = false;
+  accessTiming.value = false;
+  maxWorkHours.value = false;
+  holidayAccess.value = false;
+  selectedTimeSchedule.value = null;
+  maxWorkHoursValue.value = "";
+
+  // Determine which timing option is active (in priority order)
+  if (data._24hrs === true || data.Valid_hours === "24_hours") {
+    // 24 Hours Access
     access24Hours.value = true;
-  } else if (data.Valid_hours) {
+    console.log("✅ Loaded: 24 Hours Access");
+  } else if (data.Valid_hours && data.Valid_hours !== "24_hours") {
+    // Time Zone Access - Valid_hours contains the time range (e.g., "09:00 - 17:00")
     accessTiming.value = true;
-    selectedTimeSchedule.value = data.Valid_hours; // CHANGED: This now matches the time string directly
-    // Fetch time schedules if needed for timing tab
+    selectedTimeSchedule.value = data.Valid_hours;
+    console.log("✅ Loaded: Time Zone Access -", selectedTimeSchedule.value);
+    
+    // Fetch time schedules if needed
     if (timeSchedules.value.length === 0) {
       fetchTimeSchedules();
     }
-  } else if (data.workingHours && data.maxWorkHours) {
+  } else if (data.workingHours === true && data.maxWorkHours) {
+    // Working Hours Limit - has both workingHours flag and maxWorkHours value
     maxWorkHours.value = true;
     maxWorkHoursValue.value = data.maxWorkHours;
-  } else if (data.holidays) {
+    console.log("✅ Loaded: Working Hours Limit -", maxWorkHoursValue.value);
+  } else if (data.holidays === true) {
+    // Holiday Access
     holidayAccess.value = true;
+    console.log("✅ Loaded: Holiday Access");
+  } else {
+    console.log("⚠️ No access timing detected");
   }
 
+  // Log the current state
   console.log("Form initialized:", {
     accessLevelName: accessLevelName.value,
     accessType: accessType.value,
     selectedDoors: selectedDoors.value,
     access24Hours: access24Hours.value,
     accessTiming: accessTiming.value,
+    selectedTimeSchedule: selectedTimeSchedule.value,
     maxWorkHours: maxWorkHours.value,
+    maxWorkHoursValue: maxWorkHoursValue.value,
     holidayAccess: holidayAccess.value,
   });
 };
