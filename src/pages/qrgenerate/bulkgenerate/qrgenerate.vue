@@ -835,9 +835,17 @@ const getAccessLevelName = (accessLevelId) => {
 };
 
 const generateUniqueQRCode = () => {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `QR_${timestamp}_${random}`.toUpperCase();
+  // Define allowed characters: numbers 0-9 and uppercase letters A-Z
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+
+  for (let i = 0; i < 8; i++) {
+    // Get random index from 0 to chars.length - 1
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    result += chars[randomIndex];
+  }
+
+  return result;
 };
 const shareViaWhatsApp = (item) => {
   if (!item || !item.qrcode) {
