@@ -3,7 +3,7 @@
     <!-- Add/Edit Panel -->
     <div
       v-if="showAddPanel"
-      class="w-1/3 p-4 bg-gray-50 border-r border-gray-200 h-screen overflow-y-auto"
+      class="w-1/3 p-2 bg-gray-50 border-r border-gray-200 h-screen overflow-y-auto"
     >
       <AccessLevelAdd
         :is-editing="isEditing"
@@ -15,7 +15,7 @@
     </div>
 
     <!-- Main Table -->
-    <div :class="showAddPanel ? 'w-2/3' : 'w-full'" class="p-4">
+    <div :class="showAddPanel ? 'w-2/3' : 'w-full'" class="p-2">
       <DataTableWrapper
         :showSearch="true"
         :search-query="searchQuery"

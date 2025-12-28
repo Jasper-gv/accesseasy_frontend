@@ -1,9 +1,6 @@
 <template>
-  <v-container fluid class="pa-4">
-    <v-row>
-      <v-col cols="12">
-        <v-card class="pa-4">
-          <v-window v-model="activeTab">
+  <div>
+    <v-window v-model="activeTab">
             <!-- ==================== ANTIPASSBACK TAB ==================== -->
             <v-window-item value="antipassback">
               <!-- Add / Edit Form Panel -->
@@ -44,16 +41,16 @@
                       <v-select
                         v-model="form.entryDoors"
                         :items="doorOptions"
-                        multiple
-                        chips
-                        closable-chips
                         label="Entry Doors *"
                         variant="outlined"
                         density="compact"
                         placeholder="Select entry doors"
+                        multiple
+                        chips
+                        closable-chips
                         :rules="[
                           (v) =>
-                            v.length > 0 || 'At least one entry door required',
+                            !!v && v.length > 0 || 'At least one entry door is required',
                         ]"
                       />
                     </v-col>
@@ -62,16 +59,16 @@
                       <v-select
                         v-model="form.exitDoors"
                         :items="doorOptions"
-                        multiple
-                        chips
-                        closable-chips
                         label="Exit Doors *"
                         variant="outlined"
                         density="compact"
                         placeholder="Select exit doors"
+                        multiple
+                        chips
+                        closable-chips
                         :rules="[
                           (v) =>
-                            v.length > 0 || 'At least one exit door required',
+                            !!v && v.length > 0 || 'At least one exit door is required',
                         ]"
                       />
                     </v-col>
@@ -147,14 +144,14 @@
                     <!-- Entry Doors -->
                     <template #column-entryDoors="{ item }">
                       <div class="text-body-2">
-                        {{ formatDoors(item.entryDoors) }}
+                        {{ item.entryDoors }}
                       </div>
                     </template>
 
                     <!-- Exit Doors -->
                     <template #column-exitDoors="{ item }">
                       <div class="text-body-2">
-                        {{ formatDoors(item.exitDoors) }}
+                        {{ item.exitDoors }}
                       </div>
                     </template>
 
@@ -188,10 +185,7 @@
                 Interlock configuration coming soon...
               </p>
             </v-window-item>
-          </v-window>
-        </v-card>
-      </v-col>
-    </v-row>
+    </v-window>
 
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="deleteDialog" max-width="420">
@@ -224,7 +218,7 @@
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000">
       {{ snackbar.message }}
     </v-snackbar>
-  </v-container>
+  </div>
 </template>
 
 <script setup>
@@ -264,7 +258,7 @@ const snackbar = reactive({
 const form = reactive({
   id: null,
   zoneName: "",
-  entryDoors: [],
+  entryDoors: [], 
   exitDoors: [],
 });
 
@@ -292,12 +286,11 @@ const showNotification = (message, color = "success") => {
   snackbar.show = true;
 };
 
-const formatDoors = (doors) => {
-  if (Array.isArray(doors)) return doors.join(", ");
-  return doors || "—";
+const formatDoorDisplay = (door) => {
+  if (!door) return "";
+  return `${door.doorName} (${door.doorNumber})`;
 };
 
-// === CRUD Operations ===
 // === CRUD Operations ===
 const fetchRules = async () => {
   loading.value = true;
@@ -309,27 +302,93 @@ const fetchRules = async () => {
     ]);
 
     allDoors.value = doors;
-    doorOptions.value = doors.map((d) => d.doorName); // Assuming doorName is the field
+    // Format options for select: { title: "Name (Number)", value: doorNumber }
+    doorOptions.value = doors.map((d) => ({
+      title: formatDoorDisplay(d),
+      value: d.doorNumber,
+    }));
 
-    // Map doors to zones
+    // Map zones
     const rules = zones.map((zone) => {
-      const zoneDoors = doors.filter(
-        (d) => d.antipassbackMode && d.antipassbackMode.id === zone.id
-      );
+      // Parse entryReader
+      let entryDoorNames = [];
+      let entryDoorNums = [];
 
-      const entryDoors = zoneDoors
-        .filter((d) => d.antipassbackMode.direction === "entry")
-        .map((d) => d.doorName);
+      if (zone.entryReader) {
+        let nums = [];
+        const raw = zone.entryReader;
 
-      const exitDoors = zoneDoors
-        .filter((d) => d.antipassbackMode.direction === "exit")
-        .map((d) => d.doorName);
+        if (Array.isArray(raw)) {
+          // Already an array
+          nums = raw.map((s) => parseInt(s.split("_")[0]));
+        } else if (typeof raw === "string") {
+          const trimmed = raw.trim();
+          if (trimmed.startsWith("[")) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              if (Array.isArray(parsed)) {
+                nums = parsed.map((s) => parseInt(s.split("_")[0]));
+              }
+            } catch (e) {
+              console.error("Error parsing entryReader JSON", e);
+            }
+          } else {
+            // Legacy single string "2_entry"
+            const parts = trimmed.split("_");
+            if (parts.length > 0) nums.push(parseInt(parts[0]));
+          }
+        }
+
+        entryDoorNums = nums;
+        entryDoorNames = nums.map((num) => {
+          const d = doors.find((door) => door.doorNumber === num);
+          return d ? formatDoorDisplay(d) : `Door ${num}`;
+        });
+      }
+
+      // Parse exitReader
+      let exitDoorNames = [];
+      let exitDoorNums = [];
+
+      if (zone.exitReader) {
+        let nums = [];
+        const raw = zone.exitReader;
+
+        if (Array.isArray(raw)) {
+          // Already an array
+          nums = raw.map((s) => parseInt(s.split("_")[0]));
+        } else if (typeof raw === "string") {
+          const trimmed = raw.trim();
+          if (trimmed.startsWith("[")) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              if (Array.isArray(parsed)) {
+                nums = parsed.map((s) => parseInt(s.split("_")[0]));
+              }
+            } catch (e) {
+              console.error("Error parsing exitReader JSON", e);
+            }
+          } else {
+            // Legacy single string "2_exit"
+            const parts = trimmed.split("_");
+            if (parts.length > 0) nums.push(parseInt(parts[0]));
+          }
+        }
+
+        exitDoorNums = nums;
+        exitDoorNames = nums.map((num) => {
+          const d = doors.find((door) => door.doorNumber === num);
+          return d ? formatDoorDisplay(d) : `Door ${num}`;
+        });
+      }
 
       return {
         id: zone.id,
         zoneName: zone.zoneName,
-        entryDoors,
-        exitDoors,
+        entryDoors: entryDoorNames.join(", ") || "—",
+        exitDoors: exitDoorNames.join(", ") || "—",
+        rawEntryDoors: entryDoorNums,
+        rawExitDoors: exitDoorNums
       };
     });
 
@@ -358,8 +417,8 @@ const editRule = (rule) => {
   Object.assign(form, {
     id: rule.id,
     zoneName: rule.zoneName,
-    entryDoors: [...rule.entryDoors],
-    exitDoors: [...rule.exitDoors],
+    entryDoors: rule.rawEntryDoors,
+    exitDoors: rule.rawExitDoors,
   });
   showForm.value = true;
 };
@@ -374,51 +433,17 @@ const saveRule = async () => {
 
   saving.value = true;
   try {
-    let zoneId = form.id;
+    const payload = {
+      zoneName: form.zoneName,
+      entryReader: JSON.stringify(form.entryDoors.map(d => `${d}_entry`)),
+      exitReader: JSON.stringify(form.exitDoors.map(d => `${d}_exit`)),
+    };
 
     if (isEditing.value) {
-      // Update logic if needed (User only specified creation flow details)
-      // For now, we might assume editing just updates the doors, but zone name update might need a PATCH to zone
-      // Since user focused on creation integration, I'll focus on that, but let's try to handle it.
-      // If editing, we already have zoneId.
-      // We need to clear previous doors for this zone and set new ones.
-      // This is complex without a clear "clear" API.
-      // I will implement CREATION as requested primarily.
-      // But for completeness:
-      // 1. Update Zone Name (if changed)
-      // 2. Update Doors.
-      showNotification("Editing not fully implemented yet", "warning");
-      return;
+      await antipassbackService.updateZone(form.id, payload);
+      showNotification("Rule updated successfully");
     } else {
-      // 1. Create Zone
-      const newZone = await antipassbackService.createZone(form.zoneName);
-      zoneId = newZone.id;
-
-      // 2. Update Entry Doors
-      const entryDoorPromises = form.entryDoors.map((doorName) => {
-        const door = allDoors.value.find((d) => d.doorName === doorName);
-        if (door) {
-          return antipassbackService.updateDoor(door.id, {
-            id: zoneId,
-            direction: "entry",
-          });
-        }
-        return Promise.resolve();
-      });
-
-      // 3. Update Exit Doors
-      const exitDoorPromises = form.exitDoors.map((doorName) => {
-        const door = allDoors.value.find((d) => d.doorName === doorName);
-        if (door) {
-          return antipassbackService.updateDoor(door.id, {
-            id: zoneId,
-            direction: "exit",
-          });
-        }
-        return Promise.resolve();
-      });
-
-      await Promise.all([...entryDoorPromises, ...exitDoorPromises]);
+      await antipassbackService.createZone(payload);
       showNotification("Rule added successfully");
     }
 
@@ -440,11 +465,9 @@ const openDeleteConfirm = (rule) => {
 const confirmDelete = async () => {
   deleting.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    antipassbackRules.value = antipassbackRules.value.filter(
-      (r) => r.id !== ruleToDelete.value.id
-    );
+    await antipassbackService.deleteZone(ruleToDelete.value.id);
     showNotification("Rule deleted successfully");
+    await fetchRules();
   } catch (err) {
     showNotification("Failed to delete rule", "error");
   } finally {

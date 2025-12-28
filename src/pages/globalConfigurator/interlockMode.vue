@@ -1,10 +1,6 @@
 <template>
-  <v-container fluid class="pa-4">
-    <v-row>
-      <!-- Main Content -->
-      <v-col cols="12">
-        <v-card class="pa-4">
-          <v-window v-model="activeTab">
+  <div>
+    <v-window v-model="activeTab">
             <!-- Antipassback Mode Tab -->
             <v-window-item value="antipassback">
               <!-- Your existing antipassback code -->
@@ -50,7 +46,7 @@
                             </div>
                             <v-select
                               label="Select Doors"
-                              :items="availableDoors"
+                              :items="doorOptions"
                               multiple
                               variant="outlined"
                               density="compact"
@@ -97,7 +93,7 @@
 
               <!-- Interlock Rules List -->
               <div v-else>
-                <div class="d-flex align-center justify-space-between mb-4">
+                <div class="d-flex align-center justify-space-between">
                   <v-card-title class="text-h6 font-weight-bold pa-0">
                     Interlock Configuration
                     <v-chip size="small" color="primary" class="ml-3">
@@ -113,7 +109,7 @@
                   />
                 </div>
 
-                <v-card-text>
+                <div>
                   <!-- Loading State -->
                   <SkeletonLoader
                     v-if="interlockLoading"
@@ -165,23 +161,22 @@
                       </template>
                     </DataTable>
                   </DataTableWrapper>
-                </v-card-text>
+                </div>
               </div>
             </v-window-item>
-          </v-window>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+    </v-window>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
 import DataTable from "@/components/common/table/DataTable.vue";
 import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import { Plus, Trash } from "lucide-vue-next";
+import { interlockService } from "@/services/interlockService";
+import { antipassbackService } from "@/services/antipassbackService";
 
 const activeTab = ref("interlock");
 const interlockLoading = ref(false);
@@ -189,38 +184,9 @@ const showInterlockForm = ref(false);
 const isEditingInterlock = ref(false);
 const editingInterlockId = ref(null);
 
-// All available doors (excluding those already in antipassback)
-const allDoors = ref([
-  "Airlock Door A",
-  "Airlock Door B",
-  "Mantrap Entry",
-  "Mantrap Exit",
-  "Emergency Override",
-  "Loading Door 1",
-  "Loading Door 2",
-  "Clean Room Door A",
-  "Clean Room Door B",
-  "Main Entrance",
-  "Side Door A",
-  "Side Door B",
-  "Parking Main Gate",
-  "Pedestrian Gate",
-  "Service Gate",
-  "Server Room Main",
-  "Server Room Emergency",
-]);
-
-// Doors that are excluded (already in antipassback)
-const excludedDoors = ref([
-  "Main Entrance",
-  "Parking Main Gate",
-  "Server Room Main",
-]);
-
-// Available doors for interlock (all doors excluding antipassback doors)
-const availableDoors = computed(() => {
-  return allDoors.value.filter((door) => !excludedDoors.value.includes(door));
-});
+// All available doors
+const allDoors = ref([]);
+const doorOptions = ref([]);
 
 // Interlock form data
 const interlockForm = reactive({
@@ -254,44 +220,81 @@ const doorSelectionRules = [
 ];
 
 // Interlock rules data
-const interlockRules = ref([
-  {
-    id: 1,
-    ruleName: "Airlock Interlock",
-    doorsInvolved: "Airlock Door A, Airlock Door B",
-    selectedDoors: ["Airlock Door A", "Airlock Door B"],
-    status: "Active",
-    createdDate: "10/20/2025",
-    isActive: true,
-  },
-  {
-    id: 2,
-    ruleName: "Mantrap Interlock",
-    doorsInvolved: "Mantrap Entry, Mantrap Exit, Emergency Override",
-    selectedDoors: ["Mantrap Entry", "Mantrap Exit", "Emergency Override"],
-    status: "Active",
-    createdDate: "10/18/2025",
-    isActive: true,
-  },
-  {
-    id: 3,
-    ruleName: "Loading Bay Interlock",
-    doorsInvolved: "Loading Door 1, Loading Door 2",
-    selectedDoors: ["Loading Door 1", "Loading Door 2"],
-    status: "Active",
-    createdDate: "10/15/2025",
-    isActive: true,
-  },
-  {
-    id: 4,
-    ruleName: "Clean Room Interlock",
-    doorsInvolved: "Clean Room Door A, Clean Room Door B",
-    selectedDoors: ["Clean Room Door A", "Clean Room Door B"],
-    status: "Inactive",
-    createdDate: "10/12/2025",
-    isActive: false,
-  },
-]);
+const interlockRules = ref([]);
+
+// Helpers
+const formatDoorDisplay = (door) => {
+  if (!door) return "";
+  return `${door.doorName} (${door.doorNumber})`;
+};
+
+const showNotification = (message) => {
+  // Assuming a global notification or local snackbar needs to be added similar to antipassbackMode
+  // For now, just console log or alert if no snackbar in template
+  console.log(message);
+};
+
+// === CRUD Operations ===
+const fetchInterlockData = async () => {
+  interlockLoading.value = true;
+  try {
+    const [rules, doors] = await Promise.all([
+      interlockService.fetchRules(),
+      antipassbackService.fetchDoors(),
+    ]);
+
+    allDoors.value = doors;
+    doorOptions.value = doors.map((d) => ({
+      title: formatDoorDisplay(d),
+      value: d.doorNumber,
+    }));
+
+    // Map rules
+    interlockRules.value = rules.map((rule) => {
+      // interlockMode format: "(1,2)"
+      let doorNumbers = [];
+      // Check interlockMode first (new format), then fall back to interlockRule (old format)
+      const rawMode = rule.interlockMode;
+      const rawRule = rule.interlockRule;
+      
+      if (typeof rawMode === 'string' && rawMode.startsWith('(') && rawMode.endsWith(')')) {
+        const content = rawMode.slice(1, -1); // Remove ( and )
+        if (content) {
+          doorNumbers = content.split(',').map(n => parseInt(n.trim()));
+        }
+      } else if (typeof rawRule === 'string' && rawRule.startsWith('[(') && rawRule.endsWith(')]')) {
+        // Fallback for old format
+        const content = rawRule.slice(2, -2); // Remove [( and )]
+        if (content) {
+          doorNumbers = content.split(',').map(n => parseInt(n.trim()));
+        }
+      } else if (Array.isArray(rawRule)) {
+        // Fallback for legacy array format
+        doorNumbers = rawRule;
+      }
+
+      const doorsInvolved = doorNumbers
+        .map((num) => {
+          const d = doors.find((door) => door.doorNumber === num);
+          return d ? formatDoorDisplay(d) : `Door ${num}`;
+        })
+        .join(", ");
+
+      return {
+        id: rule.id,
+        ruleName: `Interlock Group ${rule.id}`, // Or if backend has name
+        doorsInvolved,
+        selectedDoors: doorNumbers,
+        status: rule.status || "Active",
+        isActive: rule.status === "Active",
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching interlock data:", error);
+  } finally {
+    interlockLoading.value = false;
+  }
+};
 
 // Methods to handle interlock form
 const openAddInterlockPanel = () => {
@@ -321,49 +324,50 @@ const handleEditInterlock = (item) => {
   interlockForm.isActive = item.isActive;
 };
 
-const saveInterlockRule = () => {
+const saveInterlockRule = async () => {
   // Double check validation before saving
   if (!isFormValid.value) {
     return;
   }
 
-  if (isEditingInterlock.value && editingInterlockId.value) {
-    // Update existing rule
-    const index = interlockRules.value.findIndex(
-      (rule) => rule.id === editingInterlockId.value
-    );
-    if (index !== -1) {
-      interlockRules.value[index] = {
-        ...interlockRules.value[index],
-        doorsInvolved: interlockForm.selectedDoors.join(", "),
-        selectedDoors: [...interlockForm.selectedDoors],
-        status: interlockForm.isActive ? "Active" : "Inactive",
-        isActive: interlockForm.isActive,
-      };
-    }
-  } else {
-    // Add new rule
-    const newRule = {
-      id: Date.now(), // Simple ID generation
-      ruleName: `Interlock ${interlockRules.value.length + 1}`,
-      doorsInvolved: interlockForm.selectedDoors.join(", "),
-      selectedDoors: [...interlockForm.selectedDoors],
+  try {
+    const payload = {
+      interlockMode: `(${interlockForm.selectedDoors.join(",")})`, // Custom format: (1,2,3)
       status: interlockForm.isActive ? "Active" : "Inactive",
-      createdDate: new Date().toLocaleDateString(),
-      isActive: interlockForm.isActive,
     };
-    interlockRules.value.unshift(newRule);
-  }
 
-  closeInterlockForm();
+    if (isEditingInterlock.value && editingInterlockId.value) {
+      await interlockService.updateRule(editingInterlockId.value, payload);
+      showNotification("Interlock rule updated");
+    } else {
+      await interlockService.createRule(payload);
+      showNotification("Interlock rule created");
+    }
+
+    await fetchInterlockData();
+    closeInterlockForm();
+  } catch (error) {
+    console.error("Error saving interlock rule:", error);
+    showNotification("Failed to save interlock rule");
+  }
 };
 
-const deleteInterlockRule = (item) => {
-  const index = interlockRules.value.findIndex((rule) => rule.id === item.id);
-  if (index !== -1) {
-    interlockRules.value.splice(index, 1);
+const deleteInterlockRule = async (item) => {
+  if (!confirm("Are you sure you want to delete this rule?")) return;
+  
+  try {
+    await interlockService.deleteRule(item.id);
+    showNotification("Interlock rule deleted");
+    await fetchInterlockData();
+  } catch (error) {
+    console.error("Error deleting interlock rule:", error);
+    showNotification("Failed to delete interlock rule");
   }
 };
+
+onMounted(() => {
+  fetchInterlockData();
+});
 </script>
 
 <style scoped>

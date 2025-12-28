@@ -1,183 +1,209 @@
 <!-- register.vue -->
 <template>
-  <v-container fluid class="fill-height pa-0">
-    <v-row no-gutters class="h-100">
-      <!-- Full Background Image - EXACT SAME AS LOGIN PAGE -->
-      <v-col cols="12" class="d-flex align-center justify-end pa-0">
-        <div
-          class="background-container d-flex align-center justify-end h-100"
-          :style="backgroundStyle"
-        >
-          <!-- Right Panel - EXACT SAME LOGIN DESIGN -->
-          <div class="login-container">
-            <!-- Redesigned register card with EXACT SAME layout as loginpage.vue -->
-            <v-card
-              class="login-card"
-              style="
-                border: 2px solid #059669;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-              "
-            >
-              <!-- Logo and Tagline inside card header - EXACT SAME -->
-              <div class="card-header">
-                <div class="logo-section">
-                  <img
-                    src="/public/images/project.png"
-                    alt="FieldsEasy"
-                    class="logo-image"
-                  />
+  <v-container fluid class="fill-height pa-0 login-page-container">
+    <div class="login-card">
+      <v-row no-gutters class="h-100">
+        <!-- LEFT SIDE: Register Form -->
+        <v-col cols="12" md="6" class="d-flex flex-column left-panel">
+          <div class="login-wrapper mx-auto my-auto">
+            <!-- Logo -->
+            <div class="logo-container mb-6">
+               <img
+                src="/public/images/accesseasylogo1.jpeg"
+                alt="SafeGuard"
+                class="logo-img"
+              />
+            </div>
+
+            <!-- Header -->
+            <div class="text-left mb-6">
+              <h2 class="page-title">Create Account</h2>
+              <p class="page-subtitle">
+                Sign up to manage your access and security.
+              </p>
+            </div>
+
+            <!-- Form -->
+            <v-form ref="form" class="register-form">
+               <!-- Grid for Personal Details -->
+               <div class="grid-row mb-2">
+                 <div class="field-group">
+                   <label class="input-label">Full Name <span class="text-red">*</span></label>
+                   <v-text-field
+                     v-model="fullName"
+                     placeholder="Enter full name"
+                     variant="outlined"
+                     density="comfortable"
+                     :rules="requiredRule"
+                     hide-details="auto"
+                     class="custom-field"
+                   ></v-text-field>
+                 </div>
+                 <div class="field-group">
+                   <label class="input-label">Phone Number <span class="text-red">*</span></label>
+                   <v-text-field
+                     v-model="mobileNumber"
+                     placeholder="Enter phone"
+                     variant="outlined"
+                     density="comfortable"
+                     :rules="phoneRules"
+                     type="tel"
+                     hide-details="auto"
+                     class="custom-field"
+                   ></v-text-field>
+                 </div>
+               </div>
+
+               <div class="grid-row mb-2">
+                 <div class="field-group">
+                   <label class="input-label">Email <span class="text-red">*</span></label>
+                   <v-text-field
+                     v-model="email"
+                     placeholder="Enter email"
+                     variant="outlined"
+                     density="comfortable"
+                     :rules="emailRules"
+                     type="email"
+                     @input="email = email.toLowerCase()"
+                     hide-details="auto"
+                     class="custom-field"
+                   ></v-text-field>
+                 </div>
+                 <div class="field-group">
+                   <label class="input-label">Employee ID <span class="text-red">*</span></label>
+                   <v-text-field
+                     v-model="employeeId"
+                     placeholder="Enter ID"
+                     variant="outlined"
+                     density="comfortable"
+                     :rules="requiredRule"
+                     hide-details="auto"
+                     class="custom-field"
+                   ></v-text-field>
+                 </div>
+               </div>
+
+               <!-- Company Details -->
+               <div class="mb-2">
+                 <label class="input-label">Company Name <span class="text-red">*</span></label>
+                 <v-text-field
+                   v-model="companyName"
+                   placeholder="Enter company name"
+                   variant="outlined"
+                   density="comfortable"
+                   :rules="requiredRule"
+                   hide-details="auto"
+                   class="custom-field"
+                 ></v-text-field>
+               </div>
+
+               <div class="mb-6">
+                 <label class="input-label">Company Address <span class="text-red">*</span></label>
+                 <v-textarea
+                   v-model="companyAddress"
+                   placeholder="Enter company address"
+                   variant="outlined"
+                   density="comfortable"
+                   :rules="requiredRule"
+                   rows="2"
+                   hide-details="auto"
+                   class="custom-field address-textarea"
+                 ></v-textarea>
+               </div>
+
+               <!-- Submit Button -->
+               <v-btn
+                 block
+                 height="56"
+                 color="#ef4444"
+                 class="submit-btn"
+                 :loading="isLoading"
+                 :disabled="!isFormValid || isLoading"
+                 @click="handleRegistration"
+               >
+                 Create Account
+                 <v-icon end class="ml-2">mdi-arrow-right</v-icon>
+               </v-btn>
+
+               <!-- Footer -->
+               <div class="footer-links mt-6 text-center">
+                 <p class="request-access">
+                   Already have an account? <span class="link-text" @click="router.push('/login')">Sign In</span>
+                 </p>
+               </div>
+            </v-form>
+          </div>
+        </v-col>
+
+        <!-- RIGHT SIDE: Content & Visuals (EXACT COPY FROM LOGIN) -->
+        <v-col cols="12" md="6" class="d-none d-md-flex flex-column justify-center align-center right-panel pa-10">
+          <div class="right-content-wrapper text-center">
+            <h2 class="right-title">Total Security Ecosystem.<br>Any Method. Any Door.</h2>
+            <p class="right-subtitle mt-4 mb-10">
+              Seamless integration of Biometrics, QR, AI Cameras, and traditional locks.
+            </p>
+
+            <!-- Dashboard Mockup Visual -->
+            <div class="dashboard-mockup">
+              <!-- Background Card (System Integrity) -->
+              <div class="mockup-card background-card">
+                <div class="card-header-sm">
+                  <span class="header-text">SYSTEM INTEGRITY</span>
+                  <span class="status-badge">● MONITORING</span>
+                </div>
+                <div class="card-grid">
+                  <div class="grid-item">
+                    <v-icon color="#3b82f6" size="large">mdi-door</v-icon>
+                    <div class="item-label">Doors</div>
+                    <div class="item-status success">SECURE</div>
+                  </div>
+                  <div class="grid-item">
+                    <v-icon color="#3b82f6" size="large">mdi-cctv</v-icon>
+                    <div class="item-label">AI Cam</div>
+                    <div class="item-status info">DETECTING</div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Sub Header with light green background - EXACT SAME -->
-              <div class="card-subheader">
-                <h2 class="subheader-title">Create Account</h2>
+              <!-- Foreground Card (Event) -->
+              <div class="mockup-card foreground-card">
+                <div class="event-row">
+                  <div class="event-icon-wrapper">
+                    <v-icon color="#3b82f6">mdi-face-recognition</v-icon>
+                    <div class="scan-line"></div>
+                  </div>
+                  <div class="event-details">
+                    <div class="event-title">Event: Person Identified</div>
+                    <div class="event-time">Lobby Cam 01 • 12:42 PM</div>
+                  </div>
+                  <div class="event-badge">
+                    <v-icon start size="x-small">mdi-check-decagram</v-icon>
+                    LOGGED
+                  </div>
+                </div>
+                
+                <div class="confidence-section mt-4">
+                  <div class="confidence-header">
+                    <span>AI Match Confidence</span>
+                    <span class="confidence-value">99.8%</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: 99.8%"></div>
+                  </div>
+                </div>
               </div>
-
-              <!-- Card content with improved spacing - EXACT SAME -->
-              <div class="card-content">
-                <!-- Form - 2x2 GRID + NORMAL COMPANY FIELDS -->
-                <v-form ref="form" class="mt-4">
-                  <!-- ✅ 2x2 GRID - Personal Details -->
-                  <div class="grid-section mb-4">
-                    <!-- Row 1: Name + Phone -->
-                    <div class="grid-row">
-                      <!-- Full Name -->
-                      <div class="field-group">
-                        <label class="form-label">
-                          Full Name <span class="required-asterisk">*</span>
-                        </label>
-                        <v-text-field
-                          v-model="fullName"
-                          placeholder="Enter full name"
-                          variant="outlined"
-                          density="comfortable"
-                          :rules="requiredRule"
-                          prepend-inner-icon="mdi-account"
-                          hide-details
-                        ></v-text-field>
-                      </div>
-
-                      <!-- Phone Number -->
-                      <div class="field-group">
-                        <label class="form-label">
-                          Phone Number <span class="required-asterisk">*</span>
-                        </label>
-                        <v-text-field
-                          v-model="mobileNumber"
-                          placeholder="Enter phone Number"
-                          variant="outlined"
-                          density="comfortable"
-                          :rules="phoneRules"
-                          type="tel"
-                          prepend-inner-icon="mdi-phone"
-                          hide-details
-                        ></v-text-field>
-                      </div>
-                    </div>
-
-                    <!-- Row 2: Email + Employee ID -->
-                    <div class="grid-row">
-                      <!-- Email -->
-                      <div class="field-group">
-                        <label class="form-label">
-                          Email <span class="required-asterisk">*</span>
-                        </label>
-                        <v-text-field
-                          v-model="email"
-                          placeholder="Enter email address"
-                          variant="outlined"
-                          density="comfortable"
-                          :rules="emailRules"
-                          type="email"
-                          prepend-inner-icon="mdi-email"
-                          @input="email = email.toLowerCase()"
-                          hide-details
-                        ></v-text-field>
-                      </div>
-
-                      <!-- Employee ID -->
-                      <div class="field-group">
-                        <label class="form-label">
-                          Employee ID <span class="required-asterisk">*</span>
-                        </label>
-                        <v-text-field
-                          v-model="employeeId"
-                          placeholder="Enter employee ID"
-                          variant="outlined"
-                          density="comfortable"
-                          :rules="requiredRule"
-                          prepend-inner-icon="mdi-card-account-details"
-                          hide-details
-                        ></v-text-field>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- ✅ COMPANY DETAILS - EXACT SAME AS BEFORE -->
-                  <div class="mb-4">
-                    <label class="form-label">
-                      Company Name <span class="required-asterisk">*</span>
-                    </label>
-                    <v-text-field
-                      v-model="companyName"
-                      placeholder="Enter company name"
-                      variant="outlined"
-                      density="comfortable"
-                      :rules="requiredRule"
-                      prepend-inner-icon="mdi-office-building"
-                    ></v-text-field>
-                  </div>
-
-                  <div class="mb-4">
-                    <label class="form-label">
-                      Company Address <span class="required-asterisk">*</span>
-                    </label>
-                    <v-textarea
-                      v-model="companyAddress"
-                      placeholder="Enter company address"
-                      variant="outlined"
-                      density="comfortable"
-                      :rules="requiredRule"
-                      prepend-inner-icon="mdi-map-marker"
-                      rows="2"
-                      class="address-textarea"
-                    ></v-textarea>
-                  </div>
-
-                  <!-- Submit button - DISABLED until form is valid -->
-                  <v-btn
-                    block
-                    size="large"
-                    :loading="isLoading"
-                    :disabled="!isFormValid || isLoading"
-                    class="submit-btn"
-                    @click="handleRegistration"
-                  >
-                    Create Account
-                  </v-btn>
-
-                  <!-- Login link with EXACT SAME styling -->
-                  <p class="signup-text">
-                    Already have an account?
-                    <router-link to="/login" class="signup-link"
-                      >Sign-in</router-link
-                    >
-                  </p>
-                </v-form>
+              
+               <!-- Multi-Factor Secured Badge -->
+              <div class="security-badge">
+                 <span class="dot"></span> Multi-Factor Secured
               </div>
-            </v-card>
-
-            <!-- Footer - EXACT SAME -->
-            <p class="footer-text">© {{ year }} Fieldseasy</p>
+            </div>
           </div>
-        </div>
-      </v-col>
-    </v-row>
+        </v-col>
+      </v-row>
+    </div>
 
-    <!-- ✅ TOAST NOTIFICATIONS - DIRECT FROM ToastNotification.vue -->
+    <!-- TOAST NOTIFICATIONS -->
     <div class="toast-container">
       <TransitionGroup name="toast" tag="div" class="toast-list">
         <ToastNotification
@@ -198,13 +224,6 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import ToastNotification from "@/components/common/notifications/ToastNotification.vue";
-import {
-  CheckCircleIcon,
-  XCircleIcon,
-  InfoIcon,
-  AlertTriangleIcon,
-  XIcon,
-} from "lucide-vue-next";
 
 const router = useRouter();
 
@@ -299,15 +318,6 @@ const isFormValid = computed(() => {
     isPhoneValid.value
   );
 });
-
-// Background image style - EXACT SAME AS LOGIN PAGE
-const backgroundStyle = computed(() => ({
-  backgroundImage: `url('/public/images/loginimage.png')`,
-  backgroundSize: "cover",
-  backgroundPosition: "center",
-  backgroundRepeat: "no-repeat",
-  minHeight: "100vh",
-}));
 
 // ALL ORIGINAL FUNCTIONS - NOW WITH SINGLE TOASTS
 async function validateForm() {
@@ -466,95 +476,83 @@ async function handleRegistration() {
 </script>
 
 <style scoped>
-/* EXACT SAME STYLES AS LOGIN PAGE - 100% COPIED */
+/* Layout */
 .h-100 {
   height: 100%;
 }
 
-.background-container {
-  position: relative;
-  width: 100%;
-}
-
-/* DESKTOP - Background Image */
-@media (min-width: 961px) {
-  .background-container {
-    background-image: url("/public/images/loginimage.png") !important;
-    background-size: cover !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-    min-height: 100vh !important;
-  }
-}
-
-.login-container {
-  max-width: 520px;
-  width: 100%;
-  z-index: 10;
-  margin-right: 170px;
-  position: relative;
-}
-
-.logo-section {
+.login-page-container {
+  background-color: #eff6ff;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  min-height: 100vh;
 }
 
-.logo-image {
-  height: 100px;
-  width: auto;
-  object-fit: contain;
-}
-
-.card-header {
-  text-align: center;
-  padding: 24px 0;
-}
-
-.card-subheader {
-  background: #abffb54d;
-  padding: 17px 24px;
-  text-align: center;
-  border-bottom: 1px solid #5fb96e;
-  border-top: 1px solid #5fb96e;
-}
-
-.subheader-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-  letter-spacing: 0.3px;
-}
-
-.card-content {
-  padding: 24px 20px;
+.login-card {
+  width: 100%;
+  max-width: 1200px;
+  height: 800px; /* Fixed height for the card look */
   background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin: 20px;
 }
 
-.form-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 10px;
+.left-panel {
+  background-color: #ffffff;
+  padding: 40px;
+  height: 100%;
+  overflow-y: auto; /* Allow scrolling for the form */
 }
 
-/* ✅ RED ASTERISK STYLE */
-.required-asterisk {
-  color: #dc2626 !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  margin-left: 4px !important;
+.right-panel {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); /* Light orange gradient */
+  position: relative;
+  overflow: hidden;
+  height: 100%;
 }
 
-/* ✅ 2x2 GRID STYLES */
-.grid-section {
+.login-wrapper {
+  max-width: 550px;
+  width: 100%;
+}
+
+/* Logo */
+.logo-container {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-img {
+  height: 48px;
+  width: auto;
+}
+
+/* Typography */
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Form Inputs */
+.input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
 }
 
 .grid-row {
@@ -568,80 +566,273 @@ async function handleRegistration() {
   flex-direction: column;
 }
 
-:deep(.v-text-field),
-:deep(.v-textarea) {
-  margin-bottom: 0 !important;
+/* Customizing v-text-field to look cleaner */
+:deep(.v-field__outline) {
+  --v-field-border-opacity: 0.15;
 }
 
-/* ✅ ADDRESS TEXTAREA - FIX (KEEPS ORIGINAL) */
-:deep(.address-textarea .v-field) {
-  height: auto !important;
+:deep(.v-field--focused .v-field__outline) {
+  --v-field-border-opacity: 1;
+  color: #ef4444 !important;
 }
 
-:deep(.address-textarea textarea) {
-  overflow: hidden !important;
-  resize: none !important;
-  padding: 8px 12px !important;
+:deep(.v-field) {
+  border-radius: 12px !important;
+  background-color: #f9fafb !important;
 }
 
+:deep(.v-field--focused) {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+/* Button */
 .submit-btn {
-  background: #059669 !important;
-  color: white !important;
+  border-radius: 12px !important;
   font-weight: 600 !important;
-  border-radius: 8px !important;
-  padding: 12px 16px !important;
-  margin-top: 16px !important;
-  text-transform: uppercase !important;
+  font-size: 16px !important;
+  text-transform: none !important;
   letter-spacing: 0.5px !important;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3) !important;
-  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3), 0 2px 4px -1px rgba(239, 68, 68, 0.15) !important;
 }
 
-.submit-btn:hover:not(:disabled) {
-  background: #0a7a73 !important;
-  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4) !important;
+/* Footer */
+.request-access {
+  font-size: 14px;
+  color: #6b7280;
 }
 
-.submit-btn:disabled {
-  background: #ccc !important;
-  color: #999 !important;
-  cursor: not-allowed !important;
-  box-shadow: none !important;
-}
-
-.signup-text {
-  text-align: center;
-  font-size: 12px;
-  color: #666;
-  margin-top: 16px;
-  margin-bottom: 0;
-}
-
-.signup-link {
-  color: #059669;
-  text-decoration: none;
+.link-text {
+  color: #ef4444;
   font-weight: 600;
-  transition: color 0.3s ease;
+  cursor: pointer;
 }
 
-.signup-link:hover {
-  color: #0a7a73;
+.link-text:hover {
   text-decoration: underline;
 }
 
-.footer-text {
-  text-align: center;
-  font-size: 11px;
-  color: #999;
-  margin-top: 12px;
-  margin-bottom: 0;
+/* Right Side Styles */
+.right-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.2;
 }
 
-.login-card {
+.right-subtitle {
+  font-size: 16px;
+  color: #4b5563;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.dashboard-mockup {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 320px;
+  margin-top: 20px;
+}
+
+.mockup-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  position: absolute;
+  width: 100%;
   transition: all 0.3s ease;
 }
 
-/* ✅ TOAST STYLES - FROM ToastNotification.vue */
+/* Background Card (System Integrity) */
+.background-card {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  padding: 20px;
+  opacity: 0.6;
+  z-index: 1;
+  filter: blur(1px);
+}
+
+.card-header-sm {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.header-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 1px;
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.grid-item {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.item-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  margin-top: 8px;
+}
+
+.item-status {
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.item-status.success { color: #10b981; }
+.item-status.info { color: #3b82f6; }
+
+/* Foreground Card (Event) */
+.foreground-card {
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 24px;
+  z-index: 2;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.event-icon-wrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background: #eff6ff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #3b82f6;
+  animation: scan 2s infinite linear;
+  opacity: 0.5;
+}
+
+@keyframes scan {
+  0% { top: 10%; opacity: 0; }
+  50% { opacity: 1; }
+  100% { top: 90%; opacity: 0; }
+}
+
+.event-details {
+  flex: 1;
+  text-align: left;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.event-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.event-badge {
+  background: #2563eb;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.confidence-section {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.confidence-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+.confidence-value {
+  color: #10b981;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 3px;
+}
+
+.security-badge {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background: #059669;
+  border-radius: 50%;
+}
+
+/* Toast Styles */
 .toast-container {
   position: fixed;
   top: 4rem;
@@ -675,100 +866,30 @@ async function handleRegistration() {
   opacity: 0;
 }
 
-.toast-move {
-  transition: transform 0.3s ease;
-}
-
-/* ✅ MOBILE - PLAIN WHITE BACKGROUND + CENTERED LOGIN */
+/* Mobile Responsiveness */
 @media (max-width: 960px) {
-  .background-container {
-    background: #ffffff !important;
-    background-image: none !important;
+  .login-card {
+    height: auto;
+    min-height: 100vh;
+    border-radius: 0;
+    margin: 0;
   }
-
-  .login-container {
-    padding: 12px !important;
-    margin: 0 auto !important;
-    max-width: 480px;
-    width: 90% !important;
+  
+  .left-panel {
+    padding: 24px;
+    height: auto;
+    overflow-y: visible;
   }
-
-  .card-content {
-    padding: 16px 20px;
-    margin-bottom: 50px;
-  }
-
-  /* ✅ MOBILE GRID - STACK VERTICALLY */
+  
   .grid-row {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    grid-template-columns: 1fr;
+    gap: 0;
   }
-
+  
   .toast-container {
     top: 1rem;
     left: 1rem;
     right: 1rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .login-container {
-    padding: 8px !important;
-    margin: 0 auto !important;
-    max-width: 100%;
-    width: calc(100% - 16px) !important;
-  }
-
-  .card-content {
-    padding: 16px 20px;
-    margin-bottom: 40px;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-container {
-    padding: 8px !important;
-    margin: 0 auto !important;
-    max-width: 100%;
-    width: calc(100% - 16px) !important;
-  }
-
-  .card-content {
-    padding: 14px 16px;
-    margin-bottom: 30px;
-  }
-
-  .subheader-title {
-    font-size: 14px;
-  }
-
-  .form-label {
-    font-size: 12px;
-  }
-
-  .required-asterisk {
-    font-size: 13px !important;
-  }
-
-  :deep(.v-field) {
-    height: 38px;
-  }
-
-  .signup-text {
-    font-size: 11px;
-  }
-
-  .footer-text {
-    font-size: 10px;
-  }
-
-  /* ✅ MOBILE GRID - TIGHTER SPACING */
-  .grid-section {
-    gap: 12px !important;
-  }
-
-  .grid-row {
-    gap: 10px !important;
   }
 }
 </style>
