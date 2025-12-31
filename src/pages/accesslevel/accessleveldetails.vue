@@ -61,8 +61,7 @@
                 @change="onToggleAccessType(item)"
               />
             </template>
-
-            <!-- Access Timing Column -->
+            <!-- Access Timing Column - UPDATED -->
             <template #cell-accessTiming="{ item }">
               <div class="access-timing-cell">
                 <v-chip
@@ -86,7 +85,9 @@
                   {{ item.accessTimingDisplay }}
                 </v-chip>
                 <v-chip
-                  v-else-if="item.accessTimingDisplay?.startsWith('Max Hours:')"
+                  v-else-if="
+                    item.accessTimingDisplay?.startsWith('Max Work Hours:')
+                  "
                   size="small"
                   color="#f57c00"
                   variant="tonal"
@@ -112,12 +113,15 @@
                   variant="tonal"
                   class="mr-1"
                 >
-                  <v-icon icon="mdi-clock-alert-outline" size="12" class="mr-1" />
-                  Not Set
+                  <v-icon
+                    icon="mdi-clock-alert-outline"
+                    size="12"
+                    class="mr-1"
+                  />
+                  {{ item.accessTimingDisplay || "Not Set" }}
                 </v-chip>
               </div>
             </template>
-
             <!-- Doors Column: First + +N more -->
             <template #cell-assignDoorsGroup="{ item }">
               <div class="branch-chips">
@@ -405,19 +409,26 @@ const fetchAccessLevels = async () => {
       const doorNames = item.assignDoorsGroup
         ? await fetchDoorNames(item.assignDoorsGroup)
         : [];
-      
-      // Determine access timing display
+
+      // Determine access timing display - FIXED VERSION
       let accessTimingDisplay = "Not Set";
+
       if (item._24hrs || item.Valid_hours === "24_hours") {
         accessTimingDisplay = "24 Hours Access";
-      } else if (item.Valid_hours && item.Valid_hours !== "24_hours") {
-        accessTimingDisplay = `Time Zone: ${item.Valid_hours}`;
-      } else if (item.workingHours && item.maxWorkHours) {
-        accessTimingDisplay = `Max Hours: ${item.maxWorkHours}`;
-      } else if (item.holidays) {
+      } else if (item.Valid_hours === "HOLIDAY" || item.holidays) {
         accessTimingDisplay = "Holiday Access";
+      } else if (item.Valid_hours && item.Valid_hours.includes(" - ")) {
+        // Check if it's a time range (contains " - ")
+        accessTimingDisplay = `Time Zone: ${item.Valid_hours}`;
+      } else if (item.Valid_hours && !isNaN(parseInt(item.Valid_hours))) {
+        // Check if Valid_hours is a number (like "40", "67", etc.)
+        // This is for Max Work Hours
+        accessTimingDisplay = `Max Work Hours: ${item.Valid_hours} hours`;
+      } else if (item.Valid_hours) {
+        // Fallback for any other Valid_hours value
+        accessTimingDisplay = `Time Zone: ${item.Valid_hours}`;
       }
-      
+
       processed.push({
         id: item.id,
         assignDoorsGroup: item.assignDoorsGroup,

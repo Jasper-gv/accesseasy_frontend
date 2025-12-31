@@ -9,16 +9,16 @@
               <i class="fas fa-chart-line"></i> Dashboard Overview
             </h2>
             <div class="branch-filter">
-              <select 
-                id="branch-select" 
-                v-model="selectedBranch" 
+              <select
+                id="branch-select"
+                v-model="selectedBranch"
                 @change="onBranchChange"
                 class="branch-select"
               >
                 <option value="all">All Branches</option>
-                <option 
-                  v-for="branch in branches" 
-                  :key="branch.id" 
+                <option
+                  v-for="branch in branches"
+                  :key="branch.id"
                   :value="branch.id"
                 >
                   {{ branch.locationName }}
@@ -26,11 +26,11 @@
               </select>
             </div>
           </div>
-          <p class="dashboard-subtitle">Monitor your access control system in real-time</p>
+          <p class="dashboard-subtitle">
+            Monitor your access control system in real-time
+          </p>
         </div>
-        <div class="header-right">
-          
-        </div>
+        <div class="header-right"></div>
       </div>
 
       <!-- Top Statistics Bar -->
@@ -48,12 +48,16 @@
               <div class="breakdown-item present">
                 <i class="fas fa-user-check"></i>
                 <span class="breakdown-label">Present:</span>
-                <span class="breakdown-value">{{ attendanceCounts.present }}</span>
+                <span class="breakdown-value">{{
+                  attendanceCounts.present
+                }}</span>
               </div>
               <div class="breakdown-item absent">
                 <i class="fas fa-user-times"></i>
                 <span class="breakdown-label">Absent:</span>
-                <span class="breakdown-value">{{ attendanceCounts.absent }}</span>
+                <span class="breakdown-value">{{
+                  attendanceCounts.absent
+                }}</span>
               </div>
             </div>
           </div>
@@ -63,7 +67,9 @@
             <i class="fas fa-video"></i>
           </div>
           <div class="stat-info">
-            <span class="stat-value">{{ cameraCounts.online }} / {{ cameraCounts.total }}</span>
+            <span class="stat-value"
+              >{{ cameraCounts.online }} / {{ cameraCounts.total }}</span
+            >
             <span class="stat-label">Cameras Online</span>
           </div>
         </div>
@@ -72,7 +78,9 @@
             <i class="fas fa-door-open"></i>
           </div>
           <div class="stat-info">
-            <span class="stat-value">{{ doorCounts.assigned }} / {{ doorCounts.total }}</span>
+            <span class="stat-value"
+              >{{ doorCounts.assigned }} / {{ doorCounts.total }}</span
+            >
             <span class="stat-label">Active Doors</span>
           </div>
         </div>
@@ -111,8 +119,14 @@
                 </div>
                 <div class="health-details">
                   <h4>Cameras</h4>
-                  <p class="online"><span class="dot green"></span> {{ cameraCounts.online }} Online</p>
-                  <p class="offline"><span class="dot red"></span> {{ cameraCounts.offline }} Offline</p>
+                  <p class="online">
+                    <span class="dot green"></span>
+                    {{ cameraCounts.online }} Online
+                  </p>
+                  <p class="offline">
+                    <span class="dot red"></span>
+                    {{ cameraCounts.offline }} Offline
+                  </p>
                 </div>
               </div>
               <!-- Controller Health -->
@@ -129,12 +143,18 @@
                 </div>
                 <div class="health-details">
                   <h4>Controllers</h4>
-                  <p class="online"><span class="dot green"></span> {{ controllerCounts.connected }} Connected</p>
-                  <p class="offline"><span class="dot red"></span> {{ controllerCounts.waiting }} Waiting</p>
+                  <p class="online">
+                    <span class="dot green"></span>
+                    {{ controllerCounts.connected }} Connected
+                  </p>
+                  <p class="offline">
+                    <span class="dot red"></span>
+                    {{ controllerCounts.waiting }} Waiting
+                  </p>
                 </div>
               </div>
-               <!-- Door Health -->
-               <div class="health-item">
+              <!-- Door Health -->
+              <div class="health-item">
                 <div class="health-chart">
                   <v-progress-circular
                     :model-value="doorHealthPercentage"
@@ -147,8 +167,14 @@
                 </div>
                 <div class="health-details">
                   <h4>Doors</h4>
-                  <p class="online"><span class="dot green"></span> {{ doorCounts.assigned }} Assigned</p>
-                  <p class="offline"><span class="dot grey"></span> {{ doorCounts.unassigned }} Unassigned</p>
+                  <p class="online">
+                    <span class="dot green"></span>
+                    {{ doorCounts.assigned }} Assigned
+                  </p>
+                  <p class="offline">
+                    <span class="dot grey"></span>
+                    {{ doorCounts.unassigned }} Unassigned
+                  </p>
                 </div>
               </div>
             </div>
@@ -160,22 +186,46 @@
             <div class="section-card activity-section">
               <div class="section-header">
                 <h3><i class="fas fa-history"></i> Recent Access Activity</h3>
-                <button class="view-all-btn" @click="navigateTo('/monitoring/access-logs')">View All</button>
+                <button
+                  class="view-all-btn"
+                  @click="navigateTo('/monitoring/access-logs')"
+                >
+                  View All
+                </button>
               </div>
               <div class="activity-list">
-                <div v-for="(log, index) in recentAccessLogs" :key="index" class="activity-item">
-                  <div class="activity-icon" :class="log.status === 'Granted' ? 'granted' : 'denied'">
-                    <i :class="log.status === 'Granted' ? 'fas fa-check' : 'fas fa-times'"></i>
+                <div
+                  v-for="(log, index) in recentAccessLogs"
+                  :key="index"
+                  class="activity-item"
+                >
+                  <div
+                    class="activity-icon"
+                    :class="log.status === 'Granted' ? 'granted' : 'denied'"
+                  >
+                    <i
+                      :class="
+                        log.status === 'Granted'
+                          ? 'fas fa-check'
+                          : 'fas fa-times'
+                      "
+                    ></i>
                   </div>
                   <div class="activity-info">
                     <span class="user-name">{{ log.user }}</span>
                     <span class="access-point">{{ log.door }}</span>
-                    <span class="access-branch" v-if="log.branch"><i class="fas fa-building"></i> {{ log.branch }}</span>
+                    <span class="access-branch" v-if="log.branch"
+                      ><i class="fas fa-building"></i> {{ log.branch }}</span
+                    >
                   </div>
                   <div class="activity-meta">
                     <span class="time">{{ log.time }}</span>
                     <span class="access-method">{{ log.accessMethod }}</span>
-                    <span class="status-badge" :class="log.status.toLowerCase()">{{ log.status }}</span>
+                    <span
+                      class="status-badge"
+                      :class="log.status.toLowerCase()"
+                      >{{ log.status }}</span
+                    >
                   </div>
                 </div>
               </div>
@@ -185,17 +235,26 @@
             <div class="section-card camera-section">
               <div class="section-header">
                 <h3><i class="fas fa-video"></i> Camera Overview</h3>
-                <button class="view-all-btn" @click="navigateTo('/monitoring/live-monitoring')">View All</button>
+                <button
+                  class="view-all-btn"
+                  @click="navigateTo('/monitoring/live')"
+                >
+                  View All
+                </button>
               </div>
               <div class="camera-grid">
-                <div v-for="camera in filteredCameras" :key="camera.id" class="camera-item">
+                <div
+                  v-for="camera in filteredCameras"
+                  :key="camera.id"
+                  class="camera-item"
+                >
                   <div class="camera-feed">
-                    <video 
-                      v-if="camera.videoUrl" 
-                      :src="camera.videoUrl" 
-                      autoplay 
-                      muted 
-                      loop 
+                    <video
+                      v-if="camera.videoUrl"
+                      :src="camera.videoUrl"
+                      autoplay
+                      muted
+                      loop
                       class="camera-video"
                     ></video>
                     <div v-else class="camera-placeholder">
@@ -210,10 +269,10 @@
                     <span class="camera-name">{{ camera.name }}</span>
                   </div>
                 </div>
-                 <div v-if="filteredCameras.length === 0" class="no-cameras">
-                    <i class="fas fa-video-slash"></i>
-                    <p>No cameras available for this selection.</p>
-                  </div>
+                <div v-if="filteredCameras.length === 0" class="no-cameras">
+                  <i class="fas fa-video-slash"></i>
+                  <p>No cameras available for this selection.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -225,20 +284,33 @@
           <div class="section-card ai-insights">
             <div class="section-header">
               <h3><i class="fas fa-robot"></i> AI Insights (Live)</h3>
-              <span class="live-indicator"><span class="pulse"></span> Live</span>
+              <span class="live-indicator"
+                ><span class="pulse"></span> Live</span
+              >
             </div>
             <div class="insights-feed">
-              <div v-for="(event, index) in filteredAiEvents" :key="index" class="insight-card">
+              <div
+                v-for="(event, index) in filteredAiEvents"
+                :key="index"
+                class="insight-card"
+              >
                 <div class="insight-image">
                   <img :src="event.snapshot" alt="Event Snapshot" />
                 </div>
                 <div class="insight-content">
                   <div class="insight-header-row">
-                    <span class="insight-type" :class="event.severity">{{ event.type }}</span>
-                    <span class="insight-camera" v-if="event.camera"><i class="fas fa-video"></i> {{ event.camera }}</span>
+                    <span class="insight-type" :class="event.severity">{{
+                      event.type
+                    }}</span>
+                    <span class="insight-camera" v-if="event.camera"
+                      ><i class="fas fa-video"></i> {{ event.camera }}</span
+                    >
                   </div>
                   <div class="insight-location-row" v-if="event.location">
-                     <span class="insight-location"><i class="fas fa-map-marker-alt"></i> {{ event.location }}</span>
+                    <span class="insight-location"
+                      ><i class="fas fa-map-marker-alt"></i>
+                      {{ event.location }}</span
+                    >
                   </div>
                   <p class="insight-desc">{{ event.description }}</p>
                   <span class="insight-time">{{ event.time }}</span>
@@ -255,16 +327,31 @@
           <div class="section-card quick-actions">
             <div class="section-header">
               <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-              <button class="toggle-btn" @click="isQuickActionsExpanded = !isQuickActionsExpanded">
-                <i :class="isQuickActionsExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+              <button
+                class="toggle-btn"
+                @click="isQuickActionsExpanded = !isQuickActionsExpanded"
+              >
+                <i
+                  :class="
+                    isQuickActionsExpanded
+                      ? 'fas fa-chevron-up'
+                      : 'fas fa-chevron-down'
+                  "
+                ></i>
               </button>
             </div>
             <transition name="collapse">
               <div v-show="isQuickActionsExpanded" class="actions-grid">
-                <button class="action-btn" @click="navigateTo('/employee-details/employee/add/personal')">
+                <button
+                  class="action-btn"
+                  @click="navigateTo('/employee-details/employee/add/personal')"
+                >
                   <i class="fas fa-user-plus"></i> Create Employee
                 </button>
-                <button class="action-btn" @click="navigateTo('/configuration/configuration')">
+                <button
+                  class="action-btn"
+                  @click="navigateTo('/configuration/configuration')"
+                >
                   <i class="fas fa-cogs"></i> Organization Configurator
                 </button>
               </div>
@@ -277,25 +364,29 @@
 </template>
 
 <script>
-import { authService } from '@/services/authService';
-import { currentUserTenant } from '@/utils/currentUserTenant';
-import BaseButton from '@/components/common/buttons/BaseButton.vue'
-import { useCameraData } from '@/composables/useCameraData';
+import { authService } from "@/services/authService";
+import { currentUserTenant } from "@/utils/currentUserTenant";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { useCameraData } from "@/composables/useCameraData";
 
 export default {
-  name: 'TaskDashboard',
+  name: "TaskDashboard",
   components: {
     BaseButton,
   },
   setup() {
-    const { fetchLocations, getCamerasByLocation, cameras: allCameras } = useCameraData();
+    const {
+      fetchLocations,
+      getCamerasByLocation,
+      cameras: allCameras,
+    } = useCameraData();
     return { fetchLocations, getCamerasByLocation, allCameras };
   },
   data() {
     return {
       currentDate: new Date(),
       branches: [],
-      selectedBranch: 'all',
+      selectedBranch: "all",
       attendanceCounts: { total: 0, present: 0, absent: 0 },
       cameraCounts: { total: 0, online: 0, offline: 0 },
       doorCounts: { total: 0, assigned: 0, unassigned: 0 },
@@ -303,122 +394,165 @@ export default {
       accessLevelCounts: { total: 0, active: 0, inactive: 0 },
       criticalAlerts: 0, // Mocked for now
       isQuickActionsExpanded: true, // Quick Actions collapsed by default
-      
+
       // Mocked Data for AI Events
       aiEvents: [
         {
-          type: 'Tailgating',
-          camera: 'Main Entrance Cam',
-          location: 'Hyderabad Branch',
-          description: 'Tailgating detected at Main Entrance',
-          time: '2 mins ago',
-          severity: 'high',
-          snapshot: 'https://via.placeholder.com/150?text=Tailgating',
+          type: "Tailgating",
+          camera: "Main Entrance Cam",
+          location: "Hyderabad Branch",
+          description: "Tailgating detected at Main Entrance",
+          time: "2 mins ago",
+          severity: "high",
+          snapshot: "https://via.placeholder.com/150?text=Tailgating",
         },
         {
-          type: 'Unrecognized Person',
-          camera: 'Server Room Cam',
-          location: 'Bangalore Branch',
-          description: 'Unknown person in Server Room corridor',
-          time: '15 mins ago',
-          severity: 'medium',
-          snapshot: 'https://via.placeholder.com/150?text=Unknown',
-        },
-         {
-          type: 'Crowd Density',
-          camera: 'Lobby Cam',
-          location: 'Hyderabad Branch',
-          description: 'High crowd density in Lobby Area',
-          time: '1 hour ago',
-          severity: 'low',
-          snapshot: 'https://via.placeholder.com/150?text=Crowd',
+          type: "Unrecognized Person",
+          camera: "Server Room Cam",
+          location: "Bangalore Branch",
+          description: "Unknown person in Server Room corridor",
+          time: "15 mins ago",
+          severity: "medium",
+          snapshot: "https://via.placeholder.com/150?text=Unknown",
         },
         {
-          type: 'Motion Detected',
-          camera: 'NewTenant Camera 1',
-          location: 'Kukatpally Branch', // Assuming the second branch is Kukatpally based on user request "kku"
-          description: 'Motion detected in restricted area',
-          time: 'Just now',
-          severity: 'high',
-          snapshot: 'https://via.placeholder.com/150?text=Motion',
+          type: "Crowd Density",
+          camera: "Lobby Cam",
+          location: "Hyderabad Branch",
+          description: "High crowd density in Lobby Area",
+          time: "1 hour ago",
+          severity: "low",
+          snapshot: "https://via.placeholder.com/150?text=Crowd",
+        },
+        {
+          type: "Motion Detected",
+          camera: "NewTenant Camera 1",
+          location: "Kukatpally Branch", // Assuming the second branch is Kukatpally based on user request "kku"
+          description: "Motion detected in restricted area",
+          time: "Just now",
+          severity: "high",
+          snapshot: "https://via.placeholder.com/150?text=Motion",
         },
       ],
 
       // Mocked Data for Access Logs
       recentAccessLogs: [
-        { user: 'John Doe', door: 'Main Entrance', branch: 'Hyderabad Branch', time: '10:45 AM', status: 'Granted', accessMethod: 'RFID Card' },
-        { user: 'Jane Smith', door: 'Server Room', branch: 'Bangalore Branch', time: '10:42 AM', status: 'Denied', accessMethod: 'Face ID' },
-        { user: 'Mike Ross', door: 'Back Gate', branch: 'Hyderabad Branch', time: '10:30 AM', status: 'Granted', accessMethod: 'QR Code' },
-        { user: 'Rachel Zane', door: 'Office Lobby', branch: 'Bangalore Branch', time: '10:15 AM', status: 'Granted', accessMethod: 'Mobile NFC' },
-        { user: 'Harvey Specter', door: 'Executive Suite', branch: 'Hyderabad Branch', time: '09:55 AM', status: 'Granted', accessMethod: 'Fingerprint' },
+        {
+          user: "John Doe",
+          door: "Main Entrance",
+          branch: "Hyderabad Branch",
+          time: "10:45 AM",
+          status: "Granted",
+          accessMethod: "RFID Card",
+        },
+        {
+          user: "Jane Smith",
+          door: "Server Room",
+          branch: "Bangalore Branch",
+          time: "10:42 AM",
+          status: "Denied",
+          accessMethod: "Face ID",
+        },
+        {
+          user: "Mike Ross",
+          door: "Back Gate",
+          branch: "Hyderabad Branch",
+          time: "10:30 AM",
+          status: "Granted",
+          accessMethod: "QR Code",
+        },
+        {
+          user: "Rachel Zane",
+          door: "Office Lobby",
+          branch: "Bangalore Branch",
+          time: "10:15 AM",
+          status: "Granted",
+          accessMethod: "Mobile NFC",
+        },
+        {
+          user: "Harvey Specter",
+          door: "Executive Suite",
+          branch: "Hyderabad Branch",
+          time: "09:55 AM",
+          status: "Granted",
+          accessMethod: "Fingerprint",
+        },
       ],
     };
   },
   computed: {
     cameraHealthPercentage() {
       if (this.cameraCounts.total === 0) return 0;
-      return Math.round((this.cameraCounts.online / this.cameraCounts.total) * 100);
+      return Math.round(
+        (this.cameraCounts.online / this.cameraCounts.total) * 100
+      );
     },
     getCameraHealthColor() {
-      if (this.cameraHealthPercentage >= 90) return 'green';
-      if (this.cameraHealthPercentage >= 70) return 'orange';
-      return 'red';
+      if (this.cameraHealthPercentage >= 90) return "green";
+      if (this.cameraHealthPercentage >= 70) return "orange";
+      return "red";
     },
     controllerHealthPercentage() {
       if (this.controllerCounts.total === 0) return 0;
-      return Math.round((this.controllerCounts.connected / this.controllerCounts.total) * 100);
+      return Math.round(
+        (this.controllerCounts.connected / this.controllerCounts.total) * 100
+      );
     },
     getControllerHealthColor() {
-      if (this.controllerHealthPercentage >= 90) return 'green';
-      if (this.controllerHealthPercentage >= 70) return 'orange';
-      return 'red';
+      if (this.controllerHealthPercentage >= 90) return "green";
+      if (this.controllerHealthPercentage >= 70) return "orange";
+      return "red";
     },
     doorHealthPercentage() {
-        if (this.doorCounts.total === 0) return 0;
-        return Math.round((this.doorCounts.assigned / this.doorCounts.total) * 100);
+      if (this.doorCounts.total === 0) return 0;
+      return Math.round(
+        (this.doorCounts.assigned / this.doorCounts.total) * 100
+      );
     },
     getDoorHealthColor() {
-         if (this.doorHealthPercentage >= 90) return 'green';
-         if (this.doorHealthPercentage >= 50) return 'orange';
-         return 'grey';
+      if (this.doorHealthPercentage >= 90) return "green";
+      if (this.doorHealthPercentage >= 50) return "orange";
+      return "grey";
     },
     filteredAiEvents() {
-      if (this.selectedBranch === 'all') {
+      if (this.selectedBranch === "all") {
         return this.aiEvents;
       }
       // Find the name of the selected branch
-      const branch = this.branches.find(b => b.id === this.selectedBranch);
+      const branch = this.branches.find((b) => b.id === this.selectedBranch);
       if (!branch) return this.aiEvents;
-      
+
       // Filter events that match the branch name
       // Note: This relies on the mock data having 'location' matching the branch name
       // In a real app, you'd filter by branch ID
-      return this.aiEvents.filter(event => event.location === branch.locationName);
+      return this.aiEvents.filter(
+        (event) => event.location === branch.locationName
+      );
     },
     filteredCameras() {
-      if (this.selectedBranch === 'all') {
+      if (this.selectedBranch === "all") {
         return this.allCameras;
       }
       return this.getCamerasByLocation(this.selectedBranch);
-    }
+    },
   },
   async created() {
     // Initialize camera data
     await this.fetchLocations();
     await this.fetchBranches();
     await this.fetchDashboardData();
-    
+
     // Simulate real-time updates for AI events (optional, just for effect)
     setInterval(() => {
-        this.simulateNewEvent();
+      this.simulateNewEvent();
     }, 30000);
   },
   methods: {
     formatShortDate(date) {
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       }).format(date);
     },
     navigateTo(path) {
@@ -428,32 +562,36 @@ export default {
       this.$router.push({ name: name });
     },
     simulateNewEvent() {
-        // Simple simulation to add a new event occasionally
-        const eventTypes = ['Loitering', 'Object Left Behind', 'Intrusion'];
-        const locations = ['Parking Lot', 'Rear Exit', 'Warehouse'];
-        const cameras = ['Parking Cam 1', 'Exit Cam', 'Warehouse Cam 2'];
-        
-        // Pick a random branch from available branches, or default to Hyderabad
-        const branchNames = this.branches.length > 0 ? this.branches.map(b => b.locationName) : ['Hyderabad Branch', 'Bangalore Branch'];
-        const randomBranch = branchNames[Math.floor(Math.random() * branchNames.length)];
+      // Simple simulation to add a new event occasionally
+      const eventTypes = ["Loitering", "Object Left Behind", "Intrusion"];
+      const locations = ["Parking Lot", "Rear Exit", "Warehouse"];
+      const cameras = ["Parking Cam 1", "Exit Cam", "Warehouse Cam 2"];
 
-        const randomIndex = Math.floor(Math.random() * eventTypes.length);
-        const randomType = eventTypes[randomIndex];
-        const randomLoc = locations[randomIndex]; // Keep location and camera somewhat synced for demo
-        const randomCam = cameras[randomIndex];
-        
-        const newEvent = {
-            type: randomType,
-            camera: randomCam,
-            location: randomBranch,
-            description: `${randomType} detected at ${randomLoc}`,
-            time: 'Just now',
-            severity: 'medium',
-            snapshot: `https://via.placeholder.com/150?text=${randomType}`,
-        };
-        
-        this.aiEvents.unshift(newEvent);
-        if (this.aiEvents.length > 5) this.aiEvents.pop();
+      // Pick a random branch from available branches, or default to Hyderabad
+      const branchNames =
+        this.branches.length > 0
+          ? this.branches.map((b) => b.locationName)
+          : ["Hyderabad Branch", "Bangalore Branch"];
+      const randomBranch =
+        branchNames[Math.floor(Math.random() * branchNames.length)];
+
+      const randomIndex = Math.floor(Math.random() * eventTypes.length);
+      const randomType = eventTypes[randomIndex];
+      const randomLoc = locations[randomIndex]; // Keep location and camera somewhat synced for demo
+      const randomCam = cameras[randomIndex];
+
+      const newEvent = {
+        type: randomType,
+        camera: randomCam,
+        location: randomBranch,
+        description: `${randomType} detected at ${randomLoc}`,
+        time: "Just now",
+        severity: "medium",
+        snapshot: `https://via.placeholder.com/150?text=${randomType}`,
+      };
+
+      this.aiEvents.unshift(newEvent);
+      if (this.aiEvents.length > 5) this.aiEvents.pop();
     },
 
     async fetchBranches() {
@@ -461,7 +599,7 @@ export default {
       const token = await authService.getToken();
       const headers = {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       try {
@@ -470,13 +608,13 @@ export default {
           { headers }
         );
         const data = await response.json();
-        
-        this.branches = data.data.map(branch => ({
+
+        this.branches = data.data.map((branch) => ({
           id: branch.id,
-          locationName: branch.locdetail?.locationName || 'Unknown Branch'
+          locationName: branch.locdetail?.locationName || "Unknown Branch",
         }));
       } catch (error) {
-        console.error('Error fetching branches:', error);
+        console.error("Error fetching branches:", error);
       }
     },
 
@@ -490,81 +628,94 @@ export default {
       const token = await authService.getToken();
       const headers = {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       try {
         // 1. Fetch Employee/Attendance Counts
-        const today = new Date().toISOString().split('T')[0];
-        
+        const today = new Date().toISOString().split("T")[0];
+
         // Fetch total employees with branch filter if applicable
         let employeesUrl = `${import.meta.env.VITE_API_URL}/items/personalModule?filter[_and][0][assignedUser][tenant][tenantId][_eq]=${tenantId}`;
-        if (this.selectedBranch !== 'all') {
+        if (this.selectedBranch !== "all") {
           employeesUrl += `&filter[_and][1][branchLocation][id][_eq]=${this.selectedBranch}`;
         }
-        employeesUrl += '&aggregate[count]=*';
-        
+        employeesUrl += "&aggregate[count]=*";
+
         const employeesResponse = await fetch(employeesUrl, { headers });
         const empData = await employeesResponse.json();
         this.attendanceCounts.total = empData.data[0].count || 0;
-        
+
         // Fetch today's attendance with branch filter if applicable
         let attUrl = `${import.meta.env.VITE_API_URL}/items/attendance?filter[_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][1][date][_eq]=${today}`;
-        if (this.selectedBranch !== 'all') {
+        if (this.selectedBranch !== "all") {
           attUrl += `&filter[_and][2][locationBranch][_eq]=${this.selectedBranch}`;
         }
-        
+
         const attResponse = await fetch(attUrl, { headers });
         const attData = await attResponse.json();
-        
-        // Count present and absent employees
-        this.attendanceCounts.present = attData.data.filter(a => a.attendance === 'Present').length;
-        this.attendanceCounts.absent = this.attendanceCounts.total - this.attendanceCounts.present;
 
+        // Count present and absent employees
+        this.attendanceCounts.present = attData.data.filter(
+          (a) => a.attendance === "Present"
+        ).length;
+        this.attendanceCounts.absent =
+          this.attendanceCounts.total - this.attendanceCounts.present;
 
         // 2. Fetch Camera Counts using useCameraData
         let currentCameras = [];
-        if (this.selectedBranch === 'all') {
+        if (this.selectedBranch === "all") {
           currentCameras = this.allCameras;
         } else {
           currentCameras = this.getCamerasByLocation(this.selectedBranch);
         }
 
         this.cameraCounts.total = currentCameras.length;
-        this.cameraCounts.online = currentCameras.filter(c => c.status === 'online').length;
-        this.cameraCounts.offline = currentCameras.filter(c => c.status === 'offline').length;
-
+        this.cameraCounts.online = currentCameras.filter(
+          (c) => c.status === "online"
+        ).length;
+        this.cameraCounts.offline = currentCameras.filter(
+          (c) => c.status === "offline"
+        ).length;
 
         // 3. Fetch Door Counts with branch filter
-        const doorsUrl = this.selectedBranch !== 'all'
-          ? `${import.meta.env.VITE_API_URL}/items/doors?filter[_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][1][location][_eq]=${this.selectedBranch}`
-          : `${import.meta.env.VITE_API_URL}/items/doors?filter[_and][0][tenant][tenantId][_eq]=${tenantId}`;
-        
+        const doorsUrl =
+          this.selectedBranch !== "all"
+            ? `${import.meta.env.VITE_API_URL}/items/doors?filter[_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][1][location][_eq]=${this.selectedBranch}`
+            : `${import.meta.env.VITE_API_URL}/items/doors?filter[_and][0][tenant][tenantId][_eq]=${tenantId}`;
+
         const doorsResponse = await fetch(doorsUrl, { headers });
         const doorsData = await doorsResponse.json();
         const doors = doorsData.data;
         this.doorCounts.total = doors.length;
-        this.doorCounts.assigned = doors.filter(d => d.doorName && d.doorName !== '').length; // Assuming 'assigned' means has a name or config
-        this.doorCounts.unassigned = this.doorCounts.total - this.doorCounts.assigned;
-
+        this.doorCounts.assigned = doors.filter(
+          (d) => d.doorName && d.doorName !== ""
+        ).length; // Assuming 'assigned' means has a name or config
+        this.doorCounts.unassigned =
+          this.doorCounts.total - this.doorCounts.assigned;
 
         // 4. Fetch Controller Counts with branch filter
-        const controllersUrl = this.selectedBranch !== 'all'
-          ? `${import.meta.env.VITE_API_URL}/items/controllers?filter[_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][1][branchDetails][_eq]=${this.selectedBranch}`
-          : `${import.meta.env.VITE_API_URL}/items/controllers?filter[_and][0][tenant][tenantId][_eq]=${tenantId}`;
-        
+        const controllersUrl =
+          this.selectedBranch !== "all"
+            ? `${import.meta.env.VITE_API_URL}/items/controllers?filter[_and][0][tenant][tenantId][_eq]=${tenantId}&filter[_and][1][branchDetails][_eq]=${this.selectedBranch}`
+            : `${import.meta.env.VITE_API_URL}/items/controllers?filter[_and][0][tenant][tenantId][_eq]=${tenantId}`;
+
         const controllersResponse = await fetch(controllersUrl, { headers });
         const controllersData = await controllersResponse.json();
         const controllers = controllersData.data;
         this.controllerCounts.total = controllers.length;
-        this.controllerCounts.connected = controllers.filter(c => c.status === 'Connected').length;
-        this.controllerCounts.waiting = controllers.filter(c => c.status === 'Waiting').length;
-        
-        // 5. Critical Alerts (Mocked based on offline devices)
-        this.criticalAlerts = this.cameraCounts.offline + this.controllerCounts.waiting;
+        this.controllerCounts.connected = controllers.filter(
+          (c) => c.status === "Connected"
+        ).length;
+        this.controllerCounts.waiting = controllers.filter(
+          (c) => c.status === "Waiting"
+        ).length;
 
+        // 5. Critical Alerts (Mocked based on offline devices)
+        this.criticalAlerts =
+          this.cameraCounts.offline + this.controllerCounts.waiting;
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error("Error fetching dashboard data:", error);
       }
     },
   },
@@ -584,7 +735,7 @@ export default {
   background-color: #f4f6f9;
   min-height: 100vh;
   min-width: 1200px;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* Dashboard Header */
@@ -713,12 +864,24 @@ export default {
   color: white;
 }
 
-.blue-bg { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.green-bg { background: linear-gradient(135deg, #10b981, #059669); }
-.orange-bg { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.purple-bg { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-.teal-bg { background: linear-gradient(135deg, #14b8a6, #0d9488); }
-.red-bg { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.blue-bg {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.green-bg {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.orange-bg {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.purple-bg {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+.teal-bg {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+.red-bg {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
 
 .stat-info {
   display: flex;
@@ -796,7 +959,6 @@ export default {
   font-size: 14px;
 }
 
-
 /* Dashboard Grid */
 .dashboard-grid {
   display: grid;
@@ -810,7 +972,8 @@ export default {
   }
 }
 
-.main-column, .side-column {
+.main-column,
+.side-column {
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -885,9 +1048,15 @@ export default {
   border-radius: 50%;
   display: inline-block;
 }
-.dot.green { background-color: #10b981; }
-.dot.red { background-color: #ef4444; }
-.dot.grey { background-color: #9ca3af; }
+.dot.green {
+  background-color: #10b981;
+}
+.dot.red {
+  background-color: #ef4444;
+}
+.dot.grey {
+  background-color: #9ca3af;
+}
 
 /* Activity List */
 .activity-list {
@@ -1005,9 +1174,15 @@ export default {
 }
 
 @keyframes pulse-animation {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 .insights-feed {
@@ -1046,9 +1221,15 @@ export default {
   margin-bottom: 4px;
 }
 
-.insight-type.high { color: #dc2626; }
-.insight-type.medium { color: #d97706; }
-.insight-type.low { color: #2563eb; }
+.insight-type.high {
+  color: #dc2626;
+}
+.insight-type.medium {
+  color: #d97706;
+}
+.insight-type.low {
+  color: #2563eb;
+}
 
 .insight-desc {
   font-size: 13px;

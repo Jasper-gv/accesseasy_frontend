@@ -401,6 +401,7 @@ const router = useRouter();
 
 // Device type options
 const deviceTypes = [
+  { label: "2 Door Device", value: "2 Door Device" },
   { label: "4 Door Device", value: "4 Door Device" },
   { label: "Finger Print", value: "Finger Print" },
   { label: "AI", value: "AI" },
@@ -408,9 +409,15 @@ const deviceTypes = [
 const createTimeZone = () => {
   router.push("/configuration/timerzone-configuration");
 };
+
 // Dynamic door tabs based on device type - labels changed to lowercase
 const doorTabs = computed(() => {
-  if (form.controllerName === "4 Door Device") {
+  if (form.controllerName === "2 Door Device") {
+    return [
+      { label: "door1", value: "door1" },
+      { label: "door2", value: "door2" },
+    ];
+  } else if (form.controllerName === "4 Door Device") {
     return [
       { label: "door1", value: "door1" },
       { label: "door2", value: "door2" },
@@ -581,13 +588,29 @@ const resetDoorConfigurations = (deviceType) => {
 
   Object.keys(form.doors).forEach((key) => {
     // Only reset doors that are applicable for the current device type
-    if (
-      deviceType === "4 Door Device" ||
-      (deviceType !== "4 Door Device" && key === "door1")
-    ) {
+    if (deviceType === "2 Door Device") {
+      // For 2 Door Device, only door1 and door2 are applicable
+      if (key === "door1" || key === "door2") {
+        form.doors[key] = { ...defaultDoorConfig };
+      } else {
+        // Clear other doors completely
+        form.doors[key] = { ...defaultDoorConfig };
+        form.doors[key].selectedDoor = ""; // Ensure no door is selected
+      }
+    } else if (deviceType === "4 Door Device") {
+      // All doors are applicable for 4 Door Device
       form.doors[key] = { ...defaultDoorConfig };
-    } else if (deviceType !== "4 Door Device" && key !== "door1") {
-      // For non-4-door devices, clear other doors completely
+    } else if (deviceType === "Finger Print" || deviceType === "AI") {
+      // Only door1 is applicable for Finger Print and AI
+      if (key === "door1") {
+        form.doors[key] = { ...defaultDoorConfig };
+      } else {
+        // Clear other doors completely
+        form.doors[key] = { ...defaultDoorConfig };
+        form.doors[key].selectedDoor = ""; // Ensure no door is selected
+      }
+    } else {
+      // For no device type selected or other cases, clear all
       form.doors[key] = { ...defaultDoorConfig };
       form.doors[key].selectedDoor = ""; // Ensure no door is selected
     }

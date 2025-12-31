@@ -71,7 +71,12 @@
             <strong class="ml-1">
               {{ access24Hours ? "24 Hours Access" : "" }}
               {{ accessTiming ? "Time Zone" : "" }}
-              {{ maxWorkHours ? "Maximum Work Hours" : "" }}
+              {{
+                maxWorkHours
+                  ? "Max Work Hours: " +
+                    (maxWorkHoursValue ? maxWorkHoursValue : "")
+                  : ""
+              }}
               {{ holidayAccess ? "Holiday Access" : "" }}
             </strong>
           </v-alert>
@@ -241,13 +246,13 @@
             </v-col>
             <v-col cols="12" sm="4" v-if="maxWorkHours">
               <v-text-field
-                label="Max Hours"
-                placeholder="hh:mm"
+                label="Time Zone"
+                placeholder="e.g. 40 hours"
                 variant="outlined"
                 dense
                 v-model="maxWorkHoursValue"
                 class="small-field"
-                :rules="maxWorkHours ? [requiredRule, maxWorkHoursRule] : []"
+                :rules="maxWorkHours ? [requiredRule] : []"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -529,7 +534,7 @@ const initializeFormData = () => {
     access24Hours.value = true;
     console.log("✅ Loaded: 24 Hours Access");
   } else if (data.Valid_hours && data.Valid_hours.startsWith("MAX:")) {
-    // Max Work Hours - parse "MAX:HH:MM:SS" format
+    // Legacy Max Work Hours - parse "MAX:HH:MM:SS" format
     maxWorkHours.value = true;
     const maxTimeMatch = data.Valid_hours.match(/MAX:(\d{2}):(\d{2}):(\d{2})/);
     if (maxTimeMatch) {
@@ -537,6 +542,19 @@ const initializeFormData = () => {
       const minutes = maxTimeMatch[2];
       maxWorkHoursValue.value = `${hours}:${minutes}`;
     }
+    console.log(
+      "✅ Loaded: Max Work Hours (Legacy) -",
+      maxWorkHoursValue.value
+    );
+  } else if (
+    data.Valid_hours &&
+    data.Valid_hours !== "24_hours" &&
+    data.Valid_hours !== "HOLIDAY" &&
+    !data.Valid_hours.includes(" - ")
+  ) {
+    // New Max Work Hours - direct string
+    maxWorkHours.value = true;
+    maxWorkHoursValue.value = data.Valid_hours;
     console.log("✅ Loaded: Max Work Hours -", maxWorkHoursValue.value);
   } else if (data.Valid_hours && data.Valid_hours.includes(" - ")) {
     // Time Zone Access - contains a time range
@@ -582,17 +600,7 @@ const initializeFormData = () => {
     holidayAccess: holidayAccess.value,
   });
 };
-const maxWorkHoursRule = (value) => {
-  if (!value) return "This field is required";
 
-  // Validate hh:mm format
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  if (!timeRegex.test(value)) {
-    return "Please use hh:mm format (00:00 to 23:59)";
-  }
-
-  return true;
-};
 // Toggle handlers to ensure only one option is active
 const handle24HoursToggle = (value) => {
   if (value) {
@@ -700,14 +708,6 @@ const handleSave = async () => {
 
   if (maxWorkHours.value && !maxWorkHoursValue.value) {
     alert("Please enter max work hours when 'Max Work Hours' is enabled");
-    return;
-  }
-
-  if (
-    maxWorkHours.value &&
-    maxWorkHoursRule(maxWorkHoursValue.value) !== true
-  ) {
-    alert(maxWorkHoursRule(maxWorkHoursValue.value));
     return;
   }
 
@@ -821,12 +821,11 @@ const buildPayload = () => {
       payload.Valid_hours = selectedTimeSchedule.value;
     }
   } else if (maxWorkHours.value && maxWorkHoursValue.value) {
-    // For Max Work Hours - format as "MAX:HH:MM"
+    // For Max Work Hours - pass directly as user input
     payload._24hrs = false;
-
-    // Convert hh:mm to "MAX:HH:MM:00" format
-    const [hours, minutes] = maxWorkHoursValue.value.split(":");
-    payload.Valid_hours = `MAX:${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}:00`;
+    payload.Valid_hours = maxWorkHoursValue.value;
+    payload.maxWorkHours = maxWorkHoursValue.value; // Store in maxWorkHours field as well
+    payload.workingHours = true; // Flag to indicate working hours limit is active
   } else if (holidayAccess.value) {
     // For Holiday Access - might use "HOLIDAY" or similar
     payload._24hrs = false;
