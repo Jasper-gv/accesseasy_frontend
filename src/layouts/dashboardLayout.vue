@@ -399,11 +399,11 @@ export default {
             to: "/attendanceDeatils/daily",
             roles: ["Admin", "Employee"],
           },
-          // {
-          //   title: "Monthly Attendance",
-          //   to: "/attendanceDeatils/dashboard",
-          //   roles: ["Admin", "Dealer", "Manager", "Employee"],
-          // },
+          {
+            title: "Monthly Attendance",
+            to: "/attendanceDeatils/dashboard",
+            roles: ["Admin", "Dealer", "Manager", "Employee"],
+          },
           // {
           //   title: "Regularisation",
           //   icon: "mdi-calendar-check",

@@ -180,15 +180,20 @@
 
               <!-- In the doors-info section -->
               <div v-if="activeTab === 'doors'" class="doors-info">
-                <div
+                <EmptyState
                   v-if="
                     !accessLevelDetails.assignedDoors ||
                     accessLevelDetails.assignedDoors.length === 0
                   "
-                  class="no-doors"
+                  title="No doors assigned"
+                  message="No doors assigned to this access level"
+                  :show-default-actions="false"
+                  :icon-size="40"
                 >
-                  No doors assigned to this access level
-                </div>
+                  <template #icon>
+                    <v-icon size="40" color="grey" class="mb-2">mdi-door</v-icon>
+                  </template>
+                </EmptyState>
 
                 <div v-else class="doors-grid">
                   <div
@@ -211,12 +216,16 @@
               </div>
             </div>
 
-            <div v-else class="no-access-level">
-              <v-icon size="40" color="grey" class="mb-2"
-                >mdi-shield-off</v-icon
-              >
-              <div>No access level selected</div>
-            </div>
+            <EmptyState
+              v-else
+              title="No access level selected"
+              :show-default-actions="false"
+              class="no-access-level"
+            >
+              <template #icon>
+                <v-icon size="40" color="grey" class="mb-2">mdi-shield-off</v-icon>
+              </template>
+            </EmptyState>
           </div>
 
           <!-- Configure Access Levels Link -->
@@ -251,9 +260,12 @@
               </div>
 
               <div class="card-content">
-                <div v-if="assignedCards.length === 0" class="empty-state">
-                  No active cards assigned
-                </div>
+                <EmptyState
+                  v-if="assignedCards.length === 0"
+                  title="No active cards assigned"
+                  :show-default-actions="false"
+                  class="empty-state-small"
+                />
                 <div v-else class="assigned-list">
                   <div
                     v-for="card in assignedCards"
@@ -434,11 +446,17 @@
     </div>
 
     <!-- No Data State -->
-    <div v-else class="no-data">
-      <v-icon size="64" color="grey" class="mb-4">mdi-account-question</v-icon>
-      <h3>No Employee Data Found</h3>
-      <p>The requested employee information could not be found</p>
-    </div>
+    <EmptyState
+      v-else
+      title="No Employee Data Found"
+      message="The requested employee information could not be found"
+      :show-default-actions="false"
+      class="no-data"
+    >
+      <template #icon>
+        <v-icon size="64" color="grey" class="mb-4">mdi-account-question</v-icon>
+      </template>
+    </EmptyState>
 
     <!-- Notifications -->
     <v-snackbar
@@ -482,6 +500,7 @@ import { authService } from "@/services/authService";
 import { currentUserTenant } from "@/utils/currentUserTenant";
 import { convertToCardAccessHex } from "@/utils/helpers/convertToCardAccessHex";
 import QRCode from "qrcode";
+import EmptyState from "@/components/common/states/EmptyState.vue";
 
 const props = defineProps({
   employeeData: {
@@ -1549,12 +1568,7 @@ onUnmounted(() => {
   padding: 4px;
 }
 
-.no-cards {
-  padding: 24px;
-  text-align: center;
-  color: #888;
-  font-size: 14px;
-}
+
 
 .card-item {
   display: flex;
@@ -1690,12 +1704,7 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
-.no-doors {
-  padding: 24px;
-  text-align: center;
-  color: #888;
-  font-size: 14px;
-}
+
 
 .doors-grid {
   display: grid;
@@ -1722,35 +1731,10 @@ onUnmounted(() => {
   color: #666;
 }
 
-.no-access-level {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-  color: #888;
-}
+
 
 /* No Data */
-.no-data {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 0;
-  text-align: center;
-  color: #888;
-}
 
-.no-data h3 {
-  margin: 16px 0 8px;
-  font-weight: 500;
-}
-
-.no-data p {
-  margin: 0;
-  font-size: 14px;
-}
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -1910,7 +1894,7 @@ onUnmounted(() => {
 }
 
 /* RFID Specific */
-.empty-state {
+.empty-state-small {
   background: #f9fafb;
   border-radius: 8px;
   padding: 16px;
@@ -1918,6 +1902,19 @@ onUnmounted(() => {
   color: #9ca3af;
   font-style: italic;
   margin-bottom: auto;
+  min-height: auto !important;
+}
+
+.empty-state-small :deep(.empty-title) {
+  font-size: 14px;
+  font-weight: normal;
+  font-style: italic;
+  color: #9ca3af;
+}
+
+.empty-state-small :deep(.empty-content) {
+  gap: 0;
+  min-height: 0;
 }
 
 .assigned-list {

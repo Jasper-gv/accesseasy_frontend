@@ -379,6 +379,8 @@ export default {
       { value: "import", title: "Import Entries" },
       { value: "throughApp", title: "Mobile based Entries" },
       { value: "systemUpdate", title: "Abnormalities" },
+      { value: "rfid", title: "RFID" },
+      { value: "face", title: "Face" },
     ]);
 
     return {

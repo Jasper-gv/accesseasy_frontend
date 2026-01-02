@@ -826,6 +826,7 @@ const buildPayload = () => {
     payload.Valid_hours = maxWorkHoursValue.value;
     payload.maxWorkHours = maxWorkHoursValue.value; // Store in maxWorkHours field as well
     payload.workingHours = true; // Flag to indicate working hours limit is active
+    payload.limitTime = true; // Flag to indicate time limit is enabled
   } else if (holidayAccess.value) {
     // For Holiday Access - might use "HOLIDAY" or similar
     payload._24hrs = false;

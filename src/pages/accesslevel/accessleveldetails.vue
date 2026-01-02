@@ -387,6 +387,8 @@ const fetchAccessLevels = async () => {
       "workingHours",
       "maxWorkHours",
       "holidays",
+      "limitTime",
+      
     ];
 
     const url = new URL(`${import.meta.env.VITE_API_URL}/items/accesslevels`);

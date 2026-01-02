@@ -3,8 +3,10 @@
     <div class="empty-content">
       <!-- Icon -->
       <div class="empty-icon">
-        <component v-if="customIcon" :is="customIcon" :size="iconSize" />
-        <div v-else class="default-icon">{{ defaultIcon }}</div>
+        <slot name="icon">
+          <component v-if="customIcon" :is="customIcon" :size="iconSize" />
+          <div v-else class="default-icon">{{ defaultIcon }}</div>
+        </slot>
       </div>
 
       <!-- Text Content -->
