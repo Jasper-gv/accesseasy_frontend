@@ -482,6 +482,12 @@ export default {
           },
         ],
       },
+      {
+        title: "Visitor Management",
+        icon: "mdi-account-clock-outline",
+        to: "/visitor-management",
+        roles: ["Admin", "Manager", "Security"],
+      },
       // {
       //   title: "Expenses",
       //   icon: "mdi-cash",
@@ -797,6 +803,7 @@ export default {
         "/configuration/designations": "Configurators",
         "/settings/leave-types": "Leave Types",
         "/settings/plans/plans": "Subscription & Plans",
+        "/visitor-management": "Visitor Management",
         "/taskManagement/taskcomponents/workOrder": "Work Orders",
         "/taskManagement/taskcomponents/workflow": "Workflow",
         "/taskManagement/Map/livetracking": "Live Tracking",

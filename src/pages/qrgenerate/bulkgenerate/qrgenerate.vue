@@ -28,6 +28,14 @@
           >
             Generate QR Codes
           </BaseButton>
+          <BaseButton
+            variant="outlined"
+            @click="showBulkUpdateDialog = true"
+            prepend-icon="mdi-update"
+            class="bulk-update-btn"
+          >
+            Bulk Update Access Level
+          </BaseButton>
         </template>
 
         <!-- Table content states -->
@@ -699,6 +707,249 @@
       </v-card-text>
     </v-card>
   </v-dialog>
+
+  <!-- Bulk Update Access Level Dialog -->
+  <v-dialog v-model="showBulkUpdateDialog" max-width="700px" persistent>
+    <v-card class="bulk-update-dialog">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-update</v-icon>
+        Bulk Update Access Level
+        <v-spacer></v-spacer>
+        <BaseButton
+          icon
+          @click="closeBulkUpdateDialog"
+          :disabled="isBulkUpdating"
+          variant="text"
+        >
+          <v-icon>mdi-close</v-icon>
+        </BaseButton>
+      </v-card-title>
+
+      <v-card-text class="pa-6">
+        <!-- Update Steps -->
+        <div class="update-steps">
+          <div class="step" :class="{ active: bulkUpdateStep === 1 }">
+            <div class="step-number">1</div>
+            <div class="step-label">Select</div>
+          </div>
+          <div class="step" :class="{ active: bulkUpdateStep === 2 }">
+            <div class="step-number">2</div>
+            <div class="step-label">Confirm</div>
+          </div>
+          <div class="step" :class="{ active: bulkUpdateStep === 3 }">
+            <div class="step-number">3</div>
+            <div class="step-label">Update</div>
+          </div>
+          <div class="step" :class="{ active: bulkUpdateStep === 4 }">
+            <div class="step-number">4</div>
+            <div class="step-label">Complete</div>
+          </div>
+        </div>
+
+        <!-- Step 1: Select Access Level -->
+        <div v-if="bulkUpdateStep === 1" class="select-section">
+          <v-card variant="outlined">
+            <v-card-title>Select Access Level</v-card-title>
+            <v-card-text>
+              <v-select
+                v-model="bulkUpdateConfig.accessLevelsId"
+                :items="accessLevels"
+                item-title="accessLevelName"
+                item-value="id"
+                label="Access Level"
+                variant="outlined"
+                :rules="[rules.required]"
+                hint="This access level will be assigned to all QR codes without an access level"
+                persistent-hint
+              ></v-select>
+
+              <v-alert type="info" variant="tonal" class="mt-4">
+                <template v-slot:title>Bulk Update Information</template>
+                <ul class="mt-2">
+                  <li>Only QR codes without an access level will be updated</li>
+                  <li>QR codes themselves will NOT be regenerated</li>
+                  <li>Only the access level assignment will change</li>
+                </ul>
+              </v-alert>
+
+              <div class="select-actions mt-6">
+                <BaseButton
+                  color="primary"
+                  @click="proceedToConfirm"
+                  :disabled="!bulkUpdateConfig.accessLevelsId"
+                  prepend-icon="mdi-arrow-right"
+                >
+                  CONTINUE
+                </BaseButton>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
+
+        <!-- Step 2: Confirm -->
+        <div v-else-if="bulkUpdateStep === 2" class="confirm-section">
+          <v-card variant="outlined">
+            <v-card-title>Confirm Bulk Update</v-card-title>
+            <v-card-text>
+              <div class="confirmation-details">
+                <v-alert type="warning" variant="tonal" class="mb-4">
+                  <template v-slot:title>Please Confirm</template>
+                  <p class="mt-2">
+                    You are about to update <strong>{{ qrCodesWithoutAccessLevel }}</strong> QR codes
+                    with the access level: <strong>{{ getAccessLevelName(bulkUpdateConfig.accessLevelsId) }}</strong>
+                  </p>
+                </v-alert>
+
+                <v-card variant="flat" class="pa-4 bg-light">
+                  <h4 class="mb-3">Update Summary:</h4>
+                  <div class="summary-item">
+                    <v-icon color="primary" class="mr-2">mdi-qrcode</v-icon>
+                    <span>QR Codes to Update: <strong>{{ qrCodesWithoutAccessLevel }}</strong></span>
+                  </div>
+                  <div class="summary-item mt-2">
+                    <v-icon color="success" class="mr-2">mdi-shield-check</v-icon>
+                    <span>New Access Level: <strong>{{ getAccessLevelName(bulkUpdateConfig.accessLevelsId) }}</strong></span>
+                  </div>
+                </v-card>
+              </div>
+
+              <div class="confirm-actions mt-6 d-flex gap-3">
+                <BaseButton
+                  variant="outlined"
+                  @click="bulkUpdateStep = 1"
+                  prepend-icon="mdi-arrow-left"
+                >
+                  BACK
+                </BaseButton>
+                <BaseButton
+                  color="primary"
+                  @click="startBulkUpdate"
+                  prepend-icon="mdi-check"
+                >
+                  CONFIRM & UPDATE
+                </BaseButton>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
+
+        <!-- Step 3: Update Progress -->
+        <div v-else-if="bulkUpdateStep === 3" class="update-section">
+          <v-card variant="outlined">
+            <v-card-title class="d-flex align-center">
+              <v-icon class="mr-2">mdi-progress-upload</v-icon>
+              Updating QR Codes...
+              <v-spacer></v-spacer>
+              <span class="text-caption">
+                {{ bulkUpdateProgress.current }}/{{ bulkUpdateProgress.total }}
+              </span>
+            </v-card-title>
+
+            <v-card-text>
+              <!-- Progress Bar -->
+              <div class="progress-section mb-6">
+                <v-progress-linear
+                  v-model="bulkUpdateProgress.percentage"
+                  height="20"
+                  rounded
+                  color="primary"
+                  class="mb-2"
+                >
+                  <template v-slot:default="{ value }">
+                    <strong>{{ Math.ceil(value) }}%</strong>
+                  </template>
+                </v-progress-linear>
+                <div class="text-caption text-center">
+                  Updating QR Code {{ bulkUpdateProgress.current }} of {{ bulkUpdateProgress.total }}
+                </div>
+              </div>
+
+              <!-- Progress Stats -->
+              <v-row class="stats-row">
+                <v-col cols="4">
+                  <v-card variant="flat" color="success" class="text-center pa-3">
+                    <div class="text-h6">{{ bulkUpdateResults.success }}</div>
+                    <div class="text-caption">Success</div>
+                  </v-card>
+                </v-col>
+                <v-col cols="4">
+                  <v-card variant="flat" color="error" class="text-center pa-3">
+                    <div class="text-h6">{{ bulkUpdateResults.failed }}</div>
+                    <div class="text-caption">Failed</div>
+                  </v-card>
+                </v-col>
+                <v-col cols="4">
+                  <v-card variant="flat" color="info" class="text-center pa-3">
+                    <div class="text-h6">{{ bulkUpdateResults.total }}</div>
+                    <div class="text-caption">Total</div>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <div class="update-actions mt-4">
+                <BaseButton
+                  v-if="bulkUpdateProgress.completed"
+                  color="primary"
+                  @click="bulkUpdateStep = 4"
+                  prepend-icon="mdi-arrow-right"
+                >
+                  VIEW RESULTS
+                </BaseButton>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
+
+        <!-- Step 4: Complete -->
+        <div v-else-if="bulkUpdateStep === 4" class="complete-section">
+          <v-card variant="outlined">
+            <v-card-title class="d-flex align-center">
+              <v-icon class="mr-2">mdi-check-circle</v-icon>
+              Update Complete
+            </v-card-title>
+
+            <v-card-text>
+              <div class="success-summary text-center mb-6">
+                <v-icon color="success" size="64" class="mb-4">
+                  mdi-check-circle
+                </v-icon>
+                <h3 class="mb-2">Bulk Update Completed!</h3>
+                <p class="text-medium-emphasis">
+                  {{ bulkUpdateResults.success }} QR codes have been successfully updated with the new access level.
+                </p>
+              </div>
+
+              <v-card variant="flat" class="pa-4 bg-light">
+                <h4 class="mb-3">Update Results:</h4>
+                <div class="summary-item">
+                  <v-icon color="success" class="mr-2">mdi-check</v-icon>
+                  <span>Successfully Updated: <strong>{{ bulkUpdateResults.success }}</strong></span>
+                </div>
+                <div class="summary-item mt-2" v-if="bulkUpdateResults.failed > 0">
+                  <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+                  <span>Failed: <strong>{{ bulkUpdateResults.failed }}</strong></span>
+                </div>
+                <div class="summary-item mt-2">
+                  <v-icon color="primary" class="mr-2">mdi-shield-check</v-icon>
+                  <span>Access Level: <strong>{{ getAccessLevelName(bulkUpdateConfig.accessLevelsId) }}</strong></span>
+                </div>
+              </v-card>
+
+              <div class="complete-actions mt-6">
+                <BaseButton
+                  variant="outlined"
+                  @click="finishBulkUpdate"
+                  prepend-icon="mdi-check"
+                >
+                  FINISH
+                </BaseButton>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -768,6 +1019,30 @@ const generationResults = ref({
 
 const generationLog = ref([]);
 const generatedQRs = ref([]);
+
+// Bulk Update Dialog State
+const showBulkUpdateDialog = ref(false);
+const bulkUpdateStep = ref(1);
+const isBulkUpdating = ref(false);
+
+const bulkUpdateConfig = reactive({
+  accessLevelsId: null,
+});
+
+const bulkUpdateProgress = ref({
+  current: 0,
+  total: 0,
+  percentage: 0,
+  completed: false,
+});
+
+const bulkUpdateResults = ref({
+  success: 0,
+  failed: 0,
+  total: 0,
+});
+
+const qrCodesWithoutAccessLevel = ref(0);
 
 const shareQRCode = (item) => {
   shareQRItem.value = item;
@@ -1453,6 +1728,188 @@ const getLogIcon = (t) =>
     info: "mdi-information",
   })[t] || "mdi-circle";
 
+/*  BULK UPDATE LOGIC  */
+const proceedToConfirm = async () => {
+  try {
+    // Fetch count of QR codes without access level
+    await fetchQRCodesWithoutAccessLevelCount();
+    bulkUpdateStep.value = 2;
+  } catch (err) {
+    showErrorMessage("Failed to fetch QR codes count: " + err.message);
+  }
+};
+
+const fetchQRCodesWithoutAccessLevelCount = async () => {
+  try {
+    const params = {
+      "filter[_and][0][_and][0][tenant][_eq]": tenantId,
+      "filter[_and][0][_and][1][employeeId][id][_null]": true,
+      "filter[_and][0][_and][2][accessLevelsId][_null]": true,
+      "aggregate[count]": "id",
+    };
+
+    const queryString = new URLSearchParams(params).toString();
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?${queryString}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    qrCodesWithoutAccessLevel.value = data?.data?.[0]?.count?.id || 0;
+  } catch (err) {
+    console.error("Error fetching QR codes without access level count:", err);
+    throw err;
+  }
+};
+
+const startBulkUpdate = async () => {
+  if (qrCodesWithoutAccessLevel.value === 0) {
+    showErrorMessage("No QR codes to update");
+    return;
+  }
+
+  bulkUpdateStep.value = 3;
+  isBulkUpdating.value = true;
+
+  bulkUpdateResults.value = {
+    success: 0,
+    failed: 0,
+    total: qrCodesWithoutAccessLevel.value,
+  };
+
+  bulkUpdateProgress.value = {
+    current: 0,
+    total: qrCodesWithoutAccessLevel.value,
+    percentage: 0,
+    completed: false,
+  };
+
+  await performBulkUpdate();
+};
+
+const performBulkUpdate = async () => {
+  try {
+    // Fetch all QR codes without access level
+    const params = {
+      "filter[_and][0][_and][0][tenant][_eq]": tenantId,
+      "filter[_and][0][_and][1][employeeId][id][_null]": true,
+      "filter[_and][0][_and][2][accessLevelsId][_null]": true,
+      "fields[]": "id",
+      limit: -1, // Get all records
+    };
+
+    const queryString = new URLSearchParams();
+    queryString.append("fields[]", "id");
+    Object.keys(params).forEach((k) => {
+      if (k !== "fields[]" && k !== "limit") {
+        queryString.append(k, params[k]);
+      }
+    });
+    queryString.append("limit", -1);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?${queryString}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    const qrCodes = data.data || [];
+
+    // Update each QR code
+    for (let i = 0; i < qrCodes.length; i++) {
+      try {
+        await updateSingleQRCode(qrCodes[i].id);
+        bulkUpdateResults.value.success++;
+      } catch (err) {
+        console.error(`Failed to update QR code ${qrCodes[i].id}:`, err);
+        bulkUpdateResults.value.failed++;
+      }
+
+      bulkUpdateProgress.value.current = i + 1;
+      bulkUpdateProgress.value.percentage =
+        ((i + 1) / qrCodes.length) * 100;
+
+      // Small delay to prevent overwhelming the API
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    bulkUpdateProgress.value.completed = true;
+    isBulkUpdating.value = false;
+  } catch (err) {
+    console.error("Error performing bulk update:", err);
+    showErrorMessage("Failed to perform bulk update: " + err.message);
+    isBulkUpdating.value = false;
+  }
+};
+
+const updateSingleQRCode = async (qrCodeId) => {
+  const payload = {
+    accessLevelsId: bulkUpdateConfig.accessLevelsId,
+  };
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/items/qrgenerate/${qrCodeId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(
+      errorData.errors?.[0]?.message || "Failed to update QR code"
+    );
+  }
+
+  return await response.json();
+};
+
+const closeBulkUpdateDialog = () => {
+  if (isBulkUpdating.value && !confirm("Update in progress. Cancel?")) return;
+  showBulkUpdateDialog.value = false;
+  resetBulkUpdateDialog();
+};
+
+const finishBulkUpdate = () => {
+  showBulkUpdateDialog.value = false;
+  resetBulkUpdateDialog();
+  fetchQRData();
+  showSuccessMessage(
+    `Bulk update completed! ${bulkUpdateResults.value.success} QR codes updated.`
+  );
+};
+
+const resetBulkUpdateDialog = () => {
+  bulkUpdateStep.value = 1;
+  bulkUpdateConfig.accessLevelsId = null;
+  bulkUpdateProgress.value = {
+    current: 0,
+    total: 0,
+    percentage: 0,
+    completed: false,
+  };
+  bulkUpdateResults.value = { success: 0, failed: 0, total: 0 };
+  qrCodesWithoutAccessLevel.value = 0;
+  isBulkUpdating.value = false;
+};
+
 /*  LIFECYCLE */
 onMounted(async () => {
   await Promise.all([fetchQRData(), fetchAccessLevels()]);
@@ -1483,6 +1940,35 @@ watch(search, () => debouncedSearch());
 
 .generate-btn {
   margin-right: 12px;
+}
+
+.bulk-update-btn {
+  margin-left: 8px;
+}
+
+/* Bulk Update Dialog Styles */
+.bulk-update-dialog {
+  border-radius: 12px;
+}
+
+.update-steps {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+  gap: 48px;
+}
+
+.select-actions,
+.confirm-actions,
+.update-actions,
+.complete-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
 }
 
 /* QR Code Cell */

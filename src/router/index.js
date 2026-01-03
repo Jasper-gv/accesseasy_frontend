@@ -61,6 +61,10 @@ import Workordergenerate from "@/pages/report/workordereport/workordergenerate.v
 
 import VisitorFlow from "@/pages/flow/visitorFlow.vue";
 
+// Visitor Management
+import VisitorManagementTabs from "@/pages/visitor/VisitorManagementTabs.vue";
+import WalkInRegistration from "@/pages/visitor/walkin/WalkInRegistration.vue";
+
 import QrGenerateTabs from "@/pages/qrgenerate/qrgenerateTabs.vue";
 import BulkQrGenerate from "@/pages/qrgenerate/bulkgenerate/qrgenerate.vue";
 import EmployeeQrGenerate from "@/pages/qrgenerate/employeeqrgenerate/employeeQRgenerate.vue";
@@ -216,6 +220,12 @@ const routes = [
     props: true,
   },
   {
+    path: "/visitor-register",
+    name: "VisitorRegister",
+    component: WalkInRegistration,
+    meta: { requiresAuth: false },
+  },
+  {
     path: "/taskManagement/taskcomponents",
     component: DashboardLayout,
     meta: { requiresAuth: true },
@@ -308,6 +318,12 @@ const routes = [
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
         ],
+      },
+      {
+        path: "/visitor-management",
+        name: "VisitorManagement",
+        component: VisitorManagementTabs,
+        meta: { roles: ["Admin", "Manager", "Security"] },
       },
       {
         path: "/finger-data",
