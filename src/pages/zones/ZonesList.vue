@@ -1,83 +1,108 @@
 <template>
   <div class="zones-container">
-    <div v-if="!showForm" class="main-content">
-      <v-data-table
-        v-model="selected"
-        :headers="headers"
-        hide-default-footer
-        :items="items"
-        :items-per-page="-1"
-        class="elevation-1 zones-table"
-        height="calc(90vh - 190px)"
-        fixed-header
-        show-select
-        @click:row="
-          (event, { item }) => {
-            if (userRole == 'Admin' || userRole == 'Manager') {
-              editItem(item);
-            }
-          }
-        "
+    <DataTableWrapper
+      title="Zones Management"
+      :searchQuery="search"
+      @update:searchQuery="search = $event"
+      searchPlaceholder="Search zones..."
+      :isLoading="loading"
+      :isEmpty="items.length === 0 && !loading"
+    >
+      <template #toolbar-actions>
+        <BaseButton
+          variant="primary"
+          left-icon="plus"
+          @click="showAddZoneDialog"
+        >
+          Create Zone
+        </BaseButton>
+      </template>
+
+      <!-- Skeleton Loader -->
+      <SkeletonLoading
+        v-if="loading"
+        variant="data-table"
+        :rows="6"
+        :columns="4"
+      />
+
+      <!-- Data Table -->
+      <DataTable
+        v-else-if="filteredItems.length > 0"
+        :items="paginatedItems"
+        :columns="tableColumns"
+        :showSelection="true"
+        v-model:selectedItems="selected"
+        @rowClick="handleRowClick"
       >
-        <template v-slot:top>
-          <div class="d-flex align-center py-2 px-4">
-            <v-text-field
-              v-model="search"
-              label="Search Zone"
-              prepend-inner-icon="mdi-magnify"
-              density="compact"
-              variant="outlined"
-              class="search-field"
-              hide-details
-            ></v-text-field>
-            <v-spacer></v-spacer>
-            <v-btn color="black" class="ms-2" @click="showAddZoneForm">
-              <v-icon start>mdi-plus</v-icon>
-              Create Zone
-            </v-btn>
+        <!-- Entry Doors Column -->
+        <template #cell-entry_doors="{ value }">
+          <span>{{ formatDoors(value) }}</span>
+        </template>
+
+        <!-- Exit Doors Column -->
+        <template #cell-exit_doors="{ value }">
+          <span>{{ formatDoors(value) }}</span>
+        </template>
+
+        <!-- Actions Column -->
+        <template #cell-actions="{ item }">
+          <div class="actions-cell">
+            <v-icon
+              small
+              class="mr-2"
+              @click.stop="editItem(item)"
+              color="primary"
+            >
+              mdi-pencil
+            </v-icon>
+            <v-icon small @click.stop="deleteItem(item)" color="error">
+              mdi-delete
+            </v-icon>
           </div>
         </template>
+      </DataTable>
 
-        <template v-slot:item.entry_doors="{ item }">
-          {{ formatDoors(item.entry_doors) }}
-        </template>
+      <!-- Pagination -->
+      <template #pagination>
+        <CustomPagination
+          :page="page"
+          :itemsPerPage="itemsPerPage"
+          :total-items="totalItems"
+          :is-searching="!!search"
+          @update:page="handlePageChange"
+          @update:itemsPerPage="handleItemsPerPageChange"
+        />
+      </template>
+    </DataTableWrapper>
 
-        <template v-slot:item.exit_doors="{ item }">
-          {{ formatDoors(item.exit_doors) }}
-        </template>
-
-        <template v-slot:item.actions="{ item }">
-          <v-icon
-            small
-            class="mr-2"
-            @click.stop="editItem(item)"
-            color="primary"
-          >
-            mdi-pencil
-          </v-icon>
-          <v-icon small @click.stop="deleteItem(item)" color="error">
-            mdi-delete
-          </v-icon>
-        </template>
-      </v-data-table>
-
-      <CustomPagination
-        :page="page"
-        :itemsPerPage="itemsPerPage"
-        :total-items="totalItems"
-        :is-searching="!!search"
-        @update:page="handlePageChange"
-        @update:itemsPerPage="handleItemsPerPageChange"
-      />
-    </div>
-
-    <ZoneForm
-      v-if="showForm"
-      :is-editing="isEditing"
-      :zone-data="editedItem"
-      @save-success="handleSaveSuccess"
-      @cancel="showForm = false"
-    />
+    <!-- Zone Form Drawer -->
+    <v-navigation-drawer
+      v-model="showFormDialog"
+      location="right"
+      temporary
+      width="400"
+      class="zone-form-drawer"
+    >
+      <v-card class="h-100 d-flex flex-column" elevation="0">
+        <v-card-title class="text-h5 pa-4 border-b">
+          {{ isEditing ? "Edit Zone" : "Create Zone" }}
+          <v-spacer></v-spacer>
+          <v-btn icon @click="closeDialog" size="small">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-4 flex-grow-1 overflow-y-auto">
+          <ZoneForm
+            :is-editing="isEditing"
+            :zone-data="editedItem"
+            @save-success="handleSaveSuccess"
+            @cancel="closeDialog"
+          />
+        </v-card-text>
+      </v-card>
+    </v-navigation-drawer>
 
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="deleteDialog" max-width="500px">
@@ -88,8 +113,12 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="grey" text @click="deleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" text @click="confirmDelete">Delete</v-btn>
+          <BaseButton variant="secondary" @click="deleteDialog = false">
+            Cancel
+          </BaseButton>
+          <BaseButton variant="danger" @click="confirmDelete">
+            Delete
+          </BaseButton>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -103,6 +132,10 @@ import { currentUserTenant } from "@/utils/currentUserTenant";
 import { computed, onMounted, ref, watch } from "vue";
 import ZoneForm from "./ZoneForm.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import DataTable from "@/components/common/table/DataTable.vue";
+import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
+import SkeletonLoading from "@/components/common/states/SkeletonLoading.vue";
 
 // State management
 const search = ref("");
@@ -110,7 +143,7 @@ const page = ref(1);
 const itemsPerPage = ref(25);
 const totalItems = ref(0);
 const selected = ref([]);
-const showForm = ref(false);
+const showFormDialog = ref(false);
 const isEditing = ref(false);
 const editedItem = ref({});
 const items = ref([]);
@@ -121,36 +154,29 @@ const tenantId = currentUserTenant.getTenantId();
 const token = authService.getToken();
 var userRole;
 
-const headers = ref([
+// Table columns configuration
+const tableColumns = [
   {
-    title: "Zone Name",
     key: "zoneName",
-    align: "start",
+    label: "Zone Name",
     sortable: true,
-    width: "200px",
   },
   {
-    title: "Entry Doors",
     key: "entry_doors",
-    align: "start",
+    label: "Entry Doors",
     sortable: false,
-    width: "300px",
   },
   {
-    title: "Exit Doors",
     key: "exit_doors",
-    align: "start",
+    label: "Exit Doors",
     sortable: false,
-    width: "300px",
   },
   {
-    title: "Actions",
     key: "actions",
-    align: "center",
+    label: "Actions",
     sortable: false,
-    width: "120px",
   },
-]);
+];
 
 /**
  * Format doors array to comma-separated string
@@ -200,12 +226,12 @@ const handleItemsPerPageChange = (newItemsPerPage) => {
 };
 
 /**
- * Show add zone form
+ * Show add zone dialog
  */
-const showAddZoneForm = () => {
+const showAddZoneDialog = () => {
   isEditing.value = false;
   editedItem.value = {};
-  showForm.value = true;
+  showFormDialog.value = true;
 };
 
 /**
@@ -214,7 +240,16 @@ const showAddZoneForm = () => {
 const editItem = (item) => {
   isEditing.value = true;
   editedItem.value = { ...item };
-  showForm.value = true;
+  showFormDialog.value = true;
+};
+
+/**
+ * Handle row click
+ */
+const handleRowClick = (item) => {
+  if (userRole == "Admin" || userRole == "Manager") {
+    editItem(item);
+  }
 };
 
 /**
@@ -241,10 +276,18 @@ const confirmDelete = async () => {
 };
 
 /**
+ * Close dialog
+ */
+const closeDialog = () => {
+  showFormDialog.value = false;
+  editedItem.value = {};
+};
+
+/**
  * Handle save success
  */
 const handleSaveSuccess = () => {
-  showForm.value = false;
+  closeDialog();
   fetchZonesData();
 };
 
@@ -256,9 +299,17 @@ const filteredItems = computed(() => {
   );
 });
 
+// Computed paginated items
+const paginatedItems = computed(() => {
+  const start = (page.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredItems.value.slice(start, end);
+});
+
 // Watch search to update filtered results
 watch(search, () => {
   totalItems.value = filteredItems.value.length;
+  page.value = 1; // Reset to first page on search
 });
 
 onMounted(async () => {
@@ -270,36 +321,32 @@ onMounted(async () => {
 .zones-container {
   height: 100vh;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   position: relative;
 }
 
-.main-content {
-  flex: 1;
-  overflow: auto;
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.search-field {
-  max-width: 300px;
+/* Drawer specific styles */
+.zone-form-drawer {
+  z-index: 9999;
 }
 
-::v-deep(
-  .v-table.v-table--fixed-header > .v-table__wrapper > table > thead > tr > th
-) {
-  background: #ebeaea !important;
-  box-shadow: inset 0 -1px 0
-    rgba(var(--v-border-color), var(--v-border-opacity));
-  color: black !important;
-  text-align: start;
-  z-index: 1;
+.zone-form-drawer .v-card {
+  border-radius: 0;
 }
 
-:deep(.v-data-table) {
-  background: white;
+.zone-form-drawer .border-b {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-:deep(.v-data-table__wrapper) {
-  overflow-x: auto;
-  scrollbar-width: thin;
+:deep(.v-dialog .v-card-text) {
+  max-height: 70vh;
+  overflow-y: auto;
 }
 </style>

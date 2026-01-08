@@ -478,17 +478,57 @@ const handleRowClick = (item) => {
   if (item?.id) handleEditAccessLevel(item);
 };
 
-const handleEditAccessLevel = (accessLevel) => {
-  isEditing.value = true;
-  currentAccessLevelData.value = {
-    ...accessLevel.originalData,
-    id: accessLevel.id,
-    accessLevelName: accessLevel.name,
-    accessType: accessLevel.type,
-    accessLevelNumber: accessLevel.accessLevelNumber,
-  };
-  showAddPanel.value = true;
-  showToast(`Editing: ${accessLevel.name}`, "info");
+const fetchAccessLevelById = async (id) => {
+  try {
+    const url = new URL(`${import.meta.env.VITE_API_URL}/items/accesslevels/${id}`);
+    const fields = [
+      "id",
+      "accessLevelNumber",
+      "accessLevelName",
+      "accessType",
+      "tenant.tenantId",
+      "assignDoorsGroup",
+      "doorBitmap",
+      "accessLevelBitmap",
+      "_24hrs",
+      "Valid_hours",
+      "workingHours",
+      "maxWorkHours",
+      "holidays",
+      "limitTime",
+      "faceData",
+      "fingerData",
+      "qrdata",
+      "dateValidity"
+    ];
+    fields.forEach((f) => url.searchParams.append("fields[]", f));
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error("Failed to fetch access level details:", error);
+    showToast("Failed to load access level details.", "error");
+    return null;
+  }
+};
+
+const handleEditAccessLevel = async (accessLevel) => {
+  const fullData = await fetchAccessLevelById(accessLevel.id);
+  
+  if (fullData) {
+    isEditing.value = true;
+    currentAccessLevelData.value = fullData;
+    showAddPanel.value = true;
+    showToast(`Editing: ${fullData.accessLevelName}`, "info");
+  }
 };
 
 const handleSaveSuccess = () => {

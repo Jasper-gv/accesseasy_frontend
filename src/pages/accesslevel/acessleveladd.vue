@@ -195,6 +195,63 @@
             </v-col>
           </v-row>
 
+          <!-- Date Validity Section (Optional) - Visible only when Time Zone is enabled -->
+          <div v-if="accessTiming" class="mb-6 ml-4 pl-4 border-l-2 border-gray-200">
+            <div class="text-subtitle-2 mb-2 font-weight-bold">
+              Date Validity (Optional)
+            </div>
+            <div class="text-caption text-grey mb-3">
+              Access level will be disabled automatically after expiry date
+            </div>
+
+            <v-radio-group v-model="dateValidityType" inline density="compact" class="mb-2">
+              <v-radio label="No Date Selected" :value="null"></v-radio>
+              <v-radio label="Single Date" value="single"></v-radio>
+              <v-radio label="Date Range" value="range"></v-radio>
+            </v-radio-group>
+
+            <!-- Single Date Picker -->
+            <v-row v-if="dateValidityType === 'single'" dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="singleDate"
+                  label="Select Date"
+                  type="date"
+                  variant="outlined"
+                  dense
+                  :rules="[requiredRule]"
+                  :min="todayDate"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <!-- Date Range Picker -->
+            <v-row v-if="dateValidityType === 'range'" dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="startDate"
+                  label="Start Date"
+                  type="date"
+                  variant="outlined"
+                  dense
+                  :rules="[requiredRule]"
+                  :min="todayDate"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="endDate"
+                  label="End Date"
+                  type="date"
+                  variant="outlined"
+                  dense
+                  :rules="[requiredRule, endDateRule]"
+                  :min="startDate || todayDate"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </div>
+
           <!-- Max Work Hours -->
           <v-row dense class="mb-4 align-center">
             <v-col cols="12" sm="5">
@@ -399,6 +456,21 @@ const selectedTimeSchedule = ref(null);
 const maxWorkHoursValue = ref("");
 const accessLevelNumber = ref("");
 
+// Date Validity State
+const dateValidityType = ref(null); // null, 'single', 'range'
+const singleDate = ref("");
+const startDate = ref("");
+const endDate = ref("");
+
+// Computed today's date for min attribute
+const todayDate = computed(() => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+});
+
 // Door options
 const doorOptions = ref([]);
 const loadingDoors = ref(false);
@@ -408,6 +480,13 @@ const requiredRule = (value) => !!value || "This field is required";
 const timeFormatRule = (value) => {
   const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
   return timeRegex.test(value) || "Please use hh:mm format";
+};
+const endDateRule = (value) => {
+  if (!startDate.value) return true;
+  return (
+    new Date(value) >= new Date(startDate.value) ||
+    "End date must be after start date"
+  );
 };
 
 // Time options (will be populated from API)
@@ -599,6 +678,22 @@ const initializeFormData = () => {
     maxWorkHoursValue: maxWorkHoursValue.value,
     holidayAccess: holidayAccess.value,
   });
+
+  // Initialize Date Validity
+  if (data.dateValidity) {
+    dateValidityType.value = data.dateValidity.type || null;
+    if (data.dateValidity.type === "single") {
+      singleDate.value = data.dateValidity.date || "";
+    } else if (data.dateValidity.type === "range") {
+      startDate.value = data.dateValidity.startDate || "";
+      endDate.value = data.dateValidity.endDate || "";
+    }
+  } else {
+    dateValidityType.value = null;
+    singleDate.value = "";
+    startDate.value = "";
+    endDate.value = "";
+  }
 };
 
 // Toggle handlers to ensure only one option is active
@@ -620,6 +715,11 @@ const handleAccessTimingToggle = (value) => {
     maxWorkHoursValue.value = "";
   } else {
     selectedTimeSchedule.value = null;
+    // Reset Date Validity when Time Zone is disabled
+    dateValidityType.value = null;
+    singleDate.value = "";
+    startDate.value = "";
+    endDate.value = "";
   }
 };
 
@@ -711,6 +811,23 @@ const handleSave = async () => {
     return;
   }
 
+  // Validate Date Validity
+  if (accessTiming.value && dateValidityType.value === "single") {
+    if (!singleDate.value) {
+      alert("Please select a date for Single Date validity");
+      return;
+    }
+  } else if (accessTiming.value && dateValidityType.value === "range") {
+    if (!startDate.value || !endDate.value) {
+      alert("Please select both Start and End dates for Date Range validity");
+      return;
+    }
+    if (new Date(endDate.value) < new Date(startDate.value)) {
+      alert("End date cannot be earlier than start date");
+      return;
+    }
+  }
+
   isSaving.value = true;
   try {
     const payload = buildPayload();
@@ -797,6 +914,24 @@ const buildPayload = () => {
   // Doors
   if (selectedDoors.value.length) {
     payload.assignDoorsGroup = selectedDoors.value.map((d) => d.id);
+  }
+
+  // Date Validity Payload
+  if (accessTiming.value && dateValidityType.value) {
+    if (dateValidityType.value === "single") {
+      payload.dateValidity = {
+        type: "single",
+        date: singleDate.value,
+      };
+    } else if (dateValidityType.value === "range") {
+      payload.dateValidity = {
+        type: "range",
+        startDate: startDate.value,
+        endDate: endDate.value,
+      };
+    }
+  } else {
+    payload.dateValidity = null;
   }
 
   // Timing (only one active)

@@ -1,11 +1,6 @@
 <template>
   <div class="zone-form-container">
-    <v-card class="pa-6">
-      <v-card-title class="text-h5 mb-4">
-        {{ isEditing ? "Edit Zone" : "Create Zone" }}
-      </v-card-title>
-
-      <v-form ref="formRef" v-model="valid" @submit.prevent="handleSubmit">
+    <v-form ref="formRef" v-model="valid" @submit.prevent="handleSubmit">
         <v-row>
           <!-- Zone Name -->
           <v-col cols="12">
@@ -82,32 +77,31 @@
 
           <!-- Action Buttons -->
           <v-col cols="12" class="d-flex justify-end gap-2">
-            <v-btn
-              color="grey"
-              variant="outlined"
+            <BaseButton
+              variant="secondary"
               @click="handleCancel"
               :disabled="loading"
             >
               Cancel
-            </v-btn>
-            <v-btn
-              color="primary"
-              type="submit"
+            </BaseButton>
+            <BaseButton
+              variant="primary"
+              @click="handleSubmit"
               :loading="loading"
               :disabled="!valid"
             >
               {{ isEditing ? "Update Zone" : "Create Zone" }}
-            </v-btn>
+            </BaseButton>
           </v-col>
         </v-row>
       </v-form>
-    </v-card>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { zoneService } from "@/services/zoneService";
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
 
 const props = defineProps({
   isEditing: {
@@ -267,6 +261,13 @@ watch([selectedEntryDoors, selectedExitDoors], () => {
     formRef.value.validate();
   }
 });
+
+// Watch for changes in zoneData prop to re-initialize form
+watch(() => props.zoneData, (newData) => {
+  if (newData && Object.keys(newData).length > 0) {
+    initializeForm();
+  }
+}, { deep: true });
 
 onMounted(async () => {
   await fetchDoors();
