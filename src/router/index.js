@@ -999,6 +999,13 @@ const routes = [
             component: interlockMode,
             meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
           },
+          {
+            path: "visitor-configurator",
+            name: "visitor-configurator",
+            component: () =>
+              import("@/pages/visitor/admin/VisitorSettings.vue"),
+            meta: { roles: ["Admin", "Manager"] },
+          },
         ],
       },
       // {

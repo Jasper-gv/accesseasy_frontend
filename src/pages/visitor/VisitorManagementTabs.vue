@@ -12,36 +12,41 @@
         Dashboard
       </v-tab>
       
+      <v-tab value="request">
+        <v-icon icon="mdi-account-plus" class="mr-2" />
+        New Request
+      </v-tab>
+
       <v-tab value="approvals" v-if="canViewApprovals">
-        <v-icon icon="mdi-check-circle" class="mr-2" />
-        Approvals
         <v-badge
           v-if="pendingCount > 0"
           :content="pendingCount"
           color="error"
-          inline
-          class="ml-2"
-        />
+          offset-x="10"
+          offset-y="-10"
+        >
+          <v-icon icon="mdi-check-decagram" class="mr-2" />
+          Approvals
+        </v-badge>
+        <template v-else>
+          <v-icon icon="mdi-check-decagram" class="mr-2" />
+          Approvals
+        </template>
       </v-tab>
 
-      <v-tab value="scanner" v-if="canViewScanner">
-        <v-icon icon="mdi-qrcode-scan" class="mr-2" />
-        QR Scanner
+      <v-tab value="security" v-if="canViewSecurity">
+        <v-icon icon="mdi-shield-account" class="mr-2" />
+        Security
       </v-tab>
 
       <v-tab value="logs" v-if="canViewLogs">
-        <v-icon icon="mdi-format-list-bulleted" class="mr-2" />
-        Entry Logs
+        <v-icon icon="mdi-history" class="mr-2" />
+        Logs
       </v-tab>
 
-      <v-tab value="reception" v-if="canViewReception">
-        <v-icon icon="mdi-qrcode" class="mr-2" />
-        Reception QR
-      </v-tab>
-
-      <v-tab value="generate-link" v-if="canViewGenerateLink">
-        <v-icon icon="mdi-link-variant" class="mr-2" />
-        Generate Link
+      <v-tab value="templates" v-if="canViewSettings">
+        <v-icon icon="mdi-file-document-edit-outline" class="mr-2" />
+        Templates
       </v-tab>
 
       <v-tab value="settings" v-if="canViewSettings">
@@ -57,24 +62,34 @@
         <VisitorDashboard />
       </v-window-item>
 
+      <v-window-item value="request">
+        <VisitorRequest />
+      </v-window-item>
+
       <v-window-item value="approvals" v-if="canViewApprovals">
         <VisitorApprovals @approval-updated="handleApprovalUpdate" />
       </v-window-item>
 
-      <v-window-item value="scanner" v-if="canViewScanner">
-        <QRScanner />
+      <v-window-item value="security" v-if="canViewSecurity">
+        <component 
+          :is="currentSecurityView" 
+          @change-view="handleSecurityViewChange"
+          @close="handleSecurityViewChange('dashboard')"
+        />
       </v-window-item>
 
       <v-window-item value="logs" v-if="canViewLogs">
         <EntryLogs />
       </v-window-item>
 
-      <v-window-item value="reception" v-if="canViewReception">
-        <WalkInReception />
-      </v-window-item>
-
-      <v-window-item value="generate-link" v-if="canViewGenerateLink">
-        <PreSharedLink />
+      <v-window-item value="templates" v-if="canViewSettings">
+        <!-- Simple view switching for demo purposes, normally would use router-view -->
+        <component 
+          :is="currentTemplateView" 
+          :mode="templateMode" 
+          :templateId="templateId"
+          @change-view="handleTemplateViewChange" 
+        />
       </v-window-item>
 
       <v-window-item value="settings" v-if="canViewSettings">
@@ -85,15 +100,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import VisitorDashboard from './dashboard/VisitorDashboard.vue';
+import VisitorRequest from './request/VisitorRequest.vue';
 import VisitorApprovals from './approvals/VisitorApprovals.vue';
-import QRScanner from './security/QRScanner.vue';
 import EntryLogs from './security/EntryLogs.vue';
-import WalkInReception from './walkin/WalkInReception.vue';
-import PreSharedLink from './preshared/PreSharedLink.vue';
 import VisitorSettings from './admin/VisitorSettings.vue';
+import VisitorTemplates from './admin/VisitorTemplates.vue';
+import VisitorTemplateEditor from './admin/VisitorTemplateEditor.vue';
+import VisitorFormDesigner from './admin/VisitorFormDesigner.vue';
+import VisitorBadgeDesigner from './admin/VisitorBadgeDesigner.vue';
+import VisitorSecurityDashboard from './security/VisitorSecurityDashboard.vue';
+import VisitorScanner from './security/VisitorScanner.vue';
 import { visitorService } from '@/services/visitorService';
 
 const route = useRoute();
@@ -103,31 +122,69 @@ const activeTab = ref('dashboard');
 const pendingCount = ref(0);
 
 // Role-based access control (hardcoded for demo)
-// In production, this would come from auth service
-const userRole = ref('Admin'); // Can be: Admin, Security, Manager, Employee
+const userRole = ref('Admin'); 
 
 const canViewDashboard = computed(() => ['Admin', 'Manager'].includes(userRole.value));
-const canViewApprovals = computed(() => ['Admin', 'Manager'].includes(userRole.value));
-const canViewScanner = computed(() => ['Admin', 'Security'].includes(userRole.value));
+const canViewApprovals = computed(() => ['Admin', 'Manager', 'Security'].includes(userRole.value));
+const canViewSecurity = computed(() => ['Admin', 'Security'].includes(userRole.value));
 const canViewLogs = computed(() => ['Admin', 'Security', 'Manager'].includes(userRole.value));
-const canViewReception = computed(() => ['Admin', 'Security'].includes(userRole.value));
-const canViewGenerateLink = computed(() => ['Admin', 'Manager'].includes(userRole.value));
 const canViewSettings = computed(() => ['Admin'].includes(userRole.value));
 
+// Template view management
+const currentTemplateView = shallowRef(VisitorTemplates);
+const templateMode = ref('create');
+const templateId = ref(null);
+
+const handleTemplateViewChange = (view, params) => {
+  console.log('[VisitorManagementTabs] handleTemplateViewChange:', view, params);
+  
+  if (view === 'list') {
+    currentTemplateView.value = VisitorTemplates;
+    templateMode.value = 'create';
+    templateId.value = null;
+  } else if (view === 'create') {
+    currentTemplateView.value = VisitorTemplateEditor;
+    templateMode.value = 'create';
+    templateId.value = null;
+  } else if (view === 'edit') {
+    currentTemplateView.value = VisitorTemplateEditor;
+    templateMode.value = 'edit';
+    templateId.value = params?.id || null;
+  } else if (view === 'form-designer') {
+    currentTemplateView.value = VisitorFormDesigner;
+  } else if (view === 'badge-designer') {
+    currentTemplateView.value = VisitorBadgeDesigner;
+  }
+};
+
+// Security view management
+const currentSecurityView = shallowRef(VisitorSecurityDashboard);
+const handleSecurityViewChange = (view) => {
+  if (view === 'dashboard') {
+    currentSecurityView.value = VisitorSecurityDashboard;
+  } else if (view === 'scanner') {
+    currentSecurityView.value = VisitorScanner;
+  } else if (view === 'logs') {
+    // We can reuse the main logs component or a simplified one
+    // For now, let's switch to the main logs tab if we want, or keep it inside
+    // But since tabs are top-level, switching tab is better if we want to reuse VisitorLogs
+    // However, for the "Security Panel" flow, it might be better to have a self-contained view
+    // Let's assume we have a simplified log view or just redirect to the logs tab
+    activeTab.value = 'logs';
+  }
+};
+
 onMounted(async () => {
-  // Set initial tab based on route or user role
   if (route.query.tab) {
     activeTab.value = route.query.tab;
   } else {
-    // Default tab based on role
     if (userRole.value === 'Security') {
-      activeTab.value = 'scanner';
+      activeTab.value = 'security';
     } else if (userRole.value === 'Admin' || userRole.value === 'Manager') {
       activeTab.value = 'dashboard';
     }
   }
 
-  // Fetch pending count
   await fetchPendingCount();
 });
 

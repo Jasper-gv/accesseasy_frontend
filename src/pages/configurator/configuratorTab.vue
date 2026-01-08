@@ -171,6 +171,13 @@ const configurators = [
       { id: "interlockmode-configurator", label: "Interlock Mode" }, // ← Fixed
     ],
   },
+  {
+    id: "visitor",
+    label: "Visitor Configurator",
+    subsections: [
+      { id: "visitor-configurator", label: "Visitor Management" },
+    ],
+  },
 ];
 
 // Get all valid route names from configurators

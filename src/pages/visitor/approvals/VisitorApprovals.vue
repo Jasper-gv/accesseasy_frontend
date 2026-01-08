@@ -1,7 +1,7 @@
 <template>
   <div class="visitor-approvals pa-6">
     <v-container fluid>
-      <!-- Header with Filters -->
+      <!-- Header -->
       <div class="d-flex justify-space-between align-center mb-6">
         <div>
           <h1 class="text-h4 font-weight-bold">
@@ -9,7 +9,7 @@
             Visitor Approvals
           </h1>
           <p class="text-body-1 text-grey-darken-1 mt-2">
-            Review and approve visitor registrations
+            Manage pending visitor access requests
           </p>
         </div>
         
@@ -19,173 +19,95 @@
         </v-chip>
       </div>
 
-      <!-- Filters -->
-      <v-card class="filter-card mb-6" elevation="2">
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" md="3">
-              <v-select
-                v-model="filters.status"
-                :items="statusOptions"
-                label="Status"
-                prepend-inner-icon="mdi-filter"
-                variant="outlined"
-                density="comfortable"
-                clearable
-              />
-            </v-col>
-            <v-col cols="12" md="3">
-              <v-text-field
-                v-model="filters.date"
-                label="Visit Date"
-                prepend-inner-icon="mdi-calendar"
-                variant="outlined"
-                density="comfortable"
-                type="date"
-                clearable
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="filters.search"
-                label="Search by name, phone, or email"
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-                density="comfortable"
-                clearable
-              />
-            </v-col>
-            <v-col cols="12" md="2">
-              <v-btn
-                color="primary"
-                block
-                size="large"
-                @click="applyFilters"
-              >
-                Apply
-              </v-btn>
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
-
-      <!-- Bulk Actions -->
-      <div v-if="selectedVisitors.length > 0" class="bulk-actions mb-4">
-        <v-alert type="info" variant="tonal" prominent>
-          <div class="d-flex justify-space-between align-center">
-            <span class="font-weight-bold">
-              {{ selectedVisitors.length }} visitor(s) selected
-            </span>
-            <div class="d-flex gap-2">
-              <v-btn
-                color="success"
-                prepend-icon="mdi-check-all"
-                @click="bulkApprove"
-                :loading="bulkProcessing"
-              >
-                Approve Selected
-              </v-btn>
-              <v-btn
-                color="error"
-                prepend-icon="mdi-close-circle"
-                @click="bulkReject"
-                :loading="bulkProcessing"
-              >
-                Reject Selected
-              </v-btn>
-            </div>
-          </div>
-        </v-alert>
+      <!-- Loading State -->
+      <div v-if="loading" class="d-flex justify-center pa-12">
+        <v-progress-circular indeterminate color="primary" size="64" />
       </div>
 
-      <!-- Visitors Table -->
-      <v-card elevation="2">
-        <v-card-text class="pa-0">
-          <v-data-table
-            v-model="selectedVisitors"
-            :headers="headers"
-            :items="filteredVisitors"
-            :loading="loading"
-            item-value="id"
-            show-select
-            class="visitors-table"
-          >
-            <!-- Name Column -->
-            <template #item.personName="{ item }">
+      <!-- Empty State -->
+      <div v-else-if="pendingVisitors.length === 0" class="text-center pa-12 bg-white rounded-lg elevation-1">
+        <v-icon icon="mdi-check-all" size="64" color="success" class="mb-4" />
+        <h3 class="text-h6 font-weight-bold">All Caught Up!</h3>
+        <div class="text-body-1 text-grey">No pending visitor requests at the moment.</div>
+      </div>
+
+      <!-- Approval Cards Grid -->
+      <v-row v-else>
+        <v-col
+          v-for="visitor in pendingVisitors"
+          :key="visitor.id"
+          cols="12"
+          md="6"
+          lg="4"
+        >
+          <v-card elevation="2" class="approval-card h-100 d-flex flex-column">
+            <div class="pa-4 d-flex justify-space-between align-start">
               <div class="d-flex align-center">
-                <v-avatar color="primary" size="36" class="mr-3">
-                  <span class="text-white font-weight-bold">
-                    {{ item.personName.charAt(0) }}
+                <v-avatar color="primary-lighten-5" size="48" class="mr-3">
+                  <span class="text-h6 font-weight-bold text-primary">
+                    {{ visitor.personName.charAt(0) }}
                   </span>
                 </v-avatar>
                 <div>
-                  <div class="font-weight-medium">{{ item.personName }}</div>
-                  <div class="text-caption text-grey-darken-1">{{ item.email }}</div>
+                  <div class="text-subtitle-1 font-weight-bold">{{ visitor.personName }}</div>
+                  <div class="text-caption text-grey-darken-1">{{ visitor.company || 'No Company' }}</div>
                 </div>
               </div>
-            </template>
+              <v-chip size="small" color="warning" variant="flat">Pending</v-chip>
+            </div>
 
-            <!-- Phone Column -->
-            <template #item.mobileNumber="{ item }">
-              <v-chip size="small" variant="outlined">
-                <v-icon icon="mdi-phone" size="14" class="mr-1" />
-                {{ item.mobileNumber }}
-              </v-chip>
-            </template>
+            <v-divider />
 
-            <!-- Purpose Column -->
-            <template #item.purpose="{ item }">
-              <v-chip size="small" color="info" variant="tonal">
-                {{ item.purpose }}
-              </v-chip>
-            </template>
-
-            <!-- Visit Date Column -->
-            <template #item.visitDate="{ item }">
-              <div>
-                <div class="font-weight-medium">{{ formatDate(item.visitDate) }}</div>
-                <div class="text-caption text-grey-darken-1">
-                  {{ item.startTime }} - {{ item.endTime }}
-                </div>
+            <v-card-text class="flex-grow-1">
+              <div class="d-flex align-center mb-2">
+                <v-icon icon="mdi-calendar" size="small" class="mr-2 text-grey" />
+                <span class="text-body-2">{{ formatDate(visitor.visitDate) }}</span>
               </div>
-            </template>
-
-            <!-- Status Column -->
-            <template #item.status="{ item }">
-              <VisitorStatusBadge :status="item.status" />
-            </template>
-
-            <!-- Actions Column -->
-            <template #item.actions="{ item }">
-              <div class="d-flex gap-2">
-                <v-btn
-                  size="small"
-                  color="info"
-                  variant="tonal"
-                  icon="mdi-eye"
-                  @click="viewDetails(item)"
-                />
-                <v-btn
-                  v-if="item.status === 'pending'"
-                  size="small"
-                  color="success"
-                  variant="tonal"
-                  icon="mdi-check"
-                  @click="approveVisitor(item)"
-                />
-                <v-btn
-                  v-if="item.status === 'pending'"
-                  size="small"
-                  color="error"
-                  variant="tonal"
-                  icon="mdi-close"
-                  @click="rejectVisitor(item)"
-                />
+              <div class="d-flex align-center mb-2">
+                <v-icon icon="mdi-clock-outline" size="small" class="mr-2 text-grey" />
+                <span class="text-body-2">{{ visitor.startTime }} - {{ visitor.endTime }}</span>
               </div>
-            </template>
-          </v-data-table>
-        </v-card-text>
-      </v-card>
+              <div class="d-flex align-center mb-2">
+                <v-icon icon="mdi-briefcase-outline" size="small" class="mr-2 text-grey" />
+                <span class="text-body-2">{{ visitor.purpose }}</span>
+              </div>
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-account-tie-outline" size="small" class="mr-2 text-grey" />
+                <span class="text-body-2">Host: {{ visitor.hostName }}</span>
+              </div>
+            </v-card-text>
+
+            <v-divider />
+
+            <v-card-actions class="pa-4 bg-grey-lighten-5">
+              <v-btn
+                variant="text"
+                color="info"
+                class="flex-grow-1"
+                prepend-icon="mdi-eye"
+                @click="viewDetails(visitor)"
+              >
+                Details
+              </v-btn>
+              <v-divider vertical class="mx-2" />
+              <v-btn
+                variant="text"
+                color="error"
+                class="flex-grow-1"
+                icon="mdi-close"
+                @click="confirmReject(visitor)"
+              />
+              <v-btn
+                variant="text"
+                color="success"
+                class="flex-grow-1"
+                icon="mdi-check"
+                @click="confirmApprove(visitor)"
+              />
+            </v-card-actions>
+          </v-card>
+        </v-col>
+      </v-row>
     </v-container>
 
     <!-- Detail Drawer -->
@@ -193,7 +115,7 @@
       v-model="showDetailDrawer"
       location="right"
       temporary
-      width="500"
+      width="600"
     >
       <div v-if="selectedVisitor" class="pa-6">
         <div class="d-flex justify-space-between align-center mb-4">
@@ -205,113 +127,62 @@
           />
         </div>
 
-        <v-divider class="mb-4" />
+        <VisitorDetails :visitor-id="selectedVisitor.id" />
 
-        <!-- Visitor Info -->
-        <div class="visitor-info mb-6">
-          <div class="text-center mb-4">
-            <v-avatar color="primary" size="80">
-              <span class="text-h4 text-white font-weight-bold">
-                {{ selectedVisitor.personName.charAt(0) }}
-              </span>
-            </v-avatar>
-            <h3 class="text-h6 font-weight-bold mt-3">
-              {{ selectedVisitor.personName }}
-            </h3>
-            <VisitorStatusBadge :status="selectedVisitor.status" class="mt-2" />
-          </div>
-
-          <v-list>
-            <v-list-item>
-              <template #prepend>
-                <v-icon icon="mdi-email" />
-              </template>
-              <v-list-item-title>{{ selectedVisitor.email }}</v-list-item-title>
-              <v-list-item-subtitle>Email</v-list-item-subtitle>
-            </v-list-item>
-
-            <v-list-item>
-              <template #prepend>
-                <v-icon icon="mdi-phone" />
-              </template>
-              <v-list-item-title>{{ selectedVisitor.mobileNumber }}</v-list-item-title>
-              <v-list-item-subtitle>Phone</v-list-item-subtitle>
-            </v-list-item>
-
-            <v-list-item>
-              <template #prepend>
-                <v-icon icon="mdi-briefcase" />
-              </template>
-              <v-list-item-title>{{ selectedVisitor.purpose }}</v-list-item-title>
-              <v-list-item-subtitle>Purpose</v-list-item-subtitle>
-            </v-list-item>
-
-            <v-list-item>
-              <template #prepend>
-                <v-icon icon="mdi-account-tie" />
-              </template>
-              <v-list-item-title>{{ selectedVisitor.hostName || 'N/A' }}</v-list-item-title>
-              <v-list-item-subtitle>Host</v-list-item-subtitle>
-            </v-list-item>
-
-            <v-list-item>
-              <template #prepend>
-                <v-icon icon="mdi-calendar" />
-              </template>
-              <v-list-item-title>{{ formatDate(selectedVisitor.visitDate) }}</v-list-item-title>
-              <v-list-item-subtitle>Visit Date</v-list-item-subtitle>
-            </v-list-item>
-
-            <v-list-item>
-              <template #prepend>
-                <v-icon icon="mdi-clock" />
-              </template>
-              <v-list-item-title>
-                {{ selectedVisitor.startTime }} - {{ selectedVisitor.endTime }}
-              </v-list-item-title>
-              <v-list-item-subtitle>Time</v-list-item-subtitle>
-            </v-list-item>
-          </v-list>
-        </div>
-
-        <!-- Actions -->
-        <div v-if="selectedVisitor.status === 'pending'" class="actions">
+        <div class="mt-6 d-flex gap-2">
+           <v-btn
+            color="error"
+            variant="outlined"
+            class="flex-grow-1"
+            prepend-icon="mdi-close"
+            @click="confirmReject(selectedVisitor)"
+          >
+            Reject
+          </v-btn>
           <v-btn
             color="success"
-            block
-            size="large"
-            prepend-icon="mdi-check-circle"
-            @click="approveVisitor(selectedVisitor)"
-            class="mb-3"
+            class="flex-grow-1"
+            prepend-icon="mdi-check"
+            @click="confirmApprove(selectedVisitor)"
           >
-            Approve Visitor
+            Approve
           </v-btn>
-          <v-btn
-            color="error"
-            block
-            size="large"
-            prepend-icon="mdi-close-circle"
-            @click="rejectVisitor(selectedVisitor)"
-          >
-            Reject Visitor
-          </v-btn>
-        </div>
-
-        <!-- QR Code (if approved) -->
-        <div v-if="selectedVisitor.status === 'approved' && selectedVisitor.qrCode" class="mt-6">
-          <v-divider class="mb-4" />
-          <h3 class="text-h6 font-weight-bold mb-3">Visitor QR Code</h3>
-          <QRDisplay
-            :qr-code="selectedVisitor.qrCode"
-            :visitor-data="selectedVisitor"
-            :valid-from="`${selectedVisitor.visitDate}T${selectedVisitor.startTime}`"
-            :valid-until="`${selectedVisitor.visitDate}T${selectedVisitor.endTime}`"
-            :status="selectedVisitor.status"
-            :show-actions="false"
-          />
         </div>
       </div>
     </v-navigation-drawer>
+
+    <!-- Confirmation Dialog -->
+    <v-dialog v-model="showConfirmDialog" max-width="400">
+      <v-card>
+        <v-card-title class="text-h6 font-weight-bold pa-4">
+          {{ confirmAction === 'approve' ? 'Approve Visitor?' : 'Reject Visitor?' }}
+        </v-card-title>
+        <v-card-text class="pt-0">
+          Are you sure you want to {{ confirmAction }} <strong>{{ selectedVisitor?.personName }}</strong>?
+          <v-textarea
+            v-if="confirmAction === 'reject'"
+            v-model="rejectionReason"
+            label="Reason for rejection (optional)"
+            variant="outlined"
+            rows="2"
+            class="mt-4"
+            hide-details
+          />
+        </v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showConfirmDialog = false">Cancel</v-btn>
+          <v-btn
+            :color="confirmAction === 'approve' ? 'success' : 'error'"
+            variant="elevated"
+            :loading="processing"
+            @click="processAction"
+          >
+            Confirm
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Snackbar -->
     <v-snackbar
@@ -329,43 +200,23 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { visitorService } from '@/services/visitorService';
-import VisitorStatusBadge from '@/components/visitor/VisitorStatusBadge.vue';
-import QRDisplay from '@/components/visitor/QRDisplay.vue';
+import VisitorDetails from '@/pages/visitor/details/VisitorDetails.vue';
 
 const emit = defineEmits(['approval-updated']);
 
 const loading = ref(false);
 const visitors = ref([]);
-const selectedVisitors = ref([]);
-const selectedVisitor = ref(null);
+const showConfirmDialog = ref(false);
 const showDetailDrawer = ref(false);
-const bulkProcessing = ref(false);
+const confirmAction = ref('approve'); // 'approve' or 'reject'
+const selectedVisitor = ref(null);
+const rejectionReason = ref('');
+const processing = ref(false);
+
 const showSnackbar = ref(false);
 const snackbarMessage = ref('');
 const snackbarColor = ref('success');
 const snackbarIcon = ref('mdi-check-circle');
-
-const filters = ref({
-  status: null,
-  date: null,
-  search: '',
-});
-
-const headers = [
-  { title: 'Visitor Name', key: 'personName', sortable: true },
-  { title: 'Phone', key: 'mobileNumber', sortable: false },
-  { title: 'Purpose', key: 'purpose', sortable: true },
-  { title: 'Visit Date & Time', key: 'visitDate', sortable: true },
-  { title: 'Status', key: 'status', sortable: true },
-  { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
-];
-
-const statusOptions = [
-  { title: 'All', value: null },
-  { title: 'Pending', value: 'pending' },
-  { title: 'Approved', value: 'approved' },
-  { title: 'Rejected', value: 'rejected' },
-];
 
 onMounted(() => {
   fetchVisitors();
@@ -374,7 +225,7 @@ onMounted(() => {
 const fetchVisitors = async () => {
   loading.value = true;
   try {
-    visitors.value = await visitorService.getVisitors(filters.value);
+    visitors.value = await visitorService.getVisitors({ status: 'pending' });
   } catch (error) {
     console.error('Error fetching visitors:', error);
   } finally {
@@ -382,101 +233,64 @@ const fetchVisitors = async () => {
   }
 };
 
-const pendingVisitors = computed(() => {
-  return visitors.value.filter(v => v.status === 'pending');
-});
-
-const filteredVisitors = computed(() => {
-  return visitors.value;
-});
-
-const applyFilters = () => {
-  fetchVisitors();
-};
+const pendingVisitors = computed(() => visitors.value);
 
 const viewDetails = (visitor) => {
   selectedVisitor.value = visitor;
   showDetailDrawer.value = true;
 };
 
-const approveVisitor = async (visitor) => {
-  try {
-    await visitorService.updateVisitorStatus(visitor.id, 'approved', 'Admin User');
-    showNotification(`${visitor.personName} approved successfully!`, 'success');
-    await fetchVisitors();
-    emit('approval-updated');
-    showDetailDrawer.value = false;
-  } catch (error) {
-    console.error('Error approving visitor:', error);
-    showNotification('Error approving visitor', 'error');
-  }
+const confirmApprove = (visitor) => {
+  selectedVisitor.value = visitor;
+  confirmAction.value = 'approve';
+  showConfirmDialog.value = true;
 };
 
-const rejectVisitor = async (visitor) => {
-  try {
-    await visitorService.updateVisitorStatus(visitor.id, 'rejected', null, 'Not authorized');
-    showNotification(`${visitor.personName} rejected`, 'warning');
-    await fetchVisitors();
-    emit('approval-updated');
-    showDetailDrawer.value = false;
-  } catch (error) {
-    console.error('Error rejecting visitor:', error);
-    showNotification('Error rejecting visitor', 'error');
-  }
+const confirmReject = (visitor) => {
+  selectedVisitor.value = visitor;
+  confirmAction.value = 'reject';
+  rejectionReason.value = '';
+  showConfirmDialog.value = true;
 };
 
-const bulkApprove = async () => {
-  bulkProcessing.value = true;
+const processAction = async () => {
+  if (!selectedVisitor.value) return;
+
+  processing.value = true;
   try {
-    const ids = selectedVisitors.value.map(v => v.id || v);
-    await visitorService.bulkUpdateStatus(ids, 'approved', 'Admin User');
-    showNotification(`${ids.length} visitors approved!`, 'success');
-    selectedVisitors.value = [];
+    if (confirmAction.value === 'approve') {
+      await visitorService.updateVisitorStatus(selectedVisitor.value.id, 'approved', 'Approver');
+      showNotification(`${selectedVisitor.value.personName} approved`, 'success');
+    } else {
+      await visitorService.updateVisitorStatus(selectedVisitor.value.id, 'rejected', null, rejectionReason.value);
+      showNotification(`${selectedVisitor.value.personName} rejected`, 'info');
+    }
+    
     await fetchVisitors();
     emit('approval-updated');
+    showConfirmDialog.value = false;
   } catch (error) {
-    console.error('Error bulk approving:', error);
-    showNotification('Error approving visitors', 'error');
+    console.error(`Error ${confirmAction.value}ing visitor:`, error);
+    showNotification(`Error processing request`, 'error');
   } finally {
-    bulkProcessing.value = false;
-  }
-};
-
-const bulkReject = async () => {
-  bulkProcessing.value = true;
-  try {
-    const ids = selectedVisitors.value.map(v => v.id || v);
-    await visitorService.bulkUpdateStatus(ids, 'rejected');
-    showNotification(`${ids.length} visitors rejected`, 'warning');
-    selectedVisitors.value = [];
-    await fetchVisitors();
-    emit('approval-updated');
-  } catch (error) {
-    console.error('Error bulk rejecting:', error);
-    showNotification('Error rejecting visitors', 'error');
-  } finally {
-    bulkProcessing.value = false;
+    processing.value = false;
   }
 };
 
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
+    weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
   });
 };
 
 const showNotification = (message, type = 'success') => {
   snackbarMessage.value = message;
   snackbarColor.value = type;
-  snackbarIcon.value =
-    type === 'success'
-      ? 'mdi-check-circle'
-      : type === 'error'
-        ? 'mdi-alert-circle'
-        : 'mdi-information';
+  snackbarIcon.value = type === 'success' ? 'mdi-check-circle' : 
+                       type === 'error' ? 'mdi-alert-circle' : 'mdi-information';
   showSnackbar.value = true;
 };
 </script>
@@ -487,21 +301,17 @@ const showNotification = (message, type = 'success') => {
   min-height: 100vh;
 }
 
-.filter-card {
-  border-radius: 16px;
-}
-
-.visitors-table {
-  border-radius: 16px;
-}
-
-.gap-2 {
-  gap: 8px;
-}
-
-.visitor-info {
-  background: #f8f9fa;
+.approval-card {
   border-radius: 12px;
-  padding: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.approval-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.bg-primary-lighten-5 {
+  background-color: #e8eaf6 !important;
 }
 </style>
