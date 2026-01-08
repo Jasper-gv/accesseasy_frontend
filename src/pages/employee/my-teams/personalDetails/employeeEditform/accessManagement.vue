@@ -590,9 +590,17 @@ const hasChanges = computed(() => {
   );
 });
 const generateUniqueQRCode = () => {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `QR_${timestamp}_${random}`.toUpperCase();
+  // Define allowed characters: numbers 0-9 and uppercase letters A-Z
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+
+  for (let i = 0; i < 8; i++) {
+    // Get random index from 0 to chars.length - 1
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    result += chars[randomIndex];
+  }
+
+  return result;
 };
 
 // Add truncate helper for display
@@ -700,17 +708,52 @@ const generateQRCode = async () => {
       existingQRCode = checkData.data?.[0];
     }
 
-    // Generate unique QR code value (like in bulk generation)
+    // Generate unique QR code value
     const qrCodeValue = generateUniqueQRCode();
 
+    // Get the employeeId field value - FIXED LOGIC
+    let employeeIdFieldValue = null;
+    
+    // Try different possible locations for the employee ID field
+    if (props.employeeData?.employeeId) {
+      // Case 1: employeeId is a direct string (like "67091")
+      if (typeof props.employeeData.employeeId === 'string') {
+        employeeIdFieldValue = props.employeeData.employeeId;
+      }
+      // Case 2: employeeId is an object with employeeId property
+      else if (typeof props.employeeData.employeeId === 'object' && props.employeeData.employeeId.employeeId) {
+        employeeIdFieldValue = props.employeeData.employeeId.employeeId;
+      }
+      // Case 3: employeeId is an object with direct id property
+      else if (typeof props.employeeData.employeeId === 'object' && props.employeeData.employeeId.id) {
+        employeeIdFieldValue = props.employeeData.employeeId.id;
+      }
+    }
+    
+    // If we still don't have the value, check the employeeId field directly on employeeData
+    if (!employeeIdFieldValue && props.employeeData?.employeeIdField) {
+      employeeIdFieldValue = props.employeeData.employeeIdField;
+    }
+
     const payload = {
-      employeeId: props.id,
+      employeeId: props.id, // This is the personalModule ID (12412)
       accessLevelsId: accessLevelsId,
       qraccess: qrAccessEnabled.value,
       tenant: tenantId,
-      // Store the randomly generated QR code value instead of JSON
       qrcode: qrCodeValue,
     };
+
+    // Only add employeeIdField to payload if it's a field in your API
+    // Check if your Directus collection has this field
+    if (employeeIdFieldValue) {
+      // If your API expects "employeeIdField", use this:
+      // payload.employeeIdField = employeeIdFieldValue;
+      
+      // But based on your response, it seems like the API doesn't have this field
+      // The response shows employeeId: 12412, which is the personalModule ID
+      // If you need to store the employee ID (67091), you might need:
+      payload.employeeIdField = employeeIdFieldValue;
+    }
 
     let response;
     if (existingQRCode) {
@@ -774,8 +817,9 @@ const fetchQRCodeData = async () => {
 
   try {
     const tenantId = currentUserTenant.getTenantId();
+    // Include employeeId.employeeId in the fields
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/items/qrgenerate?fields=*&filter[_and][0][_and][0][tenant][_eq]=${tenantId}&filter[_and][0][_and][1][employeeId][id][_eq]=${props.id}&filter[_and][0][_and][2][accessLevelsId][_eq]=${selectedAccessLevel.value.id}`,
+      `${import.meta.env.VITE_API_URL}/items/qrgenerate?fields=*,employeeId.employeeId&filter[_and][0][_and][0][tenant][_eq]=${tenantId}&filter[_and][0][_and][1][employeeId][id][_eq]=${props.id}&filter[_and][0][_and][2][accessLevelsId][_eq]=${selectedAccessLevel.value.id}`,
       {
         headers: {
           Authorization: `Bearer ${authService.getToken()}`,
@@ -789,6 +833,9 @@ const fetchQRCodeData = async () => {
         qrCodeData.value = data.data[0];
         qrAccessEnabled.value = qrCodeData.value.qraccess || true;
 
+        // Now qrCodeData.value should have employeeId.employeeId
+        console.log('QR Data with employeeId:', qrCodeData.value);
+        
         // Generate QR code image when data is loaded
         if (qrCodeData.value.qrcode) {
           await generateQRCodeImage();
@@ -908,6 +955,8 @@ const fetchEmployeeData = async () => {
       "assignedFaceEmbed.assignedTo.id",
       "id",
       "accessOn",
+      "employeeId",
+      "employeeId.employeeId"
     ];
 
     const queryString = `fields[]=${fields.join("&fields[]=")}&filter[id][_eq]=${props.id}`;

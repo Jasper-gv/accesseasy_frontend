@@ -437,6 +437,7 @@ const fetchQRManagementData = async () => {
       "fields[]": "employeeId.assignedUser.first_name",
       "fields[]": "employeeId.id",
       "fields[]": "id",
+      "fields[]": "employeeId",
       "filter[_and][0][_and][0][tenant][_eq]": tenantId,
       "filter[_and][0][_and][1][employeeId][id][_nnull]": true,
       sort:

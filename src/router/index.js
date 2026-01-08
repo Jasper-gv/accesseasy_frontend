@@ -983,6 +983,27 @@ const routes = [
             component: interlockMode,
             meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
           },
+          {
+            path: "zone-configurator",
+            name: "zone-configurator",
+            component: () => import("@/pages/zones/ZonesList.vue"),
+            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+            children: [
+              {
+                path: "add",
+                name: "add-zone",
+                component: () => import("@/pages/zones/ZoneForm.vue"),
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+              {
+                path: "edit/:id",
+                name: "edit-zone",
+                component: () => import("@/pages/zones/ZoneForm.vue"),
+                props: true,
+                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
+              },
+            ],
+          },
         ],
       },
       // {
