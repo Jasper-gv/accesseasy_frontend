@@ -78,9 +78,71 @@
                 />
               </div>
               <div class="text-h6 font-weight-bold mb-1">QR Code Entry</div>
-              <div class="text-body-2 text-grey-darken-1">
-                Allow visitors to scan a QR code at the reception to register themselves.
+              <div class="text-body-2 text-grey-darken-1 mb-4">
+                Manage QR codes for different entry points.
               </div>
+
+              <v-expand-transition>
+                <div v-if="settings.enable_qr" class="mt-auto pt-2">
+                  <div class="d-flex justify-end mb-3">
+                    <v-btn
+                      variant="text"
+                      color="primary"
+                      size="small"
+                      prepend-icon="mdi-plus"
+                      @click="createQR"
+                    >
+                      Create New QR
+                    </v-btn>
+                  </div>
+
+                  <div v-if="settings.qr_codes.length === 0" class="text-center text-grey pa-4 border rounded border-dashed">
+                    No active QR codes. Create one to get started.
+                  </div>
+
+                  <div v-else class="d-flex flex-column gap-3">
+                    <div 
+                      v-for="(qr, index) in settings.qr_codes" 
+                      :key="qr.id"
+                      class="bg-grey-lighten-4 rounded-lg pa-3"
+                    >
+                      <div class="d-flex justify-space-between align-center mb-2">
+                        <div class="text-subtitle-2 font-weight-bold">{{ qr.name }}</div>
+                        <v-btn
+                          icon="mdi-delete-outline"
+                          variant="text"
+                          color="error"
+                          size="x-small"
+                          @click="removeQR(index)"
+                        >
+                          <v-tooltip activator="parent" location="top">Delete QR</v-tooltip>
+                        </v-btn>
+                      </div>
+
+                      <div class="d-flex gap-2">
+                        <v-btn
+                          variant="outlined"
+                          size="x-small"
+                          prepend-icon="mdi-qrcode"
+                          class="flex-grow-1"
+                          @click="openQrDialog(qr, 'site')"
+                        >
+                          View QR
+                        </v-btn>
+                        <v-btn
+                          variant="outlined"
+                          size="x-small"
+                          prepend-icon="mdi-share-variant"
+                          class="flex-grow-1"
+                          @click="shareQR(qr)"
+                        >
+                          Share
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </v-expand-transition>
             </v-card-text>
           </v-card>
         </v-col>
@@ -103,15 +165,122 @@
                 />
               </div>
               <div class="text-h6 font-weight-bold mb-1">Pre-shared Link</div>
-              <div class="text-body-2 text-grey-darken-1">
+              <div class="text-body-2 text-grey-darken-1 mb-4">
                 Generate and share registration links with visitors before their arrival.
               </div>
+
+              <v-expand-transition>
+                <div v-if="settings.enable_link" class="mt-auto pt-2">
+                  <div class="d-flex justify-end mb-3">
+                    <v-btn
+                      variant="text"
+                      color="primary"
+                      size="small"
+                      prepend-icon="mdi-plus"
+                      @click="createLink"
+                    >
+                      Create New Link
+                    </v-btn>
+                  </div>
+
+                  <div v-if="settings.public_links.length === 0" class="text-center text-grey pa-4 border rounded border-dashed">
+                    No active links. Create one to get started.
+                  </div>
+
+                  <div v-else class="d-flex flex-column gap-3">
+                    <div 
+                      v-for="(link, index) in settings.public_links" 
+                      :key="link.id"
+                      class="bg-grey-lighten-4 rounded-lg pa-3"
+                    >
+                      <div class="d-flex justify-space-between align-center mb-2">
+                        <div class="text-subtitle-2 font-weight-bold">{{ link.name }}</div>
+                        <v-btn
+                          icon="mdi-delete-outline"
+                          variant="text"
+                          color="error"
+                          size="x-small"
+                          @click="removeLink(index)"
+                        >
+                          <v-tooltip activator="parent" location="top">Delete Link</v-tooltip>
+                        </v-btn>
+                      </div>
+
+                      <div class="d-flex align-center bg-white rounded px-2 py-1 mb-2 border">
+                        <div class="text-truncate text-caption flex-grow-1 mr-2 text-grey-darken-1">
+                          {{ getLinkUrl(link.code) }}
+                        </div>
+                        <v-btn
+                          icon="mdi-content-copy"
+                          variant="text"
+                          size="x-small"
+                          density="comfortable"
+                          color="grey-darken-2"
+                          @click="copyLink(link.code)"
+                        >
+                          <v-tooltip activator="parent" location="top">Copy Link</v-tooltip>
+                        </v-btn>
+                      </div>
+
+                      <div class="d-flex gap-2">
+                        <v-btn
+                          variant="outlined"
+                          size="x-small"
+                          prepend-icon="mdi-qrcode"
+                          class="flex-grow-1"
+                          @click="openQrDialog(link, 'link')"
+                        >
+                          QR Code
+                        </v-btn>
+                        <v-btn
+                          variant="outlined"
+                          size="x-small"
+                          prepend-icon="mdi-share-variant"
+                          class="flex-grow-1"
+                          @click="shareLink(link.code)"
+                        >
+                          Share
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </v-expand-transition>
             </v-card-text>
           </v-card>
         </v-col>
 
+        <!-- QR Code Dialog -->
+        <v-dialog v-model="showQrDialog" max-width="400">
+          <v-card v-if="selectedItemForQr">
+            <v-card-title class="d-flex justify-space-between align-center">
+              <span>{{ selectedItemForQr.name }} QR</span>
+              <v-btn icon="mdi-close" variant="text" size="small" @click="showQrDialog = false" />
+            </v-card-title>
+            <v-card-text class="d-flex flex-column align-center pa-4">
+              <div class="bg-white pa-2 rounded mb-4 border">
+                <img :src="qrCodeUrl" alt="QR Code" style="width: 200px; height: 200px;" v-if="qrCodeUrl"/>
+                <v-skeleton-loader type="image" width="200" height="200" v-else />
+              </div>
+              <div class="text-caption text-center text-grey-darken-1 mb-4">
+                Scan this code to access the visitor registration form.
+              </div>
+              <v-btn
+                block
+                variant="flat"
+                color="primary"
+                prepend-icon="mdi-download"
+                @click="downloadQR"
+              >
+                Download QR Code
+              </v-btn>
+            </v-card-text>
+          </v-card>
+        </v-dialog>
+
+
         <!-- 3. Approval Option -->
-        <v-col cols="12" md="4">
+        <!-- <v-col cols="12" md="4">
           <v-card variant="outlined" class="setting-card h-100">
             <v-card-text class="d-flex flex-column h-100">
               <div class="d-flex justify-space-between align-start mb-4">
@@ -135,24 +304,31 @@
               <v-expand-transition>
                 <div v-if="settings.enable_approval" class="mt-auto pt-2">
                   <v-select
-                    v-model="settings.approver"
+                    v-model="settings.approvers"
                     :items="approvers"
                     item-title="label"
                     item-value="value"
-                    label="Default Approver"
+                    label="Select Approvers"
                     variant="outlined"
                     density="compact"
                     hide-details
+                    multiple
+                    chips
+                    closable-chips
                     :loading="loadingApprovers"
-                    prepend-inner-icon="mdi-account-check"
-                    placeholder="Select approver"
+                    prepend-inner-icon="mdi-account-multiple-check"
+                    placeholder="Select approvers"
                     @update:model-value="saveSettings"
                   />
+                  <div class="text-caption text-grey-darken-1 mt-2">
+                    <v-icon icon="mdi-shield-check" size="small" class="mr-1" />
+                    Visitor entry requires approval from one of these users.
+                  </div>
                 </div>
               </v-expand-transition>
             </v-card-text>
           </v-card>
-        </v-col>
+        </v-col> -->
       </v-row>
 
     </v-form>
@@ -173,8 +349,9 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { visitorService } from '@/services/visitorService';
+import QRCode from 'qrcode';
 import BaseButton from '@/components/common/buttons/BaseButton.vue';
-import { Save } from 'lucide-vue-next';
+import { Save, Plus, Trash2, Copy, QrCode, Share2 } from 'lucide-vue-next';
 
 const formRef = ref(null);
 const saving = ref(false);
@@ -190,19 +367,23 @@ const sites = ref([]);
 const settings = ref({
   siteId: null,
   enable_qr: false,
+  qr_codes: [],
   enable_link: false,
+  public_links: [],
   enable_approval: false,
-  approver: null,
+  approvers: [],
 });
+
+const qrCodeUrl = ref('');
+const selectedItemForQr = ref(null);
+const showQrDialog = ref(false);
+const qrType = ref('site'); // 'site' or 'link'
 
 const originalSettings = ref({});
 
 onMounted(async () => {
   await loadSites();
   await loadSettings();
-  if (settings.value.enable_approval) {
-    await loadApprovers();
-  }
 });
 
 watch(() => settings.value.enable_approval, async (newValue) => {
@@ -230,9 +411,11 @@ const loadSettings = async () => {
       settings.value = {
         siteId: settings.value.siteId, // Keep selected site or default
         enable_qr: data.enable_qr || false,
+        qr_codes: data.qr_codes || [],
         enable_link: data.enable_link || false,
+        public_links: data.public_links || [],
         enable_approval: data.enable_approval || false,
-        approver: data.approver || null,
+        approvers: data.approvers || [],
       };
       originalSettings.value = { ...settings.value };
     }
@@ -268,10 +451,8 @@ const saveSettings = async () => {
   const { valid } = await formRef.value.validate();
   if (!valid) return;
 
-  if (settings.value.enable_approval && !settings.value.approver) {
+  if (settings.value.enable_approval && (!settings.value.approvers || settings.value.approvers.length === 0)) {
     // Don't show error if just toggling approval on, wait for selection
-    // But if trying to save explicitly or if approval is on and no approver, we might need to warn
-    // However, for auto-save, we just return if invalid state to avoid bad API calls
     return;
   }
 
@@ -279,12 +460,21 @@ const saveSettings = async () => {
   try {
     const payload = {
       enable_qr: settings.value.enable_qr,
+      qr_codes: settings.value.qr_codes,
       enable_link: settings.value.enable_link,
+      public_links: settings.value.public_links,
       enable_approval: settings.value.enable_approval,
-      approver: settings.value.enable_approval ? settings.value.approver : null,
+      approvers: settings.value.enable_approval ? settings.value.approvers : [],
     };
     
-    await visitorService.updateVisitorSettings(payload);
+    const response = await visitorService.updateVisitorSettings(payload);
+    
+    // Update local settings with any generated values from backend
+    if (response.data) {
+       settings.value.qr_codes = response.data.qr_codes || [];
+       settings.value.public_links = response.data.public_links || [];
+    }
+
     originalSettings.value = { ...settings.value };
     showNotification('Configuration saved successfully', 'success');
   } catch (error) {
@@ -295,18 +485,82 @@ const saveSettings = async () => {
   }
 };
 
-const handleApprovalChange = (value) => {
-  // If disabling, save immediately
-  if (!value) {
-    saveSettings();
+const createLink = () => {
+  const chars = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  // If enabling, do nothing (wait for approver selection)
+  
+  const newLink = {
+    id: Date.now(),
+    name: `Link ${settings.value.public_links.length + 1}`,
+    code: code,
+    created_at: new Date().toISOString()
+  };
+  
+  settings.value.public_links.push(newLink);
+  // Auto-save when creating a link to persist it
+  saveSettings();
 };
 
-const resetSettings = () => {
-  settings.value = { ...originalSettings.value };
-  formRef.value?.resetValidation();
-  showNotification('Settings reset to last saved state', 'info');
+const removeLink = (index) => {
+  settings.value.public_links.splice(index, 1);
+  saveSettings();
+};
+
+const createQR = () => {
+  const chars = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  const newQR = {
+    id: Date.now(), // In real app, backend would assign ID
+    name: `Entry Point ${settings.value.qr_codes.length + 1}`,
+    code: code,
+    created_at: new Date().toISOString()
+  };
+  
+  settings.value.qr_codes.push(newQR);
+  saveSettings();
+};
+
+const removeQR = (index) => {
+  settings.value.qr_codes.splice(index, 1);
+  saveSettings();
+};
+
+const getLinkUrl = (code) => {
+  // Point to the public visitor landing page
+  return `${window.location.origin}/visitor/landing?code=${code}`;
+};
+
+const getQrUrl = (code) => {
+  // Point to the public visitor landing page with qr_id
+  return `${window.location.origin}/visitor/landing?qr_id=${code}`;
+};
+
+const copyLink = (code) => {
+  const url = getLinkUrl(code);
+  navigator.clipboard.writeText(url);
+  showNotification('Link copied to clipboard', 'success');
+};
+
+const openQrDialog = async (item, type) => {
+  selectedItemForQr.value = item;
+  qrType.value = type;
+  
+  let url = '';
+  if (type === 'site') {
+    url = getQrUrl(item.code);
+  } else {
+    url = getLinkUrl(item.code);
+  }
+  
+  await generateQrImage(url);
+  showQrDialog.value = true;
 };
 
 const showNotification = (message, type = 'success') => {
@@ -315,6 +569,49 @@ const showNotification = (message, type = 'success') => {
   snackbarIcon.value = type === 'success' ? 'mdi-check-circle' : 
                        type === 'error' ? 'mdi-alert-circle' : 'mdi-information';
   showSnackbar.value = true;
+};
+
+const generateQrImage = async (text) => {
+  try {
+    const url = await QRCode.toDataURL(text, { width: 200, margin: 1 });
+    qrCodeUrl.value = url;
+  } catch (err) {
+    console.error('QR Generation Error:', err);
+  }
+};
+
+const downloadQR = () => {
+  if (!qrCodeUrl.value || !selectedItemForQr.value) return;
+  
+  const name = qrType.value === 'site' 
+    ? `visitor-entry-${selectedItemForQr.value.name}-qr.png` 
+    : `visitor-link-${selectedItemForQr.value.code}-qr.png`;
+  
+  const link = document.createElement('a');
+  link.download = name;
+  link.href = qrCodeUrl.value;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const shareQR = async (item) => {
+  // Implementation depends on browser capabilities. 
+  // For now, we'll just show a notification.
+  showNotification('Sharing functionality would open native share sheet', 'info');
+};
+
+const shareLink = (code) => {
+  const url = getLinkUrl(code);
+  if (navigator.share) {
+    navigator.share({
+      title: 'Visitor Registration',
+      text: 'Please register for your visit using this link:',
+      url: url,
+    }).catch(console.error);
+  } else {
+    copyLink(code);
+  }
 };
 </script>
 
@@ -353,5 +650,10 @@ const showNotification = (message, type = 'success') => {
 
 .bg-warning-lighten-5 {
   background-color: #fff8e1 !important;
+}
+
+.font-monospace {
+  font-family: monospace;
+  letter-spacing: 2px;
 }
 </style>

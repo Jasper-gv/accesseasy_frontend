@@ -360,6 +360,13 @@ export default {
     // Combined menu items (merged settingsMenuItems into menuItems)
     const menuItems = [
       {
+        title: "HQ Dashboard",
+        icon: "mdi-domain",
+        to: "/hq/dashboard",
+        roles: ["Admin", "Manager"],
+        subItems: [],
+      },
+      {
         title: "Overview",
         icon: "mdi-format-list-checkbox",
         to: "/taskManagement/taskcomponents",

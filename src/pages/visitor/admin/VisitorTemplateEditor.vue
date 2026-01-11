@@ -27,6 +27,7 @@
 
     <v-form ref="formRef" @submit.prevent="saveTemplate">
       <v-row>
+        <!-- Left Column: Configuration -->
         <v-col cols="12" md="8">
           <!-- Basic Info -->
           <v-card variant="outlined" class="mb-6">
@@ -34,327 +35,483 @@
             <v-card-text>
               <v-text-field
                 v-model="template.name"
-                label="Template Name"
+                label="Process Name"
                 variant="outlined"
                 density="comfortable"
                 :rules="[v => !!v || 'Name is required']"
-                placeholder="e.g., Standard Visitor, Contractor"
+                placeholder="e.g., Standard Visitor, Tech Conf 2025"
               />
-              <v-textarea
-                v-model="template.description"
-                label="Description"
-                variant="outlined"
-                density="comfortable"
-                rows="3"
-                placeholder="Brief description of this visitor type"
-              />
+              
+              <!-- Process Type Selection -->
+              <div class="mt-4 mb-2 text-subtitle-2">Process Type</div>
+              <v-radio-group v-model="template.processType" inline color="primary" density="compact">
+                <v-radio label="Standard" value="Standard"></v-radio>
+                <v-radio label="Event" value="Event"></v-radio>
+                <v-radio label="Contractor" value="Contractor"></v-radio>
+                <v-radio label="Delivery" value="Delivery"></v-radio>
+              </v-radio-group>
+
+              <!-- Event Validity (Conditional) -->
+              <v-expand-transition>
+                <div v-if="template.processType === 'Event'" class="mb-4 pa-4 bg-grey-lighten-4 rounded border">
+                  <div class="text-subtitle-2 mb-3">Event Validity Period</div>
+                  <v-row>
+                    <v-col cols="6">
+                      <v-text-field
+                        v-model="template.validityStart"
+                        label="Start Date"
+                        type="date"
+                        variant="outlined"
+                        density="compact"
+                        :rules="[v => !!v || 'Start date is required for events']"
+                      />
+                    </v-col>
+                    <v-col cols="6">
+                      <v-text-field
+                        v-model="template.validityEnd"
+                        label="End Date"
+                        type="date"
+                        variant="outlined"
+                        density="compact"
+                        :rules="[v => !!v || 'End date is required for events']"
+                      />
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-expand-transition>
               
               <v-file-input
                 v-model="logoFile"
-                label="Template Logo"
+                label="Process Logo"
                 variant="outlined"
                 density="comfortable"
                 prepend-icon="mdi-camera"
                 accept="image/*"
                 @update:model-value="handleLogoUpload"
-                hint="Upload a logo for this template (Max 2MB)"
+                hint="Upload a logo for this process (Max 2MB)"
                 persistent-hint
               />
+              
+              <!-- Logo Preview -->
+              <div v-if="template.logo" class="mt-4 d-flex align-center">
+                <v-avatar size="64" rounded="lg" class="mr-4">
+                  <v-img :src="template.logo" cover></v-img>
+                </v-avatar>
+                <v-btn
+                  variant="text"
+                  color="error"
+                  size="small"
+                  @click="removeLogo"
+                >
+                  Remove Logo
+                </v-btn>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- Branch Visibility & Scope -->
+          <v-card variant="outlined" class="mb-6">
+            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Branch Visibility & Scope</v-card-title>
+            <v-card-text>
+              <v-radio-group v-model="template.branchScope" color="primary">
+                <v-radio label="All Branches (Default)" value="all">
+                  <template v-slot:label>
+                    <div>
+                      <div class="font-weight-medium">All Branches</div>
+                      <div class="text-caption text-grey-darken-1">Template will be available across all branches under the tenant</div>
+                    </div>
+                  </template>
+                </v-radio>
+                <v-radio label="Specific Branches" value="specific">
+                  <template v-slot:label>
+                    <div>
+                      <div class="font-weight-medium">Specific Branches</div>
+                      <div class="text-caption text-grey-darken-1">Select specific branches where this template should be available</div>
+                    </div>
+                  </template>
+                </v-radio>
+              </v-radio-group>
+
+              <v-expand-transition>
+                <div v-if="template.branchScope === 'specific'" class="ml-8">
+                  <v-select
+                    v-model="template.selectedBranches"
+                    :items="branches"
+                    item-title="title"
+                    item-value="value"
+                    label="Select Branches"
+                    variant="outlined"
+                    density="comfortable"
+                    multiple
+                    chips
+                    closable-chips
+                    placeholder="Choose branches"
+                    :rules="[v => template.branchScope !== 'specific' || (v && v.length > 0) || 'Please select at least one branch']"
+                  />
+                </div>
+              </v-expand-transition>
             </v-card-text>
           </v-card>
 
           <!-- Form Configuration -->
           <v-card variant="outlined" class="mb-6">
             <v-card-title class="d-flex justify-space-between align-center px-4 pt-4">
-              <span class="text-subtitle-1 font-weight-bold">Registration Form</span>
-              <v-btn
-                variant="text"
-                color="primary"
-                size="small"
-                prepend-icon="mdi-pencil"
-                @click="openFormDesigner"
-              >
-                Design Form
-              </v-btn>
+              <span class="text-subtitle-1 font-weight-bold">Visitor Form Configuration</span>
             </v-card-title>
             <v-card-text>
-              <v-select
-                v-model="template.formId"
-                :items="forms"
-                item-title="name"
-                item-value="id"
-                label="Select Form (Optional)"
-                variant="outlined"
-                density="comfortable"
-                placeholder="Choose a registration form"
-                clearable
-              />
-              <div class="text-caption text-grey-darken-1 mt-2">
-                This form will be shown to visitors when they register via QR or link.
+              <div class="text-subtitle-2 mb-2">Mandatory Fields</div>
+              <div class="d-flex flex-wrap gap-2 mb-4">
+                <v-chip v-for="field in defaultFormFields" :key="field" variant="outlined" color="grey-darken-2">
+                  {{ field }}
+                </v-chip>
               </div>
+
+              <div class="d-flex justify-space-between align-center mb-2">
+                <div class="text-subtitle-2">Custom Fields</div>
+                <v-btn
+                  variant="text"
+                  color="primary"
+                  size="small"
+                  prepend-icon="mdi-plus"
+                  @click="addCustomField"
+                >
+                  Add Field
+                </v-btn>
+              </div>
+
+              <div v-if="template.customFormFields.length === 0" class="text-center py-4 text-grey">
+                No custom fields added
+              </div>
+
+              <v-list v-else density="compact" class="bg-grey-lighten-5 rounded-lg pa-2">
+                <v-list-item v-for="(field, index) in template.customFormFields" :key="index" class="mb-2 bg-white rounded border-sm">
+                  <template v-slot:prepend>
+                    <v-icon size="small" color="grey" class="cursor-move">mdi-drag</v-icon>
+                  </template>
+                  
+                  <v-row dense align="center" class="w-100 ml-2">
+                    <v-col cols="4">
+                      <v-text-field
+                        v-model="field.label"
+                        label="Label"
+                        variant="plain"
+                        density="compact"
+                        hide-details
+                        placeholder="Field Label"
+                      />
+                    </v-col>
+                    <v-col cols="3">
+                      <v-select
+                        v-model="field.type"
+                        :items="['text', 'number', 'dropdown']"
+                        label="Type"
+                        variant="plain"
+                        density="compact"
+                        hide-details
+                      />
+                    </v-col>
+                    <v-col cols="3">
+                      <v-switch
+                        v-model="field.required"
+                        label="Required"
+                        color="primary"
+                        density="compact"
+                        hide-details
+                        class="ml-2"
+                      />
+                    </v-col>
+                    <v-col cols="2" class="text-right">
+                      <v-btn icon variant="text" size="small" color="error" @click="removeCustomField(index)">
+                        <v-icon>mdi-delete</v-icon>
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </v-list-item>
+              </v-list>
             </v-card-text>
           </v-card>
 
           <!-- Badge Configuration -->
           <v-card variant="outlined" class="mb-6">
             <v-card-title class="d-flex justify-space-between align-center px-4 pt-4">
-              <span class="text-subtitle-1 font-weight-bold">Badge Layout</span>
-              <v-btn
-                variant="text"
-                color="primary"
-                size="small"
-                prepend-icon="mdi-pencil"
-                @click="openBadgeDesigner"
-              >
-                Design Badge
-              </v-btn>
+              <span class="text-subtitle-1 font-weight-bold">Badge Configuration</span>
             </v-card-title>
             <v-card-text>
-              <v-select
-                v-model="template.badgeLayoutId"
-                :items="badgeLayouts"
-                item-title="name"
-                item-value="id"
-                label="Select Badge Layout (Optional)"
-                variant="outlined"
-                density="comfortable"
-                placeholder="Choose a badge layout"
-                clearable
-              />
-              <div v-if="selectedBadge" class="text-caption text-grey-darken-1 mt-2">
-                {{ selectedBadge.description }}
+              <div class="text-subtitle-2 mb-2">Badge Fields</div>
+              <div class="text-caption text-grey-darken-1 mb-3">Select fields to display on the visitor badge.</div>
+
+              <div class="d-flex flex-wrap gap-2 mb-4">
+                <v-chip
+                  v-for="field in availableBadgeFields"
+                  :key="field"
+                  :color="template.selectedBadgeFields.includes(field) ? 'primary' : 'default'"
+                  :variant="template.selectedBadgeFields.includes(field) ? 'flat' : 'outlined'"
+                  filter
+                  @click="toggleBadgeField(field)"
+                >
+                  {{ field }}
+                </v-chip>
               </div>
+
+              <div class="d-flex justify-space-between align-center mb-2">
+                <div class="text-subtitle-2">Additional Badge Fields</div>
+                <v-btn
+                  variant="text"
+                  color="primary"
+                  size="small"
+                  prepend-icon="mdi-plus"
+                  @click="addBadgeField"
+                >
+                  Add Field
+                </v-btn>
+              </div>
+
+              <div v-if="template.badgeFields.length === 0" class="text-center py-4 text-grey">
+                No additional badge fields added
+              </div>
+
+              <v-list v-else density="compact" class="bg-grey-lighten-5 rounded-lg pa-2">
+                <v-list-item v-for="(field, index) in template.badgeFields" :key="index" class="mb-2 bg-white rounded border-sm">
+                  <template v-slot:prepend>
+                    <v-icon size="small" color="grey" class="cursor-move">mdi-drag</v-icon>
+                  </template>
+                  
+                  <v-row dense align="center" class="w-100 ml-2">
+                    <v-col cols="5">
+                      <v-text-field
+                        v-model="field.label"
+                        label="Label"
+                        variant="plain"
+                        density="compact"
+                        hide-details
+                        placeholder="Field Label"
+                      />
+                    </v-col>
+                    <v-col cols="5">
+                       <v-select
+                        v-model="field.type"
+                        :items="['text', 'image']"
+                        label="Type"
+                        variant="plain"
+                        density="compact"
+                        hide-details
+                      />
+                    </v-col>
+                    <v-col cols="2" class="text-right">
+                      <v-btn icon variant="text" size="small" color="error" @click="removeBadgeField(index)">
+                        <v-icon>mdi-delete</v-icon>
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </v-list-item>
+              </v-list>
             </v-card-text>
           </v-card>
 
-          <!-- Access Control -->
+          <!-- Access & Permission Settings -->
           <v-card variant="outlined" class="mb-6">
-            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Access Control</v-card-title>
+            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Access & Permission Settings</v-card-title>
             <v-card-text>
-              <v-select
-                v-model="template.accessLevelId"
-                :items="accessLevels"
-                item-title="accessLevelName"
-                item-value="id"
-                label="Access Level"
-                variant="outlined"
-                density="comfortable"
-                placeholder="Select access level"
-                :loading="loadingAccessLevels"
-                :rules="[v => !!v || 'Access level is required']"
-              />
-              <div class="text-caption text-grey-darken-1 mt-2">
-                This access level will be assigned to visitors using this template. It controls which doors and zones they can access.
-              </div>
-            </v-card-text>
-          </v-card>
-
-          <!-- QR Configuration -->
-          <v-card variant="outlined" class="mb-6">
-            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">QR Configuration</v-card-title>
-            <v-card-text>
-              <v-switch
-                v-model="template.qrEnabled"
-                label="Enable QR Code"
-                color="primary"
-                hide-details
-                density="compact"
-              />
-              <div class="text-caption text-grey-darken-1 mt-2 mb-4">
-                When enabled, a QR code will be generated after visitor registration for check-in/check-out.
-              </div>
+              <div class="text-subtitle-2 font-weight-bold mb-2">Entry Methods</div>
+              <div class="text-caption text-grey-darken-1 mb-3">Select how visitors can access the registration form.</div>
+              
+              <v-row>
+                <v-col cols="12" md="6">
+                  <v-checkbox
+                    v-model="template.qrEnabled"
+                    label="QR Code Scan"
+                    color="primary"
+                    hide-details
+                    density="compact"
+                  >
+                    <template v-slot:details>
+                       <div class="text-caption text-grey ml-2">Link to a specific QR Code</div>
+                    </template>
+                  </v-checkbox>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-checkbox
+                    v-model="template.linkEnabled"
+                    label="Public Link"
+                    color="info"
+                    hide-details
+                    density="compact"
+                  >
+                     <template v-slot:details>
+                       <div class="text-caption text-grey ml-2">Enable public registration link</div>
+                    </template>
+                  </v-checkbox>
+                </v-col>
+              </v-row>
 
               <v-expand-transition>
-                <div v-if="template.qrEnabled">
+                <div v-if="template.qrEnabled" class="mt-4">
                   <v-select
-                    v-model="template.qrPageId"
+                    v-model="template.qrCodeId"
                     :items="qrPages"
                     item-title="name"
                     item-value="id"
-                    label="QR Page Layout"
+                    label="Select QR Code"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="Select QR page layout"
-                    :rules="template.qrEnabled ? [v => !!v || 'QR page is required when QR is enabled'] : []"
+                    placeholder="Choose a QR Code"
+                    :rules="[v => !!v || 'QR Code is required']"
                   />
-                  <div v-if="selectedQRPage" class="text-caption text-grey-darken-1 mt-2">
-                    {{ selectedQRPage.description }}
+                  <div v-if="qrPages.length === 0" class="mt-2 text-caption text-warning">
+                    No QR codes available. Please create one in Visitor Settings.
                   </div>
                 </div>
               </v-expand-transition>
-            </v-card-text>
-          </v-card>
-
-          <!-- Link Configuration -->
-          <v-card variant="outlined" class="mb-6">
-            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Link Configuration</v-card-title>
-            <v-card-text>
-              <v-switch
-                v-model="template.linkEnabled"
-                label="Enable Public Link"
-                color="info"
-                hide-details
-                density="compact"
-              />
-              <div class="text-caption text-grey-darken-1 mt-2 mb-4">
-                When enabled, employees can share a public registration link with visitors.
-              </div>
 
               <v-expand-transition>
-                <div v-if="template.linkEnabled">
-                  <v-text-field
-                    v-model="template.publicLink"
-                    label="Public Registration Link"
+                <div v-if="template.linkEnabled" class="mt-4">
+                  <v-select
+                    v-model="template.publicLinkCode"
+                    :items="publicLinks"
+                    item-title="name"
+                    item-value="code"
+                    label="Select Public Link"
                     variant="outlined"
                     density="comfortable"
-                    readonly
-                    :placeholder="template.publicLink || 'Click Generate to create a link'"
-                  >
-                    <template v-slot:append-inner>
-                      <v-btn
-                        v-if="template.publicLink"
-                        icon
-                        variant="text"
-                        size="small"
-                        @click="copyLink"
-                      >
-                        <v-icon>{{ linkCopied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
-                        <v-tooltip activator="parent" location="top">
-                          {{ linkCopied ? 'Copied!' : 'Copy link' }}
-                        </v-tooltip>
-                      </v-btn>
-                    </template>
-                  </v-text-field>
+                    placeholder="Choose a link"
+                    :rules="[v => !!v || 'Public link is required']"
+                  />
                   
-                  <v-btn
-                    v-if="!template.publicLink"
-                    variant="outlined"
-                    color="primary"
-                    size="small"
-                    prepend-icon="mdi-link-variant"
-                    @click="generateLink"
-                    :loading="generatingLink"
-                    class="mt-2"
-                  >
-                    Generate Link
-                  </v-btn>
+                  <div v-if="template.publicLinkCode" class="mt-2 pa-3 bg-grey-lighten-4 rounded border">
+                    <div class="text-caption text-grey-darken-1 mb-1">Registration URL:</div>
+                    <div class="d-flex align-center">
+                      <div class="text-body-2 text-primary text-truncate flex-grow-1 mr-2">
+                        {{ getLinkUrl(template.publicLinkCode) }}
+                      </div>
+                      <v-btn
+                        icon="mdi-content-copy"
+                        variant="text"
+                        size="x-small"
+                        color="grey-darken-2"
+                        @click="copyLink(template.publicLinkCode)"
+                      >
+                        <v-tooltip activator="parent" location="top">Copy Link</v-tooltip>
+                      </v-btn>
+                    </div>
+                  </div>
+                  <div v-else-if="publicLinks.length === 0" class="mt-2 text-caption text-warning">
+                    No public links available. Please create one in Visitor Settings.
+                  </div>
                 </div>
               </v-expand-transition>
-            </v-card-text>
-          </v-card>
-
-          <!-- Approval Configuration -->
-          <v-card variant="outlined" class="mb-6">
-            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Approval Configuration</v-card-title>
-            <v-card-text>
-              <v-switch
-                v-model="template.approvalRequired"
-                label="Require Approval"
-                color="warning"
-                hide-details
-                density="compact"
-              />
-              <div class="text-caption text-grey-darken-1 mt-2 mb-4">
-                When enabled, visitor registration will require approval before QR/badge is generated.
-              </div>
 
               <v-expand-transition>
-                <div v-if="template.approvalRequired">
+                <div class="mt-4">
+                  <v-checkbox
+                    v-model="template.approvalRequired"
+                    label="Require Approval"
+                    color="warning"
+                    hide-details
+                    density="compact"
+                  >
+                    <template v-slot:details>
+                       <div class="text-caption text-grey ml-2">Require security approval before entry</div>
+                    </template>
+                  </v-checkbox>
+                </div>
+              </v-expand-transition>
+
+              <v-expand-transition>
+                <div v-if="template.approvalRequired" class="mt-2 ml-8">
                   <v-select
                     v-model="template.approverId"
                     :items="approvers"
                     item-title="label"
                     item-value="value"
-                    label="Approver"
+                    label="Select Approver"
                     variant="outlined"
                     density="comfortable"
-                    placeholder="Select approver"
-                    :rules="template.approvalRequired ? [v => !!v || 'Approver is required when approval is enabled'] : []"
+                    placeholder="Choose who approves requests"
+                    :rules="template.approvalRequired ? [v => !!v || 'Approver is required'] : []"
                   />
-                  <div class="text-caption text-grey-darken-1 mt-2">
-                    The selected approver will be notified when a visitor registers using this template.
-                  </div>
                 </div>
               </v-expand-transition>
+              
+              <div class="mt-4">
+                 <v-select
+                  v-model="template.accessLevelId"
+                  :items="accessLevels"
+                  item-title="accessLevelName"
+                  item-value="id"
+                  label="Default Access Level"
+                  variant="outlined"
+                  density="comfortable"
+                  placeholder="Select access level"
+                  :loading="loadingAccessLevels"
+                  :rules="[v => !!v || 'Access level is required']"
+                />
+              </div>
             </v-card-text>
           </v-card>
         </v-col>
 
+        <!-- Right Column: Mobile Preview -->
         <v-col cols="12" md="4">
-          <!-- Mobile Preview -->
-          <v-card variant="outlined" class="mb-6 sticky-preview">
-            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Mobile Preview</v-card-title>
-            <v-card-text class="d-flex justify-center">
-              <div class="mobile-frame">
-                <div class="mobile-screen">
-                  <!-- Status Bar -->
-                  <div class="status-bar d-flex justify-space-between px-2 py-1">
-                    <span class="text-caption font-weight-bold">9:41</span>
-                    <div class="d-flex gap-1">
-                      <v-icon size="x-small">mdi-signal</v-icon>
-                      <v-icon size="x-small">mdi-wifi</v-icon>
-                      <v-icon size="x-small">mdi-battery</v-icon>
+          <div class="position-sticky" style="top: 20px;">
+            <div class="text-h6 font-weight-bold mb-4">Mobile Preview</div>
+            <div class="mobile-frame mx-auto">
+              <div class="mobile-screen">
+                <!-- Mobile Header -->
+                <div class="mobile-header bg-primary pa-4 text-white">
+                  <div class="text-subtitle-1 font-weight-bold">{{ template.name || 'Event Name' }}</div>
+                  <div class="text-caption">Visitor Registration</div>
+                </div>
+
+                <!-- Mobile Content -->
+                <div class="mobile-content pa-4">
+                  <!-- Form Preview -->
+                  <div class="mb-6">
+                    <div class="text-subtitle-2 font-weight-bold mb-2">Registration Form</div>
+                    <div class="d-flex flex-column gap-2">
+                      <div v-for="field in defaultFormFields" :key="field" class="preview-field">
+                        <div class="text-caption text-grey-darken-1">{{ field }}</div>
+                        <div class="preview-input"></div>
+                      </div>
+                      <div v-for="(field, index) in template.customFormFields" :key="index" class="preview-field">
+                        <div class="text-caption text-grey-darken-1">{{ field.label || 'New Field' }} <span v-if="field.required" class="text-error">*</span></div>
+                        <div class="preview-input"></div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <!-- Content -->
-                  <div class="mobile-content pa-4 d-flex flex-column align-center">
-                    <div class="logo-placeholder mb-4">
-                      <img v-if="template.logo" :src="template.logo" alt="Logo" class="preview-logo" />
-                      <v-icon v-else icon="mdi-image-outline" size="large" color="grey-lighten-1" />
-                    </div>
-                    
-                    <h3 class="text-h6 font-weight-bold text-center mb-2">{{ template.name || 'Visitor Registration' }}</h3>
-                    <p class="text-caption text-center text-grey-darken-1 mb-4">
-                      {{ template.description || 'Welcome! Please complete the registration form.' }}
-                    </p>
 
-                    <!-- Feature Badges -->
-                    <div class="d-flex flex-wrap gap-2 mb-4 justify-center">
-                      <v-chip v-if="template.qrEnabled" size="x-small" color="primary" variant="flat">
-                        <v-icon start size="x-small">mdi-qrcode</v-icon>
-                        QR Enabled
-                      </v-chip>
-                      <v-chip v-if="template.linkEnabled" size="x-small" color="info" variant="flat">
-                        <v-icon start size="x-small">mdi-link</v-icon>
-                        Link Enabled
-                      </v-chip>
-                      <v-chip v-if="template.approvalRequired" size="x-small" color="warning" variant="flat">
-                        <v-icon start size="x-small">mdi-check-decagram</v-icon>
-                        Approval Required
-                      </v-chip>
+                  <v-divider class="mb-6"></v-divider>
+
+                  <!-- Badge Preview -->
+                  <div>
+                    <div class="text-subtitle-2 font-weight-bold mb-2">Badge Preview</div>
+                    <div class="badge-preview pa-3 border rounded bg-white">
+                      <div class="d-flex align-center mb-3">
+                        <v-avatar size="40" color="grey-lighten-2" class="mr-3">
+                          <v-icon icon="mdi-account" color="grey"></v-icon>
+                        </v-avatar>
+                        <div>
+                          <div class="text-subtitle-2 font-weight-bold">Visitor Name</div>
+                          <div class="text-caption text-grey">{{ template.name || 'Event Name' }}</div>
+                        </div>
+                      </div>
+                      
+                      <!-- Default Badge Fields -->
+                      <div class="d-flex justify-center my-2">
+                         <v-icon size="64" icon="mdi-qrcode" color="black"></v-icon>
+                      </div>
+
+                      <!-- Custom Badge Fields -->
+                       <div v-if="template.badgeFields.length > 0" class="mt-3 pt-3 border-t">
+                        <div v-for="(field, index) in template.badgeFields" :key="index" class="text-caption mb-1">
+                          <span class="font-weight-bold">{{ field.label || 'Field' }}:</span> Value
+                        </div>
+                      </div>
                     </div>
-                    
-                    <v-btn block color="primary" class="mb-3" rounded="lg">Start Registration</v-btn>
-                    <v-btn block variant="text" size="small">I have an invite</v-btn>
                   </div>
                 </div>
               </div>
-            </v-card-text>
-          </v-card>
-
-          <!-- Status Controls -->
-          <v-card variant="outlined" class="mb-6">
-            <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Status</v-card-title>
-            <v-card-text>
-              <v-switch
-                v-model="template.status"
-                :label="template.status === 'active' ? 'Active' : 'Inactive'"
-                true-value="active"
-                false-value="inactive"
-                color="success"
-                hide-details
-                inset
-              />
-              <v-checkbox
-                v-model="template.isDefault"
-                label="Set as Default Template"
-                hide-details
-                density="compact"
-                class="mt-2"
-              />
-            </v-card-text>
-          </v-card>
+            </div>
+          </div>
         </v-col>
       </v-row>
     </v-form>
@@ -387,6 +544,10 @@ const props = defineProps({
     type: [String, Number],
     default: null,
   },
+  defaultLinkEnabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['change-view']);
@@ -409,13 +570,20 @@ const isEditMode = computed(() => props.mode === 'edit' || !!props.templateId ||
 const template = ref({
   name: '',
   description: '',
-  formId: null,
-  badgeLayoutId: null,
+  processType: 'Standard', // Default
+  validityStart: null,
+  validityEnd: null,
+  gates: [],
+  branchScope: 'all',
+  selectedBranches: [],
+  customFormFields: [],
+  selectedBadgeFields: ['Visitor Name', 'Event Name', 'QR Code'],
+  badgeFields: [],
   accessLevelId: null,
   qrEnabled: true,
   qrPageId: null,
   linkEnabled: false,
-  publicLink: null,
+  publicLinkCode: null, // Changed from publicLink to publicLinkCode
   approvalRequired: false,
   approverId: null,
   status: 'active',
@@ -423,15 +591,30 @@ const template = ref({
   logo: null,
 });
 
-const forms = ref([]);
-const badgeLayouts = ref([]);
+// Initialize with default link enabled if prop is set
+if (props.defaultLinkEnabled) {
+  template.value.linkEnabled = true;
+}
+
+const defaultFormFields = ['Full Name', 'Email Address', 'Phone Number', 'Purpose of Visit'];
+const availableBadgeFields = ['Visitor Name', 'Event Name', 'QR Code', 'Host Name', 'Visit Date', 'Access Level', 'Photo'];
+
+const toggleBadgeField = (field) => {
+  if (!template.value.selectedBadgeFields) template.value.selectedBadgeFields = [];
+  
+  const index = template.value.selectedBadgeFields.indexOf(field);
+  if (index === -1) {
+    template.value.selectedBadgeFields.push(field);
+  } else {
+    template.value.selectedBadgeFields.splice(index, 1);
+  }
+};
+
 const qrPages = ref([]);
 const accessLevels = ref([]);
 const approvers = ref([]);
-
-const selectedBadge = computed(() => {
-  return badgeLayouts.value.find(b => b.id === template.value.badgeLayoutId);
-});
+const branches = ref([]);
+const publicLinks = ref([]); // Added publicLinks state
 
 const selectedQRPage = computed(() => {
   return qrPages.value.find(p => p.id === template.value.qrPageId);
@@ -439,39 +622,18 @@ const selectedQRPage = computed(() => {
 
 onMounted(async () => {
   await Promise.all([
-    loadForms(),
-    loadBadgeLayouts(),
     loadQRPages(),
     loadAccessLevels(),
     loadApprovers(),
+    loadBranches(), 
+    loadPublicLinks(), // Added loadPublicLinks
   ]);
-  
-  console.log('[VisitorTemplateEditor] Mounted - isEditMode:', isEditMode.value, 'props:', props);
   
   if (isEditMode.value) {
     const templateId = props.templateId || route.params.id;
-    console.log('[VisitorTemplateEditor] Loading template ID:', templateId);
     await loadTemplate(templateId);
   }
 });
-
-const loadForms = async () => {
-  try {
-    const data = await visitorService.getVisitorForms();
-    forms.value = data;
-  } catch (error) {
-    console.error('Error loading forms:', error);
-  }
-};
-
-const loadBadgeLayouts = async () => {
-  try {
-    const data = await visitorService.getBadgeLayouts();
-    badgeLayouts.value = data;
-  } catch (error) {
-    console.error('Error loading badge layouts:', error);
-  }
-};
 
 const loadQRPages = async () => {
   try {
@@ -499,7 +661,18 @@ const loadTemplate = async (id) => {
   try {
     const data = await visitorService.getVisitorTemplateById(Number(id));
     if (data) {
-      template.value = { ...data };
+      template.value = { 
+        ...data,
+        processType: data.processType || 'Standard',
+        validityStart: data.validityStart,
+        validityEnd: data.validityEnd,
+        gates: data.gates || [],
+        branchScope: data.branchScope || 'all',
+        selectedBranches: data.selectedBranches || [],
+        customFormFields: data.customFormFields || [],
+        selectedBadgeFields: data.selectedBadgeFields || ['Visitor Name', 'Event Name', 'QR Code'],
+        badgeFields: data.badgeFields || [],
+      };
     }
   } catch (error) {
     console.error('Error loading template:', error);
@@ -518,9 +691,28 @@ const loadApprovers = async () => {
   }
 };
 
+const loadBranches = async () => {
+  // Hardcoded data as requested
+  branches.value = [
+    { title: 'branch srivai', value: 8818 },
+    { title: 'branch chennai', value: 8819 },
+    { title: 'branch madurai', value: 8820 },
+  ];
+};
+
+const loadPublicLinks = async () => {
+  try {
+    const settings = await visitorService.getVisitorSettings();
+    if (settings && settings.public_links) {
+      publicLinks.value = settings.public_links;
+    }
+  } catch (error) {
+    console.error('Error loading public links:', error);
+  }
+};
+
 const handleLogoUpload = (file) => {
   if (!file) {
-    template.value.logo = null;
     return;
   }
   
@@ -532,44 +724,57 @@ const handleLogoUpload = (file) => {
   reader.readAsDataURL(file);
 };
 
-const generateLink = async () => {
-  generatingLink.value = true;
-  try {
-    const result = await visitorService.generatePublicLink(template.value.id);
-    if (result.success) {
-      template.value.publicLink = result.link;
-      showNotification('Public link generated successfully', 'success');
-    }
-  } catch (error) {
-    console.error('Error generating link:', error);
-    showNotification('Error generating link', 'error');
-  } finally {
-    generatingLink.value = false;
-  }
+const removeLogo = () => {
+  template.value.logo = null;
+  logoFile.value = null;
 };
 
-const copyLink = async () => {
+const addCustomField = () => {
+  template.value.customFormFields.push({
+    label: '',
+    type: 'text',
+    required: false
+  });
+};
+
+const removeCustomField = (index) => {
+  template.value.customFormFields.splice(index, 1);
+};
+
+const addBadgeField = () => {
+  template.value.badgeFields.push({
+    label: '',
+    type: 'text'
+  });
+};
+
+const removeBadgeField = (index) => {
+  template.value.badgeFields.splice(index, 1);
+};
+
+const getLinkUrl = (code) => {
+  return `${window.location.origin}/visitor/landing?code=${code}`;
+};
+
+const copyLink = async (code) => {
   try {
-    await navigator.clipboard.writeText(template.value.publicLink);
+    const url = getLinkUrl(code);
+    await navigator.clipboard.writeText(url);
     linkCopied.value = true;
+    showNotification('Link copied to clipboard', 'success');
     setTimeout(() => {
       linkCopied.value = false;
     }, 2000);
   } catch (error) {
     console.error('Error copying link:', error);
+    showNotification('Error copying link', 'error');
   }
 };
 
 const saveTemplate = async () => {
-  console.log('[VisitorTemplateEditor] saveTemplate called');
-  console.log('[VisitorTemplateEditor] Current template data:', template.value);
-  console.log('[VisitorTemplateEditor] isEditMode:', isEditMode.value);
-  
   const { valid } = await formRef.value.validate();
-  console.log('[VisitorTemplateEditor] Form validation result:', valid);
   
   if (!valid) {
-    console.error('[VisitorTemplateEditor] Form validation failed');
     showNotification('Please fill in all required fields', 'error');
     return;
   }
@@ -578,31 +783,19 @@ const saveTemplate = async () => {
   try {
     if (isEditMode.value) {
       const templateId = props.templateId || route.params.id;
-      console.log('[VisitorTemplateEditor] Updating template ID:', templateId);
-      const result = await visitorService.updateVisitorTemplate(Number(templateId), template.value);
-      console.log('[VisitorTemplateEditor] Update result:', result);
+      await visitorService.updateVisitorTemplate(Number(templateId), template.value);
       showNotification('Template updated successfully', 'success');
     } else {
-      // Create Visitor Template (badge is optional)
-      const templateData = {
-        ...template.value,
-      };
-      
-      console.log('[VisitorTemplateEditor] Creating template with data:', templateData);
-      const result = await visitorService.createVisitorTemplate(templateData);
-      console.log('[VisitorTemplateEditor] Create result:', result);
+      await visitorService.createVisitorTemplate(template.value);
       showNotification('Template created successfully', 'success');
     }
     
-    // Small delay to show the success message
     setTimeout(() => {
-      console.log('[VisitorTemplateEditor] Emitting change-view to list');
       emit('change-view', 'list');
     }, 1000);
   } catch (error) {
-    console.error('[VisitorTemplateEditor] Error saving template:', error);
-    console.error('[VisitorTemplateEditor] Error details:', error.response?.data || error.message);
-    showNotification('Error saving template: ' + (error.response?.data?.errors?.[0]?.message || error.message), 'error');
+    console.error('Error saving template:', error);
+    showNotification('Error saving template', 'error');
   } finally {
     saving.value = false;
   }
@@ -610,14 +803,6 @@ const saveTemplate = async () => {
 
 const cancel = () => {
   emit('change-view', 'list');
-};
-
-const openFormDesigner = () => {
-  emit('change-view', 'form-designer');
-};
-
-const openBadgeDesigner = () => {
-  emit('change-view', 'badge-designer');
 };
 
 const showNotification = (message, type = 'success') => {
@@ -638,65 +823,39 @@ const showNotification = (message, type = 'success') => {
   gap: 12px;
 }
 
-.gap-1 {
-  gap: 4px;
-}
-
 .gap-2 {
   gap: 8px;
 }
 
-.sticky-preview {
-  position: sticky;
-  top: 20px;
+.cursor-move {
+  cursor: move;
 }
 
-/* Mobile Preview Styles */
 .mobile-frame {
-  width: 280px;
-  height: 560px;
-  background-color: #1a1a1a;
+  width: 300px;
+  height: 600px;
+  border: 12px solid #333;
   border-radius: 36px;
-  padding: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   position: relative;
 }
 
 .mobile-screen {
-  width: 100%;
   height: 100%;
-  background-color: #ffffff;
-  border-radius: 24px;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.status-bar {
-  background-color: rgba(255, 255, 255, 0.9);
-  z-index: 10;
-}
-
-.mobile-content {
-  flex: 1;
   overflow-y: auto;
+  background: #f5f5f5;
 }
 
-.logo-placeholder {
-  width: 80px;
-  height: 80px;
-  border-radius: 16px;
-  background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+.preview-field {
+  margin-bottom: 8px;
 }
 
-.preview-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.preview-input {
+  height: 32px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
 }
 </style>

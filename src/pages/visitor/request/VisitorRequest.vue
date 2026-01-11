@@ -41,11 +41,14 @@
                 </div>
                 
                 <div class="mt-3 d-flex gap-2 flex-wrap">
-                  <v-chip size="x-small" v-if="template.approvalEnabled" color="warning" variant="flat">
+                  <v-chip size="x-small" v-if="template.approvalRequired" color="warning" variant="flat">
                     Approval Required
                   </v-chip>
                   <v-chip size="x-small" v-else color="success" variant="flat">
                     Auto-Approved
+                  </v-chip>
+                  <v-chip size="x-small" v-if="template.linkEnabled" color="info" variant="flat">
+                    Public Link
                   </v-chip>
                 </div>
               </v-card-text>
@@ -53,7 +56,7 @@
           </div>
         </v-col>
 
-        <!-- Right Side: Dynamic Form -->
+        <!-- Right Side: Dynamic Form or Invite -->
         <v-col cols="12" md="8" lg="9" class="pa-0 d-flex flex-column bg-grey-lighten-5">
           <div v-if="!selectedTemplate" class="fill-height d-flex flex-column align-center justify-center text-grey">
             <v-icon icon="mdi-account-filter-outline" size="64" class="mb-4 opacity-50" />
@@ -62,156 +65,233 @@
           </div>
 
           <div v-else class="fill-height d-flex flex-column">
-            <!-- Form Header -->
-            <div class="pa-6 pb-2">
-              <div class="d-flex justify-space-between align-center">
+            <!-- Header with Tabs -->
+            <div class="bg-white border-b px-6 pt-4">
+              <div class="d-flex justify-space-between align-center mb-4">
                 <div>
-                  <h1 class="text-h5 font-weight-bold">{{ selectedTemplate.name }} Registration</h1>
-                  <div class="text-body-2 text-grey-darken-1 mt-1">
-                    Please fill in the details below.
+                  <h1 class="text-h5 font-weight-bold">{{ selectedTemplate.name }}</h1>
+                  <div class="text-body-2 text-grey-darken-1">
+                    {{ requestMode === 'register' ? 'Fill in visitor details' : 'Share invitation link' }}
                   </div>
                 </div>
               </div>
+              
+              <v-tabs v-model="requestMode" color="primary">
+                <v-tab value="register">
+                  <v-icon icon="mdi-form-select" class="mr-2" />
+                  Register Manually
+                </v-tab>
+                <v-tab value="invite" v-if="selectedTemplate.linkEnabled">
+                  <v-icon icon="mdi-share-variant" class="mr-2" />
+                  Invite Visitor
+                </v-tab>
+              </v-tabs>
             </div>
 
-            <!-- Form Content -->
-            <div class="flex-grow-1 overflow-y-auto px-6 pb-6">
-              <v-card class="mx-auto" max-width="800">
-                <v-card-text class="pa-6">
-                  <v-form ref="formRef" @submit.prevent="submitRequest">
-                    <div v-if="loadingForm" class="d-flex justify-center pa-8">
-                      <v-progress-circular indeterminate color="primary" />
-                    </div>
+            <!-- Content Area -->
+            <div class="flex-grow-1 overflow-y-auto pa-6">
+              
+              <!-- Manual Registration Form -->
+              <v-window v-model="requestMode">
+                <v-window-item value="register">
+                  <v-card class="mx-auto" max-width="800">
+                    <v-card-text class="pa-6">
+                      <v-form ref="formRef" @submit.prevent="submitRequest">
+                        <div v-if="loadingForm" class="d-flex justify-center pa-8">
+                          <v-progress-circular indeterminate color="primary" />
+                        </div>
 
-                    <div v-else-if="!currentForm" class="text-center pa-8 text-error">
-                      <v-icon icon="mdi-alert-circle" size="48" class="mb-2" />
-                      <div>Form configuration not found for this template.</div>
-                    </div>
+                        <div v-else-if="!currentForm" class="text-center pa-8 text-error">
+                          <v-icon icon="mdi-alert-circle" size="48" class="mb-2" />
+                          <div>Form configuration not found for this template.</div>
+                        </div>
 
-                    <v-row v-else>
-                      <v-col 
-                        v-for="field in currentForm.fields" 
-                        :key="field.id"
-                        cols="12" 
-                        :md="['textarea'].includes(field.type) ? 12 : 6"
-                      >
-                        <!-- Text / Email / Phone -->
-                        <v-text-field
-                          v-if="['text', 'email', 'phone'].includes(field.type)"
-                          v-model="formData[field.id]"
-                          :label="field.label"
-                          :placeholder="field.placeholder"
-                          :type="field.type === 'phone' ? 'tel' : field.type"
-                          variant="outlined"
-                          density="comfortable"
-                          :rules="getFieldRules(field)"
-                          :prepend-inner-icon="getFieldIcon(field.type)"
-                        />
+                        <v-row v-else>
+                          <v-col 
+                            v-for="field in currentForm.fields" 
+                            :key="field.id"
+                            cols="12" 
+                            :md="['textarea'].includes(field.type) ? 12 : 6"
+                          >
+                            <!-- Text / Email / Phone -->
+                            <v-text-field
+                              v-if="['text', 'email', 'phone'].includes(field.type)"
+                              v-model="formData[field.id]"
+                              :label="field.label"
+                              :placeholder="field.placeholder"
+                              :type="field.type === 'phone' ? 'tel' : field.type"
+                              variant="outlined"
+                              density="comfortable"
+                              :rules="getFieldRules(field)"
+                              :prepend-inner-icon="getFieldIcon(field.type)"
+                            />
 
-                        <!-- Textarea -->
-                        <v-textarea
-                          v-else-if="field.type === 'textarea'"
-                          v-model="formData[field.id]"
-                          :label="field.label"
-                          :placeholder="field.placeholder"
-                          variant="outlined"
-                          density="comfortable"
-                          rows="3"
-                          :rules="getFieldRules(field)"
-                          prepend-inner-icon="mdi-text-box-outline"
-                        />
+                            <!-- Textarea -->
+                            <v-textarea
+                              v-else-if="field.type === 'textarea'"
+                              v-model="formData[field.id]"
+                              :label="field.label"
+                              :placeholder="field.placeholder"
+                              variant="outlined"
+                              density="comfortable"
+                              rows="3"
+                              :rules="getFieldRules(field)"
+                              prepend-inner-icon="mdi-text-box-outline"
+                            />
 
-                        <!-- Select -->
-                        <v-select
-                          v-else-if="field.type === 'select'"
-                          v-model="formData[field.id]"
-                          :items="field.options"
-                          :label="field.label"
-                          :placeholder="field.placeholder"
-                          variant="outlined"
-                          density="comfortable"
-                          :rules="getFieldRules(field)"
-                          prepend-inner-icon="mdi-form-dropdown"
-                        />
+                            <!-- Select -->
+                            <v-select
+                              v-else-if="field.type === 'select'"
+                              v-model="formData[field.id]"
+                              :items="field.options"
+                              :label="field.label"
+                              :placeholder="field.placeholder"
+                              variant="outlined"
+                              density="comfortable"
+                              :rules="getFieldRules(field)"
+                              prepend-inner-icon="mdi-form-dropdown"
+                            />
 
-                        <!-- Checkbox -->
-                        <v-checkbox
-                          v-else-if="field.type === 'checkbox'"
-                          v-model="formData[field.id]"
-                          :label="field.label"
-                          density="comfortable"
-                          :rules="getFieldRules(field)"
+                            <!-- Checkbox -->
+                            <v-checkbox
+                              v-else-if="field.type === 'checkbox'"
+                              v-model="formData[field.id]"
+                              :label="field.label"
+                              density="comfortable"
+                              :rules="getFieldRules(field)"
+                              color="primary"
+                            />
+                          </v-col>
+                          
+                          <!-- Standard Visit Details (Always present) -->
+                          <v-col cols="12">
+                            <v-divider class="my-4" />
+                            <div class="text-subtitle-1 font-weight-bold mb-4">Visit Details</div>
+                          </v-col>
+
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="visitDetails.date"
+                              label="Visit Date"
+                              type="date"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-calendar"
+                              :min="today"
+                              required
+                            />
+                          </v-col>
+
+                          <v-col cols="12" md="3">
+                            <v-text-field
+                              v-model="visitDetails.startTime"
+                              label="Start Time"
+                              type="time"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-clock-start"
+                              required
+                            />
+                          </v-col>
+
+                          <v-col cols="12" md="3">
+                            <v-text-field
+                              v-model="visitDetails.endTime"
+                              label="End Time"
+                              type="time"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-clock-end"
+                              required
+                            />
+                          </v-col>
+                        </v-row>
+
+                        <div class="d-flex justify-end mt-6 pt-4 border-t">
+                          <v-btn
+                            variant="text"
+                            class="mr-2"
+                            @click="resetForm"
+                            :disabled="submitting"
+                          >
+                            Reset
+                          </v-btn>
+                          <v-btn
+                            type="submit"
+                            color="primary"
+                            size="large"
+                            :loading="submitting"
+                            prepend-icon="mdi-send"
+                            :disabled="!currentForm"
+                          >
+                            Submit Request
+                          </v-btn>
+                        </div>
+                      </v-form>
+                    </v-card-text>
+                  </v-card>
+                </v-window-item>
+
+                <!-- Invitation Mode -->
+                <v-window-item value="invite">
+                  <v-card class="mx-auto" max-width="600">
+                    <v-card-text class="pa-6 text-center">
+                      <v-icon icon="mdi-email-fast-outline" size="64" color="primary" class="mb-4" />
+                      <h3 class="text-h5 font-weight-bold mb-2">Invite Visitor</h3>
+                      <p class="text-body-1 text-grey-darken-1 mb-6">
+                        Share the registration link with your visitor.
+                      </p>
+
+                      <div class="bg-grey-lighten-4 pa-4 rounded mb-6">
+                        <div class="text-caption text-grey-darken-1 mb-1 text-left">Registration Link</div>
+                        <div class="d-flex align-center">
+                          <div class="text-body-1 font-weight-medium text-primary text-truncate flex-grow-1 mr-2 text-left">
+                            {{ getTemplateLink(selectedTemplate) }}
+                          </div>
+                          <v-btn
+                            icon="mdi-content-copy"
+                            variant="text"
+                            color="grey-darken-2"
+                            @click="copyLink(getTemplateLink(selectedTemplate))"
+                          >
+                            <v-tooltip activator="parent" location="top">Copy Link</v-tooltip>
+                          </v-btn>
+                        </div>
+                      </div>
+
+                      <div class="d-flex flex-column gap-3">
+                        <v-btn
+                          block
+                          size="large"
+                          color="success"
+                          prepend-icon="mdi-whatsapp"
+                          @click="shareLink('whatsapp')"
+                        >
+                          Share via WhatsApp
+                        </v-btn>
+                        <v-btn
+                          block
+                          size="large"
                           color="primary"
-                        />
-                      </v-col>
-                      
-                      <!-- Standard Visit Details (Always present) -->
-                      <v-col cols="12">
-                        <v-divider class="my-4" />
-                        <div class="text-subtitle-1 font-weight-bold mb-4">Visit Details</div>
-                      </v-col>
-
-                      <v-col cols="12" md="6">
-                        <v-text-field
-                          v-model="visitDetails.date"
-                          label="Visit Date"
-                          type="date"
-                          variant="outlined"
-                          density="comfortable"
-                          prepend-inner-icon="mdi-calendar"
-                          :min="today"
-                          required
-                        />
-                      </v-col>
-
-                      <v-col cols="12" md="3">
-                        <v-text-field
-                          v-model="visitDetails.startTime"
-                          label="Start Time"
-                          type="time"
-                          variant="outlined"
-                          density="comfortable"
-                          prepend-inner-icon="mdi-clock-start"
-                          required
-                        />
-                      </v-col>
-
-                      <v-col cols="12" md="3">
-                        <v-text-field
-                          v-model="visitDetails.endTime"
-                          label="End Time"
-                          type="time"
-                          variant="outlined"
-                          density="comfortable"
-                          prepend-inner-icon="mdi-clock-end"
-                          required
-                        />
-                      </v-col>
-                    </v-row>
-
-                    <div class="d-flex justify-end mt-6 pt-4 border-t">
-                      <v-btn
-                        variant="text"
-                        class="mr-2"
-                        @click="resetForm"
-                        :disabled="submitting"
-                      >
-                        Reset
-                      </v-btn>
-                      <v-btn
-                        type="submit"
-                        color="primary"
-                        size="large"
-                        :loading="submitting"
-                        prepend-icon="mdi-send"
-                        :disabled="!currentForm"
-                      >
-                        Submit Request
-                      </v-btn>
-                    </div>
-                  </v-form>
-                </v-card-text>
-              </v-card>
+                          prepend-icon="mdi-email"
+                          @click="shareLink('email')"
+                        >
+                          Share via Email
+                        </v-btn>
+                        <v-btn
+                          block
+                          size="large"
+                          color="info"
+                          prepend-icon="mdi-message-text"
+                          @click="shareLink('sms')"
+                        >
+                          Share via SMS
+                        </v-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-window-item>
+              </v-window>
             </div>
           </div>
         </v-col>
@@ -232,7 +312,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { visitorService } from '@/services/visitorService';
 
 const templates = ref([]);
@@ -240,6 +320,7 @@ const selectedTemplate = ref(null);
 const currentForm = ref(null);
 const formData = ref({});
 const formRef = ref(null);
+const requestMode = ref('register'); // 'register' or 'invite'
 
 const loadingTemplates = ref(false);
 const loadingForm = ref(false);
@@ -258,8 +339,12 @@ const visitDetails = ref({
   endTime: '17:00',
 });
 
+// Mock public links map for demo
+const publicLinksMap = ref({});
+
 onMounted(async () => {
   await loadTemplates();
+  await loadPublicLinks();
 });
 
 const loadTemplates = async () => {
@@ -276,9 +361,27 @@ const loadTemplates = async () => {
   }
 };
 
+const loadPublicLinks = async () => {
+  try {
+    const settings = await visitorService.getVisitorSettings();
+    if (settings && settings.public_links) {
+      settings.public_links.forEach(link => {
+        publicLinksMap.value[link.code] = link.url;
+      });
+    }
+  } catch (error) {
+    console.error('Error loading public links:', error);
+  }
+};
+
 const selectTemplate = async (template) => {
   selectedTemplate.value = template;
   formData.value = {}; // Reset form data
+  requestMode.value = 'register'; // Default to register
+  
+  // If template has link enabled, we might want to default to invite? 
+  // For now keep register as default unless user switches.
+  
   loadingForm.value = true;
   
   try {
@@ -324,11 +427,6 @@ const submitRequest = async () => {
 
   submitting.value = true;
   try {
-    // Map dynamic form data to standard visitor object structure
-    // In a real app, we might store the raw dynamic data in a 'customData' field
-    // For this demo, we'll try to map common fields if possible
-    
-    // Find fields by label or type to map to standard fields
     const nameField = currentForm.value.fields.find(f => f.label.toLowerCase().includes('name'));
     const emailField = currentForm.value.fields.find(f => f.type === 'email');
     const phoneField = currentForm.value.fields.find(f => f.type === 'phone');
@@ -337,14 +435,14 @@ const submitRequest = async () => {
       personName: nameField ? formData.value[nameField.id] : 'Unknown Visitor',
       email: emailField ? formData.value[emailField.id] : '',
       mobileNumber: phoneField ? formData.value[phoneField.id] : '',
-      purpose: selectedTemplate.value.name, // Use template name as purpose
+      purpose: selectedTemplate.value.name,
       visitDate: visitDetails.value.date,
       startTime: visitDetails.value.startTime,
       endTime: visitDetails.value.endTime,
-      hostName: 'Current User', // Should be logged in user
-      registrationType: 'manual', // Or 'employee-request'
+      hostName: 'Current User', 
+      registrationType: 'manual', 
       accessLevel: selectedTemplate.value.accessLevel,
-      customData: { ...formData.value }, // Store all data
+      customData: { ...formData.value },
       templateId: selectedTemplate.value.id,
     };
 
@@ -352,7 +450,7 @@ const submitRequest = async () => {
     
     showNotification('Visitor request submitted successfully!', 'success');
     resetForm();
-    selectedTemplate.value = null; // Go back to selection
+    selectedTemplate.value = null; 
   } catch (error) {
     console.error('Error submitting request:', error);
     showNotification('Error submitting request', 'error');
@@ -364,6 +462,32 @@ const submitRequest = async () => {
 const resetForm = () => {
   formData.value = {};
   formRef.value?.resetValidation();
+};
+
+const getTemplateLink = (template) => {
+  if (!template || !template.publicLinkCode) return 'Link not configured';
+  return publicLinksMap.value[template.publicLinkCode] || 'https://visitor.demo.com/link-not-found';
+};
+
+const copyLink = (url) => {
+  navigator.clipboard.writeText(url);
+  showNotification('Link copied to clipboard', 'success');
+};
+
+const shareLink = (method) => {
+  const url = getTemplateLink(selectedTemplate.value);
+  const message = `Please register for your visit using this link: ${url}`;
+  
+  if (method === 'whatsapp') {
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    showNotification('Opened WhatsApp', 'success');
+  } else if (method === 'email') {
+    window.open(`mailto:?subject=Visitor Registration&body=${encodeURIComponent(message)}`, '_blank');
+    showNotification('Opened Email Client', 'success');
+  } else if (method === 'sms') {
+    window.open(`sms:?body=${encodeURIComponent(message)}`, '_blank');
+    showNotification('Opened SMS App', 'success');
+  }
 };
 
 const showNotification = (message, type = 'success') => {
@@ -391,6 +515,10 @@ const showNotification = (message, type = 'success') => {
 
 .gap-2 {
   gap: 8px;
+}
+
+.gap-3 {
+  gap: 12px;
 }
 
 .line-clamp-2 {

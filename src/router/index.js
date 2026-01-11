@@ -163,6 +163,18 @@ import timerzone from "@/pages/accesslevel/timerzone.vue";
 import antipassbackMode from "@/pages/globalConfigurator/antipassbackMode.vue";
 import interlockMode from "@/pages/globalConfigurator/interlockMode.vue";
 
+// HQ & Place Components
+import HQLayout from "@/layouts/HQLayout.vue";
+import HQDashboard from "@/pages/hq/HQDashboard.vue";
+import PlaceList from "@/pages/hq/PlaceList.vue";
+import PeopleList from "@/pages/hq/PeopleList.vue";
+import GlobalAccessLevels from "@/pages/hq/GlobalAccessLevels.vue";
+import PlaceLayout from "@/layouts/PlaceLayout.vue";
+import PlaceOverview from "@/pages/place/PlaceOverview.vue";
+import EntryQueue from "@/pages/place/EntryQueue.vue";
+import FlowManager from "@/pages/place/FlowManager.vue";
+// Place components will be imported as needed or lazy loaded
+
 const routes = [
   {
     path: "/",
@@ -797,6 +809,126 @@ const routes = [
         ],
       },
       // configurator
+      {
+        path: "/hq",
+        component: HQLayout,
+        meta: { requiresAuth: true }, // Assuming we want auth
+        children: [
+          {
+            path: "",
+            redirect: "dashboard"
+          },
+          {
+            path: "dashboard",
+            name: "HQDashboard",
+            component: HQDashboard
+          },
+          {
+            path: "places",
+            name: "PlaceList",
+            component: PlaceList
+          },
+          // Add other HQ routes here as placeholders
+          {
+            path: "people",
+            name: "PeopleList",
+            component: PeopleList
+          },
+          {
+            path: "access-levels",
+            name: "GlobalAccessLevels",
+            component: GlobalAccessLevels
+          },
+          {
+            path: "visitors",
+            component: () => import("@/pages/hq/visitors/HQVisitorLayout.vue"),
+            children: [
+              {
+                path: "",
+                redirect: "settings"
+              },
+              {
+                path: "settings",
+                name: "HQVisitorSettings",
+                component: () => import("@/pages/hq/visitors/HQVisitorSettings.vue")
+              },
+              {
+                path: "templates",
+                name: "HQVisitorTemplates",
+                component: () => import("@/pages/hq/visitors/HQVisitorTemplates.vue")
+              }
+            ]
+          },
+          {
+            path: "settings",
+            name: "HQSettings",
+            component: { template: '<div>HQ Settings (Coming Soon)</div>' }
+          }
+        ]
+      },
+      // Place Workspace
+      {
+        path: "/place/:placeId",
+        component: PlaceLayout,
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: "",
+            redirect: "overview"
+          },
+          {
+            path: "overview",
+            name: "PlaceOverview",
+            component: PlaceOverview
+          },
+          {
+            path: "entries",
+            name: "EntryQueue",
+            component: EntryQueue
+          },
+          {
+            path: "flows",
+            name: "FlowManager",
+            component: FlowManager
+          },
+          // Placeholders
+          {
+            path: "parking",
+            name: "ParkingManager",
+            component: { template: '<div>Parking Management (Coming Soon)</div>' }
+          },
+          {
+            path: "devices",
+            name: "DeviceManager",
+            component: { template: '<div>Device Management (Coming Soon)</div>' }
+          },
+          {
+            path: "visitors",
+            component: () => import("@/pages/place/visitors/PlaceVisitorLayout.vue"),
+            children: [
+              {
+                path: "",
+                redirect: "dashboard"
+              },
+              {
+                path: "dashboard",
+                name: "PlaceVisitorDashboard",
+                component: () => import("@/pages/place/visitors/PlaceVisitorDashboard.vue")
+              },
+              {
+                path: "operations",
+                name: "PlaceVisitorOperations",
+                component: () => import("@/pages/place/visitors/PlaceVisitorOperations.vue")
+              },
+              {
+                path: "settings",
+                name: "PlaceVisitorSettings",
+                component: () => import("@/pages/place/visitors/PlaceVisitorSettings.vue")
+              }
+            ]
+          }
+        ]
+      },
       {
         path: "/configuration",
         name: "configuration",

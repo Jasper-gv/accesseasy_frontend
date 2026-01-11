@@ -9,19 +9,17 @@
       </div>
 
       <!-- Success State -->
-      <div v-else-if="submitted" class="success-state pa-8 text-center">
-        <v-icon icon="mdi-check-circle" color="success" size="80" class="mb-4" />
-        <h2 class="text-h5 font-weight-bold mb-2">Registration Successful!</h2>
-        <div class="text-body-1 text-grey-darken-1 mb-6">
-          {{ approvalRequired ? 'Your request has been sent for approval.' : 'You have been checked in.' }}
-        </div>
+      <div v-else-if="submitted" class="success-state pa-4 text-center">
+        <VisitorBadgeCard 
+          :visitor="visitorData"
+          :template-name="templateName"
+          :status="visitorStatus"
+          :qr-code="qrCode"
+          :badge-fields="badgeFields"
+          :selected-badge-fields="selectedBadgeFields"
+        />
 
-        <div v-if="qrCode" class="qr-container mb-6 pa-4 bg-white rounded border d-inline-block">
-          <img :src="qrCode" alt="Visitor QR Code" style="width: 200px; height: 200px;" />
-          <div class="text-caption font-weight-bold mt-2">{{ visitorName }}</div>
-        </div>
-
-        <v-btn block variant="outlined" color="primary" @click="resetForm">
+        <v-btn block variant="outlined" color="primary" class="mt-6" @click="resetForm">
           Register Another Visitor
         </v-btn>
       </div>
@@ -29,12 +27,22 @@
       <!-- Form State -->
       <div v-else>
         <!-- Header -->
-        <div class="bg-primary pa-4 d-flex align-center">
-          <v-btn icon variant="text" color="white" @click="goBack" class="mr-2">
-            <v-icon>mdi-arrow-left</v-icon>
-          </v-btn>
-          <div>
-            <div class="text-subtitle-1 font-weight-bold text-white">{{ templateName }}</div>
+        <div class="bg-primary pa-4">
+          <div class="d-flex align-center mb-4">
+            <v-btn icon variant="text" color="white" @click="goBack" class="mr-2">
+              <v-icon>mdi-arrow-left</v-icon>
+            </v-btn>
+            <div class="d-flex align-center">
+               <!-- Tenant Branding Mock -->
+               <v-avatar color="white" size="32" class="mr-3">
+                 <v-icon icon="mdi-domain" color="primary" size="20" />
+               </v-avatar>
+               <div class="text-white font-weight-bold">Acme Corp</div>
+            </div>
+          </div>
+          
+          <div class="pl-12">
+            <div class="text-h5 font-weight-bold text-white">{{ templateName }}</div>
             <div class="text-caption text-white opacity-80">Please fill in your details</div>
           </div>
         </div>
@@ -103,6 +111,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { visitorService } from '@/services/visitorService';
+import VisitorBadgeCard from '@/components/visitor/VisitorBadgeCard.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -119,6 +128,10 @@ const formFields = ref([]);
 const formData = ref({});
 const qrCode = ref(null);
 const visitorName = ref('');
+const visitorStatus = ref('pending');
+const visitorData = ref({});
+const badgeFields = ref([]);
+const selectedBadgeFields = ref([]);
 
 // Mock form definition (in real app, fetch from backend based on template.formId)
 const mockFormDefinition = [
@@ -130,25 +143,70 @@ const mockFormDefinition = [
 ];
 
 onMounted(async () => {
-  // In a real app, we'd get templateId from route params
-  // templateId.value = route.params.templateId;
+  const { templateId, code } = route.query;
   
-  // For demo, let's assume a default template if none provided
-  await loadTemplateData(1);
+  if (templateId) {
+    await loadTemplateData(templateId);
+  } else if (code) {
+    await loadTemplateData(code);
+  } else {
+    await loadTemplateData(1);
+  }
 });
 
-const loadTemplateData = async (id) => {
+const loadTemplateData = async (idOrCode) => {
   loading.value = true;
   try {
-    const template = await visitorService.getVisitorTemplateById(id);
+    // For now, treating as template ID or mock resolution
+    const template = await visitorService.getVisitorTemplateById(Number(idOrCode) || 1);
+    
     if (template) {
       templateName.value = template.name;
-      approvalRequired.value = template.approvalEnabled;
+      approvalRequired.value = template.approvalRequired;
+      badgeFields.value = template.badgeFields || [];
+      selectedBadgeFields.value = template.selectedBadgeFields || [];
       
-      // Load form fields (mocked)
-      formFields.value = mockFormDefinition;
+      // Map default fields
+      const fields = [];
+      if (template.formId) {
+        // In a real app, we'd fetch the form definition. 
+        // Here we'll use a hardcoded map based on defaultFormFields from editor
+        const defaultFields = ['Full Name', 'Email Address', 'Phone Number', 'Purpose of Visit'];
+        
+        defaultFields.forEach(label => {
+          const key = label.toLowerCase().replace(/\s+/g, '');
+          let type = 'text';
+          if (key.includes('email')) type = 'email';
+          if (key.includes('phone')) type = 'phone';
+          if (key.includes('purpose')) type = 'select';
+          
+          fields.push({
+            key,
+            label,
+            type,
+            required: true,
+            options: type === 'select' ? ['Meeting', 'Interview', 'Delivery', 'Other'] : []
+          });
+        });
+      }
+
+      // Map custom fields
+      if (template.customFormFields) {
+        template.customFormFields.forEach(field => {
+          fields.push({
+            key: field.label.toLowerCase().replace(/\s+/g, ''),
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            isCustom: true
+          });
+        });
+      }
+      
+      formFields.value = fields;
       
       // Initialize form data
+      formData.value = {};
       formFields.value.forEach(field => {
         formData.value[field.key] = '';
       });
@@ -166,19 +224,39 @@ const submitForm = async () => {
 
   submitting.value = true;
   try {
-    const visitorData = {
+    const visitorDataPayload = {
       ...formData.value,
+      personName: formData.value.fullname, // Map fullname to personName
+      mobileNumber: formData.value.phonenumber, // Map phonenumber
       visitDate: new Date().toISOString().split('T')[0],
       startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       endTime: '18:00', // Default end time
       accessLevel: 1, // Default access level
+      status: approvalRequired.value ? 'pending' : 'approved'
     };
-
-    const response = await visitorService.registerVisitor(visitorData);
+    const response = await visitorService.registerVisitor(visitorDataPayload);
     
-    visitorName.value = visitorData.personName;
-    if (response.data.qrCode) {
-      qrCode.value = response.data.qrCode;
+    visitorName.value = visitorDataPayload.personName;
+    visitorData.value = { ...visitorDataPayload, customFields: {} }; // Store for badge
+    
+    // Populate custom fields in visitorData for badge display
+    formFields.value.filter(f => f.isCustom).forEach(f => {
+       if (!visitorData.value.customFields) visitorData.value.customFields = {};
+       visitorData.value.customFields[f.label] = formData.value[f.key];
+    });
+
+    if (approvalRequired.value) {
+      visitorStatus.value = 'pending';
+    } else {
+      visitorStatus.value = 'approved';
+      // Generate QR if approved
+      if (response.data.qrCode) {
+        qrCode.value = response.data.qrCode;
+      } else {
+         // Generate local QR if not returned
+         const qrUrl = await visitorService.generateQR(response.data);
+         qrCode.value = qrUrl;
+      }
     }
     
     submitted.value = true;

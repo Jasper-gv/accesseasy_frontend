@@ -1,5 +1,4 @@
-// Visitor Service with API Integration for Configurator
-import { authService } from './authService';
+// Visitor Service with Mock Data for Configurator
 import QRCode from 'qrcode';
 
 // Helper function to generate unique token
@@ -9,499 +8,633 @@ const generateToken = () => {
   return `PSL-${timestamp}-${random}`;
 };
 
+// Helper to generate 8-char unique code (1-9, A-Z)
+const generateUniqueCode = () => {
+  const chars = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// Mock Data Storage
+let mockSettings = {
+  id: 1,
+  enable_qr: false,
+  qr_codes: [], 
+  enable_link: false,
+  public_links: [
+    { 
+      id: 1, 
+      name: 'Tenant Alpha', 
+      code: 'ALPHA01', 
+      url: 'https://visitor.demo.com/tenant-alpha', 
+      status: 'active',
+      qrCode: 'mock-qr-data-alpha'
+    },
+    { 
+      id: 2, 
+      name: 'Tenant Beta', 
+      code: 'BETA02', 
+      url: 'https://visitor.demo.com/tenant-beta', 
+      status: 'active',
+      qrCode: 'mock-qr-data-beta'
+    }
+  ], 
+  enable_approval: false,
+  approvers: [], 
+  tenant: 'mock-tenant-id'
+};
+
+// Mock Data Definitions
+const mockApprovers = [
+  { id: 1, assignedUser: { id: 101, first_name: 'John Security' } },
+  { id: 2, assignedUser: { id: 102, first_name: 'Jane Admin' } },
+];
+
+const mockSites = [
+  { id: 1, name: 'Main HQ' },
+  { id: 2, name: 'Branch Office A' },
+];
+
+let mockTemplates = [
+  {
+    id: 1,
+    name: 'Standard Visitor',
+    description: 'Regular visitors for meetings',
+    status: 'active',
+    processType: 'Standard', // Standard, Event, Facility, Gate
+    validityStart: null,
+    validityEnd: null,
+    timeRestrictions: null, // { startTime: '06:00', endTime: '10:00', days: ['Mon', 'Wed'] }
+    gates: [],
+    logo: null,
+    form_id: 1,
+    badge_layout_id: 1,
+    access_level_id: 1,
+    qr_enabled: true,
+    qr_code_id: null,
+    link_enabled: true,
+    public_link: 'http://localhost:3000/visitor/register/token1',
+    approval_required: false,
+    approver_id: null,
+    is_default: true,
+    branchScope: 'all',
+    selectedBranches: [],
+    customFormFields: [],
+    badgeFields: [],
+    publicLinkCode: 'token1',
+  },
+  {
+    id: 2,
+    name: 'Contractor',
+    description: 'Long-term contractors',
+    status: 'active',
+    processType: 'Standard',
+    validityStart: null,
+    validityEnd: null,
+    timeRestrictions: null,
+    gates: [],
+    logo: null,
+    form_id: 2,
+    badge_layout_id: 2,
+    access_level_id: 2,
+    qr_enabled: true,
+    qr_code_id: null,
+    link_enabled: false,
+    public_link: null,
+    approval_required: true,
+    approver_id: 1,
+    is_default: false,
+    branchScope: 'specific',
+    selectedBranches: [8818],
+    customFormFields: [{ label: 'Company Name', type: 'text', required: true }],
+    badgeFields: [{ label: 'Company', type: 'text' }],
+  },
+  {
+    id: 3,
+    name: 'Tech Conf 2025',
+    description: 'Annual Tech Conference',
+    status: 'active',
+    processType: 'Event',
+    validityStart: '2025-06-01',
+    validityEnd: '2025-06-03',
+    timeRestrictions: null,
+    gates: [],
+    logo: null,
+    form_id: 1,
+    badge_layout_id: 1,
+    access_level_id: 1,
+    qr_enabled: true,
+    qr_code_id: null,
+    link_enabled: true,
+    public_link: 'http://localhost:3000/visitor/register/token3',
+    approval_required: false,
+    approver_id: null,
+    is_default: false,
+    branchScope: 'specific',
+    selectedBranches: [8819],
+    customFormFields: [],
+    badgeFields: [],
+    publicLinkCode: 'token3',
+  },
+  {
+    id: 4,
+    name: 'Morning Gym Access',
+    description: 'Gym access for members',
+    status: 'active',
+    processType: 'Facility',
+    validityStart: null,
+    validityEnd: null,
+    timeRestrictions: { startTime: '06:00', endTime: '10:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] },
+    gates: [],
+    logo: null,
+    form_id: 1,
+    badge_layout_id: 1,
+    access_level_id: 3,
+    qr_enabled: true,
+    qr_code_id: null,
+    link_enabled: false,
+    public_link: null,
+    approval_required: false,
+    approver_id: null,
+    is_default: false,
+    branchScope: 'all',
+    selectedBranches: [],
+    customFormFields: [{ label: 'Membership ID', type: 'text', required: true }],
+    badgeFields: [],
+    publicLinkCode: null,
+  }
+];
+
+let mockForms = [
+  { id: 1, name: 'Standard Form', default_fields: ['Full Name', 'Email', 'Phone'], custom_fields: [] },
+  { id: 2, name: 'Contractor Form', default_fields: ['Full Name', 'Email', 'Phone'], custom_fields: [] },
+];
+
+let mockBadges = [
+  { id: 1, name: 'Standard Badge', fields: ['Name', 'Date'] },
+  { id: 2, name: 'Contractor Badge', fields: ['Name', 'Company', 'Date'] },
+];
+
+const mockAccessLevels = [
+  { id: 1, accessLevelName: 'General Access' },
+  { id: 2, accessLevelName: 'Restricted Access' },
+  { id: 3, accessLevelName: 'VIP Access' },
+];
+
+const mockQRPages = [
+  { id: 1, name: 'Main Entrance QR' },
+  { id: 2, name: 'Rear Entrance QR' },
+];
+
+let mockVisitors = [
+  {
+    id: 1,
+    personName: 'Alice Smith',
+    mobileNumber: '555-0101',
+    email: 'alice@example.com',
+    visitDate: '2023-10-27',
+    startTime: '09:00',
+    endTime: '17:00',
+    accessLevel: 'General Access',
+    status: 'approved',
+    approvedBy: 'John Security',
+    approvedAt: '2023-10-26T10:00:00Z',
+  },
+  {
+    id: 2,
+    personName: 'Bob Jones',
+    mobileNumber: '555-0102',
+    email: 'bob@example.com',
+    visitDate: '2023-10-28',
+    startTime: '10:00',
+    endTime: '12:00',
+    accessLevel: 'Restricted Access',
+    status: 'pending',
+  },
+];
+
+let mockEntryLogs = [
+  { id: 1, visitorId: 1, visitorName: 'Alice Smith', entryTime: '2023-10-27T09:05:00Z', exitTime: null, gate: 'Main Entrance' },
+];
+
 // Service Methods
 export const visitorService = {
   // Settings
   async getVisitorSettings() {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const response = await authService.protectedApi.get('/items/visitor_settings', {
-        params: {
-          'filter[tenant][tenantId][_eq]': tenantId,
-        },
-      });
-
-      if (response.data.data && response.data.data.length > 0) {
-        return response.data.data[0];
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching visitor settings:', error);
-      throw error;
-    }
+    console.log('Mock: getVisitorSettings');
+    return Promise.resolve(mockSettings);
   },
 
   async updateVisitorSettings(settings) {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
+    console.log('Mock: updateVisitorSettings', settings);
+    
+    const newSettings = { ...mockSettings, ...settings };
 
-      // Check if settings exist for this tenant
-      const existingSettings = await this.getVisitorSettings();
+    // Ensure arrays
+    if (!newSettings.public_links) newSettings.public_links = [];
+    if (!newSettings.qr_codes) newSettings.qr_codes = [];
 
-      // Prepare the payload properly for Directus
-      const payload = {
-        enable_qr: settings.enable_qr,
-        enable_link: settings.enable_link,
-        enable_approval: settings.enable_approval,
-        // If approver exists, format it as a relationship
-        approver: settings.approver ? settings.approver : null,
-        tenant: tenantId, // Just send the tenant ID, Directus will handle the relation
-      };
-
-      if (existingSettings) {
-        // Update existing - remove tenant from update payload if it's already set
-        delete payload.tenant;
-        const response = await authService.protectedApi.patch(
-          `/items/visitor_settings/${existingSettings.id}`, 
-          payload
-        );
-        return { success: true, data: response.data.data };
-      } else {
-        // Create new - include tenant
-        const response = await authService.protectedApi.post(
-          '/items/visitor_settings', 
-          payload
-        );
-        return { success: true, data: response.data.data };
-      }
-    } catch (error) {
-      console.error('Error updating visitor settings:', error);
-      throw error;
-    }
+    mockSettings = newSettings;
+    return Promise.resolve({ success: true, data: mockSettings });
   },
 
   async getApprovers() {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const response = await authService.protectedApi.get('/items/personalModule', {
-        params: {
-          'filter[assignedUser][tenant][_eq]': tenantId,
-          'fields': 'id,assignedUser.id,assignedUser.first_name,assignedUser.tenant.tenantId,assignedUser.tenant.tenantName',
-        },
-      });
-
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching approvers:', error);
-      throw error;
-    }
+    console.log('Mock: getApprovers');
+    return Promise.resolve(mockApprovers);
   },
 
   // Sites
   async getSites() {
-    // Assuming sites are fetched from a collection or mocked if not available yet
-    // For now, returning empty or mocked if no collection specified in prompt
-    // Prompt didn't specify sites collection, but previous code had it mocked. 
-    // I will keep a simple mock or empty for now to avoid breaking if used elsewhere, 
-    // but ideally this should be an API call too.
-    return [
-      { id: 1, name: 'Headquarters', address: '123 Main St, New York, NY' },
-      { id: 2, name: 'Research Center', address: '456 Tech Blvd, San Francisco, CA' },
-    ];
+    console.log('Mock: getSites');
+    return Promise.resolve(mockSites);
+  },
+
+  async getBranches() {
+    console.log('Mock: getBranches');
+    return Promise.resolve([
+      { title: 'branch srivai', value: 8818 },
+      { title: 'branch chennai', value: 8819 },
+      { title: 'branch madurai', value: 8820 },
+    ]);
   },
 
   // Visitor Templates
   async getVisitorTemplates() {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const response = await authService.protectedApi.get('/items/visitor_templates', {
-        params: {
-          'filter[tenant][tenantId][_eq]': tenantId,
-        },
-      });
-      
-      const templates = response.data.data || [];
-      // Map snake_case to camelCase for frontend
-      return templates.map(t => ({
-        ...t,
-        formId: t.form_id,
-        badgeLayoutId: t.badge_layout_id,
-        accessLevelId: t.access_level_id,
-        qrEnabled: t.qr_enabled,
-        qrPageId: t.qr_page_id,
-        linkEnabled: t.link_enabled,
-        publicLink: t.public_link,
-        approvalRequired: t.approval_required,
-        approverId: t.approver_id,
-        isDefault: t.is_default,
-      }));
-    } catch (error) {
-      console.error('Error fetching visitor templates:', error);
-      throw error;
-    }
+    console.log('Mock: getVisitorTemplates');
+    return Promise.resolve(mockTemplates.map(t => ({
+      ...t,
+      formId: t.form_id,
+      badgeLayoutId: t.badge_layout_id,
+      accessLevelId: t.access_level_id,
+      qrEnabled: t.qr_enabled,
+      qrCodeId: t.qr_code_id,
+      linkEnabled: t.link_enabled,
+      publicLink: t.public_link,
+      approvalRequired: t.approval_required,
+      approverId: t.approver_id,
+      isDefault: t.is_default,
+      branchScope: t.branchScope || 'all',
+      selectedBranches: t.selectedBranches || [],
+      customFormFields: t.customFormFields || [],
+      badgeFields: t.badgeFields || [],
+      publicLinkCode: t.publicLinkCode,
+      // New fields
+      processType: t.processType || 'Standard',
+      validityStart: t.validityStart,
+      validityEnd: t.validityEnd,
+      gates: t.gates || [],
+    })));
   },
 
   async getVisitorTemplateById(id) {
-    try {
-      const response = await authService.protectedApi.get(`/items/visitor_templates/${id}`);
-      const t = response.data.data;
-      if (!t) return null;
-      
-      // Map snake_case to camelCase for frontend
-      return {
-        ...t,
-        formId: t.form_id,
-        badgeLayoutId: t.badge_layout_id,
-        accessLevelId: t.access_level_id,
-        qrEnabled: t.qr_enabled,
-        qrPageId: t.qr_page_id,
-        linkEnabled: t.link_enabled,
-        publicLink: t.public_link,
-        approvalRequired: t.approval_required,
-        approverId: t.approver_id,
-        isDefault: t.is_default,
-      };
-    } catch (error) {
-      console.error(`Error fetching visitor template ${id}:`, error);
-      throw error;
+    console.log('Mock: getVisitorTemplateById', id);
+    const t = mockTemplates.find(t => t.id == id);
+    if (!t) return Promise.resolve(null);
+    
+    return Promise.resolve({
+      ...t,
+      formId: t.form_id,
+      badgeLayoutId: t.badge_layout_id,
+      accessLevelId: t.access_level_id,
+      qrEnabled: t.qr_enabled,
+      qrCodeId: t.qr_code_id,
+      linkEnabled: t.link_enabled,
+      publicLink: t.public_link,
+      approvalRequired: t.approval_required,
+      approverId: t.approver_id,
+      isDefault: t.is_default,
+      branchScope: t.branchScope || 'all',
+      selectedBranches: t.selectedBranches || [],
+      customFormFields: t.customFormFields || [],
+      badgeFields: t.badgeFields || [],
+      publicLinkCode: t.publicLinkCode,
+      processType: t.processType || 'Standard',
+      validityStart: t.validityStart,
+      validityEnd: t.validityEnd,
+      gates: t.gates || [],
+    });
+  },
+
+  async getVisitorTemplateByQrId(qrId) {
+    console.log('Mock: getVisitorTemplateByQrId', qrId);
+    // Find the QR code object first to get its internal ID if needed, 
+    // but here we assume qrId passed is the one stored in template.qr_code_id
+    // OR we might be passing the 'code' string. 
+    // Let's assume we pass the 'code' string from the URL.
+    
+    // 1. Find the QR code object in settings to get its ID
+    const qrCodeObj = mockSettings.qr_codes.find(q => q.code === qrId);
+    
+    if (!qrCodeObj) {
+        console.warn('QR Code not found in settings:', qrId);
+        return Promise.resolve(null);
     }
+
+    // 2. Find the template linked to this QR ID
+    const t = mockTemplates.find(t => t.qr_code_id === qrCodeObj.id && t.status === 'active');
+    
+    if (!t) return Promise.resolve(null);
+
+    return Promise.resolve({
+      ...t,
+      formId: t.form_id,
+      badgeLayoutId: t.badge_layout_id,
+      accessLevelId: t.access_level_id,
+      qrEnabled: t.qr_enabled,
+      qrCodeId: t.qr_code_id,
+      linkEnabled: t.link_enabled,
+      publicLink: t.public_link,
+      approvalRequired: t.approval_required,
+      approverId: t.approver_id,
+      isDefault: t.is_default,
+      branchScope: t.branchScope || 'all',
+      selectedBranches: t.selectedBranches || [],
+      customFormFields: t.customFormFields || [],
+      badgeFields: t.badgeFields || [],
+      publicLinkCode: t.publicLinkCode,
+      processType: t.processType || 'Standard',
+      validityStart: t.validityStart,
+      validityEnd: t.validityEnd,
+      gates: t.gates || [],
+    });
   },
 
   async createVisitorTemplate(templateData) {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      // Map camelCase to snake_case for backend
-      const payload = {
-        name: templateData.name,
-        description: templateData.description,
-        status: templateData.status,
-        logo: templateData.logo,
-        form_id: templateData.formId,
-        badge_layout_id: templateData.badgeLayoutId,
-        access_level_id: templateData.accessLevelId,
-        qr_enabled: templateData.qrEnabled,
-        qr_page_id: templateData.qrPageId,
-        link_enabled: templateData.linkEnabled,
-        public_link: templateData.publicLink,
-        approval_required: templateData.approvalRequired,
-        approver_id: templateData.approverId,
-        is_default: templateData.isDefault,
-        tenant: tenantId,
-      };
-
-      const response = await authService.protectedApi.post('/items/visitor_templates', payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error creating visitor template:', error);
-      throw error;
-    }
+    console.log('Mock: createVisitorTemplate', templateData);
+    const newId = mockTemplates.length > 0 ? Math.max(...mockTemplates.map(t => t.id)) + 1 : 1;
+    const newTemplate = {
+      id: newId,
+      name: templateData.name,
+      description: templateData.description,
+      status: templateData.status,
+      logo: templateData.logo,
+      form_id: templateData.formId,
+      badge_layout_id: templateData.badgeLayoutId,
+      access_level_id: templateData.accessLevelId,
+      qr_enabled: templateData.qrEnabled,
+      qr_code_id: templateData.qrCodeId,
+      link_enabled: templateData.linkEnabled,
+      public_link: templateData.publicLink,
+      approval_required: templateData.approvalRequired,
+      approver_id: templateData.approverId,
+      is_default: templateData.isDefault,
+      tenant: 'mock-tenant-id',
+      branchScope: templateData.branchScope || 'all',
+      selectedBranches: templateData.selectedBranches || [],
+      customFormFields: templateData.customFormFields || [],
+      badgeFields: templateData.badgeFields || [],
+      publicLinkCode: templateData.publicLinkCode,
+      processType: templateData.processType || 'Standard',
+      validityStart: templateData.validityStart,
+      validityEnd: templateData.validityEnd,
+      gates: templateData.gates || [],
+    };
+    mockTemplates.push(newTemplate);
+    return Promise.resolve({ success: true, data: newTemplate });
   },
 
   async updateVisitorTemplate(id, templateData) {
-    try {
-      // Map camelCase to snake_case for backend
-      // We only include fields that are present in templateData
-      const payload = {};
-      
-      if (templateData.name !== undefined) payload.name = templateData.name;
-      if (templateData.description !== undefined) payload.description = templateData.description;
-      if (templateData.status !== undefined) payload.status = templateData.status;
-      if (templateData.logo !== undefined) payload.logo = templateData.logo;
-      if (templateData.formId !== undefined) payload.form_id = templateData.formId;
-      if (templateData.badgeLayoutId !== undefined) payload.badge_layout_id = templateData.badgeLayoutId;
-      if (templateData.accessLevelId !== undefined) payload.access_level_id = templateData.accessLevelId;
-      if (templateData.qrEnabled !== undefined) payload.qr_enabled = templateData.qrEnabled;
-      if (templateData.qrPageId !== undefined) payload.qr_page_id = templateData.qrPageId;
-      if (templateData.linkEnabled !== undefined) payload.link_enabled = templateData.linkEnabled;
-      if (templateData.publicLink !== undefined) payload.public_link = templateData.publicLink;
-      if (templateData.approvalRequired !== undefined) payload.approval_required = templateData.approvalRequired;
-      if (templateData.approverId !== undefined) payload.approver_id = templateData.approverId;
-      if (templateData.isDefault !== undefined) payload.is_default = templateData.isDefault;
+    console.log('Mock: updateVisitorTemplate', id, templateData);
+    const index = mockTemplates.findIndex(t => t.id == id);
+    if (index === -1) throw new Error('Template not found');
 
-      const response = await authService.protectedApi.patch(`/items/visitor_templates/${id}`, payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error(`Error updating visitor template ${id}:`, error);
-      throw error;
-    }
+    const current = mockTemplates[index];
+    const updated = { ...current };
+
+    if (templateData.name !== undefined) updated.name = templateData.name;
+    if (templateData.description !== undefined) updated.description = templateData.description;
+    if (templateData.status !== undefined) updated.status = templateData.status;
+    if (templateData.logo !== undefined) updated.logo = templateData.logo;
+    if (templateData.formId !== undefined) updated.form_id = templateData.formId;
+    if (templateData.badgeLayoutId !== undefined) updated.badge_layout_id = templateData.badgeLayoutId;
+    if (templateData.accessLevelId !== undefined) updated.access_level_id = templateData.accessLevelId;
+    if (templateData.qrEnabled !== undefined) updated.qr_enabled = templateData.qrEnabled;
+    if (templateData.qrCodeId !== undefined) updated.qr_code_id = templateData.qrCodeId;
+    if (templateData.linkEnabled !== undefined) updated.link_enabled = templateData.linkEnabled;
+    if (templateData.publicLink !== undefined) updated.public_link = templateData.publicLink;
+    if (templateData.approvalRequired !== undefined) updated.approval_required = templateData.approvalRequired;
+    if (templateData.approverId !== undefined) updated.approver_id = templateData.approverId;
+    if (templateData.isDefault !== undefined) updated.is_default = templateData.isDefault;
+    if (templateData.branchScope !== undefined) updated.branchScope = templateData.branchScope;
+    if (templateData.selectedBranches !== undefined) updated.selectedBranches = templateData.selectedBranches;
+    if (templateData.customFormFields !== undefined) updated.customFormFields = templateData.customFormFields;
+    if (templateData.badgeFields !== undefined) updated.badgeFields = templateData.badgeFields;
+    if (templateData.publicLinkCode !== undefined) updated.publicLinkCode = templateData.publicLinkCode;
+    
+    // New fields
+    if (templateData.processType !== undefined) updated.processType = templateData.processType;
+    if (templateData.validityStart !== undefined) updated.validityStart = templateData.validityStart;
+    if (templateData.validityEnd !== undefined) updated.validityEnd = templateData.validityEnd;
+    if (templateData.gates !== undefined) updated.gates = templateData.gates;
+
+    mockTemplates[index] = updated;
+    return Promise.resolve({ success: true, data: updated });
   },
 
   async deleteVisitorTemplate(id) {
-    try {
-      await authService.protectedApi.delete(`/items/visitor_templates/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error(`Error deleting visitor template ${id}:`, error);
-      throw error;
-    }
+    console.log('Mock: deleteVisitorTemplate', id);
+    mockTemplates = mockTemplates.filter(t => t.id != id);
+    return Promise.resolve({ success: true });
   },
 
   // Generate Public Link for Template
   async generatePublicLink(templateId) {
-    try {
-      const token = generateToken();
-      const publicLink = `${window.location.origin}/visitor/register/${token}`;
-      
-      // Update the template with the new link
-      await this.updateVisitorTemplate(templateId, { public_link: publicLink });
-      
-      return { success: true, link: publicLink, token };
-    } catch (error) {
-      console.error('Error generating public link:', error);
-      throw error;
-    }
+    console.log('Mock: generatePublicLink', templateId);
+    const token = generateToken();
+    const publicLink = `${window.location.origin}/visitor/landing?templateId=${templateId}`;
+    
+    await this.updateVisitorTemplate(templateId, { publicLink: publicLink });
+    
+    return Promise.resolve({ success: true, link: publicLink, token });
   },
 
   // Visitor Forms
   async getVisitorForms() {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const response = await authService.protectedApi.get('/items/visitor_forms', {
-        params: {
-          'filter[tenant][tenantId][_eq]': tenantId,
-        },
-      });
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching visitor forms:', error);
-      throw error;
-    }
+    console.log('Mock: getVisitorForms');
+    return Promise.resolve(mockForms);
   },
 
   async getVisitorFormById(id) {
-    try {
-      const response = await authService.protectedApi.get(`/items/visitor_forms/${id}`);
-      return response.data.data;
-    } catch (error) {
-      console.error(`Error fetching visitor form ${id}:`, error);
-      throw error;
+    console.log('Mock: getVisitorFormById', id);
+    const form = mockForms.find(f => f.id == id);
+    if (!form) return Promise.resolve(null);
+
+    // Transform fields for VisitorRequest.vue
+    const fields = [];
+    
+    // Map default fields (strings) to objects
+    if (form.default_fields) {
+      form.default_fields.forEach((fieldName, index) => {
+        const fieldId = `default_${index}`;
+        let type = 'text';
+        if (fieldName.toLowerCase().includes('email')) type = 'email';
+        if (fieldName.toLowerCase().includes('phone') || fieldName.toLowerCase().includes('mobile')) type = 'phone';
+        
+        fields.push({
+          id: fieldId,
+          label: fieldName,
+          type: type,
+          placeholder: `Enter ${fieldName}`,
+          required: true, // Default fields usually required
+          isDefault: true
+        });
+      });
     }
+
+    // Map custom fields
+    if (form.custom_fields) {
+      form.custom_fields.forEach((field, index) => {
+        fields.push({
+          id: `custom_${index}`,
+          label: field.label,
+          type: field.type || 'text',
+          placeholder: `Enter ${field.label}`,
+          required: field.required || false,
+          options: field.options || [], // For dropdowns
+          isCustom: true
+        });
+      });
+    }
+
+    return Promise.resolve({ ...form, fields });
   },
 
   async createVisitorForm(formData) {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      // Prepare payload with only form name and field configuration metadata
-      const payload = {
-        name: formData.name,
-        default_fields: formData.default_fields, // JSON array of default field configs
-        custom_fields: formData.custom_fields,   // JSON array of custom field configs
-        tenant: tenantId,
-      };
-
-      const response = await authService.protectedApi.post('/items/visitor_forms', payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error creating visitor form:', error);
-      throw error;
-    }
+    console.log('Mock: createVisitorForm', formData);
+    const newId = mockForms.length > 0 ? Math.max(...mockForms.map(f => f.id)) + 1 : 1;
+    const newForm = {
+      id: newId,
+      name: formData.name,
+      default_fields: formData.default_fields,
+      custom_fields: formData.custom_fields,
+      tenant: 'mock-tenant-id',
+    };
+    mockForms.push(newForm);
+    return Promise.resolve({ success: true, data: newForm });
   },
 
   async updateVisitorForm(id, formData) {
-    try {
-      // Prepare payload with only form name and field configuration metadata
-      const payload = {
-        name: formData.name,
-        default_fields: formData.default_fields, // JSON array of default field configs
-        custom_fields: formData.custom_fields,   // JSON array of custom field configs
-      };
+    console.log('Mock: updateVisitorForm', id, formData);
+    const index = mockForms.findIndex(f => f.id == id);
+    if (index === -1) throw new Error('Form not found');
 
-      const response = await authService.protectedApi.patch(`/items/visitor_forms/${id}`, payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error(`Error updating visitor form ${id}:`, error);
-      throw error;
-    }
+    const current = mockForms[index];
+    const updated = { ...current };
+
+    if (formData.name !== undefined) updated.name = formData.name;
+    if (formData.default_fields !== undefined) updated.default_fields = formData.default_fields;
+    if (formData.custom_fields !== undefined) updated.custom_fields = formData.custom_fields;
+
+    mockForms[index] = updated;
+    return Promise.resolve({ success: true, data: updated });
   },
 
   async deleteVisitorForm(id) {
-    try {
-      await authService.protectedApi.delete(`/items/visitor_forms/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error(`Error deleting visitor form ${id}:`, error);
-      throw error;
-    }
+    console.log('Mock: deleteVisitorForm', id);
+    mockForms = mockForms.filter(f => f.id != id);
+    return Promise.resolve({ success: true });
   },
 
   // QR Pages
   async getQRPages() {
-    // Assuming a collection exists or returning mocked for now if not specified
-    // Returning a simple list as per previous mock but ideally should be API
-    return [
-      {
-        id: 1,
-        name: 'Standard QR Page',
-        description: 'Default QR page showing visitor details, photo, and validity status',
-        layout: 'standard',
-        fields: ['name', 'photo', 'company', 'validity', 'approvalStatus'],
-      },
-      {
-        id: 2,
-        name: 'Security QR Page',
-        description: 'Enhanced QR page with access level, host info, and security notes',
-        layout: 'security',
-        fields: ['name', 'photo', 'company', 'validity', 'accessLevel', 'hostName', 'securityNotes'],
-      },
-    ];
+    console.log('Mock: getQRPages');
+    return Promise.resolve(mockSettings.qr_codes);
   },
 
   async getQRPageById(id) {
-    // Mock implementation for now
-    const pages = await this.getQRPages();
-    return pages.find(p => p.id === id);
+    console.log('Mock: getQRPageById', id);
+    const page = mockSettings.qr_codes.find(p => p.id == id);
+    return Promise.resolve(page);
   },
 
   // Badge Layouts
   async getBadgeLayouts() {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const response = await authService.protectedApi.get('/items/visitor_badges', {
-        params: {
-          'filter[tenant][tenantId][_eq]': tenantId,
-        },
-      });
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching badge layouts:', error);
-      throw error;
-    }
+    console.log('Mock: getBadgeLayouts');
+    return Promise.resolve(mockBadges);
   },
 
   async getBadgeLayoutById(id) {
-    try {
-      const response = await authService.protectedApi.get(`/items/visitor_badges/${id}`);
-      return response.data.data;
-    } catch (error) {
-      console.error(`Error fetching badge layout ${id}:`, error);
-      throw error;
-    }
+    console.log('Mock: getBadgeLayoutById', id);
+    const badge = mockBadges.find(b => b.id == id);
+    return Promise.resolve(badge);
   },
 
   async createVisitorBadge(badgeData) {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const payload = {
-        ...badgeData,
-        tenant: tenantId,
-      };
-
-      const response = await authService.protectedApi.post('/items/visitor_badges', payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error creating visitor badge:', error);
-      throw error;
-    }
+    console.log('Mock: createVisitorBadge', badgeData);
+    const newId = mockBadges.length > 0 ? Math.max(...mockBadges.map(b => b.id)) + 1 : 1;
+    const newBadge = {
+      id: newId,
+      ...badgeData,
+      tenant: 'mock-tenant-id',
+    };
+    mockBadges.push(newBadge);
+    return Promise.resolve({ success: true, data: newBadge });
   },
 
   async updateVisitorBadge(id, badgeData) {
-    try {
-      const response = await authService.protectedApi.patch(`/items/visitor_badges/${id}`, badgeData);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error(`Error updating visitor badge ${id}:`, error);
-      throw error;
-    }
+    console.log('Mock: updateVisitorBadge', id, badgeData);
+    const index = mockBadges.findIndex(b => b.id == id);
+    if (index === -1) throw new Error('Badge not found');
+    
+    mockBadges[index] = { ...mockBadges[index], ...badgeData };
+    return Promise.resolve({ success: true, data: mockBadges[index] });
   },
 
   // Access Levels
   async getAccessLevels() {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const response = await authService.protectedApi.get('/items/accesslevels', {
-        params: {
-          'filter[tenant][tenantId][_eq]': tenantId,
-          'filter[accessType][_eq]': true,
-          'fields': 'id,accessLevelName,accessLevelNumber,accessType',
-        },
-      });
-
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching access levels:', error);
-      throw error;
-    }
+    console.log('Mock: getAccessLevels');
+    return Promise.resolve(mockAccessLevels);
   },
 
-  // Visitors (Assuming basic CRUD for visitors still needed, but might need API update too)
-  // For now, I'll keep the structure but point to a hypothetical 'visitors' collection if needed,
-  // or leave as is if the user only focused on Templates/Forms/Badges.
-  // The user prompt didn't explicitly ask to replace 'visitors' data, but 'visitor_templates' integration.
-  // However, to be consistent, I should probably update this too if I knew the collection.
-  // Given the prompt focused on "Integrate the Visitor Templates module", I will focus on that.
-  // But I will remove the hardcoded 'visitors' array to avoid confusion, and implement basic API calls.
-  
+  // Visitors
   async getVisitors(filters = {}) {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-
-      const params = {
-        'filter[tenant][tenantId][_eq]': tenantId,
-      };
-      
-      if (filters.status) params['filter[status][_eq]'] = filters.status;
-      // Add other filters as needed
-
-      // Assuming a 'visitors' collection exists
-      const response = await authService.protectedApi.get('/items/visitors', { params });
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching visitors:', error);
-      return []; // Return empty if collection doesn't exist yet to prevent crash
+    console.log('Mock: getVisitors', filters);
+    let filtered = [...mockVisitors];
+    if (filters.status) {
+      filtered = filtered.filter(v => v.status === filters.status);
     }
+    return Promise.resolve(filtered);
   },
 
   async getVisitorById(id) {
-    try {
-      const response = await authService.protectedApi.get(`/items/visitors/${id}`);
-      return response.data.data;
-    } catch (error) {
-      console.error(`Error fetching visitor ${id}:`, error);
-      throw error;
-    }
+    console.log('Mock: getVisitorById', id);
+    const visitor = mockVisitors.find(v => v.id == id);
+    return Promise.resolve(visitor);
   },
 
   async registerVisitor(visitorData) {
-    try {
-      const tenantId = authService.getTenantId();
-      if (!tenantId) throw new Error('Tenant ID not found');
-      
-      const payload = { ...visitorData, tenant: tenantId };
-      const response = await authService.protectedApi.post('/items/visitors', payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error registering visitor:', error);
-      throw error;
-    }
+    console.log('Mock: registerVisitor', visitorData);
+    const newId = mockVisitors.length > 0 ? Math.max(...mockVisitors.map(v => v.id)) + 1 : 1;
+    const newVisitor = {
+      id: newId,
+      ...visitorData,
+      status: 'pending',
+      tenant: 'mock-tenant-id',
+    };
+    mockVisitors.push(newVisitor);
+    return Promise.resolve({ success: true, data: newVisitor });
   },
 
   async updateVisitorStatus(visitorId, status, approvedBy = null, reason = null) {
-    try {
-      const payload = { status };
-      if (approvedBy) payload.approvedBy = approvedBy;
-      if (reason) payload.rejectionReason = reason;
-      if (status === 'approved') payload.approvedAt = new Date().toISOString();
+    console.log('Mock: updateVisitorStatus', visitorId, status);
+    const index = mockVisitors.findIndex(v => v.id == visitorId);
+    if (index === -1) throw new Error('Visitor not found');
 
-      const response = await authService.protectedApi.patch(`/items/visitors/${visitorId}`, payload);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error updating visitor status:', error);
-      throw error;
-    }
+    const updated = { ...mockVisitors[index], status };
+    if (approvedBy) updated.approvedBy = approvedBy;
+    if (reason) updated.rejectionReason = reason;
+    if (status === 'approved') updated.approvedAt = new Date().toISOString();
+
+    mockVisitors[index] = updated;
+    return Promise.resolve({ success: true, data: updated });
   },
 
   // QR Code Generation
   async generateQR(visitorData) {
+    console.log('Mock: generateQR', visitorData);
     const qrData = {
       visitorId: visitorData.id,
       name: visitorData.personName,
@@ -518,26 +651,20 @@ export const visitorService = {
 
   // Entry Logs
   async createEntryLog(logData) {
-    try {
-       const tenantId = authService.getTenantId();
-       const payload = { ...logData, tenant: tenantId };
-       const response = await authService.protectedApi.post('/items/entry_logs', payload);
-       return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error creating entry log:', error);
-      throw error;
-    }
+    console.log('Mock: createEntryLog', logData);
+    const newId = mockEntryLogs.length > 0 ? Math.max(...mockEntryLogs.map(l => l.id)) + 1 : 1;
+    const newLog = {
+      id: newId,
+      ...logData,
+      tenant: 'mock-tenant-id',
+    };
+    mockEntryLogs.push(newLog);
+    return Promise.resolve({ success: true, data: newLog });
   },
 
   async getEntryLogs(filters = {}) {
-    try {
-      const tenantId = authService.getTenantId();
-      const params = { 'filter[tenant][tenantId][_eq]': tenantId };
-      const response = await authService.protectedApi.get('/items/entry_logs', { params });
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching entry logs:', error);
-      return [];
-    }
+    console.log('Mock: getEntryLogs', filters);
+    return Promise.resolve(mockEntryLogs);
   },
 };
+

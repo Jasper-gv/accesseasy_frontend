@@ -18,7 +18,25 @@
           </div>
         </div>
 
-        <v-list class="template-list">
+        <div v-if="loading" class="d-flex justify-center pa-4">
+          <v-progress-circular indeterminate color="primary" />
+        </div>
+
+        <div v-else-if="error" class="pa-4">
+          <v-alert
+            type="error"
+            variant="tonal"
+            :text="error"
+            icon="mdi-alert-circle"
+          ></v-alert>
+          <div class="text-center mt-4">
+             <v-btn variant="text" color="primary" @click="error = null; loadTemplates()">
+               View All Options
+             </v-btn>
+          </div>
+        </div>
+
+        <v-list v-else class="template-list">
           <v-list-item
             v-for="template in templates"
             :key="template.id"
@@ -58,31 +76,74 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { visitorService } from '@/services/visitorService';
 
 const router = useRouter();
+const route = useRoute();
 const templates = ref([]);
+const loading = ref(true);
+
+const error = ref(null);
 
 onMounted(async () => {
-  await loadTemplates();
+  await handleEntry();
 });
+
+const handleEntry = async () => {
+  loading.value = true;
+  error.value = null;
+  const { code, site, qr_id } = route.query;
+
+  try {
+    if (code) {
+      console.log('Processing link code:', code);
+      // Directly route to registration with the code
+      router.push({ path: '/visitor/register', query: { code } });
+      return;
+    } 
+    
+    if (qr_id) {
+      console.log('Processing QR ID:', qr_id);
+      const template = await visitorService.getVisitorTemplateByQrId(qr_id);
+      
+      if (template) {
+        router.push({ path: '/visitor/register', query: { templateId: template.id } });
+        return;
+      } else {
+        error.value = 'No active template found for this QR code.';
+        loading.value = false;
+        return;
+      }
+    }
+
+    if (site) {
+      console.log('Processing site code:', site);
+    }
+
+    // Default: Load all active public templates
+    await loadTemplates();
+  } catch (err) {
+    console.error('Error handling entry:', err);
+    error.value = 'An error occurred while processing your request.';
+  } finally {
+    if (!error.value) loading.value = false;
+  }
+};
 
 const loadTemplates = async () => {
   try {
     // In a real public page, we'd fetch only active public templates
     const data = await visitorService.getVisitorTemplates();
     templates.value = data.filter(t => t.status === 'active');
-  } catch (error) {
-    console.error('Error loading templates:', error);
+  } catch (err) {
+    console.error('Error loading templates:', err);
+    error.value = 'Failed to load visitor templates.';
   }
 };
 
 const selectTemplate = (template) => {
-  // Navigate to registration form with template ID
-  // For now, we'll just log it as we haven't implemented the route yet
-  console.log('Selected template:', template);
-  // router.push({ name: 'visitor-registration', params: { templateId: template.id } });
+  router.push({ path: '/visitor/register', query: { templateId: template.id } });
 };
 </script>
 

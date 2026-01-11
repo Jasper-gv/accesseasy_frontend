@@ -133,8 +133,30 @@
                     prepend-icon="mdi-message-text"
                     @click="sendViaSMS"
                     :loading="sending"
+                    class="mb-3"
                   >
                     Send via SMS
+                  </v-btn>
+                </v-col>
+
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="shareWhatsApp"
+                    label="WhatsApp Number"
+                    prepend-inner-icon="mdi-whatsapp"
+                    variant="outlined"
+                    density="comfortable"
+                    type="tel"
+                    hint="Include country code (e.g., 15551234567)"
+                  />
+                  <v-btn
+                    color="success"
+                    block
+                    prepend-icon="mdi-whatsapp"
+                    @click="sendViaWhatsApp"
+                    :loading="sending"
+                  >
+                    Send via WhatsApp
                   </v-btn>
                 </v-col>
               </v-row>
@@ -228,6 +250,7 @@ const generatedLink = ref(null);
 const linkHistory = ref([]);
 const shareEmail = ref('');
 const shareSMS = ref('');
+const shareWhatsApp = ref('');
 const showSnackbar = ref(false);
 const snackbarMessage = ref('');
 const snackbarColor = ref('success');
@@ -317,8 +340,11 @@ const sendViaEmail = () => {
     return;
   }
   
-  // In production, this would call an API to send email
-  showNotification(`Email sent to ${shareEmail.value}`, 'success');
+  const subject = encodeURIComponent('Visitor Registration Link');
+  const body = encodeURIComponent(`Please register for your visit using this link: ${generatedLinkUrl.value}`);
+  window.open(`mailto:${shareEmail.value}?subject=${subject}&body=${body}`, '_blank');
+  
+  showNotification(`Email client opened for ${shareEmail.value}`, 'success');
   shareEmail.value = '';
 };
 
@@ -328,9 +354,29 @@ const sendViaSMS = () => {
     return;
   }
   
-  // In production, this would call an API to send SMS
-  showNotification(`SMS sent to ${shareSMS.value}`, 'success');
+  const body = encodeURIComponent(`Please register for your visit: ${generatedLinkUrl.value}`);
+  // Detect iOS to use the correct separator
+  const separator = /iPad|iPhone|iPod/.test(navigator.userAgent) ? '&' : '?';
+  window.open(`sms:${shareSMS.value}${separator}body=${body}`, '_blank');
+  
+  showNotification(`SMS app opened for ${shareSMS.value}`, 'success');
   shareSMS.value = '';
+};
+
+const sendViaWhatsApp = () => {
+  if (!shareWhatsApp.value) {
+    showNotification('Please enter a WhatsApp number', 'warning');
+    return;
+  }
+
+  // Remove any non-numeric characters from the phone number
+  const cleanNumber = shareWhatsApp.value.replace(/\D/g, '');
+  
+  const text = encodeURIComponent(`Please register for your visit using this link: ${generatedLinkUrl.value}`);
+  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank');
+  
+  showNotification(`WhatsApp opened for ${shareWhatsApp.value}`, 'success');
+  shareWhatsApp.value = '';
 };
 
 const isExpired = (expiresAt) => {

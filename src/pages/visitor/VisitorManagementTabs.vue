@@ -1,5 +1,32 @@
 <template>
   <div class="visitor-management">
+    <!-- Role Switcher for Demo -->
+    <div class="bg-white px-4 py-2 border-b d-flex align-center justify-space-between">
+      <div class="d-flex align-center">
+        <v-btn
+          variant="text"
+          prepend-icon="mdi-arrow-left"
+          to="/hq/dashboard"
+          class="mr-4"
+        >
+          Back to HQ
+        </v-btn>
+        <div class="text-subtitle-2 text-grey">Visitor Management System (Demo)</div>
+      </div>
+      <div style="width: 200px">
+        <v-select
+          v-model="userRole"
+          :items="['Admin', 'Employee', 'Security']"
+          label="Current Role"
+          density="compact"
+          variant="outlined"
+          hide-details
+          prepend-inner-icon="mdi-account-convert"
+          @update:model-value="handleRoleChange"
+        />
+      </div>
+    </div>
+
     <v-tabs
       v-model="activeTab"
       bg-color="white"
@@ -12,7 +39,7 @@
         Dashboard
       </v-tab>
       
-      <v-tab value="request">
+      <v-tab value="request" v-if="canViewNewRequest">
         <v-icon icon="mdi-account-plus" class="mr-2" />
         New Request
       </v-tab>
@@ -39,14 +66,14 @@
         Security
       </v-tab>
 
-      <v-tab value="logs" v-if="canViewLogs">
-        <v-icon icon="mdi-history" class="mr-2" />
-        Logs
-      </v-tab>
-
-      <v-tab value="templates" v-if="canViewSettings">
+      <v-tab value="templates" v-if="canViewTemplates">
         <v-icon icon="mdi-file-document-edit-outline" class="mr-2" />
         Templates
+      </v-tab>
+
+      <v-tab value="links" v-if="canViewLinks">
+        <v-icon icon="mdi-link-variant" class="mr-2" />
+        Links
       </v-tab>
 
       <v-tab value="settings" v-if="canViewSettings">
@@ -62,7 +89,7 @@
         <VisitorDashboard />
       </v-window-item>
 
-      <v-window-item value="request">
+      <v-window-item value="request" v-if="canViewNewRequest">
         <VisitorRequest />
       </v-window-item>
 
@@ -78,18 +105,17 @@
         />
       </v-window-item>
 
-      <v-window-item value="logs" v-if="canViewLogs">
-        <EntryLogs />
-      </v-window-item>
-
-      <v-window-item value="templates" v-if="canViewSettings">
-        <!-- Simple view switching for demo purposes, normally would use router-view -->
+      <v-window-item value="templates" v-if="canViewTemplates">
         <component 
           :is="currentTemplateView" 
           :mode="templateMode" 
           :templateId="templateId"
           @change-view="handleTemplateViewChange" 
         />
+      </v-window-item>
+
+      <v-window-item value="links" v-if="canViewLinks">
+        <VisitorLinks />
       </v-window-item>
 
       <v-window-item value="settings" v-if="canViewSettings">
@@ -100,12 +126,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, shallowRef } from 'vue';
+import { ref, computed, onMounted, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import VisitorDashboard from './dashboard/VisitorDashboard.vue';
 import VisitorRequest from './request/VisitorRequest.vue';
 import VisitorApprovals from './approvals/VisitorApprovals.vue';
-import EntryLogs from './security/EntryLogs.vue';
 import VisitorSettings from './admin/VisitorSettings.vue';
 import VisitorTemplates from './admin/VisitorTemplates.vue';
 import VisitorTemplateEditor from './admin/VisitorTemplateEditor.vue';
@@ -113,6 +138,7 @@ import VisitorFormDesigner from './admin/VisitorFormDesigner.vue';
 import VisitorBadgeDesigner from './admin/VisitorBadgeDesigner.vue';
 import VisitorSecurityDashboard from './security/VisitorSecurityDashboard.vue';
 import VisitorScanner from './security/VisitorScanner.vue';
+import VisitorLinks from './admin/VisitorLinks.vue';
 import { visitorService } from '@/services/visitorService';
 
 const route = useRoute();
@@ -124,10 +150,13 @@ const pendingCount = ref(0);
 // Role-based access control (hardcoded for demo)
 const userRole = ref('Admin'); 
 
-const canViewDashboard = computed(() => ['Admin', 'Manager'].includes(userRole.value));
-const canViewApprovals = computed(() => ['Admin', 'Manager', 'Security'].includes(userRole.value));
-const canViewSecurity = computed(() => ['Admin', 'Security'].includes(userRole.value));
-const canViewLogs = computed(() => ['Admin', 'Security', 'Manager'].includes(userRole.value));
+// Computed properties for tab visibility based on role
+const canViewDashboard = computed(() => ['Admin', 'Employee', 'Security'].includes(userRole.value));
+const canViewNewRequest = computed(() => ['Employee'].includes(userRole.value));
+const canViewApprovals = computed(() => ['Admin', 'Security'].includes(userRole.value));
+const canViewSecurity = computed(() => ['Security'].includes(userRole.value));
+const canViewTemplates = computed(() => ['Admin'].includes(userRole.value));
+const canViewLinks = computed(() => ['Admin'].includes(userRole.value));
 const canViewSettings = computed(() => ['Admin'].includes(userRole.value));
 
 // Template view management
@@ -164,29 +193,20 @@ const handleSecurityViewChange = (view) => {
     currentSecurityView.value = VisitorSecurityDashboard;
   } else if (view === 'scanner') {
     currentSecurityView.value = VisitorScanner;
-  } else if (view === 'logs') {
-    // We can reuse the main logs component or a simplified one
-    // For now, let's switch to the main logs tab if we want, or keep it inside
-    // But since tabs are top-level, switching tab is better if we want to reuse VisitorLogs
-    // However, for the "Security Panel" flow, it might be better to have a self-contained view
-    // Let's assume we have a simplified log view or just redirect to the logs tab
-    activeTab.value = 'logs';
   }
 };
 
 onMounted(async () => {
   if (route.query.tab) {
     activeTab.value = route.query.tab;
-  } else {
-    if (userRole.value === 'Security') {
-      activeTab.value = 'security';
-    } else if (userRole.value === 'Admin' || userRole.value === 'Manager') {
-      activeTab.value = 'dashboard';
-    }
   }
-
   await fetchPendingCount();
 });
+
+const handleRoleChange = (newRole) => {
+  // Reset active tab to dashboard when role changes to ensure valid state
+  activeTab.value = 'dashboard';
+};
 
 const fetchPendingCount = async () => {
   try {

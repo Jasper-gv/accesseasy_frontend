@@ -1,25 +1,54 @@
 <template>
-  <div class="visitor-templates">
     <div class="d-flex justify-space-between align-center mb-6">
       <div>
-        <h2 class="text-h6 font-weight-bold">Visitor Templates</h2>
+        <h2 class="text-h6 font-weight-bold">Visitor Processes</h2>
         <div class="text-subtitle-2 text-grey-darken-1 mt-1">
-          Manage visitor types and their specific configurations.
+          Manage visitor entry processes, events, and scenarios.
         </div>
       </div>
-      <BaseButton
-        variant="primary"
-        prepend-icon="mdi-plus"
-        @click="createTemplate"
-      >
-        Create Template
-      </BaseButton>
+      <div>
+        <BaseButton
+          variant="primary"
+          prepend-icon="mdi-plus"
+          @click="createTemplate"
+        >
+          Create New Process
+        </BaseButton>
+      </div>
+    </div>
+
+    <div class="d-flex gap-4 mb-4">
+      <div style="width: 200px;">
+        <v-select
+          v-model="typeFilter"
+          :items="['All', 'Standard', 'Event', 'Contractor', 'Delivery']"
+          label="Filter by Type"
+          variant="outlined"
+          density="compact"
+          hide-details
+        />
+      </div>
+      <div style="width: 300px;">
+        <v-autocomplete
+          v-model="selectedBranch"
+          :items="branches"
+          item-title="title"
+          item-value="value"
+          label="Search Branch"
+          variant="outlined"
+          density="compact"
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          placeholder="Filter by branch"
+        />
+      </div>
     </div>
 
     <v-card variant="outlined" class="table-card">
       <v-data-table
         :headers="headers"
-        :items="templates"
+        :items="filteredTemplates"
         :loading="loading"
         hover
       >
@@ -28,6 +57,22 @@
           <div>
             <div class="font-weight-medium">{{ item.name }}</div>
             <div class="text-caption text-grey-darken-1">{{ item.description }}</div>
+            <div class="mt-1 d-flex gap-2">
+              <v-chip size="x-small" variant="outlined" class="mr-1">
+                {{ item.branchScope === 'specific' ? `${item.selectedBranches?.length || 0} Branches` : 'All Branches' }}
+              </v-chip>
+              <v-chip size="x-small" color="primary" variant="flat" v-if="item.processType === 'Event'">
+                Event
+              </v-chip>
+            </div>
+          </div>
+        </template>
+
+        <!-- Type & Validity -->
+        <template v-slot:item.type="{ item }">
+          <div class="text-body-2">{{ item.processType || 'Standard' }}</div>
+          <div v-if="item.processType === 'Event' && item.validityStart" class="text-caption text-grey">
+            {{ formatDate(item.validityStart) }} - {{ formatDate(item.validityEnd) }}
           </div>
         </template>
 
@@ -50,7 +95,7 @@
             >
               Link
             </v-chip>
-            <v-chip
+             <v-chip
               v-if="item.approvalRequired"
               size="x-small"
               color="warning"
@@ -136,11 +181,11 @@
       <v-icon :icon="snackbarIcon" class="mr-2" />
       {{ snackbarMessage }}
     </v-snackbar>
-  </div>
+  
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { visitorService } from '@/services/visitorService';
 import BaseButton from '@/components/common/buttons/BaseButton.vue';
@@ -155,15 +200,45 @@ const snackbarMessage = ref('');
 const snackbarColor = ref('success');
 const snackbarIcon = ref('mdi-check-circle');
 
+const selectedBranch = ref(null);
+const branches = ref([]);
+const typeFilter = ref('All');
+
+const filteredTemplates = computed(() => {
+  let result = templates.value;
+
+  // Filter by Branch
+  if (selectedBranch.value) {
+    result = result.filter(template => {
+      if (template.branchScope === 'all') return true;
+      if (template.branchScope === 'specific' && template.selectedBranches) {
+        return template.selectedBranches.includes(selectedBranch.value);
+      }
+      return false;
+    });
+  }
+
+  // Filter by Type
+  if (typeFilter.value !== 'All') {
+    result = result.filter(t => t.processType === typeFilter.value);
+  }
+  
+  return result;
+});
+
 const headers = [
-  { title: 'Template Name', key: 'name', width: '30%' },
+  { title: 'Process Name', key: 'name', width: '25%' },
+  { title: 'Type', key: 'type', width: '15%' },
   { title: 'Enabled Features', key: 'features', sortable: false },
-  { title: 'Status', key: 'status', width: '15%' },
+  { title: 'Status', key: 'status', width: '10%' },
   { title: 'Actions', key: 'actions', align: 'end', sortable: false, width: '15%' },
 ];
 
 onMounted(async () => {
-  await loadTemplates();
+  await Promise.all([
+    loadTemplates(),
+    loadBranches()
+  ]);
 });
 
 const loadTemplates = async () => {
@@ -179,9 +254,20 @@ const loadTemplates = async () => {
   }
 };
 
+const loadBranches = async () => {
+  try {
+    const data = await visitorService.getBranches();
+    branches.value = [{ title: 'All Branches', value: null }, ...data];
+  } catch (error) {
+    console.error('Error loading branches:', error);
+  }
+};
+
 const createTemplate = () => {
   emit('change-view', 'create');
 };
+
+
 
 const editTemplate = (item) => {
   // In a real app we'd pass the ID, but for this simple switcher we'll just switch view
@@ -230,6 +316,10 @@ const showNotification = (message, type = 'success') => {
                        type === 'error' ? 'mdi-alert-circle' : 'mdi-information';
   showSnackbar.value = true;
 };
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString();
+};
 </script>
 
 <style scoped>
@@ -245,5 +335,9 @@ const showNotification = (message, type = 'success') => {
 
 .gap-2 {
   gap: 8px;
+}
+
+.gap-4 {
+  gap: 16px;
 }
 </style>

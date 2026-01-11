@@ -2,14 +2,46 @@
   <div class="visitor-dashboard pa-6">
     <v-container fluid>
       <!-- Header -->
-      <div class="dashboard-header mb-6">
-        <h1 class="text-h4 font-weight-bold">
-          <v-icon icon="mdi-view-dashboard" class="mr-2" color="primary" />
-          Visitor Management Dashboard
-        </h1>
-        <p class="text-body-1 text-grey-darken-1 mt-2">
-          Overview of visitor activity and statistics
-        </p>
+      <div class="dashboard-header mb-6 d-flex justify-space-between align-center">
+        <div>
+          <h1 class="text-h4 font-weight-bold">
+            <v-icon icon="mdi-view-dashboard" class="mr-2" color="primary" />
+            Visitor Management Dashboard
+          </h1>
+          <p class="text-body-1 text-grey-darken-1 mt-2">
+            Overview of visitor activity and statistics
+          </p>
+        </div>
+        <div class="d-flex gap-3" style="width: 500px;">
+          <v-autocomplete
+            v-model="selectedBranch"
+            :items="branches"
+            item-title="title"
+            item-value="value"
+            label="Filter by Branch"
+            variant="outlined"
+            density="compact"
+            hide-details
+            clearable
+            prepend-inner-icon="mdi-office-building"
+            placeholder="All Branches"
+            class="flex-grow-1"
+          />
+          <v-autocomplete
+            v-model="selectedProcess"
+            :items="filteredProcesses"
+            item-title="name"
+            item-value="id"
+            label="Filter by Process/Event"
+            variant="outlined"
+            density="compact"
+            hide-details
+            clearable
+            prepend-inner-icon="mdi-filter"
+            placeholder="All Processes"
+            class="flex-grow-1"
+          />
+        </div>
       </div>
 
       <!-- Statistics Cards -->
@@ -256,37 +288,184 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { visitorService } from '@/services/visitorService';
 import VisitorStatusBadge from '@/components/visitor/VisitorStatusBadge.vue';
 
 const router = useRouter();
 
-const stats = ref({
-  todayCount: 0,
-  monthCount: 0,
-  pendingCount: 0,
-  activeCount: 0,
-  purposeBreakdown: {},
-  dailyTrend: [],
-  recentVisitors: [],
-});
+const selectedBranch = ref(null);
+const branches = ref([]);
+const selectedProcess = ref(null);
+const allProcesses = ref([]);
+
+// Full Mock Data
+const allStats = {
+  todayCount: 42,
+  monthCount: 350,
+  pendingCount: 5,
+  activeCount: 12,
+  purposeBreakdown: {
+    Meeting: 15,
+    Interview: 8,
+    Delivery: 12,
+    Maintenance: 4,
+    Other: 3,
+  },
+  dailyTrend: [
+    { date: '2025-01-01', count: 25 },
+    { date: '2025-01-02', count: 30 },
+    { date: '2025-01-03', count: 28 },
+    { date: '2025-01-04', count: 35 },
+    { date: '2025-01-05', count: 40 },
+    { date: '2025-01-06', count: 38 },
+    { date: '2025-01-07', count: 42 },
+  ],
+  recentVisitors: [
+    {
+      id: 1,
+      personName: 'John Doe',
+      purpose: 'Meeting',
+      processName: 'Standard Visitor',
+      branchId: 8818,
+      visitDate: '2025-01-07',
+      startTime: '09:00 AM',
+      endTime: '10:00 AM',
+      status: 'Checked In',
+      registrationType: 'Pre-registered',
+    },
+    {
+      id: 2,
+      personName: 'Jane Smith',
+      purpose: 'Interview',
+      processName: 'Standard Visitor',
+      branchId: 8819,
+      visitDate: '2025-01-07',
+      startTime: '10:30 AM',
+      endTime: '11:30 AM',
+      status: 'Pending',
+      registrationType: 'Walk-in',
+    },
+    {
+      id: 3,
+      personName: 'Mike Johnson',
+      purpose: 'Delivery',
+      processName: 'Delivery',
+      branchId: 8818,
+      visitDate: '2025-01-07',
+      startTime: '11:00 AM',
+      endTime: '11:15 AM',
+      status: 'Checked Out',
+      registrationType: 'Walk-in',
+    },
+    {
+      id: 4,
+      personName: 'Emily Davis',
+      purpose: 'Maintenance',
+      processName: 'Contractor',
+      branchId: 8820,
+      visitDate: '2025-01-07',
+      startTime: '01:00 PM',
+      endTime: '03:00 PM',
+      status: 'Checked In',
+      registrationType: 'Pre-registered',
+    },
+    {
+      id: 5,
+      personName: 'Chris Wilson',
+      purpose: 'Meeting',
+      processName: 'Tech Conf 2025',
+      branchId: 8819,
+      visitDate: '2025-01-07',
+      startTime: '02:00 PM',
+      endTime: '03:00 PM',
+      status: 'Pending',
+      registrationType: 'Pre-registered',
+    },
+  ],
+};
+
+const stats = ref({ ...allStats });
 
 onMounted(async () => {
-  await fetchStats();
+  await Promise.all([
+    loadBranches(),
+    loadProcesses(),
+  ]);
 });
 
-const fetchStats = async () => {
+const loadBranches = async () => {
   try {
-    const data = await visitorService.getVisitorStats();
-    stats.value = data;
+    const data = await visitorService.getBranches();
+    branches.value = data;
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    console.error('Error loading branches:', error);
   }
 };
 
+const loadProcesses = async () => {
+  try {
+    const data = await visitorService.getVisitorTemplates();
+    allProcesses.value = data;
+  } catch (error) {
+    console.error('Error loading processes:', error);
+  }
+};
+
+const filteredProcesses = computed(() => {
+  if (!selectedBranch.value) return allProcesses.value;
+  
+  return allProcesses.value.filter(p => {
+    // If scope is 'all', include it
+    if (p.branchScope === 'all') return true;
+    
+    // If scope is 'specific', check if selected branch is in the list
+    if (p.branchScope === 'specific' && p.selectedBranches) {
+      return p.selectedBranches.includes(selectedBranch.value);
+    }
+    
+    return false;
+  });
+});
+
+// Filter Logic
+watch([selectedBranch, selectedProcess], ([newBranch, newProcess]) => {
+  let filteredVisitors = [...allStats.recentVisitors];
+
+  // Filter by Branch
+  if (newBranch) {
+    filteredVisitors = filteredVisitors.filter(v => v.branchId === newBranch);
+  }
+
+  // Filter by Process
+  if (newProcess) {
+    const process = allProcesses.value.find(p => p.id === newProcess);
+    const processName = process ? process.name : '';
+    if (processName) {
+      filteredVisitors = filteredVisitors.filter(v => v.processName === processName);
+    }
+  }
+  
+  // Update Stats based on filtered visitors
+  // In a real app, we would fetch aggregated stats from backend
+  // Here we mock the aggregation based on the filtered list
+  
+  const multiplier = filteredVisitors.length > 0 ? 1 : 0;
+  
+  stats.value = {
+    todayCount: filteredVisitors.length * 5, // Mock number
+    monthCount: filteredVisitors.length * 20,
+    pendingCount: filteredVisitors.filter(v => v.status === 'Pending').length,
+    activeCount: filteredVisitors.filter(v => v.status === 'Checked In').length,
+    purposeBreakdown: allStats.purposeBreakdown, // Keep simple for now
+    dailyTrend: allStats.dailyTrend.map(d => ({ ...d, count: Math.floor(d.count * (filteredVisitors.length / allStats.recentVisitors.length || 0.5)) })), 
+    recentVisitors: filteredVisitors,
+  };
+});
+
 const maxDailyCount = computed(() => {
+  if (!stats.value.dailyTrend || stats.value.dailyTrend.length === 0) return 1;
   return Math.max(...stats.value.dailyTrend.map(d => d.count), 1);
 });
 
