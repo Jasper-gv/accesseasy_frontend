@@ -61,6 +61,12 @@ import Workordergenerate from "@/pages/report/workordereport/workordergenerate.v
 
 import VisitorFlow from "@/pages/flow/visitorFlow.vue";
 
+import VisitorDashboard from "@/pages/visitor/dashboard/VisitorDashboard.vue";
+import VisitorTemplates from "@/pages/visitor/templates/VisitorTemplates.vue";
+import VisitorTemplateEditor from "@/pages/visitor/templates/VisitorTemplateEditor.vue";
+import VisitorLinks from "@/pages/visitor/links/VisitorLinks.vue";
+import VisitorRegistration from "@/pages/visitor/public/VisitorRegistration.vue";
+
 import QrGenerateTabs from "@/pages/qrgenerate/qrgenerateTabs.vue";
 import BulkQrGenerate from "@/pages/qrgenerate/bulkgenerate/qrgenerate.vue";
 import EmployeeQrGenerate from "@/pages/qrgenerate/employeeqrgenerate/employeeQRgenerate.vue";
@@ -1080,6 +1086,40 @@ const routes = [
         name: "Visitor",
         component: VisitorFlow,
         meta: { roles: ["Admin"] },
+      },
+      {
+        path: "/visitor-management",
+        component: VisitorDashboard,
+        meta: { roles: ["Admin", "Manager", "Security"] },
+        children: [
+          {
+            path: "",
+            name: "VisitorDashboard",
+            component: VisitorDashboard,
+          },
+          {
+            path: "templates",
+            name: "VisitorTemplates",
+            component: VisitorTemplates,
+          },
+          {
+            path: "templates/edit/:id?",
+            name: "VisitorTemplateEditor",
+            component: VisitorTemplateEditor,
+            props: true,
+          },
+          {
+            path: "links",
+            name: "VisitorLinks",
+            component: VisitorLinks,
+          },
+        ],
+      },
+      {
+        path: "/visitor/register/:linkId",
+        name: "VisitorRegistration",
+        component: VisitorRegistration,
+        meta: { requiresAuth: false },
       },
       {
         path: "/connectors/connector",

@@ -376,6 +376,12 @@ export default {
         to: "/employee-details/employee",
         roles: ["Admin", "Employee", "Manager", "esslAdmin"],
       },
+      {
+        title: "Visitor Management",
+        icon: "mdi-badge-account-outline",
+        to: "/visitor-management",
+        roles: ["Admin", "Manager", "Security"],
+      },
 
       // {
       //   title: "Attendance Configuration",
