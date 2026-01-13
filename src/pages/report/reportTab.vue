@@ -43,6 +43,11 @@ const tabs = [
     title: "Accesslevel Report",
     icon: "mdi-calendar-check",
   },
+  {
+    value: "AttendanceLogsReport",
+    title: "Attendance Logs Report",
+    icon: "mdi-clipboard-text-clock",
+  },
   // {
   //   value: "CompanyReport",
   //   title: "Employee Report",

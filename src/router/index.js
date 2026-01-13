@@ -1066,6 +1066,13 @@ const routes = [
             component: AttendanceDetails,
             meta: { roles: ["Admin", "Manager"] },
           },
+          {
+            path: "attendance-logs",
+            name: "AttendanceLogsReport",
+            component: () =>
+              import("@/pages/report/attendanceLogs/AttendanceLogsReport.vue"),
+            meta: { roles: ["Admin", "Manager"] },
+          },
 
           {
             path: "companyReport",
