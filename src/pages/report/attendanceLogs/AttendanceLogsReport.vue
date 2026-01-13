@@ -44,6 +44,15 @@
             <BaseButton
               variant="primary"
               size="md"
+              text="Fetch from Device"
+              :leftIcon="RefreshCw"
+              @click="fetchLogsFromDevice"
+              :loading="isFetchingFromDevice"
+              :disabled="isFetchingFromDevice"
+            />
+            <BaseButton
+              variant="primary"
+              size="md"
               text="Generate Report"
               :leftIcon="Search"
               @click="fetchLogs"
@@ -145,6 +154,22 @@
           />
         </div>
       </DataTableWrapper>
+
+      <!-- Error Snackbar -->
+      <v-snackbar v-model="showError" color="error" :timeout="5000">
+        {{ errorMessage }}
+        <template v-slot:action="{ attrs }">
+          <v-btn text v-bind="attrs" @click="showError = false">Close</v-btn>
+        </template>
+      </v-snackbar>
+
+      <!-- Success Snackbar -->
+      <v-snackbar v-model="showSuccess" color="success" :timeout="3000">
+        {{ successMessage }}
+        <template v-slot:action="{ attrs }">
+          <v-btn text v-bind="attrs" @click="showSuccess = false">Close</v-btn>
+        </template>
+      </v-snackbar>
     </v-container>
   </v-app>
 </template>
@@ -160,7 +185,7 @@ import DataTableWrapper from "@/components/common/table/DataTableWrapper.vue";
 import SkeletonLoader from "@/components/common/states/SkeletonLoading.vue";
 import EmptyState from "@/components/common/states/EmptyState.vue";
 import CustomPagination from "@/utils/pagination/CustomPagination.vue";
-import { Search, Download } from "lucide-vue-next";
+import { Search, Download, RefreshCw } from "lucide-vue-next";
 
 // State
 const loading = ref(false);
@@ -169,6 +194,11 @@ const search = ref("");
 const startDate = ref(new Date().toISOString().substr(0, 10));
 const endDate = ref(new Date().toISOString().substr(0, 10));
 const selectedModes = ref(['rfid', 'face', 'finger', 'qr']);
+const isFetchingFromDevice = ref(false);
+const showError = ref(false);
+const errorMessage = ref("");
+const showSuccess = ref(false);
+const successMessage = ref("");
 
 // Pagination State
 const currentPage = ref(1);
@@ -252,6 +282,16 @@ const formatTime = (time) => {
   return time; 
 };
 
+const showErrorToast = (message) => {
+  errorMessage.value = message;
+  showError.value = true;
+};
+
+const showSuccessToast = (message) => {
+  successMessage.value = message;
+  showSuccess.value = true;
+};
+
 const fetchLogs = async () => {
   loading.value = true;
   items.value = [];
@@ -315,29 +355,90 @@ const fetchLogs = async () => {
 
   } catch (error) {
     console.error('Error fetching logs:', error);
+    showErrorToast('Failed to fetch logs');
   } finally {
     loading.value = false;
   }
 };
 
-const exportToExcel = () => {
-  const exportData = items.value.map(item => ({
-    Date: item.date,
-    'Employee Name': item.employeeName,
-    'In Time': item.inTime,
-    'Out Time': item.outTime,
-    Mode: item.mode,
-    Status: item.status,
-    'Tenant Name': item.tenantName
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
-  
-  const fileName = `Attendance_Report_${startDate.value}_to_${endDate.value}.xlsx`;
+const fetchLogsFromDevice = async () => {
+  isFetchingFromDevice.value = true;
+  try {
+    // Placeholder for device fetch logic
+    // This would typically involve calling an API endpoint that triggers the device to sync logs
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
     
-  XLSX.writeFile(wb, fileName);
+    // TODO: Replace with actual API call
+    // const response = await fetch(`${import.meta.env.VITE_API_URL}/device/sync-logs`, ...);
+    
+    showSuccessToast('Request sent to device to fetch logs. Please refresh in a few moments.');
+    // Optionally trigger a refresh of the logs table
+    // await fetchLogs();
+  } catch (error) {
+    console.error('Error fetching logs from device:', error);
+    showErrorToast('Failed to send request to device');
+  } finally {
+    isFetchingFromDevice.value = false;
+  }
+};
+
+const exportToExcel = () => {
+  try {
+    const exportData = items.value.map(item => ({
+      Date: item.date,
+      'Employee Name': item.employeeName,
+      'In Time': item.inTime,
+      'Out Time': item.outTime,
+      Mode: item.mode,
+      Status: item.status,
+      'Tenant Name': item.tenantName
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    
+    // Set column widths
+    worksheet["!cols"] = [
+      { wch: 15 }, // Date
+      { wch: 25 }, // Employee Name
+      { wch: 15 }, // In Time
+      { wch: 15 }, // Out Time
+      { wch: 10 }, // Mode
+      { wch: 10 }, // Status
+      { wch: 20 }, // Tenant Name
+    ];
+
+    // Apply styling
+    const range = XLSX.utils.decode_range(worksheet["!ref"]);
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = worksheet[cellAddress];
+
+        if (cell) {
+          if (!cell.s) cell.s = {};
+          if (!cell.s.alignment) cell.s.alignment = {};
+          cell.s.alignment.horizontal = "left";
+
+          // Header styling
+          if (R === 0) {
+            cell.s.font = { bold: true };
+            cell.s.fill = { fgColor: { rgb: "E6F3FF" } };
+          }
+        }
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, worksheet, "Attendance Report");
+    
+    const fileName = `Attendance_Report_${startDate.value}_to_${endDate.value}.xlsx`;
+      
+    XLSX.writeFile(wb, fileName);
+    showSuccessToast('Report exported successfully');
+  } catch (error) {
+    console.error('Error exporting to Excel:', error);
+    showErrorToast('Failed to export report');
+  }
 };
 
 // Initial fetch
