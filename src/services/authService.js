@@ -243,7 +243,7 @@ class AuthService {
         throw new Error("RESIGNED_USER");
       }
 
-      const response = await this.api.post("/sent-otp-sms", {
+      const response = await this.api.post("/login-sms-email", {
         phone,
         userApp: "fieldeasy",
       });
@@ -267,7 +267,7 @@ class AuthService {
       }
 
       // Step 1: Verify OTP using /directus/verify-otp
-      const verifyResponse = await this.api.post("/sent-otp-sms/verify-otp", {
+      const verifyResponse = await this.api.post("/login-sms-email/verify-otp", {
         phone,
         otp,
         otp_session_uuid: sessionUuid,

@@ -353,6 +353,13 @@ import QRCode from 'qrcode';
 import BaseButton from '@/components/common/buttons/BaseButton.vue';
 import { Save, Plus, Trash2, Copy, QrCode, Share2 } from 'lucide-vue-next';
 
+const props = defineProps({
+  placeId: {
+    type: [String, Number],
+    default: null
+  }
+});
+
 const formRef = ref(null);
 const saving = ref(false);
 const showSnackbar = ref(false);
@@ -396,8 +403,15 @@ const loadSites = async () => {
   try {
     const data = await visitorService.getSites();
     sites.value = data;
-    if (data.length > 0 && !settings.value.siteId) {
-      settings.value.siteId = data[0].id;
+    if (props.placeId) {
+      const placeIdNum = Number(props.placeId);
+      sites.value = data.filter(s => s.id === placeIdNum);
+      settings.value.siteId = placeIdNum;
+    } else {
+      sites.value = data;
+      if (data.length > 0 && !settings.value.siteId) {
+        settings.value.siteId = data[0].id;
+      }
     }
   } catch (error) {
     console.error('Error loading sites:', error);

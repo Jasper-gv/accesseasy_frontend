@@ -26,6 +26,8 @@
             prepend-inner-icon="mdi-office-building"
             placeholder="All Branches"
             class="flex-grow-1"
+            :disabled="!!placeId"
+            v-if="!placeId"
           />
           <v-autocomplete
             v-model="selectedProcess"
@@ -293,6 +295,13 @@ import { useRouter } from 'vue-router';
 import { visitorService } from '@/services/visitorService';
 import VisitorStatusBadge from '@/components/visitor/VisitorStatusBadge.vue';
 
+const props = defineProps({
+  placeId: {
+    type: [String, Number],
+    default: null
+  }
+});
+
 const router = useRouter();
 
 const selectedBranch = ref(null);
@@ -398,7 +407,14 @@ onMounted(async () => {
 const loadBranches = async () => {
   try {
     const data = await visitorService.getBranches();
-    branches.value = data;
+    if (props.placeId) {
+      // If placeId is provided, pre-select it and filter branches
+      const placeIdNum = Number(props.placeId);
+      branches.value = data.filter(b => b.value === placeIdNum);
+      selectedBranch.value = placeIdNum;
+    } else {
+      branches.value = data;
+    }
   } catch (error) {
     console.error('Error loading branches:', error);
   }

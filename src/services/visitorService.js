@@ -202,6 +202,7 @@ let mockVisitors = [
     status: 'approved',
     approvedBy: 'John Security',
     approvedAt: '2023-10-26T10:00:00Z',
+    branchId: 8818, // Main HQ
   },
   {
     id: 2,
@@ -213,6 +214,7 @@ let mockVisitors = [
     endTime: '12:00',
     accessLevel: 'Restricted Access',
     status: 'pending',
+    branchId: 8819, // Branch Office A
   },
 ];
 
@@ -595,6 +597,10 @@ export const visitorService = {
     let filtered = [...mockVisitors];
     if (filters.status) {
       filtered = filtered.filter(v => v.status === filters.status);
+    }
+    if (filters.placeId) {
+      const placeIdNum = Number(filters.placeId);
+      filtered = filtered.filter(v => v.branchId === placeIdNum);
     }
     return Promise.resolve(filtered);
   },

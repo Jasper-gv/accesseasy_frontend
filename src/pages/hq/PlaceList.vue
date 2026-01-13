@@ -122,7 +122,7 @@ const filteredPlaces = computed(() => {
 });
 
 const navigateToPlace = (id) => {
-  router.push(`/place/${id}`);
+  router.push(`/place/${id}/overview`);
 };
 </script>
 

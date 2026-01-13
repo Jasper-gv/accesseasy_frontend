@@ -28,7 +28,7 @@
           hide-details
         />
       </div>
-      <div style="width: 300px;">
+      <div style="width: 300px;" v-if="!placeId">
         <v-autocomplete
           v-model="selectedBranch"
           :items="branches"
@@ -190,6 +190,17 @@ import { useRouter } from 'vue-router';
 import { visitorService } from '@/services/visitorService';
 import BaseButton from '@/components/common/buttons/BaseButton.vue';
 
+const props = defineProps({
+  placeId: {
+    type: [String, Number],
+    default: null
+  },
+  scope: {
+    type: String,
+    default: 'global' // 'global' or 'local'
+  }
+});
+
 const emit = defineEmits(['change-view']);
 
 const router = useRouter();
@@ -208,7 +219,22 @@ const filteredTemplates = computed(() => {
   let result = templates.value;
 
   // Filter by Branch
-  if (selectedBranch.value) {
+  if (props.placeId) {
+    // Local Scope: Show templates for this specific branch OR all-branch templates
+    // Actually, for "Manage Templates" in a location, we probably only want to see templates SPECIFIC to this location?
+    // Or do we want to see global ones too? Usually local admins manage local templates.
+    // Let's assume they manage templates where selectedBranches INCLUDES this placeId.
+    const placeIdNum = Number(props.placeId);
+    result = result.filter(template => {
+       // In Place view, show templates that are either Global (all) OR specifically assigned to this branch
+       if (template.branchScope === 'all') return true; 
+       if (template.branchScope === 'specific' && template.selectedBranches) {
+         return template.selectedBranches.includes(placeIdNum);
+       }
+       return false;
+    });
+  } else if (selectedBranch.value) {
+    // Global Scope with Filter
     result = result.filter(template => {
       if (template.branchScope === 'all') return true;
       if (template.branchScope === 'specific' && template.selectedBranches) {

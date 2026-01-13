@@ -146,6 +146,7 @@ import Plans from "@/pages/settings/plans/plans.vue";
 
 import locateTable from "@/pages/locate/locateTable.vue";
 import Clientsadd from "@/pages/organization/clientsadd.vue";
+
 import Clientsedit from "@/pages/organization/clientsedit.vue";
 
 import Attendanceconfigtab from "@/pages/settings/attendanceconfigtab.vue";

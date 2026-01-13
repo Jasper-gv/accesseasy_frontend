@@ -113,7 +113,7 @@
           <v-card variant="outlined" class="mb-6">
             <v-card-title class="text-subtitle-1 font-weight-bold px-4 pt-4">Branch Visibility & Scope</v-card-title>
             <v-card-text>
-              <v-radio-group v-model="template.branchScope" color="primary">
+              <v-radio-group v-model="template.branchScope" color="primary" :disabled="!!placeId">
                 <v-radio label="All Branches (Default)" value="all">
                   <template v-slot:label>
                     <div>
@@ -146,6 +146,7 @@
                     chips
                     closable-chips
                     placeholder="Choose branches"
+                    :disabled="!!placeId"
                     :rules="[v => template.branchScope !== 'specific' || (v && v.length > 0) || 'Please select at least one branch']"
                   />
                 </div>
@@ -548,6 +549,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  placeId: {
+    type: [String, Number],
+    default: null,
+  },
 });
 
 const emit = defineEmits(['change-view']);
@@ -632,6 +637,10 @@ onMounted(async () => {
   if (isEditMode.value) {
     const templateId = props.templateId || route.params.id;
     await loadTemplate(templateId);
+  } else if (props.placeId) {
+    // Create mode with Place Context
+    template.value.branchScope = 'specific';
+    template.value.selectedBranches = [Number(props.placeId)];
   }
 });
 

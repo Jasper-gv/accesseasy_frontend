@@ -34,6 +34,11 @@
       align-tabs="start"
       class="visitor-tabs"
     >
+      <v-tab value="overview" v-if="canViewDashboard">
+        <v-icon icon="mdi-view-grid-outline" class="mr-2" />
+        Overview
+      </v-tab>
+
       <v-tab value="dashboard" v-if="canViewDashboard">
         <v-icon icon="mdi-view-dashboard" class="mr-2" />
         Dashboard
@@ -85,6 +90,10 @@
     <v-divider />
 
     <v-window v-model="activeTab" class="visitor-content">
+      <v-window-item value="overview" v-if="canViewDashboard">
+        <VisitorOverview @navigate="handleOverviewNavigation" />
+      </v-window-item>
+
       <v-window-item value="dashboard" v-if="canViewDashboard">
         <VisitorDashboard />
       </v-window-item>
@@ -128,6 +137,7 @@
 <script setup>
 import { ref, computed, onMounted, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import VisitorOverview from './VisitorOverview.vue';
 import VisitorDashboard from './dashboard/VisitorDashboard.vue';
 import VisitorRequest from './request/VisitorRequest.vue';
 import VisitorApprovals from './approvals/VisitorApprovals.vue';
@@ -144,7 +154,7 @@ import { visitorService } from '@/services/visitorService';
 const route = useRoute();
 const router = useRouter();
 
-const activeTab = ref('dashboard');
+const activeTab = ref('overview');
 const pendingCount = ref(0);
 
 // Role-based access control (hardcoded for demo)
@@ -204,8 +214,8 @@ onMounted(async () => {
 });
 
 const handleRoleChange = (newRole) => {
-  // Reset active tab to dashboard when role changes to ensure valid state
-  activeTab.value = 'dashboard';
+  // Reset active tab to overview when role changes to ensure valid state
+  activeTab.value = 'overview';
 };
 
 const fetchPendingCount = async () => {
@@ -219,6 +229,30 @@ const fetchPendingCount = async () => {
 
 const handleApprovalUpdate = () => {
   fetchPendingCount();
+};
+
+const handleOverviewNavigation = (action) => {
+  console.log('Navigating from overview:', action);
+  
+  switch (action) {
+    case 'create-template':
+      activeTab.value = 'templates';
+      currentTemplateView.value = VisitorTemplateEditor;
+      templateMode.value = 'create';
+      templateId.value = null;
+      break;
+    case 'configure-access-level':
+      router.push('/configuration/accesslevel-configurator');
+      break;
+    case 'configure-branch':
+      router.push('/configuration/configuration');
+      break;
+    case 'request':
+      activeTab.value = 'request';
+      break;
+    default:
+      console.warn('Unknown navigation action:', action);
+  }
 };
 </script>
 
