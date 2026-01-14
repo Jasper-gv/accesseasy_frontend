@@ -367,6 +367,13 @@ export default {
         subItems: [],
       },
       {
+        title: "Parking Management",
+        icon: "mdi-parking",
+        to: "/parking/dashboard",
+        roles: ["Admin", "Manager", "Security"],
+        subItems: [],
+      },
+      {
         title: "Overview",
         icon: "mdi-format-list-checkbox",
         to: "/taskManagement/taskcomponents",

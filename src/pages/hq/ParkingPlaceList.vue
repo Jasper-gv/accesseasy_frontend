@@ -1,10 +1,8 @@
 <template>
   <div>
     <div class="d-flex justify-space-between align-center mb-6">
-      <h1 class="text-h4 font-weight-bold">Places</h1>
-      <v-btn prepend-icon="mdi-plus" color="primary" variant="flat" @click="navigateToAddPlace">
-        Add New Place
-      </v-btn>
+      <h1 class="text-h4 font-weight-bold">Parking Management - Select Place</h1>
+      <!-- Removed Add New Place button as this is just for selection -->
     </div>
 
     <!-- Filters -->
@@ -42,7 +40,7 @@
           border 
           elevation="0" 
           class="h-100 cursor-pointer place-card"
-          @click="navigateToPlace(place.id)"
+          @click="navigateToParking(place.id)"
         >
           <v-img
             :src="place.image"
@@ -82,8 +80,8 @@
 
           <v-card-actions>
             <v-btn variant="text" color="primary" block>
-              Enter Workspace
-              <v-icon end>mdi-arrow-right</v-icon>
+              Manage Parking
+              <v-icon end>mdi-car</v-icon>
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -121,12 +119,8 @@ const filteredPlaces = computed(() => {
   });
 });
 
-const navigateToPlace = (id) => {
-  router.push(`/place/${id}/overview`);
-};
-
-const navigateToAddPlace = () => {
-  router.push('/configuration/branch/add');
+const navigateToParking = (id) => {
+  router.push(`/place/${id}/parking`);
 };
 </script>
 

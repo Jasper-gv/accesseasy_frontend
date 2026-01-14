@@ -35,6 +35,13 @@
         ></v-list-item>
 
         <v-list-item
+          prepend-icon="mdi-parking"
+          title="Parking"
+          to="/parking/dashboard"
+          active-class="text-primary bg-blue-lighten-5"
+        ></v-list-item>
+
+        <v-list-item
           prepend-icon="mdi-account-group-outline"
           title="People"
           to="/hq/people"

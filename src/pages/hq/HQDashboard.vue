@@ -95,6 +95,10 @@
               <v-icon start>mdi-account-check</v-icon>
               Visitor Management
             </v-btn>
+            <v-btn block variant="tonal" color="warning" class="mb-3 justify-start" to="/hq/parking">
+              <v-icon start>mdi-car</v-icon>
+              Parking Management
+            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>

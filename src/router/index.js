@@ -9,6 +9,12 @@ import PinVerification from "@/components/loginAuthentication/pinVerification.vu
 import Register from "@/components/loginAuthentication/register.vue";
 import DashboardLayout from "@/layouts/dashboardLayout.vue";
 
+import ParkingDashboard from "@/pages/parking/ParkingDashboard.vue";
+import ParkingLiveView from "@/pages/parking/ParkingLiveView.vue";
+import ParkingPricing from "@/pages/parking/ParkingPricing.vue";
+import ParkingVehicles from "@/pages/parking/ParkingVehicles.vue";
+import ParkingZones from "@/pages/parking/ParkingZones.vue";
+
 // All static imports at the top
 import DeviceManagementTabs from "../pages/devicesManager/deviceManagerTabs.vue";
 import UnapprovedDevices from "@/pages/devicesManager/unApprovedDevice/unApprovedDetails.vue";
@@ -170,6 +176,7 @@ import HQDashboard from "@/pages/hq/HQDashboard.vue";
 import PlaceList from "@/pages/hq/PlaceList.vue";
 import PeopleList from "@/pages/hq/PeopleList.vue";
 import GlobalAccessLevels from "@/pages/hq/GlobalAccessLevels.vue";
+import ParkingPlaceList from "@/pages/hq/ParkingPlaceList.vue";
 import PlaceLayout from "@/layouts/PlaceLayout.vue";
 import PlaceOverview from "@/pages/place/PlaceOverview.vue";
 import EntryQueue from "@/pages/place/EntryQueue.vue";
@@ -1162,6 +1169,56 @@ const routes = [
       // },
 
       {
+        path: "/hq",
+        component: HQLayout,
+        meta: { roles: ["Admin", "Manager"] },
+        children: [
+          {
+            path: "parking",
+            name: "HQParking",
+            component: ParkingPlaceList,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "places",
+            name: "HQPlaces",
+            component: PlaceList,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "people",
+            name: "HQPeople",
+            component: PeopleList,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "access-levels",
+            name: "HQAccessLevels",
+            component: GlobalAccessLevels,
+            meta: { roles: ["Admin", "Manager"] }
+          }
+        ]
+      },
+      {
+        path: "/place/:id",
+        component: PlaceLayout,
+        meta: { roles: ["Admin", "Manager"] },
+        children: [
+          {
+            path: "overview",
+            name: "PlaceOverview",
+            component: PlaceOverview,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "parking",
+            name: "PlaceParking",
+            component: ParkingDashboard,
+            meta: { roles: ["Admin", "Manager"] }
+          }
+        ]
+      },
+      {
         path: "/import",
         name: "import",
         component: Import,
@@ -1209,6 +1266,43 @@ const routes = [
             meta: { roles: ["Admin", "Manager"] },
           },
         ],
+      },
+      // Parking Management Module
+      {
+        path: "/parking",
+        component: () => import("@/layouts/ParkingLayout.vue"),
+        meta: { roles: ["Admin", "Manager", "Security"] },
+        children: [
+          {
+            path: "",
+            redirect: "dashboard"
+          },
+          {
+            path: "dashboard",
+            name: "ParkingDashboard",
+            component: () => import("@/pages/parking/ParkingDashboard.vue")
+          },
+          {
+            path: "live-view",
+            name: "ParkingLiveView",
+            component: () => import("@/pages/parking/ParkingLiveView.vue")
+          },
+          {
+            path: "zones",
+            name: "ParkingZones",
+            component: () => import("@/pages/parking/ParkingZones.vue")
+          },
+          {
+            path: "vehicles",
+            name: "ParkingVehicles",
+            component: () => import("@/pages/parking/ParkingVehicles.vue")
+          },
+          {
+            path: "pricing",
+            name: "ParkingPricing",
+            component: () => import("@/pages/parking/ParkingPricing.vue")
+          }
+        ]
       },
       {
         path: "/visitor",
