@@ -388,6 +388,8 @@ const fetchAccessLevels = async () => {
       "maxWorkHours",
       "holidays",
       "limitTime",
+      "doorBitmap",
+      "accessLevelBitmap"
       
     ];
 

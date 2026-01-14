@@ -360,6 +360,20 @@ export default {
     // Combined menu items (merged settingsMenuItems into menuItems)
     const menuItems = [
       {
+        title: "HQ Dashboard",
+        icon: "mdi-domain",
+        to: "/hq/dashboard",
+        roles: ["Admin", "Manager"],
+        subItems: [],
+      },
+      {
+        title: "Parking Management",
+        icon: "mdi-parking",
+        to: "/parking/dashboard",
+        roles: ["Admin", "Manager", "Security"],
+        subItems: [],
+      },
+      {
         title: "Overview",
         icon: "mdi-format-list-checkbox",
         to: "/taskManagement/taskcomponents",
@@ -481,6 +495,12 @@ export default {
             ],
           },
         ],
+      },
+      {
+        title: "Visitor Management",
+        icon: "mdi-account-clock-outline",
+        to: "/visitor-management",
+        roles: ["Admin", "Manager", "Security"],
       },
       // {
       //   title: "Expenses",
@@ -797,6 +817,7 @@ export default {
         "/configuration/designations": "Configurators",
         "/settings/leave-types": "Leave Types",
         "/settings/plans/plans": "Subscription & Plans",
+        "/visitor-management": "Visitor Management",
         "/taskManagement/taskcomponents/workOrder": "Work Orders",
         "/taskManagement/taskcomponents/workflow": "Workflow",
         "/taskManagement/Map/livetracking": "Live Tracking",

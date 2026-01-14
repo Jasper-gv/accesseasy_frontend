@@ -9,6 +9,12 @@ import PinVerification from "@/components/loginAuthentication/pinVerification.vu
 import Register from "@/components/loginAuthentication/register.vue";
 import DashboardLayout from "@/layouts/dashboardLayout.vue";
 
+import ParkingDashboard from "@/pages/parking/ParkingDashboard.vue";
+import ParkingLiveView from "@/pages/parking/ParkingLiveView.vue";
+import ParkingPricing from "@/pages/parking/ParkingPricing.vue";
+import ParkingVehicles from "@/pages/parking/ParkingVehicles.vue";
+import ParkingZones from "@/pages/parking/ParkingZones.vue";
+
 // All static imports at the top
 import DeviceManagementTabs from "../pages/devicesManager/deviceManagerTabs.vue";
 import UnapprovedDevices from "@/pages/devicesManager/unApprovedDevice/unApprovedDetails.vue";
@@ -60,6 +66,10 @@ import AttendanceDetails from "@/pages/report/attendance/attendanceTable.vue";
 import Workordergenerate from "@/pages/report/workordereport/workordergenerate.vue";
 
 import VisitorFlow from "@/pages/flow/visitorFlow.vue";
+
+// Visitor Management
+import VisitorManagementTabs from "@/pages/visitor/VisitorManagementTabs.vue";
+import WalkInRegistration from "@/pages/visitor/walkin/WalkInRegistration.vue";
 
 import QrGenerateTabs from "@/pages/qrgenerate/qrgenerateTabs.vue";
 import BulkQrGenerate from "@/pages/qrgenerate/bulkgenerate/qrgenerate.vue";
@@ -142,6 +152,7 @@ import Plans from "@/pages/settings/plans/plans.vue";
 
 import locateTable from "@/pages/locate/locateTable.vue";
 import Clientsadd from "@/pages/organization/clientsadd.vue";
+
 import Clientsedit from "@/pages/organization/clientsedit.vue";
 
 import Attendanceconfigtab from "@/pages/settings/attendanceconfigtab.vue";
@@ -158,6 +169,19 @@ import acessleveladd from "@/pages/accesslevel/acessleveladd.vue";
 import timerzone from "@/pages/accesslevel/timerzone.vue";
 import antipassbackMode from "@/pages/globalConfigurator/antipassbackMode.vue";
 import interlockMode from "@/pages/globalConfigurator/interlockMode.vue";
+
+// HQ & Place Components
+import HQLayout from "@/layouts/HQLayout.vue";
+import HQDashboard from "@/pages/hq/HQDashboard.vue";
+import PlaceList from "@/pages/hq/PlaceList.vue";
+import PeopleList from "@/pages/hq/PeopleList.vue";
+import GlobalAccessLevels from "@/pages/hq/GlobalAccessLevels.vue";
+import ParkingPlaceList from "@/pages/hq/ParkingPlaceList.vue";
+import PlaceLayout from "@/layouts/PlaceLayout.vue";
+import PlaceOverview from "@/pages/place/PlaceOverview.vue";
+import EntryQueue from "@/pages/place/EntryQueue.vue";
+import FlowManager from "@/pages/place/FlowManager.vue";
+// Place components will be imported as needed or lazy loaded
 
 const routes = [
   {
@@ -214,6 +238,12 @@ const routes = [
     name: "PinVerification",
     component: PinVerification,
     props: true,
+  },
+  {
+    path: "/visitor-register",
+    name: "VisitorRegister",
+    component: WalkInRegistration,
+    meta: { requiresAuth: false },
   },
   {
     path: "/taskManagement/taskcomponents",
@@ -308,6 +338,12 @@ const routes = [
             meta: { roles: ["Admin", "Manager", "Employee"] },
           },
         ],
+      },
+      {
+        path: "/visitor-management",
+        name: "VisitorManagement",
+        component: VisitorManagementTabs,
+        meta: { roles: ["Admin", "Manager", "Security"] },
       },
       {
         path: "/finger-data",
@@ -782,6 +818,126 @@ const routes = [
       },
       // configurator
       {
+        path: "/hq",
+        component: HQLayout,
+        meta: { requiresAuth: true }, // Assuming we want auth
+        children: [
+          {
+            path: "",
+            redirect: "dashboard"
+          },
+          {
+            path: "dashboard",
+            name: "HQDashboard",
+            component: HQDashboard
+          },
+          {
+            path: "places",
+            name: "PlaceList",
+            component: PlaceList
+          },
+          // Add other HQ routes here as placeholders
+          {
+            path: "people",
+            name: "PeopleList",
+            component: PeopleList
+          },
+          {
+            path: "access-levels",
+            name: "GlobalAccessLevels",
+            component: GlobalAccessLevels
+          },
+          {
+            path: "visitors",
+            component: () => import("@/pages/hq/visitors/HQVisitorLayout.vue"),
+            children: [
+              {
+                path: "",
+                redirect: "settings"
+              },
+              {
+                path: "settings",
+                name: "HQVisitorSettings",
+                component: () => import("@/pages/hq/visitors/HQVisitorSettings.vue")
+              },
+              {
+                path: "templates",
+                name: "HQVisitorTemplates",
+                component: () => import("@/pages/hq/visitors/HQVisitorTemplates.vue")
+              }
+            ]
+          },
+          {
+            path: "settings",
+            name: "HQSettings",
+            component: { template: '<div>HQ Settings (Coming Soon)</div>' }
+          }
+        ]
+      },
+      // Place Workspace
+      {
+        path: "/place/:placeId",
+        component: PlaceLayout,
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: "",
+            redirect: "overview"
+          },
+          {
+            path: "overview",
+            name: "PlaceOverview",
+            component: PlaceOverview
+          },
+          {
+            path: "entries",
+            name: "EntryQueue",
+            component: EntryQueue
+          },
+          {
+            path: "flows",
+            name: "FlowManager",
+            component: FlowManager
+          },
+          // Placeholders
+          {
+            path: "parking",
+            name: "ParkingManager",
+            component: { template: '<div>Parking Management (Coming Soon)</div>' }
+          },
+          {
+            path: "devices",
+            name: "DeviceManager",
+            component: { template: '<div>Device Management (Coming Soon)</div>' }
+          },
+          {
+            path: "visitors",
+            component: () => import("@/pages/place/visitors/PlaceVisitorLayout.vue"),
+            children: [
+              {
+                path: "",
+                redirect: "dashboard"
+              },
+              {
+                path: "dashboard",
+                name: "PlaceVisitorDashboard",
+                component: () => import("@/pages/place/visitors/PlaceVisitorDashboard.vue")
+              },
+              {
+                path: "operations",
+                name: "PlaceVisitorOperations",
+                component: () => import("@/pages/place/visitors/PlaceVisitorOperations.vue")
+              },
+              {
+                path: "settings",
+                name: "PlaceVisitorSettings",
+                component: () => import("@/pages/place/visitors/PlaceVisitorSettings.vue")
+              }
+            ]
+          }
+        ]
+      },
+      {
         path: "/configuration",
         name: "configuration",
         component: () =>
@@ -984,25 +1140,11 @@ const routes = [
             meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
           },
           {
-            path: "zone-configurator",
-            name: "zone-configurator",
-            component: () => import("@/pages/zones/ZonesList.vue"),
-            meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
-            children: [
-              {
-                path: "add",
-                name: "add-zone",
-                component: () => import("@/pages/zones/ZoneForm.vue"),
-                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
-              },
-              {
-                path: "edit/:id",
-                name: "edit-zone",
-                component: () => import("@/pages/zones/ZoneForm.vue"),
-                props: true,
-                meta: { roles: ["Admin", "esslAdmin", "Dealer"] },
-              },
-            ],
+            path: "visitor-configurator",
+            name: "visitor-configurator",
+            component: () =>
+              import("@/pages/visitor/admin/VisitorSettings.vue"),
+            meta: { roles: ["Admin", "Manager"] },
           },
         ],
       },
@@ -1026,6 +1168,56 @@ const routes = [
       //   meta: { roles: ["Admin"] },
       // },
 
+      {
+        path: "/hq",
+        component: HQLayout,
+        meta: { roles: ["Admin", "Manager"] },
+        children: [
+          {
+            path: "parking",
+            name: "HQParking",
+            component: ParkingPlaceList,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "places",
+            name: "HQPlaces",
+            component: PlaceList,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "people",
+            name: "HQPeople",
+            component: PeopleList,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "access-levels",
+            name: "HQAccessLevels",
+            component: GlobalAccessLevels,
+            meta: { roles: ["Admin", "Manager"] }
+          }
+        ]
+      },
+      {
+        path: "/place/:id",
+        component: PlaceLayout,
+        meta: { roles: ["Admin", "Manager"] },
+        children: [
+          {
+            path: "overview",
+            name: "PlaceOverview",
+            component: PlaceOverview,
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
+            path: "parking",
+            name: "PlaceParking",
+            component: ParkingDashboard,
+            meta: { roles: ["Admin", "Manager"] }
+          }
+        ]
+      },
       {
         path: "/import",
         name: "import",
@@ -1074,6 +1266,43 @@ const routes = [
             meta: { roles: ["Admin", "Manager"] },
           },
         ],
+      },
+      // Parking Management Module
+      {
+        path: "/parking",
+        component: () => import("@/layouts/ParkingLayout.vue"),
+        meta: { roles: ["Admin", "Manager", "Security"] },
+        children: [
+          {
+            path: "",
+            redirect: "dashboard"
+          },
+          {
+            path: "dashboard",
+            name: "ParkingDashboard",
+            component: () => import("@/pages/parking/ParkingDashboard.vue")
+          },
+          {
+            path: "live-view",
+            name: "ParkingLiveView",
+            component: () => import("@/pages/parking/ParkingLiveView.vue")
+          },
+          {
+            path: "zones",
+            name: "ParkingZones",
+            component: () => import("@/pages/parking/ParkingZones.vue")
+          },
+          {
+            path: "vehicles",
+            name: "ParkingVehicles",
+            component: () => import("@/pages/parking/ParkingVehicles.vue")
+          },
+          {
+            path: "pricing",
+            name: "ParkingPricing",
+            component: () => import("@/pages/parking/ParkingPricing.vue")
+          }
+        ]
       },
       {
         path: "/visitor",

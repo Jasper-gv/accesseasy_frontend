@@ -172,10 +172,10 @@ const configurators = [
     ],
   },
   {
-    id: "zone",
-    label: "Zone Configurator",
+    id: "visitor",
+    label: "Visitor Configurator",
     subsections: [
-      { id: "zone-configurator", label: "Manage Zones" },
+      { id: "visitor-configurator", label: "Visitor Management" },
     ],
   },
 ];
