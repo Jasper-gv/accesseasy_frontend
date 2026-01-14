@@ -170,6 +170,93 @@
           <v-btn text v-bind="attrs" @click="showSuccess = false">Close</v-btn>
         </template>
       </v-snackbar>
+
+      <!-- Fetch from Device Dialog -->
+      <v-dialog v-model="showDeviceDialog" max-width="500px">
+        <v-card>
+          <v-card-title class="text-h6 pa-4">
+            Fetch Logs from Device
+          </v-card-title>
+          <v-card-text class="pa-4">
+            <v-select
+              v-model="selectedDevice"
+              :items="deviceList"
+              item-title="title"
+              item-value="value"
+              label="Select Device"
+              variant="outlined"
+              density="compact"
+              class="mb-4"
+              :loading="loadingDevices"
+              no-data-text="No devices found"
+            ></v-select>
+
+            <!-- Date Type Selection -->
+            <v-radio-group v-model="dateType" inline class="mb-2">
+              <v-radio label="Single Date" value="single"></v-radio>
+              <v-radio label="Multiple Date" value="multiple"></v-radio>
+            </v-radio-group>
+            
+            <!-- Single Date Mode -->
+            <v-row v-if="dateType === 'single'">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="fetchDate"
+                  type="date"
+                  label="Date"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="fetchTime"
+                  type="time"
+                  label="Time"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <!-- Multiple Date Mode -->
+            <v-row v-else>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="fetchFromDate"
+                  type="date"
+                  label="From Date"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="fetchToDate"
+                  type="date"
+                  label="To Date"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions class="pa-4 pt-0 justify-end">
+            <BaseButton
+              variant="secondary"
+              text="Cancel"
+              @click="showDeviceDialog = false"
+              class="mr-2"
+            />
+            <BaseButton
+              variant="primary"
+              text="Send Request"
+              @click="sendDeviceRequest"
+              :disabled="!isFormValid"
+            />
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-container>
   </v-app>
 </template>
@@ -199,6 +286,26 @@ const showError = ref(false);
 const errorMessage = ref("");
 const showSuccess = ref(false);
 const successMessage = ref("");
+
+// Fetch from Device State
+const showDeviceDialog = ref(false);
+const deviceList = ref([]);
+const selectedDevice = ref(null);
+const dateType = ref('single');
+const fetchDate = ref(new Date().toISOString().substr(0, 10));
+const fetchTime = ref("00:00");
+const fetchFromDate = ref(new Date().toISOString().substr(0, 10));
+const fetchToDate = ref(new Date().toISOString().substr(0, 10));
+const loadingDevices = ref(false);
+
+const isFormValid = computed(() => {
+  if (!selectedDevice.value) return false;
+  if (dateType.value === 'single') {
+    return fetchDate.value && fetchTime.value;
+  } else {
+    return fetchFromDate.value && fetchToDate.value;
+  }
+});
 
 // Pagination State
 const currentPage = ref(1);
@@ -361,25 +468,78 @@ const fetchLogs = async () => {
   }
 };
 
-const fetchLogsFromDevice = async () => {
-  isFetchingFromDevice.value = true;
+const fetchDevices = async () => {
+  loadingDevices.value = true;
   try {
-    // Placeholder for device fetch logic
-    // This would typically involve calling an API endpoint that triggers the device to sync logs
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
+    const params = new URLSearchParams();
+    params.append('filter[tenant][tenantId][_eq]', 'c06d5756-422f-42c7-a581-5b225c39b145');
     
-    // TODO: Replace with actual API call
-    // const response = await fetch(`${import.meta.env.VITE_API_URL}/device/sync-logs`, ...);
-    
-    showSuccessToast('Request sent to device to fetch logs. Please refresh in a few moments.');
-    // Optionally trigger a refresh of the logs table
-    // await fetchLogs();
+    const fields = [
+      'controllerName',
+      'id',
+      'selectedDoors',
+      'deviceName',
+      'controllerType',
+      'sn'
+    ];
+    fields.forEach(f => params.append('fields[]', f));
+
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/items/controllers?${params.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch devices');
+
+    const data = await response.json();
+    deviceList.value = data.data.map(device => ({
+      title: `${device.sn} - ${device.deviceName}`,
+      value: device.id
+    }));
   } catch (error) {
-    console.error('Error fetching logs from device:', error);
-    showErrorToast('Failed to send request to device');
+    console.error('Error fetching devices:', error);
+    showErrorToast('Failed to fetch devices');
   } finally {
-    isFetchingFromDevice.value = false;
+    loadingDevices.value = false;
   }
+};
+
+const openDeviceDialog = () => {
+  showDeviceDialog.value = true;
+  fetchDevices();
+};
+
+const sendDeviceRequest = async () => {
+  if (!isFormValid.value) {
+    showErrorToast('Please fill in all fields');
+    return;
+  }
+
+  const payload = {
+    deviceId: selectedDevice.value,
+    dateType: dateType.value
+  };
+
+  if (dateType.value === 'single') {
+    payload.date = fetchDate.value;
+    payload.time = fetchTime.value;
+  } else {
+    payload.fromDate = fetchFromDate.value;
+    payload.toDate = fetchToDate.value;
+  }
+
+  console.log('Sending request to device:', payload);
+  
+  // TODO: Implement actual API call here
+  // await api.post('/device/fetch-logs', payload);
+
+  showDeviceDialog.value = false;
+  showSuccessToast('Request sent to device successfully');
+};
+
+const fetchLogsFromDevice = async () => {
+  openDeviceDialog();
 };
 
 const exportToExcel = () => {
