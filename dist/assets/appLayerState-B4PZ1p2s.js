@@ -1,0 +1,1 @@
+import{L as c,E as o}from"./index-B12n8wa1.js";const s="accesseasy_app_layer_state",a=localStorage.getItem(s),r=a?JSON.parse(a):{selectedPlaceId:null,selectedPlaceName:"All Places"},t=c(r);o(()=>t,e=>{localStorage.setItem(s,JSON.stringify(e))},{deep:!0});const n=(e,l)=>{t.selectedPlaceId=e,t.selectedPlaceName=l||"All Places"};export{t as a,n as s};

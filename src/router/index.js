@@ -1569,6 +1569,54 @@ const routes = [
       },
     ],
   },
+  {
+    path: "/staff-portal",
+    name: "StaffPortal",
+    component: () => import("@/pages/public/StaffPortal.vue"),
+    meta: { layout: "blank" }
+  },
+  // App Layer Routes
+  {
+    path: "/apps",
+    component: () => import("@/layouts/AppLayerLayout.vue"),
+    meta: { requiresAuth: true },
+    children: [
+      { path: "", component: () => import("@/pages/apps/MainDashboard.vue"), meta: { title: "Operations Overview" } },
+      { path: "places", component: () => import("@/pages/apps/places/PlacesList.vue"), meta: { title: "Places" } },
+      { path: "places/new", component: () => import("@/pages/apps/places/PlaceForm.vue"), meta: { title: "Add Place" } },
+      { path: "places/:id/edit", component: () => import("@/pages/apps/places/PlaceForm.vue"), meta: { title: "Edit Place" } },
+      { path: "places/settings", component: () => import("@/pages/apps/places/PlaceSettings.vue"), meta: { title: "Place Settings" } },
+      { path: "places/membership", component: () => import("@/pages/apps/places/MembershipSales.vue"), meta: { title: "Membership Sales" } },
+      { path: "visitor", component: () => import("@/pages/apps/visitor/VisitorDashboard.vue"), meta: { title: "Visitor Management" } },
+      { path: "validator", component: () => import("@/pages/apps/security/AccessValidator.vue"), meta: { title: "Access Validator" } },
+      { path: "parking", component: () => import("@/pages/apps/parking/ParkingDashboard.vue"), meta: { title: "Parking Management", roles: ["Admin", "Security", "Manager"] } },
+      { path: "canteen/validator", component: () => import("@/pages/apps/canteen/CanteenValidator.vue"), meta: { title: "Canteen Validator" } },
+      { path: "canteen", component: () => import("@/pages/apps/canteen/CanteenDashboard.vue"), meta: { title: "Canteen Management" } },
+      { path: "storefront", component: () => import("@/pages/apps/storefront/StoreConfigurator.vue"), meta: { title: "Store Configurator" } },
+      { path: "saas", component: () => import("@/pages/apps/saas/SaaSAdminDashboard.vue"), meta: { title: "SaaS Control Center" } },
+      { path: "access-levels", component: () => import("@/pages/apps/places/AccessLevelManager.vue"), meta: { title: "Access Levels" } },
+      { path: "analytics", component: () => import("@/pages/apps/analytics/LocationAnalytics.vue"), meta: { title: "Analytics" } },
+
+      { path: "places/:id/dashboard", component: () => import("@/pages/apps/places/PlaceDashboard.vue"), meta: { title: "Place Dashboard" } },
+    ]
+  },
+  {
+    path: "/go/app/:placeId",
+    component: () => import("@/pages/public/DynamicPWA.vue"),
+    meta: {
+      requiresAuth: false
+    }
+  },
+  {
+    path: "/go/visitor-entry",
+    component: () => import("@/pages/public/VisitorEntry.vue"),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: "/go/canteen",
+    component: () => import("@/pages/public/CanteenClientApp.vue"),
+    meta: { requiresAuth: false }
+  },
 ];
 
 const router = createRouter({
@@ -1606,7 +1654,8 @@ router.beforeEach(async (to, from, next) => {
   if (
     inactiveTime > inactivityTimeout &&
     to.path !== "/login" &&
-    !to.path.startsWith("/pin-verification")
+    !to.path.startsWith("/pin-verification") &&
+    !to.path.startsWith("/go/")
   ) {
     console.log("Inactive for 1hr, redirecting to login");
     localStorage.setItem("inactivityRedirect", "true");
@@ -1617,7 +1666,8 @@ router.beforeEach(async (to, from, next) => {
     to.path === "/login" ||
     to.path === "/register" ||
     to.path === "/verify" ||
-    to.path.startsWith("/pin-verification")
+    to.path.startsWith("/pin-verification") ||
+    to.path.startsWith("/go/")
   ) {
     return next();
   }
