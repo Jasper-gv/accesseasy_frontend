@@ -902,8 +902,9 @@ const routes = [
           // Placeholders
           {
             path: "parking",
-            name: "ParkingManager",
-            component: { template: '<div>Parking Management (Coming Soon)</div>' }
+            name: "PlaceParking",
+            component: ParkingDashboard,
+            meta: { roles: ["Admin", "Manager"] }
           },
           {
             path: "devices",
@@ -1199,25 +1200,7 @@ const routes = [
           }
         ]
       },
-      {
-        path: "/place/:id",
-        component: PlaceLayout,
-        meta: { roles: ["Admin", "Manager"] },
-        children: [
-          {
-            path: "overview",
-            name: "PlaceOverview",
-            component: PlaceOverview,
-            meta: { roles: ["Admin", "Manager"] }
-          },
-          {
-            path: "parking",
-            name: "PlaceParking",
-            component: ParkingDashboard,
-            meta: { roles: ["Admin", "Manager"] }
-          }
-        ]
-      },
+
       {
         path: "/import",
         name: "import",

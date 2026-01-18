@@ -74,6 +74,19 @@
           active-class="text-primary bg-blue-lighten-5"
         ></v-list-item>
       </v-list>
+      
+      <v-divider class="my-2"></v-divider>
+
+      <v-list nav>
+        <v-list-subheader>PARKING MANAGEMENT</v-list-subheader>
+
+        <v-list-item
+          prepend-icon="mdi-car-parking-lights"
+          title="Dashboard"
+          :to="`/place/${placeId}/parking`"
+          active-class="text-primary bg-blue-lighten-5"
+        ></v-list-item>
+      </v-list>
     </v-navigation-drawer>
 
     <!-- Main Content -->

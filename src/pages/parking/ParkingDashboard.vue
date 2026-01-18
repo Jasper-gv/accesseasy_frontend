@@ -99,7 +99,7 @@ import { accessService } from '@/services/accessService';
 
 const route = useRoute();
 const router = useRouter();
-const placeId = ref(route.params.id);
+const placeId = ref(route.params.placeId);
 const placeName = ref('');
 const placesList = ref([]);
 const selectedPlaceId = ref(null);
@@ -126,7 +126,7 @@ const switchPlace = (newId) => {
   }
 };
 
-watch(() => route.params.id, (newId) => {
+watch(() => route.params.placeId, (newId) => {
   placeId.value = newId;
   loadPlaceData();
 });
