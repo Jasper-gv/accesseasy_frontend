@@ -85,7 +85,7 @@
         <v-list-subheader class="text-uppercase text-caption font-weight-bold">Operations</v-list-subheader>
         
         <v-list-item
-          to="/apps/places/membership"
+          to="/apps/membership"
           prepend-icon="mdi-card-account-details-outline"
           title="Membership Sales"
           active-class="bg-primary-lighten-5 text-primary"

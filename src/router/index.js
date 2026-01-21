@@ -1631,6 +1631,18 @@ const routes = [
     ]
   },
   {
+    path: "/apps/Membershipplan",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/places/AccessLevelManager.vue"),
+        meta: { title: "Membership Plan", roles: ["Admin", "Security", "Manager"] }
+      }
+    ]
+  },
+  {
     path: "/apps/canteen",
     component: DashboardLayout,
     meta: { requiresAuth: true },

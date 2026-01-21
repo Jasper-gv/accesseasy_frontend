@@ -22,6 +22,10 @@
         <v-icon start>mdi-food-fork-drink</v-icon> 
         Canteen Settings
       </v-tab>
+      <v-tab v-if="config.modules.membership" value="plan" class="custom-tab">
+        <v-icon start>mdi-card-account-details-outline</v-icon> 
+        Membership Plans
+      </v-tab>
       <v-tab value="domain" class="custom-tab">
         <v-icon start>mdi-web</v-icon> 
         Custom Domain
@@ -29,10 +33,6 @@
       <v-tab v-if="config.modules.wallet" value="wallet" class="custom-tab">
         <v-icon start>mdi-wallet-membership</v-icon> 
         Wallet & Features
-      </v-tab>
-      <v-tab v-if="config.modules.membership" value="plan" class="custom-tab">
-        <v-icon start>mdi-card-account-details-outline</v-icon> 
-        Membership Plans
       </v-tab>
     </v-tabs>
 
@@ -292,6 +292,28 @@
                     </v-card>
                 </v-col>
             </v-row>
+        </div>
+        </v-window-item>
+
+        <!-- TAB 4: Plan & Billing -->
+        <v-window-item v-if="config.modules.membership" value="plan">
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
+            <v-card elevation="0" border>
+                <div class="d-flex align-center justify-space-between pa-4 bg-grey-lighten-5 border-bottom">
+                    <div>
+                        <h3 class="text-h6 font-weight-bold">Membership & Access Plans</h3>
+                        <p class="text-caption text-grey-darken-1 mb-0">Define the memberships and passes available for sale at this location</p>
+                    </div>
+                </div>
+                <div class="pa-4">
+                     <AccessLevelManager 
+                        :embedded="true" 
+                        :place-id="placeId" 
+                        :visitor-settings="config.visitorSettings"
+                        :parking-settings="config.parkingSettings"
+                     />
+                </div>
+            </v-card>
         </div>
         </v-window-item>
 
@@ -919,27 +941,7 @@
         </div>
         </v-window-item>
 
-        <!-- TAB 4: Plan & Billing -->
-        <v-window-item v-if="config.modules.membership" value="plan">
-        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
-            <v-card elevation="0" border>
-                <div class="d-flex align-center justify-space-between pa-4 bg-grey-lighten-5 border-bottom">
-                    <div>
-                        <h3 class="text-h6 font-weight-bold">Membership & Access Plans</h3>
-                        <p class="text-caption text-grey-darken-1 mb-0">Define the memberships and passes available for sale at this location</p>
-                    </div>
-                </div>
-                <div class="pa-4">
-                     <AccessLevelManager 
-                        :embedded="true" 
-                        :place-id="placeId" 
-                        :visitor-settings="config.visitorSettings"
-                        :parking-settings="config.parkingSettings"
-                     />
-                </div>
-            </v-card>
-        </div>
-        </v-window-item>
+
     </v-window>
     </v-card>
 

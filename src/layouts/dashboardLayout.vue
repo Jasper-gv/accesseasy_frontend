@@ -417,6 +417,12 @@ export default {
         to: "/apps/membership",
         roles: ["Admin", "Manager"],
       },
+      {
+        title: "Memberships",
+        icon: "mdi-card-account-details-outline",
+        to: "/apps/Membershipplan",
+        roles: ["Admin", "Manager"],
+      },
 
 
       // {
