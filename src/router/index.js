@@ -790,6 +790,12 @@ const routes = [
           ),
         children: [
           {
+            path: "store-configurator",
+            name: "store-configurator",
+            component: () => import("@/pages/apps/storefront/StoreConfigurator.vue"),
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
             path: "payroll-policy",
             name: "Payrollpolicy",
             component: () =>
@@ -1577,6 +1583,96 @@ const routes = [
   },
   // App Layer Routes
   {
+    path: "/apps/operations",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/MainDashboard.vue"),
+        meta: { title: "Operations Overview" }
+      }
+    ]
+  },
+  {
+    path: "/apps/saas",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/saas/SaaSAdminDashboard.vue"),
+        meta: { title: "SaaS Control Center" }
+      }
+    ]
+  },
+  {
+    path: "/apps/visitor",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/visitor/VisitorDashboard.vue"),
+        meta: { title: "Visitor Management" }
+      }
+    ]
+  },
+  {
+    path: "/apps/parking",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/parking/ParkingDashboard.vue"),
+        meta: { title: "Parking Management", roles: ["Admin", "Security", "Manager"] }
+      }
+    ]
+  },
+  {
+    path: "/apps/canteen",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/canteen/CanteenDashboard.vue"),
+        meta: { title: "Canteen Management" }
+      },
+      {
+        path: "validator",
+        component: () => import("@/pages/apps/canteen/CanteenValidator.vue"),
+        meta: { title: "Canteen Validator" }
+      }
+    ]
+  },
+  {
+    path: "/apps/validator",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/security/AccessValidator.vue"),
+        meta: { title: "Access Validator" }
+      }
+    ]
+  },
+
+  {
+    path: "/apps/membership",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/apps/places/MembershipSales.vue"),
+        meta: { title: "Membership Sales" }
+      }
+    ]
+  },
+  {
     path: "/apps",
     component: () => import("@/layouts/AppLayerLayout.vue"),
     meta: { requiresAuth: true },
@@ -1586,14 +1682,8 @@ const routes = [
       { path: "places/new", component: () => import("@/pages/apps/places/PlaceForm.vue"), meta: { title: "Add Place" } },
       { path: "places/:id/edit", component: () => import("@/pages/apps/places/PlaceForm.vue"), meta: { title: "Edit Place" } },
       { path: "places/settings", component: () => import("@/pages/apps/places/PlaceSettings.vue"), meta: { title: "Place Settings" } },
-      { path: "places/membership", component: () => import("@/pages/apps/places/MembershipSales.vue"), meta: { title: "Membership Sales" } },
-      { path: "visitor", component: () => import("@/pages/apps/visitor/VisitorDashboard.vue"), meta: { title: "Visitor Management" } },
-      { path: "validator", component: () => import("@/pages/apps/security/AccessValidator.vue"), meta: { title: "Access Validator" } },
-      { path: "parking", component: () => import("@/pages/apps/parking/ParkingDashboard.vue"), meta: { title: "Parking Management", roles: ["Admin", "Security", "Manager"] } },
-      { path: "canteen/validator", component: () => import("@/pages/apps/canteen/CanteenValidator.vue"), meta: { title: "Canteen Validator" } },
-      { path: "canteen", component: () => import("@/pages/apps/canteen/CanteenDashboard.vue"), meta: { title: "Canteen Management" } },
-      { path: "storefront", component: () => import("@/pages/apps/storefront/StoreConfigurator.vue"), meta: { title: "Store Configurator" } },
-      { path: "saas", component: () => import("@/pages/apps/saas/SaaSAdminDashboard.vue"), meta: { title: "SaaS Control Center" } },
+
+
       { path: "access-levels", component: () => import("@/pages/apps/places/AccessLevelManager.vue"), meta: { title: "Access Levels" } },
       { path: "analytics", component: () => import("@/pages/apps/analytics/LocationAnalytics.vue"), meta: { title: "Analytics" } },
 

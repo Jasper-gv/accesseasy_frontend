@@ -104,6 +104,13 @@
             >
               Try Free Trial Instead
             </button>
+             <button
+              @click="$router.push('/apps/storefront?placeId=1')"
+              class="btn configure-btn"
+              title="Configure Storefront"
+            >
+              <i class="mdi mdi-store-cog"></i> Configure
+            </button>
           </div>
         </div>
       </div>
@@ -1674,5 +1681,18 @@ onMounted(async () => {
   to {
     transform: rotate(360deg);
   }
+
+}
+
+.configure-btn {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.configure-btn:hover {
+  background-color: #e0e0e0;
 }
 </style>

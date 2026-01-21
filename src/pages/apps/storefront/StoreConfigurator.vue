@@ -1,81 +1,55 @@
 <template>
   <div v-if="placeId" class="storefront-config">
-    <div class="config-header mb-8">
-      <div class="d-flex justify-space-between align-center flex-wrap">
-        <div class="mb-4 mb-md-0">
-          <div class="d-flex align-center mb-2">
-            <v-avatar color="primary-lighten-5" size="48" class="mr-3">
-              <v-icon color="primary" size="28">mdi-storefront</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h3 font-weight-bold">
-                Storefront Configurator
-              </h1>
-              <p class="text-body-2 text-grey-darken-1 mb-0">{{ config.appName || 'Your Application' }}</p>
-            </div>
-          </div>
-          <p class="text-subtitle-2 text-grey-darken-1 mb-0">Customize branding, features, domain setup, and membership plans</p>
-        </div>
-        <div class="d-flex gap-2">
-
-          <v-btn 
-            color="primary" 
-            @click="save" 
-            :loading="saving" 
-            prepend-icon="mdi-content-save"
-            size="large"
-            elevation="2"
-            class="px-6"
-          >
-            Save All Changes
-          </v-btn>
-        </div>
-      </div>
-      <v-alert v-if="hasUnsavedChanges" type="warning" variant="tonal" density="compact" class="mt-4">
-        <v-icon start>mdi-alert</v-icon>
-        You have unsaved changes. Don't forget to save!
-      </v-alert>
-    </div>
-
     <v-tabs 
       v-model="activeTab" 
       bg-color="transparent" 
-      color="primary" 
-      class="mb-6 elevation-0"
-      slider-color="primary"
+      class="custom-tabs"
       show-arrows
     >
-      <v-tab value="branding" class="text-none font-weight-medium px-6">
+      <v-tab value="branding" class="custom-tab">
         <v-icon start>mdi-palette</v-icon> 
         Branding & Features
       </v-tab>
-      <v-tab v-if="config.modules.visitor" value="visitor-settings" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.visitor" value="visitor-settings" class="custom-tab">
         <v-icon start>mdi-account-cog</v-icon> 
         Visitor Settings
       </v-tab>
-      <v-tab v-if="config.modules.parking" value="parking-settings" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.parking" value="parking-settings" class="custom-tab">
         <v-icon start>mdi-car-cog</v-icon> 
         Parking Settings
       </v-tab>
-      <v-tab v-if="config.modules.canteen" value="canteen-settings" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.canteen" value="canteen-settings" class="custom-tab">
         <v-icon start>mdi-food-fork-drink</v-icon> 
         Canteen Settings
       </v-tab>
-      <v-tab value="domain" class="text-none font-weight-medium px-6">
+      <v-tab value="domain" class="custom-tab">
         <v-icon start>mdi-web</v-icon> 
         Custom Domain
       </v-tab>
-      <v-tab v-if="config.modules.wallet" value="wallet" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.wallet" value="wallet" class="custom-tab">
         <v-icon start>mdi-wallet-membership</v-icon> 
         Wallet & Features
       </v-tab>
-      <v-tab v-if="config.modules.membership" value="plan" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.membership" value="plan" class="custom-tab">
         <v-icon start>mdi-card-account-details-outline</v-icon> 
         Membership Plans
       </v-tab>
     </v-tabs>
 
-    <v-window v-model="activeTab">
+    <!-- Feature Design Row with Save Button -->
+    <div class="d-flex justify-end align-center mb-4">
+      <BaseButton 
+        text="Save All Changes" 
+        variant="primary" 
+        size="lg"
+        :loading="saving"
+        @click="save"
+      />
+    </div>
+
+    <v-card class="tab-content-wrapper" elevation="0">
+      <v-window v-model="activeTab">
+        <!-- All window items remain the same -->
         <!-- TAB 1: Branding (Enhanced) -->
         <v-window-item value="branding">
             <v-row>
@@ -241,6 +215,7 @@
 
         <!-- TAB: Canteen Settings -->
         <v-window-item v-if="config.modules.canteen" value="canteen-settings">
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
             <v-row>
                 <v-col cols="12" md="8">
                     <v-card class="mb-6 elevation-2">
@@ -317,315 +292,319 @@
                     </v-card>
                 </v-col>
             </v-row>
+        </div>
         </v-window-item>
 
 
         <!-- TAB: Visitor Settings -->
         <v-window-item v-if="config.modules.visitor" value="visitor-settings">
-            <v-row>
-                <v-col cols="12" md="8">
-                    <!-- Template Manager -->
-                    <v-card class="mb-6 elevation-2">
-                        <v-card-title class="pa-4 bg-blue-lighten-5 d-flex align-center justify-space-between">
-                            <div class="d-flex align-center">
-                                <v-icon color="blue" class="mr-2">mdi-account-details</v-icon>
-                                <div>
-                                    <div class="text-h6 font-weight-bold">Visitor Form Templates</div>
-                                    <div class="text-caption text-grey-darken-2">Create multiple entry forms for different visitor types</div>
+            <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
+                <v-row>
+                    <v-col cols="12" md="8">
+                        <!-- Template Manager -->
+                        <v-card class="mb-6 elevation-2">
+                            <v-card-title class="pa-4 bg-blue-lighten-5 d-flex align-center justify-space-between">
+                                <div class="d-flex align-center">
+                                    <v-icon color="blue" class="mr-2">mdi-account-details</v-icon>
+                                    <div>
+                                        <div class="text-h6 font-weight-bold">Visitor Form Templates</div>
+                                        <div class="text-caption text-grey-darken-2">Create multiple entry forms for different visitor types</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <v-btn color="blue" prepend-icon="mdi-plus" @click="openTemplateDialog('Visitor')">
-                                Add Visitor Type
-                            </v-btn>
-                        </v-card-title>
-                        <v-card-text class="pa-4">
-                            <v-row v-if="visitorTemplates.length">
-                                <v-col v-for="temp in visitorTemplates" :key="temp.id" cols="12" sm="6">
-                                    <v-card variant="outlined" class="pa-4 border-dashed">
-                                        <div class="d-flex justify-space-between align-start mb-2">
-                                            <div class="text-subtitle-1 font-weight-bold">{{ temp.name }}</div>
-                                            <div class="d-flex gap-1">
-                                                <v-btn icon="mdi-pencil" size="x-small" variant="text" color="blue" @click="openTemplateDialog('Visitor', temp)"></v-btn>
-                                                <v-btn icon="mdi-delete" size="x-small" variant="text" color="error" @click="deleteTemplate(temp.id)"></v-btn>
+                                <v-btn color="blue" prepend-icon="mdi-plus" @click="openTemplateDialog('Visitor')">
+                                    Add Visitor Type
+                                </v-btn>
+                            </v-card-title>
+                            <v-card-text class="pa-4">
+                                <v-row v-if="visitorTemplates.length">
+                                    <v-col v-for="temp in visitorTemplates" :key="temp.id" cols="12" sm="6">
+                                        <v-card variant="outlined" class="pa-4 border-dashed">
+                                            <div class="d-flex justify-space-between align-start mb-2">
+                                                <div class="text-subtitle-1 font-weight-bold">{{ temp.name }}</div>
+                                                <div class="d-flex gap-1">
+                                                    <v-btn icon="mdi-pencil" size="x-small" variant="text" color="blue" @click="openTemplateDialog('Visitor', temp)"></v-btn>
+                                                    <v-btn icon="mdi-delete" size="x-small" variant="text" color="error" @click="deleteTemplate(temp.id)"></v-btn>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="d-flex align-center mb-3">
-                                            <v-chip size="x-small" color="blue" class="mr-2">{{ temp.accessMode }}</v-chip>
-                                            <v-chip size="x-small" color="success" v-if="temp.membershipPlanId">
-                                                <v-icon start size="12">mdi-tag</v-icon>
-                                                {{ membershipPlansList.find(p => p.id === temp.membershipPlanId)?.name || 'Tagged Plan' }}
-                                            </v-chip>
-                                        </div>
-                                        <div class="text-caption text-grey">Linked Access: {{ temp.membershipPlanId ? 'Membership Level' : 'Standard Guest' }}</div>
-                                    </v-card>
-                                </v-col>
-                            </v-row>
-                            <div v-else class="text-center pa-8 border-dashed rounded-lg bg-grey-lighten-4">
-                                <v-icon size="48" color="grey-lighten-1">mdi-account-multiple-plus</v-icon>
-                                <div class="text-subtitle-1 text-grey-darken-1 mt-2">No templates configured</div>
-                                <v-btn variant="text" color="blue" size="small" @click="openTemplateDialog('Visitor')">Create your first form</v-btn>
-                            </div>
-                        </v-card-text>
-                    </v-card>
-
-                    <v-card class="mb-4" elevation="3">
-                        <v-card-title class="pa-4 bg-grey-lighten-5">
-                            <v-icon class="mr-2" color="blue">mdi-cog</v-icon>
-                            <span class="text-h6 font-weight-bold">Global Entry Rules</span>
-                        </v-card-title>
-                        <v-card-text class="pa-6">
-                            <v-switch 
-                                v-model="config.visitorSettings.requirePreApproval"
-                                label="Require pre-approval for all visitors"
-                                hint="Visitors must be approved before entry"
-                                persistent-hint
-                                color="blue"
-                                class="mb-4"
-                            ></v-switch>
-                            
-                            <v-switch 
-                                v-model="config.visitorSettings.enableSelfCheckIn"
-                                label="Enable self-service check-in kiosk"
-                                hint="Allow visitors to check in via QR code at entry gates"
-                                persistent-hint
-                                color="blue"
-                                class="mb-4"
-                            ></v-switch>
-
-                            <v-switch 
-                                v-model="config.visitorSettings.enablePhotoCapture"
-                                label="Capture visitor photos on check-in"
-                                hint="Security enhancement - photos stored with check-in record"
-                                persistent-hint
-                                color="blue"
-                                class="mb-6"
-                            ></v-switch>
-
-                            <v-divider class="my-6"></v-divider>
-
-                            <v-text-field
-                                v-model="config.visitorSettings.entryGates"
-                                label="Entry Gates"
-                                hint="Comma-separated list: Main Gate, Side Entrance, Back Door"
-                                persistent-hint
-                                variant="outlined"
-                                prepend-inner-icon="mdi-gate"
-                                class="mb-6"
-                            ></v-text-field>
-                            
-                            <v-select
-                                v-model="config.visitorSettings.notificationMethod"
-                                :items="['SMS', 'Email', 'Both', 'None']"
-                                label="Host Notification Method"
-                                hint="How to notify hosts when their visitors arrive"
-                                persistent-hint
-                                variant="outlined"
-                                prepend-inner-icon="mdi-bell"
-                                class="mb-6"
-                            ></v-select>
-
-                            <v-text-field
-                                v-model.number="config.visitorSettings.maxVisitDuration"
-                                label="Maximum Visit Duration (minutes)"
-                                hint="Auto-notify security if visitor exceeds this duration"
-                                persistent-hint
-                                type="number"
-                                variant="outlined"
-                                prepend-inner-icon="mdi-clock"
-                                suffix="minutes"
-                                class="mb-6"
-                            ></v-text-field>
-                            
-                            <v-textarea
-                                v-model="config.visitorSettings.welcomeMessage"
-                                label="Welcome Message"
-                                hint="Message shown to visitors on successful check-in"
-                                persistent-hint
-                                variant="outlined"
-                                rows="3"
-                                prepend-inner-icon="mdi-message-text"
-                                placeholder="Welcome to Downtown Gym! Please proceed to the reception."
-                            ></v-textarea>
-                        </v-card-text>
-                    </v-card>
-
-
-
-                    <!-- PAID ENTRY CONFIGURATION -->
-                    <v-card class="mb-4" elevation="3">
-                        <v-card-title class="pa-6 bg-grey-lighten-5">
-                            <v-icon class="mr-2" color="green">mdi-cash-register</v-icon>
-                            <span class="text-h6 font-weight-bold">Paid Visitor Access</span>
-                        </v-card-title>
-                        <v-card-text class="pa-6">
-                            <v-switch 
-                                v-model="config.visitorSettings.enablePaidEntry"
-                                label="Enable Payment for Visitor Entry"
-                                hint="Charge visitors for entry passes (e.g. Day Pass, Event Ticket)"
-                                persistent-hint
-                                color="green"
-                                class="mb-4"
-                            ></v-switch>
-
-                            <v-slide-y-transition>
-                                <div v-if="config.visitorSettings.enablePaidEntry">
-                                    <v-row>
-                                        <v-col cols="12" md="6">
-                                            <v-text-field
-                                                v-model.number="config.visitorSettings.entryFee"
-                                                label="Entry Fee Amount"
-                                                type="number"
-                                                prefix="₹"
-                                                variant="outlined"
-                                                density="comfortable"
-                                            ></v-text-field>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
-                                            <v-select
-                                                v-model="config.visitorSettings.paymentGateway"
-                                                :items="['Stripe', 'Razorpay', 'PayPal', 'Cash on Desk']"
-                                                label="Payment Gateway"
-                                                variant="outlined"
-                                                density="comfortable"
-                                            ></v-select>
-                                        </v-col>
-                                    </v-row>
-                                    <v-checkbox 
-                                        v-model="config.visitorSettings.collectTax" 
-                                        label="Collect GST/Tax on Entry Fee"
-                                        density="compact"
-                                        hide-details
-                                    ></v-checkbox>
+                                            <div class="d-flex align-center mb-3">
+                                                <v-chip size="x-small" color="blue" class="mr-2">{{ temp.accessMode }}</v-chip>
+                                                <v-chip size="x-small" color="success" v-if="temp.membershipPlanId">
+                                                    <v-icon start size="12">mdi-tag</v-icon>
+                                                    {{ membershipPlansList.find(p => p.id === temp.membershipPlanId)?.name || 'Tagged Plan' }}
+                                                </v-chip>
+                                            </div>
+                                            <div class="text-caption text-grey">Linked Access: {{ temp.membershipPlanId ? 'Membership Level' : 'Standard Guest' }}</div>
+                                        </v-card>
+                                    </v-col>
+                                </v-row>
+                                <div v-else class="text-center pa-8 border-dashed rounded-lg bg-grey-lighten-4">
+                                    <v-icon size="48" color="grey-lighten-1">mdi-account-multiple-plus</v-icon>
+                                    <div class="text-subtitle-1 text-grey-darken-1 mt-2">No templates configured</div>
+                                    <v-btn variant="text" color="blue" size="small" @click="openTemplateDialog('Visitor')">Create your first form</v-btn>
                                 </div>
-                            </v-slide-y-transition>
-                        </v-card-text>
-                    </v-card>
+                            </v-card-text>
+                        </v-card>
 
-                    <!-- BADGE DESIGNER -->
-                    <v-card class="mb-4" elevation="3">
-                        <v-card-title class="pa-6 bg-grey-lighten-5">
-                            <v-icon class="mr-2" color="purple">mdi-card-account-details-outline</v-icon>
-                            <span class="text-h6 font-weight-bold">Visitor Badge Template</span>
-                        </v-card-title>
-                        <v-card-text class="pa-6">
-                            <v-row>
-                                <!-- Configuration -->
-                                <v-col cols="12" md="6">
-                                    <v-text-field
-                                        v-model="config.visitorSettings.badgeTitle"
-                                        label="Badge Title"
-                                        placeholder="VISITOR PASS"
-                                        variant="outlined"
-                                        density="compact"
-                                        class="mb-4"
-                                    ></v-text-field>
+                        <v-card class="mb-4" elevation="3">
+                            <v-card-title class="pa-4 bg-grey-lighten-5">
+                                <v-icon class="mr-2" color="blue">mdi-cog</v-icon>
+                                <span class="text-h6 font-weight-bold">Global Entry Rules</span>
+                            </v-card-title>
+                            <v-card-text class="pa-6">
+                                <v-switch 
+                                    v-model="config.visitorSettings.requirePreApproval"
+                                    label="Require pre-approval for all visitors"
+                                    hint="Visitors must be approved before entry"
+                                    persistent-hint
+                                    color="blue"
+                                    class="mb-4"
+                                ></v-switch>
+                                
+                                <v-switch 
+                                    v-model="config.visitorSettings.enableSelfCheckIn"
+                                    label="Enable self-service check-in kiosk"
+                                    hint="Allow visitors to check in via QR code at entry gates"
+                                    persistent-hint
+                                    color="blue"
+                                    class="mb-4"
+                                ></v-switch>
 
-                                    <v-file-input
-                                        label="Custom Logo (Event/Location)"
-                                        prepend-icon="mdi-camera"
-                                        variant="outlined"
-                                        density="compact"
-                                        accept="image/*"
-                                        hint="Overrides global app logo"
-                                        persistent-hint
-                                        class="mb-4"
-                                    ></v-file-input>
+                                <v-switch 
+                                    v-model="config.visitorSettings.enablePhotoCapture"
+                                    label="Capture visitor photos on check-in"
+                                    hint="Security enhancement - photos stored with check-in record"
+                                    persistent-hint
+                                    color="blue"
+                                    class="mb-6"
+                                ></v-switch>
 
-                                    <div class="text-subtitle-2 mb-2">Visible Fields</div>
-                                    <v-checkbox v-model="config.visitorSettings.showWifi" label="Show WiFi Code" hide-details density="compact"></v-checkbox>
-                                    <v-checkbox v-model="config.visitorSettings.showHost" label="Show Host Name" hide-details density="compact"></v-checkbox>
-                                    <v-checkbox v-model="config.visitorSettings.showValidDate" label="Show Validity Date" hide-details density="compact"></v-checkbox>
-                                    
-                                    <v-text-field
-                                        v-model="config.visitorSettings.badgeFooter"
-                                        label="Footer Text"
-                                        placeholder="Please return to reception"
-                                        variant="outlined"
-                                        density="compact"
-                                        class="mt-4"
-                                    ></v-text-field>
-                                </v-col>
+                                <v-divider class="my-6"></v-divider>
 
-                                <!-- Live Preview -->
-                                <v-col cols="12" md="6">
-                                    <div class="text-subtitle-2 text-center text-grey mb-2">Live Preview</div>
-                                    <v-sheet border rounded elevation="2" class="mx-auto pa-4 text-center" width="250" height="380">
-                                        <!-- Header -->
-                                        <div class="d-flex justify-space-between align-center mb-4">
-                                            <v-avatar size="32" color="primary" rounded>
-                                                <span class="text-white text-caption font-weight-bold">LG</span>
-                                            </v-avatar>
-                                            <div class="text-caption font-weight-bold">{{ config.visitorSettings.badgeTitle || 'VISITOR' }}</div>
-                                        </div>
+                                <v-text-field
+                                    v-model="config.visitorSettings.entryGates"
+                                    label="Entry Gates"
+                                    hint="Comma-separated list: Main Gate, Side Entrance, Back Door"
+                                    persistent-hint
+                                    variant="outlined"
+                                    prepend-inner-icon="mdi-gate"
+                                    class="mb-6"
+                                ></v-text-field>
+                                
+                                <v-select
+                                    v-model="config.visitorSettings.notificationMethod"
+                                    :items="['SMS', 'Email', 'Both', 'None']"
+                                    label="Host Notification Method"
+                                    hint="How to notify hosts when their visitors arrive"
+                                    persistent-hint
+                                    variant="outlined"
+                                    prepend-inner-icon="mdi-bell"
+                                    class="mb-6"
+                                ></v-select>
 
-                                        <!-- Photo Placeholder -->
-                                        <v-sheet color="grey-lighten-3" height="120" width="120" class="mx-auto mb-4 d-flex align-center justify-center rounded-circle">
-                                            <v-icon size="64" color="grey-lighten-1">mdi-account</v-icon>
+                                <v-text-field
+                                    v-model.number="config.visitorSettings.maxVisitDuration"
+                                    label="Maximum Visit Duration (minutes)"
+                                    hint="Auto-notify security if visitor exceeds this duration"
+                                    persistent-hint
+                                    type="number"
+                                    variant="outlined"
+                                    prepend-inner-icon="mdi-clock"
+                                    suffix="minutes"
+                                    class="mb-6"
+                                ></v-text-field>
+                                
+                                <v-textarea
+                                    v-model="config.visitorSettings.welcomeMessage"
+                                    label="Welcome Message"
+                                    hint="Message shown to visitors on successful check-in"
+                                    persistent-hint
+                                    variant="outlined"
+                                    rows="3"
+                                    prepend-inner-icon="mdi-message-text"
+                                    placeholder="Welcome to Downtown Gym! Please proceed to the reception."
+                                ></v-textarea>
+                            </v-card-text>
+                        </v-card>
+
+
+
+                        <!-- PAID ENTRY CONFIGURATION -->
+                        <v-card class="mb-4" elevation="3">
+                            <v-card-title class="pa-6 bg-grey-lighten-5">
+                                <v-icon class="mr-2" color="green">mdi-cash-register</v-icon>
+                                <span class="text-h6 font-weight-bold">Paid Visitor Access</span>
+                            </v-card-title>
+                            <v-card-text class="pa-6">
+                                <v-switch 
+                                    v-model="config.visitorSettings.enablePaidEntry"
+                                    label="Enable Payment for Visitor Entry"
+                                    hint="Charge visitors for entry passes (e.g. Day Pass, Event Ticket)"
+                                    persistent-hint
+                                    color="green"
+                                    class="mb-4"
+                                ></v-switch>
+
+                                <v-slide-y-transition>
+                                    <div v-if="config.visitorSettings.enablePaidEntry">
+                                        <v-row>
+                                            <v-col cols="12" md="6">
+                                                <v-text-field
+                                                    v-model.number="config.visitorSettings.entryFee"
+                                                    label="Entry Fee Amount"
+                                                    type="number"
+                                                    prefix="₹"
+                                                    variant="outlined"
+                                                    density="comfortable"
+                                                ></v-text-field>
+                                            </v-col>
+                                            <v-col cols="12" md="6">
+                                                <v-select
+                                                    v-model="config.visitorSettings.paymentGateway"
+                                                    :items="['Stripe', 'Razorpay', 'PayPal', 'Cash on Desk']"
+                                                    label="Payment Gateway"
+                                                    variant="outlined"
+                                                    density="comfortable"
+                                                ></v-select>
+                                            </v-col>
+                                        </v-row>
+                                        <v-checkbox 
+                                            v-model="config.visitorSettings.collectTax" 
+                                            label="Collect GST/Tax on Entry Fee"
+                                            density="compact"
+                                            hide-details
+                                        ></v-checkbox>
+                                    </div>
+                                </v-slide-y-transition>
+                            </v-card-text>
+                        </v-card>
+
+                        <!-- BADGE DESIGNER -->
+                        <v-card class="mb-4" elevation="3">
+                            <v-card-title class="pa-6 bg-grey-lighten-5">
+                                <v-icon class="mr-2" color="purple">mdi-card-account-details-outline</v-icon>
+                                <span class="text-h6 font-weight-bold">Visitor Badge Template</span>
+                            </v-card-title>
+                            <v-card-text class="pa-6">
+                                <v-row>
+                                    <!-- Configuration -->
+                                    <v-col cols="12" md="6">
+                                        <v-text-field
+                                            v-model="config.visitorSettings.badgeTitle"
+                                            label="Badge Title"
+                                            placeholder="VISITOR PASS"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mb-4"
+                                        ></v-text-field>
+
+                                        <v-file-input
+                                            label="Custom Logo (Event/Location)"
+                                            prepend-icon="mdi-camera"
+                                            variant="outlined"
+                                            density="compact"
+                                            accept="image/*"
+                                            hint="Overrides global app logo"
+                                            persistent-hint
+                                            class="mb-4"
+                                        ></v-file-input>
+
+                                        <div class="text-subtitle-2 mb-2">Visible Fields</div>
+                                        <v-checkbox v-model="config.visitorSettings.showWifi" label="Show WiFi Code" hide-details density="compact"></v-checkbox>
+                                        <v-checkbox v-model="config.visitorSettings.showHost" label="Show Host Name" hide-details density="compact"></v-checkbox>
+                                        <v-checkbox v-model="config.visitorSettings.showValidDate" label="Show Validity Date" hide-details density="compact"></v-checkbox>
+                                        
+                                        <v-text-field
+                                            v-model="config.visitorSettings.badgeFooter"
+                                            label="Footer Text"
+                                            placeholder="Please return to reception"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mt-4"
+                                        ></v-text-field>
+                                    </v-col>
+
+                                    <!-- Live Preview -->
+                                    <v-col cols="12" md="6">
+                                        <div class="text-subtitle-2 text-center text-grey mb-2">Live Preview</div>
+                                        <v-sheet border rounded elevation="2" class="mx-auto pa-4 text-center" width="250" height="380">
+                                            <!-- Header -->
+                                            <div class="d-flex justify-space-between align-center mb-4">
+                                                <v-avatar size="32" color="primary" rounded>
+                                                    <span class="text-white text-caption font-weight-bold">LG</span>
+                                                </v-avatar>
+                                                <div class="text-caption font-weight-bold">{{ config.visitorSettings.badgeTitle || 'VISITOR' }}</div>
+                                            </div>
+
+                                            <!-- Photo Placeholder -->
+                                            <v-sheet color="grey-lighten-3" height="120" width="120" class="mx-auto mb-4 d-flex align-center justify-center rounded-circle">
+                                                <v-icon size="64" color="grey-lighten-1">mdi-account</v-icon>
+                                            </v-sheet>
+
+                                            <!-- Name -->
+                                            <div class="text-h6 font-weight-bold mb-1">John Doe</div>
+                                            <div class="text-caption text-grey mb-3">Acme Corp</div>
+
+                                            <!-- QR Code -->
+                                            <v-icon size="80" class="mb-2">mdi-qrcode</v-icon>
+
+                                            <!-- Details -->
+                                            <div class="text-caption text-left mt-2 pl-2">
+                                                <div v-if="config.visitorSettings.showHost"><strong>Host:</strong> Jane Smith</div>
+                                                <div v-if="config.visitorSettings.showValidDate"><strong>Valid:</strong> Oct 24, 2026</div>
+                                                <div v-if="config.visitorSettings.showWifi" class="mt-1 text-blue"><strong>WiFi:</strong> Guest / 1234</div>
+                                            </div>
+
+                                            <!-- Footer -->
+                                            <div class="text-caption text-grey mt-4" style="font-size: 0.6rem !important;">
+                                                {{ config.visitorSettings.badgeFooter }}
+                                            </div>
                                         </v-sheet>
+                                    </v-col>
+                                </v-row>
+                            </v-card-text>
+                        </v-card>
+                    </v-col>
 
-                                        <!-- Name -->
-                                        <div class="text-h6 font-weight-bold mb-1">John Doe</div>
-                                        <div class="text-caption text-grey mb-3">Acme Corp</div>
+                    <v-col cols="12" md="4">
+                        <v-card elevation="2" class="mb-4">
+                            <v-card-title class="text-body-1 pa-4">
+                                <v-icon class="mr-2" color="info">mdi-information</v-icon>
+                                Visitor Settings Info
+                            </v-card-title>
+                            <v-card-text class="text-body-2">
+                                <p class="mb-2"><strong>Pre-Approval:</strong> Hosts must approve visitors before they can check in</p>
+                                <p class="mb-2"><strong>Self Check-In:</strong> Visitors scan QR codes at gates without staff intervention</p>
+                                <p class="mb-2"><strong>Photo Capture:</strong> Enhances security by storing visitor photos</p>
+                                <p><strong>Notifications:</strong> Automatically alert hosts when visitors arrive</p>
+                            </v-card-text>
+                        </v-card>
 
-                                        <!-- QR Code -->
-                                        <v-icon size="80" class="mb-2">mdi-qrcode</v-icon>
-
-                                        <!-- Details -->
-                                        <div class="text-caption text-left mt-2 pl-2">
-                                            <div v-if="config.visitorSettings.showHost"><strong>Host:</strong> Jane Smith</div>
-                                            <div v-if="config.visitorSettings.showValidDate"><strong>Valid:</strong> Oct 24, 2026</div>
-                                            <div v-if="config.visitorSettings.showWifi" class="mt-1 text-blue"><strong>WiFi:</strong> Guest / 1234</div>
-                                        </div>
-
-                                        <!-- Footer -->
-                                        <div class="text-caption text-grey mt-4" style="font-size: 0.6rem !important;">
-                                            {{ config.visitorSettings.badgeFooter }}
-                                        </div>
-                                    </v-sheet>
-                                </v-col>
-                            </v-row>
-                        </v-card-text>
-                    </v-card>
-                </v-col>
-
-                <v-col cols="12" md="4">
-                    <v-card elevation="2" class="mb-4">
-                        <v-card-title class="text-body-1 pa-4">
-                            <v-icon class="mr-2" color="info">mdi-information</v-icon>
-                            Visitor Settings Info
-                        </v-card-title>
-                        <v-card-text class="text-body-2">
-                            <p class="mb-2"><strong>Pre-Approval:</strong> Hosts must approve visitors before they can check in</p>
-                            <p class="mb-2"><strong>Self Check-In:</strong> Visitors scan QR codes at gates without staff intervention</p>
-                            <p class="mb-2"><strong>Photo Capture:</strong> Enhances security by storing visitor photos</p>
-                            <p><strong>Notifications:</strong> Automatically alert hosts when visitors arrive</p>
-                        </v-card-text>
-                    </v-card>
-
-                    <v-card elevation="2">
-                        <v-card-title class="text-body-1 pa-4">
-                            <v-icon class="mr-2" color="success">mdi-check-circle</v-icon>
-                            Current Status
-                        </v-card-title>
-                        <v-card-text>
-                            <v-list density="compact">
-                                <v-list-item prepend-icon="mdi-gate">
-                                    <v-list-item-title>Entry Gates</v-list-item-title>
-                                    <v-list-item-subtitle>{{ config.visitorSettings.entryGates.split(',').length }} configured</v-list-item-subtitle>
-                                </v-list-item>
-                                <v-list-item prepend-icon="mdi-shield-check">
-                                    <v-list-item-title>Pre-Approval</v-list-item-title>
-                                    <v-list-item-subtitle>{{ config.visitorSettings.requirePreApproval ? 'Enabled' : 'Disabled' }}</v-list-item-subtitle>
-                                </v-list-item>
-                            </v-list>
-                        </v-card-text>
-                    </v-card>
-                </v-col>
-            </v-row>
+                        <v-card elevation="2">
+                            <v-card-title class="text-body-1 pa-4">
+                                <v-icon class="mr-2" color="success">mdi-check-circle</v-icon>
+                                Current Status
+                            </v-card-title>
+                            <v-card-text>
+                                <v-list density="compact">
+                                    <v-list-item prepend-icon="mdi-gate">
+                                        <v-list-item-title>Entry Gates</v-list-item-title>
+                                        <v-list-item-subtitle>{{ config.visitorSettings.entryGates.split(',').length }} configured</v-list-item-subtitle>
+                                    </v-list-item>
+                                    <v-list-item prepend-icon="mdi-shield-check">
+                                        <v-list-item-title>Pre-Approval</v-list-item-title>
+                                        <v-list-item-subtitle>{{ config.visitorSettings.requirePreApproval ? 'Enabled' : 'Disabled' }}</v-list-item-subtitle>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card-text>
+                        </v-card>
+                    </v-col>
+                </v-row>
+            </div>
         </v-window-item>
 
         <!-- TAB: Parking Settings -->
         <v-window-item v-if="config.modules.parking" value="parking-settings">
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
             <v-row>
                 <v-col cols="12" md="8">
                     <!-- Template Manager -->
@@ -821,12 +800,14 @@
                     </v-card>
                 </v-col>
             </v-row>
+        </div>
         </v-window-item>
 
 
 
         <!-- TAB 2: Custom Domain -->
         <v-window-item value="domain">
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
             <v-row>
                 <v-col cols="12" md="8">
                     <v-card>
@@ -878,10 +859,12 @@
                     </v-card>
                 </v-col>
             </v-row>
+        </div>
         </v-window-item>
 
         <!-- TAB 3: Advanced Wallet -->
         <v-window-item v-if="config.modules.wallet" value="wallet">
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
             <v-row>
                 <v-col cols="12" md="8">
                     <v-alert icon="mdi-wallet-giftcard" color="purple-lighten-5" class="mb-4 text-purple-darken-2" border="start" border-color="purple">
@@ -933,10 +916,12 @@
                     </v-card>
                 </v-col>
             </v-row>
+        </div>
         </v-window-item>
 
         <!-- TAB 4: Plan & Billing -->
         <v-window-item v-if="config.modules.membership" value="plan">
+        <div style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;" class="pa-1">
             <v-card elevation="0" border>
                 <div class="d-flex align-center justify-space-between pa-4 bg-grey-lighten-5 border-bottom">
                     <div>
@@ -953,8 +938,10 @@
                      />
                 </div>
             </v-card>
+        </div>
         </v-window-item>
     </v-window>
+    </v-card>
 
     <!-- Template Dialog -->
     <v-dialog v-model="showTemplateDialog" max-width="500">
@@ -1013,6 +1000,7 @@ import { storefrontService } from '@/services/appLayer/storefrontService';
 import { domainService } from '@/services/appLayer/domainService';
 import AccessLevelManager from '@/pages/apps/places/AccessLevelManager.vue';
 import { appState } from '@/store/appLayerState';
+import BaseButton from '@/components/common/buttons/BaseButton.vue';
 
 const route = useRoute();
 const saving = ref(false);
@@ -1191,6 +1179,9 @@ onMounted(async () => {
         placeId.value = route.query.placeId;
     } else if (appState.selectedPlaceId) {
         placeId.value = appState.selectedPlaceId;
+    } else {
+        // Default for demo/standalone access
+        placeId.value = 1;
     }
 
     if (placeId.value) {
@@ -1265,7 +1256,7 @@ const save = async () => {
 
 <style scoped>
 .storefront-config {
-  max-width: 1400px;
+  /* max-width: 1400px; */
   margin: 0 auto;
 }
 
@@ -1287,17 +1278,62 @@ const save = async () => {
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
 }
 
-/* Enhanced tab styling */
-:deep(.v-tabs) {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+/* Custom tab styling - matching Employee section */
+.custom-tabs {
+  background-color: transparent;
+  padding: 8px 0 8px;
+  border-bottom: none;
+  margin-bottom: 24px;
 }
 
-:deep(.v-tab) {
+.custom-tab {
+  border-radius: 8px;
+  background-color: #fff;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0;
+  margin-right: 12px;
+  min-height: 36px;
+  height: 36px;
   transition: all 0.2s ease;
+  text-transform: capitalize;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
 }
 
-:deep(.v-tab:hover) {
-  background-color: rgba(0, 0, 0, 0.02);
+/* Active tab style */
+.v-tab--selected.custom-tab {
+  background-color: #122f68 !important;
+  color: #ffffff !important;
+  border-color: #122f68;
+  box-shadow: 0 4px 12px rgba(18, 47, 104, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Icon styles */
+.custom-tab .v-icon {
+  color: #64748b !important;
+  font-size: 18px;
+  opacity: 1;
+}
+.v-tab--selected .v-icon {
+  color: #ffffff !important;
+}
+
+/* Content below tabs */
+.tab-content-wrapper {
+  border-radius: 12px;
+  background: white;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #f1f5f9;
+}
+
+::v-deep(.v-tab.v-btn) {
+  height: 36px !important;
+  border-radius: 8px !important;
+  min-width: auto !important;
+  padding: 0 16px;
 }
 
 /* Card enhancements */

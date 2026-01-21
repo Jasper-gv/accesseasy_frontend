@@ -178,6 +178,13 @@ const configurators = [
       { id: "zone-configurator", label: "Manage Zones" },
     ],
   },
+  {
+    id: "store",
+    label: "Store Configurator",
+    subsections: [
+      { id: "store-configurator", label: "Store Settings" },
+    ],
+  },
 ];
 
 // Get all valid route names from configurators

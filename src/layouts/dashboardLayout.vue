@@ -367,6 +367,12 @@ export default {
         subItems: [],
       },
       {
+        title: "Operations Overview",
+        icon: "mdi-chart-line-variant",
+        to: "/apps/operations",
+        roles: ["Admin", "Manager"],
+      },
+      {
         header: "Management",
         roles: ["Admin", "Employee", "Manager", "esslAdmin"],
       },
@@ -376,6 +382,42 @@ export default {
         to: "/employee-details/employee",
         roles: ["Admin", "Employee", "Manager", "esslAdmin"],
       },
+      {
+        header: "SaaS Apps",
+        roles: ["Admin", "Manager"],
+      },
+
+      {
+        title: "SaaS Control Center",
+        icon: "mdi-view-dashboard-outline",
+        to: "/apps/saas",
+        roles: ["Admin", "Manager"],
+      },
+      {
+        title: "Visitor Management",
+        icon: "mdi-account-clock-outline",
+        to: "/apps/visitor",
+        roles: ["Admin", "Manager"],
+      },
+      {
+        title: "Parking Management",
+        icon: "mdi-car-parking-lights",
+        to: "/apps/parking",
+        roles: ["Admin", "Manager"],
+      },
+      {
+        title: "Canteen Management",
+        icon: "mdi-food-fork-drink",
+        to: "/apps/canteen",
+        roles: ["Admin", "Manager"],
+      },
+      {
+        title: "Membership Management",
+        icon: "mdi-card-account-details-star-outline",
+        to: "/apps/membership",
+        roles: ["Admin", "Manager"],
+      },
+
 
       // {
       //   title: "Attendance Configuration",
@@ -1434,7 +1476,7 @@ export default {
 
 .page-container {
   height: calc(100vh - 64px);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 @media (max-width: 960px) {

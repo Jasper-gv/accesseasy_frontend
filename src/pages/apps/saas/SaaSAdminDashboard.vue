@@ -5,20 +5,28 @@
       <v-col cols="12" class="d-flex justify-space-between align-center">
         <div>
           <div class="mb-6">
-            <h1 class="text-h3 font-weight-bold mb-2 text-primary">Platform Subscriptions</h1>
+            <h1 class="text-h3 font-weight-bold mb-2 gradient-text">Platform Subscriptions</h1>
             <p class="text-subtitle-1 text-grey-darken-1">Manage billing, plans, and global settings for your locations.</p>
           </div>
 
-          <!-- Info Alert -->
+          <!-- Quick Actions Flow Banner -->
           <v-alert
-              color="info"
+              color="primary"
               variant="tonal"
               icon="mdi-information"
               class="mb-6"
               closable
           >
-              This dashboard focuses on <strong>license management and billing</strong>. To configure daily operations, visit the <router-link to="/apps/places" class="font-weight-bold">Locations</router-link> page.
+              <strong>Setup Flow:</strong> 
+              <span class="mx-2">1. Overview (Here)</span>
+              <v-icon size="small">mdi-arrow-right</v-icon>
+              <span class="mx-2">2. Create Branch</span>
+              <v-icon size="small">mdi-arrow-right</v-icon>
+              <span class="mx-2">3. Configure Settings</span>
           </v-alert>
+
+          <!-- Info Alert -->
+
         </div>
         <div class="d-flex gap-2">
           <v-btn
@@ -142,6 +150,66 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Quick Actions -->
+    <v-card class="elevation-3 mb-8 rounded-lg">
+      <v-card-title class="bg-grey-lighten-5 pa-6">
+        <v-icon class="mr-2" color="primary">mdi-lightning-bolt</v-icon>
+        <span class="text-h6 font-weight-bold">Quick Actions</span>
+      </v-card-title>
+      <v-card-text class="pa-6">
+        <v-row>
+          <v-col cols="12" sm="4">
+            <v-btn 
+              block 
+              size="large" 
+              variant="tonal" 
+              color="primary" 
+              class="action-btn"
+              @click="showCreateDialog = true"
+            >
+              <div class="text-center">
+                <v-icon size="32" class="mb-2">mdi-plus-circle</v-icon>
+                <div class="text-subtitle-1 font-weight-bold">Create Branch</div>
+                <div class="text-caption">Add a new location</div>
+              </div>
+            </v-btn>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-btn 
+              block 
+              size="large" 
+              variant="tonal" 
+              color="indigo" 
+              to="/organization/org_location"
+              class="action-btn"
+            >
+              <div class="text-center">
+                <v-icon size="32" class="mb-2">mdi-cog</v-icon>
+                <div class="text-subtitle-1 font-weight-bold">Configurator</div>
+                <div class="text-caption">Manage branch settings</div>
+              </div>
+            </v-btn>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-btn 
+              block 
+              size="large" 
+              variant="tonal" 
+              color="success" 
+              to="/apps/places/membership"
+              class="action-btn"
+            >
+              <div class="text-center">
+                <v-icon size="32" class="mb-2">mdi-card-account-details</v-icon>
+                <div class="text-subtitle-1 font-weight-bold">Membership</div>
+                <div class="text-caption">Manage plans & users</div>
+              </div>
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
 
     <!-- Tenants Table -->
     <v-card class="elevation-3 rounded-lg">
@@ -441,6 +509,24 @@ onMounted(loadData);
 
 .search-field {
   background: white;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #1976D2 0%, #42A5F5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.action-btn {
+  height: 120px !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
 }
 
 /* Enhanced table row hover effect */

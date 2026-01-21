@@ -1,29 +1,39 @@
 <template>
-  <div class="main-container">
+  <div class="main-container saas-layout">
     <!-- Main Content -->
     <div class="locations-container" :class="{ 'sidebar-open': showSidebar }">
-      <DataTableWrapper
-        :is-empty="!loading && !error && locations.length === 0"
-        :has-error="!!error"
-        :is-loading="loading"
-        :search-query="searchQuery"
-        @update:search-query="debouncedSearch"
-        search-placeholder="Search Sites..."
-        wrapper-class="attendance-table-wrapper"
-      >
-        <!-- Custom Toolbar with Stats and Create Button -->
-        <template #toolbar-actions>
-          <div class="toolbar-with-stats">
-            <!-- Create Button -->
-            <BaseButton
-              variant="primary"
-              text="Create Site"
-              :leftIcon="Plus"
-              width="100px"
-              @click="toggleSidebar('add')"
-            />
-          </div>
-        </template>
+      
+      <!-- Header Section -->
+      <div class="mb-6">
+        <h1 class="text-h3 font-weight-bold mb-2 gradient-text">Location Management</h1>
+        <p class="text-subtitle-1 text-grey-darken-1">Configure your branches, offices, and serviceable areas.</p>
+      </div>
+
+      <v-card class="elevation-3 rounded-lg overflow-hidden">
+        <DataTableWrapper
+          :is-empty="!loading && !error && locations.length === 0"
+          :has-error="!!error"
+          :is-loading="loading"
+          :search-query="searchQuery"
+          @update:search-query="debouncedSearch"
+          search-placeholder="Search Sites..."
+          wrapper-class="attendance-table-wrapper pa-0"
+        >
+          <!-- Custom Toolbar with Stats and Create Button -->
+          <template #toolbar-actions>
+            <div class="toolbar-with-stats">
+              <!-- Create Button -->
+              <v-btn
+                color="primary"
+                prepend-icon="mdi-plus"
+                height="44"
+                class="text-none font-weight-medium px-6"
+                @click="toggleSidebar('add')"
+              >
+                Create Site
+              </v-btn>
+            </div>
+          </template>
 
         <!-- Loading -->
         <SkeletonLoading
@@ -234,6 +244,7 @@
           />
         </template>
       </DataTableWrapper>
+      </v-card>
     </div>
 
     <!-- Sidebar for Add/Edit Location -->
@@ -621,6 +632,19 @@ onUnmounted(() => {
   position: relative;
   height: 100vh;
   overflow: hidden;
+  background-color: #f8f9fa; /* Light background for contrast */
+}
+
+.saas-layout {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #1976D2 0%, #42A5F5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Locations Container (Main Content) */
