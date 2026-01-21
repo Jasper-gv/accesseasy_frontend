@@ -20,7 +20,7 @@
         <v-list-subheader class="text-uppercase text-caption font-weight-bold">Platform</v-list-subheader>
         
         <v-list-item
-          to="/apps/saas"
+          to="/configuration/saas-control-center"
           prepend-icon="mdi-credit-card-settings-outline"
           title="Subscriptions"
           subtitle="Plans & billing"
@@ -53,7 +53,7 @@
         ></v-list-item>
 
         <v-list-item
-          to="/apps/storefront"
+          to="/configuration/store-configurator"
           prepend-icon="mdi-store-cog"
           title="Storefront Config"
           subtitle="Branding & features"

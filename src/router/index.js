@@ -790,6 +790,12 @@ const routes = [
           ),
         children: [
           {
+            path: "saas-control-center",
+            name: "saas-control-center",
+            component: () => import("@/pages/apps/saas/SaaSAdminDashboard.vue"),
+            meta: { roles: ["Admin", "Manager"] }
+          },
+          {
             path: "store-configurator",
             name: "store-configurator",
             component: () => import("@/pages/apps/storefront/StoreConfigurator.vue"),
@@ -1594,18 +1600,7 @@ const routes = [
       }
     ]
   },
-  {
-    path: "/apps/saas",
-    component: DashboardLayout,
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: "",
-        component: () => import("@/pages/apps/saas/SaaSAdminDashboard.vue"),
-        meta: { title: "SaaS Control Center" }
-      }
-    ]
-  },
+
   {
     path: "/apps/visitor",
     component: DashboardLayout,

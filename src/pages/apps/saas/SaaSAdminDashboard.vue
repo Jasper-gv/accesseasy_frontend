@@ -4,40 +4,15 @@
     <v-row class="mb-6">
       <v-col cols="12" class="d-flex justify-space-between align-center">
         <div>
-          <div class="mb-6">
-            <h1 class="text-h3 font-weight-bold mb-2 gradient-text">Platform Subscriptions</h1>
-            <p class="text-subtitle-1 text-grey-darken-1">Manage billing, plans, and global settings for your locations.</p>
-          </div>
-
-          <!-- Quick Actions Flow Banner -->
-          <v-alert
-              color="primary"
-              variant="tonal"
-              icon="mdi-information"
-              class="mb-6"
-              closable
-          >
-              <strong>Setup Flow:</strong> 
-              <span class="mx-2">1. Overview (Here)</span>
-              <v-icon size="small">mdi-arrow-right</v-icon>
-              <span class="mx-2">2. Create Branch</span>
-              <v-icon size="small">mdi-arrow-right</v-icon>
-              <span class="mx-2">3. Configure Settings</span>
-          </v-alert>
-
-          <!-- Info Alert -->
-
         </div>
         <div class="d-flex gap-2">
-          <v-btn
-            color="primary"
-            prepend-icon="mdi-plus"
-            height="44"
-            class="text-none font-weight-medium px-6"
+          <BaseButton
+            variant="primary"
+            left-icon="plus"
             @click="showCreateDialog = true"
           >
             Add New Location
-          </v-btn>
+          </BaseButton>
         </div>
       </v-col>
     </v-row>
@@ -151,65 +126,6 @@
       </v-col>
     </v-row>
 
-    <!-- Quick Actions -->
-    <v-card class="elevation-3 mb-8 rounded-lg">
-      <v-card-title class="bg-grey-lighten-5 pa-6">
-        <v-icon class="mr-2" color="primary">mdi-lightning-bolt</v-icon>
-        <span class="text-h6 font-weight-bold">Quick Actions</span>
-      </v-card-title>
-      <v-card-text class="pa-6">
-        <v-row>
-          <v-col cols="12" sm="4">
-            <v-btn 
-              block 
-              size="large" 
-              variant="tonal" 
-              color="primary" 
-              class="action-btn"
-              @click="showCreateDialog = true"
-            >
-              <div class="text-center">
-                <v-icon size="32" class="mb-2">mdi-plus-circle</v-icon>
-                <div class="text-subtitle-1 font-weight-bold">Create Branch</div>
-                <div class="text-caption">Add a new location</div>
-              </div>
-            </v-btn>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-btn 
-              block 
-              size="large" 
-              variant="tonal" 
-              color="indigo" 
-              to="/organization/org_location"
-              class="action-btn"
-            >
-              <div class="text-center">
-                <v-icon size="32" class="mb-2">mdi-cog</v-icon>
-                <div class="text-subtitle-1 font-weight-bold">Configurator</div>
-                <div class="text-caption">Manage branch settings</div>
-              </div>
-            </v-btn>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-btn 
-              block 
-              size="large" 
-              variant="tonal" 
-              color="success" 
-              to="/apps/places/membership"
-              class="action-btn"
-            >
-              <div class="text-center">
-                <v-icon size="32" class="mb-2">mdi-card-account-details</v-icon>
-                <div class="text-subtitle-1 font-weight-bold">Membership</div>
-                <div class="text-caption">Manage plans & users</div>
-              </div>
-            </v-btn>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
 
     <!-- Tenants Table -->
     <v-card class="elevation-3 rounded-lg">
@@ -302,7 +218,7 @@
                   size="small" 
                   variant="text" 
                   icon="mdi-cog" 
-                  :to="`/apps/storefront?placeId=${item.id}`" 
+                  :to="`/configuration/store-configurator?placeId=${item.id}`" 
                   v-bind="props" 
                   color="primary"
                 ></v-btn>
@@ -315,7 +231,7 @@
                   size="small" 
                   variant="text" 
                   icon="mdi-cash-register" 
-                  :to="`/apps/places/membership?placeId=${item.id}`" 
+                  :to="`/apps/membership?placeId=${item.id}`" 
                   v-bind="props"
                   color="success"
                 ></v-btn>
@@ -411,6 +327,7 @@ import { ref, onMounted, computed } from 'vue';
 import { placesService } from '@/services/appLayer/placesService';
 import { domainService } from '@/services/appLayer/domainService';
 import { useRouter } from 'vue-router';
+import BaseButton from '@/components/common/buttons/BaseButton.vue';
 
 const router = useRouter();
 const tenants = ref([]);
@@ -462,7 +379,7 @@ const createTenant = async () => {
     });
     
     showCreateDialog.value = false;
-    router.push(`/apps/storefront?placeId=${place.id}`);
+    router.push(`/configuration/store-configurator?placeId=${place.id}`);
   } catch(e) {
     alert('Error creating tenant');
   } finally {

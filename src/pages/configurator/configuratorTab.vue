@@ -179,6 +179,13 @@ const configurators = [
     ],
   },
   {
+    id: "saas",
+    label: "Location Configurator",
+    subsections: [
+      { id: "saas-control-center", label: "Locations" },
+    ],
+  },
+  {
     id: "store",
     label: "Store Configurator",
     subsections: [

@@ -261,7 +261,7 @@
               size="large" 
               variant="tonal" 
               color="success" 
-              to="/apps/places/membership"
+              to="/apps/membership"
               class="action-btn"
             >
               <div class="text-center">
@@ -276,7 +276,7 @@
               size="large" 
               variant="tonal" 
               color="purple" 
-              to="/apps/storefront"
+              to="/configuration/store-configurator"
               class="action-btn"
             >
               <div class="text-center">
@@ -297,6 +297,21 @@
               <div class="text-center">
                 <v-icon size="28" class="mb-1">mdi-shield-check</v-icon>
                 <div class="text-caption">Validator</div>
+              </div>
+            </v-btn>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-btn 
+              block 
+              size="large" 
+              variant="tonal" 
+              color="teal" 
+              to="/configuration/saas-control-center"
+              class="action-btn"
+            >
+              <div class="text-center">
+                <v-icon size="28" class="mb-1">mdi-map-marker-multiple</v-icon>
+                <div class="text-caption">Locations</div>
               </div>
             </v-btn>
           </v-col>

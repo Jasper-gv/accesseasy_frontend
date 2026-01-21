@@ -388,12 +388,6 @@ export default {
       },
 
       {
-        title: "SaaS Control Center",
-        icon: "mdi-view-dashboard-outline",
-        to: "/apps/saas",
-        roles: ["Admin", "Manager"],
-      },
-      {
         title: "Visitor Management",
         icon: "mdi-account-clock-outline",
         to: "/apps/visitor",

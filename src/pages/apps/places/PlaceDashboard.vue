@@ -19,7 +19,7 @@
           </div>
         </div>
         <div class="d-flex gap-2">
-          <v-btn variant="outlined" color="primary" to="/apps/storefront" prepend-icon="mdi-cog">
+          <v-btn variant="outlined" color="primary" to="/configuration/store-configurator" prepend-icon="mdi-cog">
             Settings
           </v-btn>
           <v-btn color="primary" to="/apps/analytics" prepend-icon="mdi-chart-line">
@@ -145,7 +145,7 @@
                     <v-icon size="20" color="blue" class="mr-2">mdi-account-cog</v-icon>
                     <span class="text-body-2">Visitor Access</span>
                   </div>
-                  <v-btn size="x-small" variant="text" color="blue" to="/apps/storefront?tab=visitor-settings">Configure</v-btn>
+                  <v-btn size="x-small" variant="text" color="blue" to="/configuration/store-configurator?tab=visitor-settings">Configure</v-btn>
                 </div>
                 <div class="text-caption text-grey ml-7">Pre-approval: Disabled</div>
               </v-list-item>
@@ -158,7 +158,7 @@
                     <v-icon size="20" color="indigo" class="mr-2">mdi-car-cog</v-icon>
                     <span class="text-body-2">Parking Rules</span>
                   </div>
-                  <v-btn size="x-small" variant="text" color="indigo" to="/apps/storefront?tab=parking-settings">Configure</v-btn>
+                  <v-btn size="x-small" variant="text" color="indigo" to="/configuration/store-configurator?tab=parking-settings">Configure</v-btn>
                 </div>
                 <div class="text-caption text-grey ml-7">100 Slots (20 Premium)</div>
               </v-list-item>
@@ -171,7 +171,7 @@
                     <v-icon size="20" color="red" class="mr-2">mdi-shield-check</v-icon>
                     <span class="text-body-2">Validators</span>
                   </div>
-                  <v-btn size="x-small" variant="text" color="red" to="/apps/storefront?tab=validators">View Links</v-btn>
+                  <v-btn size="x-small" variant="text" color="red" to="/configuration/store-configurator?tab=validators">View Links</v-btn>
                 </div>
                 <div class="text-caption text-grey ml-7">Security & Canteen Active</div>
               </v-list-item>
@@ -273,9 +273,9 @@ const quickActions = [
   { title: 'Add Visitor', icon: 'mdi-account-plus', to: '/apps/visitor', color: 'blue' },
   { title: 'View Parking Status', icon: 'mdi-car-parking', to: '/apps/parking', color: 'indigo' },
   { title: 'Canteen Orders', icon: 'mdi-food', to: '/apps/canteen', color: 'orange' },
-  { title: 'Sell Membership', icon: 'mdi-card-account-details', to: '/apps/places/membership', color: 'purple' },
+  { title: 'Sell Membership', icon: 'mdi-card-account-details', to: '/apps/membership', color: 'purple' },
   { title: 'View Analytics', icon: 'mdi-chart-line', to: '/apps/analytics', color: 'success' },
-  { title: 'Configure Place', icon: 'mdi-cog', to: '/apps/storefront', color: 'grey' }
+  { title: 'Configure Place', icon: 'mdi-cog', to: '/configuration/store-configurator', color: 'grey' }
 ];
 
 const modules = [
