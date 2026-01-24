@@ -8,7 +8,7 @@
     
     <!-- Top Stats Row -->
     <v-row class="mb-6">
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isModuleSelected('visitor')" cols="12" sm="6" md="3">
         <v-card class="stat-card" hover elevation="3">
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -28,7 +28,7 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isModuleSelected('parking')" cols="12" sm="6" md="3">
         <v-card class="stat-card" hover elevation="3">
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -48,7 +48,7 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isModuleSelected('canteen')" cols="12" sm="6" md="3">
         <v-card class="stat-card" hover elevation="3">
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -68,7 +68,7 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isModuleSelected('membership')" cols="12" sm="6" md="3">
         <v-card class="stat-card" hover elevation="3">
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -210,7 +210,7 @@
       </v-card-title>
       <v-card-text class="pa-6">
         <v-row>
-          <v-col cols="6" sm="4" md="2">
+          <v-col v-if="isModuleSelected('visitor')" cols="6" sm="4" md="2">
             <v-btn 
               block 
               size="large" 
@@ -225,7 +225,7 @@
               </div>
             </v-btn>
           </v-col>
-          <v-col cols="6" sm="4" md="2">
+          <v-col v-if="isModuleSelected('parking')" cols="6" sm="4" md="2">
             <v-btn 
               block 
               size="large" 
@@ -240,7 +240,7 @@
               </div>
             </v-btn>
           </v-col>
-          <v-col cols="6" sm="4" md="2">
+          <v-col v-if="isModuleSelected('canteen')" cols="6" sm="4" md="2">
             <v-btn 
               block 
               size="large" 
@@ -255,7 +255,7 @@
               </div>
             </v-btn>
           </v-col>
-          <v-col cols="6" sm="4" md="2">
+          <v-col v-if="isModuleSelected('membership')" cols="6" sm="4" md="2">
             <v-btn 
               block 
               size="large" 
@@ -276,12 +276,27 @@
               size="large" 
               variant="tonal" 
               color="purple" 
-              to="/apps/storefront"
+              to="/configuration/configuration"
               class="action-btn"
             >
               <div class="text-center">
                 <v-icon size="28" class="mb-1">mdi-store-cog</v-icon>
                 <div class="text-caption">Configure</div>
+              </div>
+            </v-btn>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-btn 
+              block 
+              size="large" 
+              variant="tonal" 
+              color="teal" 
+              to="/configuration/locations"
+              class="action-btn"
+            >
+              <div class="text-center">
+                <v-icon size="28" class="mb-1">mdi-map-marker</v-icon>
+                <div class="text-caption">Locations</div>
               </div>
             </v-btn>
           </v-col>
@@ -312,7 +327,10 @@ import { visitorService } from '@/services/appLayer/visitorService';
 import { parkingService } from '@/services/appLayer/parkingService';
 import { canteenService } from '@/services/appLayer/canteenService';
 
+const STORAGE_KEY = 'access_easy_selected_modules';
+
 const chartPeriod = ref('week');
+const selectedModules = ref([]);
 const stats = ref({
   visitors: 0,
   parking: 0,
@@ -320,7 +338,27 @@ const stats = ref({
   revenue: 0
 });
 
+// Helper function to check if a module is selected
+const isModuleSelected = (moduleId) => {
+  // If no modules selected, show all by default
+  if (selectedModules.value.length === 0) {
+    return true;
+  }
+  return selectedModules.value.includes(moduleId);
+};
+
 onMounted(async () => {
+  // Read selected modules from localStorage
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      selectedModules.value = JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse saved modules', e);
+      selectedModules.value = [];
+    }
+  }
+
   try {
     const [vStats, pStats, cStats] = await Promise.all([
       visitorService.getStats(),
@@ -341,10 +379,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.operations-dashboard {
-  max-width: 1400px;
-  margin: 0 auto;
-}
 
 .dashboard-header {
   border-bottom: 2px solid rgba(0, 0, 0, 0.05);

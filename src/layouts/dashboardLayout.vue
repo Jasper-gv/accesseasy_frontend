@@ -367,6 +367,72 @@ export default {
         subItems: [],
       },
       {
+        title: "Module Dashboard",
+        icon: "mdi-view-dashboard-outline",
+        to: "/dashboard/modules",
+        roles: ["Admin", "Manager", "Employee"],
+        subItems: [],
+      },
+      {
+        title: "Storefront Settings",
+        icon: "mdi-store-cog",
+        to: "/storefront/settings",
+        roles: ["Admin", "Dealer", "Manager"],
+      },
+      {
+        title: "Manage Locations",
+        icon: "mdi-map-marker",
+        roles: ["Admin", "Manager", "Employee"],
+        subItems: [
+          {
+            title: "Locations",
+            to: "/operations/locations",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+          {
+            title: "Location Analytics",
+            to: "/operations/location-analytics",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+        ],
+      },
+      {
+        title: "Visitor Management",
+        icon: "mdi-account-clock",
+        to: "/operations/visitor",
+        roles: ["Admin", "Manager", "Employee"],
+      },
+      {
+        title: "Parking Management",
+        icon: "mdi-car",
+        to: "/operations/parking",
+        roles: ["Admin", "Manager", "Employee"],
+      },
+      {
+        title: "Canteen Management",
+        icon: "mdi-food",
+        to: "/operations/canteen",
+        roles: ["Admin", "Manager", "Employee"],
+      },
+      {
+        title: "Membership Management",
+        icon: "mdi-card-account-details",
+        to: "/operations/membership",
+        roles: ["Admin", "Manager", "Employee"],
+        subItems: [
+          {
+            title: "Dashboard",
+            to: "/operations/membership",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+          {
+            title: "Membership Sales",
+            to: "/apps/places/membership",
+            roles: ["Admin", "Manager", "Employee"],
+          },
+        ],
+      },
+      {
         header: "Management",
         roles: ["Admin", "Employee", "Manager", "esslAdmin"],
       },
@@ -438,81 +504,81 @@ export default {
       // roles: ["Admin", "Manager", "Employee"],
       // requiredFeature: "fieldpro",
       // },
-      {
-        title: "Access Control",
-        icon: "mdi-shield-account-outline",
-        roles: ["Admin", "Manager", "esslAdmin"],
-        subItems: [
-          {
-            title: "Card Management",
-            icon: "mdi-card-account-details-outline",
-            to: "/card-management/cards",
-            roles: ["Admin", "Manager", "esslAdmin"],
-          },
-          {
-            title: "Face Embedding",
-            icon: "mdi-face-recognition",
-            to: "/face-embedding/ai-face-embedding",
-            roles: ["Admin", "Manager", "Employee"],
-          },
-          {
-            title: "Fingerprint Management",
-            icon: "mdi-fingerprint",
-            to: "/finger-data",
-            roles: ["Admin", "Manager", "Employee"],
-          },
-          // QR Generate section
-          {
-            title: "QR Generate",
-            icon: "mdi-qrcode",
-            to: "/qr-generate/employee",
-            roles: ["Admin", "Manager", "Employee"],
-            subItems: [
-              {
-                title: "QR Generate",
-                to: "/qr-generate/bulk",
-                roles: ["Admin", "Manager"],
-              },
-              {
-                title: "Employee QR Generate",
-                to: "/qr-generate/employee",
-                roles: ["Admin", "Manager", "Employee"],
-              },
-            ],
-          },
-        ],
-      },
+      // {
+      //   title: "Access Control",
+      //   icon: "mdi-shield-account-outline",
+      //   roles: ["Admin", "Manager", "esslAdmin"],
+      //   subItems: [
+      //     {
+      //       title: "Card Management",
+      //       icon: "mdi-card-account-details-outline",
+      //       to: "/card-management/cards",
+      //       roles: ["Admin", "Manager", "esslAdmin"],
+      //     },
+      //     {
+      //       title: "Face Embedding",
+      //       icon: "mdi-face-recognition",
+      //       to: "/face-embedding/ai-face-embedding",
+      //       roles: ["Admin", "Manager", "Employee"],
+      //     },
+      //     {
+      //       title: "Fingerprint Management",
+      //       icon: "mdi-fingerprint",
+      //       to: "/finger-data",
+      //       roles: ["Admin", "Manager", "Employee"],
+      //     },
+      //     // QR Generate section
+      //     {
+      //       title: "QR Generate",
+      //       icon: "mdi-qrcode",
+      //       to: "/qr-generate/employee",
+      //       roles: ["Admin", "Manager", "Employee"],
+      //       subItems: [
+      //         {
+      //           title: "QR Generate",
+      //           to: "/qr-generate/bulk",
+      //           roles: ["Admin", "Manager"],
+      //         },
+      //         {
+      //           title: "Employee QR Generate",
+      //           to: "/qr-generate/employee",
+      //           roles: ["Admin", "Manager", "Employee"],
+      //         },
+      //       ],
+      //     },
+      //   ],
+      // },
       // {
       //   title: "Expenses",
       //   icon: "mdi-cash",
       //   to: "/reimbursement/reimbursementtab/reimbursement_card",
       //   roles: ["Admin", "Employee", "Manager"],
       // },
-      {
-        title: " Requests",
-        to: "/leave/leaveRequest",
-        icon: "mdi-send",
-        roles: ["Employee"],
-      },
-      {
-        title: "Requests",
-        to: "/leave/leavePermission",
-        icon: "mdi-account-check",
-        roles: ["Admin"],
-      },
-      { header: "Security AI", roles: ["Admin", "Manager", "esslAdmin"] },
-      {
-        title: "Monitoring",
-        icon: "mdi-cctv",
-        to: "/monitoring/live",
-        roles: ["Admin", "Manager", "esslAdmin"],
-      },
-      {
-        title: "Alerts",
-        icon: "mdi-alert-circle-outline",
-        to: "/monitoring/events",
-        roles: ["Admin", "Manager", "esslAdmin"],
-      },
+      // {
+      //   title: " Requests",
+      //   to: "/leave/leaveRequest",
+      //   icon: "mdi-send",
+      //   roles: ["Employee"],
+      // },
+      // {
+      //   title: "Requests",
+      //   to: "/leave/leavePermission",
+      //   icon: "mdi-account-check",
+      //   roles: ["Admin"],
+      // },
+      // { header: "Security AI", roles: ["Admin", "Manager", "esslAdmin"] },
+      // {
+      //   title: "Monitoring",
+      //   icon: "mdi-cctv",
+      //   to: "/monitoring/live",
+      //   roles: ["Admin", "Manager", "esslAdmin"],
+      // },
+      // {
+      //   title: "Alerts",
+      //   icon: "mdi-alert-circle-outline",
+      //   to: "/monitoring/events",
+      //   roles: ["Admin", "Manager", "esslAdmin"],
+      // },
       {
         header: "System",
         roles: ["Admin", "Dealer", "Manager", "Administrator"],
@@ -803,7 +869,7 @@ export default {
         "/taskManagement/productviews": "Assets",
         "/taskManagement/productviews/deviceManagementScreen": "Asset Types",
         "/organization/orgmainui": "Clients and Sites",
-        "/organization/org_location": "Locations",
+        "/organization/org_location": "Manage Locations",
         "/employee-details/employee": "Employee Details",
         "/employee-details/leave": "Employee Details",
         "/employee-details/otherDetails": "Employee Details",
@@ -1103,6 +1169,7 @@ export default {
       handleMainMenuClick,
       isLocked,
       goToPlans,
+      planStatus,
       planStatus,
       userRole,
     };

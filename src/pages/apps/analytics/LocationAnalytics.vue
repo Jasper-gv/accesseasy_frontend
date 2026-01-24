@@ -4,21 +4,35 @@
     <div class="analytics-header mb-6">
       <div class="d-flex align-center justify-space-between flex-wrap">
         <div class="mb-3 mb-md-0">
-          <h1 class="text-h3 font-weight-bold mb-2">
+          <h1 class="text-h3 font-weight-bold mb-2" style="font-family: 'Inter', sans-serif !important;">
             <v-icon size="44" color="primary" class="mr-3">mdi-chart-line</v-icon>
             Location Analytics
           </h1>
           <p class="text-subtitle-1 text-grey-darken-1">Detailed insights for {{ selectedPlace?.name || 'this location' }}</p>
         </div>
         
-        <v-select
-          v-model="dateRange"
-          :items="dateRangeOptions"
-          variant="outlined"
-          density="comfortable"
-          style="max-width: 200px;"
-          prepend-inner-icon="mdi-calendar"
-        ></v-select>
+        <div class="d-flex align-center gap-4">
+          <v-select
+            v-model="selectedLocation"
+            :items="locations"
+            variant="outlined"
+            density="comfortable"
+            style="min-width: 200px;"
+            prepend-inner-icon="mdi-map-marker"
+            hide-details
+            class="mr-4"
+          ></v-select>
+
+          <v-select
+            v-model="dateRange"
+            :items="dateRangeOptions"
+            variant="outlined"
+            density="comfortable"
+            style="min-width: 160px;"
+            prepend-inner-icon="mdi-calendar"
+            hide-details
+          ></v-select>
+        </div>
       </div>
     </div>
 
@@ -451,9 +465,11 @@ import { appState } from '@/store/appLayerState';
 
 const activeTab = ref('overview');
 const dateRange = ref('Last 30 Days');
+const selectedLocation = ref('All Locations');
 const loading = ref(false);
 
 const dateRangeOptions = ['Today', 'Last 7 Days', 'Last 30 Days', 'Last 90 Days'];
+const locations = ['All Locations', 'Downtown Gym', 'Uptown Gym', 'Suburb Gym'];
 
 const stats = ref({
   visitors: { total: 0, change: 0, vip: 0 },
@@ -571,10 +587,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.location-analytics {
+/* .location-analytics {
   max-width: 1400px;
   margin: 0 auto;
-}
+} */
 
 .analytics-header {
   border-bottom: 2px solid rgba(0, 0, 0, 0.05);

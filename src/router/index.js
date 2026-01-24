@@ -226,6 +226,18 @@ const routes = [
         component: Profile,
         meta: { roles: ["Admin", "Manager", "Employee", "esslAdmin"] },
       },
+      {
+        path: "/operations/locations",
+        name: "locations",
+        component: () => import("@/pages/apps/places/PlacesList.vue"),
+        meta: { roles: ["Admin", "Dealer", "Manager"] },
+      },
+      {
+        path: "/operations/location-analytics",
+        name: "LocationAnalytics",
+        component: () => import("@/pages/apps/analytics/LocationAnalytics.vue"),
+        meta: { roles: ["Admin", "Manager", "Employee"] },
+      },
 
       {
         path: "/leave/leavePermission",
@@ -824,6 +836,33 @@ const routes = [
                 "@/pages/payroll/policy/attendance/attendancePolicies/penalityDetails.vue"
               ).catch(() => TaskDashboard),
           },
+
+          // Configuration Templates Routes
+          {
+            path: "visitor-config",
+            name: "visitor-config",
+            component: () => import("@/pages/configurator/ConfigurationTemplates.vue"),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "parking-config",
+            name: "parking-config",
+            component: () => import("@/pages/configurator/ConfigurationTemplates.vue"),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "canteen-config",
+            name: "canteen-config",
+            component: () => import("@/pages/configurator/ConfigurationTemplates.vue"),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+          {
+            path: "membership-config",
+            name: "membership-config",
+            component: () => import("@/pages/configurator/ConfigurationTemplates.vue"),
+            meta: { roles: ["Admin", "Dealer", "Manager"] },
+          },
+
           {
             path: "configuration",
             name: "branches",
@@ -1457,6 +1496,12 @@ const routes = [
         ],
       },
       {
+        path: "/storefront/settings",
+        name: "storefront-config",
+        component: () => import("@/pages/apps/storefront/StoreConfigurator.vue"),
+        meta: { roles: ["Admin", "Dealer", "Manager"] },
+      },
+      {
         path: "/taskManagement/kpi",
         name: "kpi",
         component: Kpi,
@@ -1530,6 +1575,11 @@ const routes = [
         component: TaskDashboard,
       },
       {
+        path: "/dashboard/modules",
+        name: "ModuleDashboard",
+        component: () => import("@/pages/dashboard/OverviewDashboard.vue"),
+      },
+      {
         path: "/taskManagement/taskcomponents/complete-work-order/:taskId/:assignFormId",
         name: "CompleteWorkOrder",
         component: CompleteWorkOrderForm,
@@ -1574,6 +1624,37 @@ const routes = [
     name: "StaffPortal",
     component: () => import("@/pages/public/StaffPortal.vue"),
     meta: { layout: "blank" }
+  },
+  {
+    path: "/operations",
+    component: DashboardLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "visitor",
+        name: "VisitorDashboard",
+        component: () => import("@/pages/apps/visitor/VisitorDashboard.vue"),
+        meta: { title: "Visitor Management" }
+      },
+      {
+        path: "parking",
+        name: "ParkingDashboard",
+        component: () => import("@/pages/apps/parking/ParkingDashboard.vue"),
+        meta: { title: "Parking Management" }
+      },
+      {
+        path: "canteen",
+        name: "CanteenDashboard",
+        component: () => import("@/pages/apps/canteen/CanteenDashboard.vue"),
+        meta: { title: "Canteen Management" }
+      },
+      {
+        path: "membership",
+        name: "MembershipDashboard",
+        component: () => import("@/pages/apps/membership/MembershipDashboard.vue"),
+        meta: { title: "Membership Management" }
+      }
+    ]
   },
   // App Layer Routes
   {

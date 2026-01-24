@@ -1,83 +1,60 @@
 <template>
-  <div v-if="placeId" class="storefront-config">
-    <div class="config-header mb-8">
-      <div class="d-flex justify-space-between align-center flex-wrap">
-        <div class="mb-4 mb-md-0">
-          <div class="d-flex align-center mb-2">
-            <v-avatar color="primary-lighten-5" size="48" class="mr-3">
-              <v-icon color="primary" size="28">mdi-storefront</v-icon>
-            </v-avatar>
-            <div>
-              <h1 class="text-h3 font-weight-bold">
-                Storefront Configurator
-              </h1>
-              <p class="text-body-2 text-grey-darken-1 mb-0">{{ config.appName || 'Your Application' }}</p>
-            </div>
-          </div>
-          <p class="text-subtitle-2 text-grey-darken-1 mb-0">Customize branding, features, domain setup, and membership plans</p>
-        </div>
-        <div class="d-flex gap-2">
-
-          <v-btn 
-            color="primary" 
-            @click="save" 
-            :loading="saving" 
-            prepend-icon="mdi-content-save"
-            size="large"
-            elevation="2"
-            class="px-6"
-          >
-            Save All Changes
-          </v-btn>
-        </div>
-      </div>
-      <v-alert v-if="hasUnsavedChanges" type="warning" variant="tonal" density="compact" class="mt-4">
-        <v-icon start>mdi-alert</v-icon>
-        You have unsaved changes. Don't forget to save!
-      </v-alert>
-    </div>
-
+  <div class="storefront-config">
     <v-tabs 
       v-model="activeTab" 
-      bg-color="transparent" 
-      color="primary" 
-      class="mb-6 elevation-0"
-      slider-color="primary"
+      class="custom-tabs mb-6"
       show-arrows
     >
-      <v-tab value="branding" class="text-none font-weight-medium px-6">
+      <v-tab value="branding" class="custom-tab">
         <v-icon start>mdi-palette</v-icon> 
         Branding & Features
       </v-tab>
-      <v-tab v-if="config.modules.visitor" value="visitor-settings" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.visitor" value="visitor-settings" class="custom-tab">
         <v-icon start>mdi-account-cog</v-icon> 
         Visitor Settings
       </v-tab>
-      <v-tab v-if="config.modules.parking" value="parking-settings" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.parking" value="parking-settings" class="custom-tab">
         <v-icon start>mdi-car-cog</v-icon> 
         Parking Settings
       </v-tab>
-      <v-tab v-if="config.modules.canteen" value="canteen-settings" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.canteen" value="canteen-settings" class="custom-tab">
         <v-icon start>mdi-food-fork-drink</v-icon> 
         Canteen Settings
       </v-tab>
-      <v-tab value="domain" class="text-none font-weight-medium px-6">
+      <v-tab value="domain" class="custom-tab">
         <v-icon start>mdi-web</v-icon> 
         Custom Domain
       </v-tab>
-      <v-tab v-if="config.modules.wallet" value="wallet" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.wallet" value="wallet" class="custom-tab">
         <v-icon start>mdi-wallet-membership</v-icon> 
         Wallet & Features
       </v-tab>
-      <v-tab v-if="config.modules.membership" value="plan" class="text-none font-weight-medium px-6">
+      <v-tab v-if="config.modules.membership" value="plan" class="custom-tab">
         <v-icon start>mdi-card-account-details-outline</v-icon> 
         Membership Plans
       </v-tab>
     </v-tabs>
 
+    <div class="d-flex justify-end align-center mb-6">
+      <v-alert v-if="hasUnsavedChanges" type="warning" variant="tonal" density="compact" class="mr-4 mb-0">
+        <v-icon start>mdi-alert</v-icon>
+        You have unsaved changes. Don't forget to save!
+      </v-alert>
+      <BaseButton
+        variant="primary"
+        @click="save"
+        :loading="saving"
+        size="lg"
+        class="px-6"
+      >
+        Save All Changes
+      </BaseButton>
+    </div>
+
     <v-window v-model="activeTab">
         <!-- TAB 1: Branding (Enhanced) -->
         <v-window-item value="branding">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="7">
                     <v-card class="mb-6 elevation-2">
@@ -237,10 +214,12 @@
                     </div>
                 </v-col>
             </v-row>
+          </div>
         </v-window-item>
 
         <!-- TAB: Canteen Settings -->
         <v-window-item v-if="config.modules.canteen" value="canteen-settings">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
                     <v-card class="mb-6 elevation-2">
@@ -317,11 +296,13 @@
                     </v-card>
                 </v-col>
             </v-row>
+          </div>
         </v-window-item>
 
 
         <!-- TAB: Visitor Settings -->
         <v-window-item v-if="config.modules.visitor" value="visitor-settings">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
                     <!-- Template Manager -->
@@ -363,7 +344,7 @@
                             <div v-else class="text-center pa-8 border-dashed rounded-lg bg-grey-lighten-4">
                                 <v-icon size="48" color="grey-lighten-1">mdi-account-multiple-plus</v-icon>
                                 <div class="text-subtitle-1 text-grey-darken-1 mt-2">No templates configured</div>
-                                <v-btn variant="text" color="blue" size="small" @click="openTemplateDialog('Visitor')">Create your first form</v-btn>
+                                <v-btn variant="text" color="blue" size="small" @click="router.push({ name: 'visitor-config' })">Create Visitor Template</v-btn>
                             </div>
                         </v-card-text>
                     </v-card>
@@ -622,10 +603,12 @@
                     </v-card>
                 </v-col>
             </v-row>
+          </div>
         </v-window-item>
 
         <!-- TAB: Parking Settings -->
         <v-window-item v-if="config.modules.parking" value="parking-settings">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
                     <!-- Template Manager -->
@@ -638,7 +621,7 @@
                                     <div class="text-caption text-grey-darken-2">Create multiple pass types (Staff, Regular, VIP)</div>
                                 </div>
                             </div>
-                            <v-btn color="indigo" prepend-icon="mdi-plus" @click="openTemplateDialog('Parking')">
+                            <v-btn color="indigo" prepend-icon="mdi-plus" @click="router.push('/configuration/parking-config')">
                                 Add Parking Type
                             </v-btn>
                         </v-card-title>
@@ -667,7 +650,7 @@
                             <div v-else class="text-center pa-8 border-dashed rounded-lg bg-grey-lighten-4">
                                 <v-icon size="48" color="grey-lighten-1">mdi-car-multiple</v-icon>
                                 <div class="text-subtitle-1 text-grey-darken-1 mt-2">No templates configured</div>
-                                <v-btn variant="text" color="indigo" size="small" @click="openTemplateDialog('Parking')">Create your first pass</v-btn>
+                                <v-btn variant="text" color="indigo" size="small" @click="router.push('/configuration/parking-config')">Create your first pass</v-btn>
                             </div>
                         </v-card-text>
                     </v-card>
@@ -821,12 +804,14 @@
                     </v-card>
                 </v-col>
             </v-row>
+          </div>
         </v-window-item>
 
 
 
         <!-- TAB 2: Custom Domain -->
         <v-window-item value="domain">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
                     <v-card>
@@ -878,10 +863,12 @@
                     </v-card>
                 </v-col>
             </v-row>
+          </div>
         </v-window-item>
 
         <!-- TAB 3: Advanced Wallet -->
         <v-window-item v-if="config.modules.wallet" value="wallet">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
                     <v-alert icon="mdi-wallet-giftcard" color="purple-lighten-5" class="mb-4 text-purple-darken-2" border="start" border-color="purple">
@@ -933,10 +920,12 @@
                     </v-card>
                 </v-col>
             </v-row>
+          </div>
         </v-window-item>
 
         <!-- TAB 4: Plan & Billing -->
         <v-window-item v-if="config.modules.membership" value="plan">
+          <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-card elevation="0" border>
                 <div class="d-flex align-center justify-space-between pa-4 bg-grey-lighten-5 border-bottom">
                     <div>
@@ -953,6 +942,7 @@
                      />
                 </div>
             </v-card>
+          </div>
         </v-window-item>
     </v-window>
 
@@ -997,24 +987,20 @@
     </v-dialog>
 
   </div>
-
-  <div v-else class="text-center mt-12">
-    <v-icon size="64" color="grey-lighten-1">mdi-domain-off</v-icon>
-    <h3 class="text-h6 text-grey mt-4">No Place Selected</h3>
-    <p class="text-body-2 text-grey">Please select a place from the dropdown in the top bar to configure its storefront.</p>
-  </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { placesService } from '@/services/appLayer/placesService';
 import { storefrontService } from '@/services/appLayer/storefrontService';
 import { domainService } from '@/services/appLayer/domainService';
 import AccessLevelManager from '@/pages/apps/places/AccessLevelManager.vue';
 import { appState } from '@/store/appLayerState';
+import BaseButton from "@/components/common/buttons/BaseButton.vue";
 
 const route = useRoute();
+const router = useRouter();
 const saving = ref(false);
 const placeId = ref(null);
 const activeTab = ref('branding');
@@ -1264,15 +1250,11 @@ const save = async () => {
 </script>
 
 <style scoped>
-.storefront-config {
-  max-width: 1400px;
-  margin: 0 auto;
-}
 
-.config-header {
+/* .config-header {
   border-bottom: 2px solid rgba(0, 0, 0, 0.05);
   padding-bottom: 2rem;
-}
+} */
 
 .phone-frame {
   width: 280px;
@@ -1308,5 +1290,47 @@ const save = async () => {
 
 :deep(.v-card:hover) {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Custom Tabs Styling (Pill Design) */
+.custom-tabs {
+  background-color: transparent;
+  padding: 8px 0 8px;
+  border-bottom: none;
+}
+
+:deep(.custom-tab) {
+  border-radius: 8px;
+  background-color: #fff;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0;
+  margin-right: 12px;
+  min-height: 36px;
+  height: 36px;
+  transition: all 0.2s ease;
+  text-transform: capitalize;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  padding: 0 16px;
+}
+
+:deep(.v-tab--selected.custom-tab) {
+  background-color: #122f68 !important;
+  color: #ffffff !important;
+  border-color: #122f68;
+  box-shadow: 0 4px 12px rgba(18, 47, 104, 0.15);
+  transform: translateY(-1px);
+}
+
+:deep(.custom-tab .v-icon) {
+  color: #64748b !important;
+  font-size: 18px;
+  opacity: 1;
+  margin-right: 8px;
+}
+
+:deep(.v-tab--selected.custom-tab .v-icon) {
+  color: #ffffff !important;
 }
 </style>

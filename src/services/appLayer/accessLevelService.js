@@ -253,5 +253,30 @@ export const accessLevelService = {
                 recurringBilling: 'monthly'
             }
         ];
+    },
+
+    async getAccessLevelsForTemplate(tenantId) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        // Mock response matching user request
+        return [
+            {
+                "id": 471,
+                "accessLevelNumber": 67,
+                "accessLevelName": "data",
+                "accessType": true,
+                "tenant": {
+                    "tenantId": "c06d5756-422f-42c7-a581-5b225c39b145"
+                }
+            },
+            {
+                "id": 472,
+                "accessLevelNumber": 68,
+                "accessLevelName": "staff",
+                "accessType": true,
+                "tenant": {
+                    "tenantId": "c06d5756-422f-42c7-a581-5b225c39b145"
+                }
+            }
+        ];
     }
 };

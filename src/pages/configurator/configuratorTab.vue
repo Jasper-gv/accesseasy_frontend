@@ -117,6 +117,25 @@ const configurators = [
       // { id: "designations", label: "Designations" },
     ],
   },
+
+  {
+    id: "templates",
+    label: "Configuration Templates",
+    subsections: [
+      { id: "visitor-config", label: "Visitor Configuration" },
+      { id: "parking-config", label: "Parking Configuration" },
+      { id: "canteen-config", label: "Canteen Configuration" },
+      { id: "membership-config", label: "Membership Configuration" },
+    ],
+
+  },
+  // {
+  //   id: "storefront",
+  //   label: "Storefront Configurator",
+  //   subsections: [
+  //     { id: "storefront-config", label: "Storefront Settings" },
+  //   ],
+  // },
   {
     id: "attendance",
     label: "Attendance Configurator",
@@ -147,14 +166,14 @@ const configurators = [
       { id: "door-configurator", label: "Manage Doors" }, // ← NEW SUB-SECTION
     ],
   },
-  {
-    id: "device",
-    label: "Device Configurator",
-    subsections: [
-      { id: "device-configurator", label: "Manage Devices" },
-      { id: "camera-management", label: "Manage Cameras" },
-    ],
-  },
+  // {
+  //   id: "device",
+  //   label: "Device Configurator",
+  //   subsections: [
+  //     { id: "device-configurator", label: "Manage Devices" },
+  //     { id: "camera-management", label: "Manage Cameras" },
+  //   ],
+  // },
   {
     id: "accesslevel",
     label: "Access Level Configurator",
@@ -163,21 +182,21 @@ const configurators = [
       { id: "timerzone", label: "Time Zones" }, // ← ADDED TIMERZONE SUBSECTION
     ],
   },
-  {
-    id: "antipassbackMode",
-    label: "Global Configurator",
-    subsections: [
-      { id: "antipassbackmode-configurator", label: "Anti-passback Mode" }, // ← Fixed
-      { id: "interlockmode-configurator", label: "Interlock Mode" }, // ← Fixed
-    ],
-  },
-  {
-    id: "zone",
-    label: "Zone Configurator",
-    subsections: [
-      { id: "zone-configurator", label: "Manage Zones" },
-    ],
-  },
+  // {
+  //   id: "antipassbackMode",
+  //   label: "Global Configurator",
+  //   subsections: [
+  //     { id: "antipassbackmode-configurator", label: "Anti-passback Mode" }, // ← Fixed
+  //     { id: "interlockmode-configurator", label: "Interlock Mode" }, // ← Fixed
+  //   ],
+  // },
+  // {
+  //   id: "zone",
+  //   label: "Zone Configurator",
+  //   subsections: [
+  //     { id: "zone-configurator", label: "Manage Zones" },
+  //   ],
+  // },
 ];
 
 // Get all valid route names from configurators

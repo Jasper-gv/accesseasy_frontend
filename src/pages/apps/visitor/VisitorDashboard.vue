@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="h-100 overflow-y-auto">
     <h1 class="text-h4 mb-4">Visitor Management</h1>
     <v-row>
       <v-col cols="12" md="4">

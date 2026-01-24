@@ -1,5 +1,5 @@
 <template>
-  <div class="canteen-dashboard">
+  <div class="canteen-dashboard h-100 overflow-y-auto">
     <!-- Header with Tabs -->
     <div class="dashboard-header mb-6">
       <h1 class="text-h3 font-weight-bold mb-4">

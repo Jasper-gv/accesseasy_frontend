@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="h-100 overflow-y-auto">
     <h1 class="text-h4 mb-4">Parking Management</h1>
     <!-- Stats Row -->
     <v-row>
