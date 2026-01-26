@@ -9,15 +9,15 @@
         <v-icon start>mdi-palette</v-icon> 
         Branding & Features
       </v-tab>
-      <v-tab v-if="config.modules.visitor" value="visitor-settings" class="custom-tab">
+      <v-tab v-if="hasModule('visitor')" value="visitor-settings" class="custom-tab">
         <v-icon start>mdi-account-cog</v-icon> 
         Visitor Settings
       </v-tab>
-      <v-tab v-if="config.modules.parking" value="parking-settings" class="custom-tab">
+      <v-tab v-if="hasModule('parking')" value="parking-settings" class="custom-tab">
         <v-icon start>mdi-car-cog</v-icon> 
         Parking Settings
       </v-tab>
-      <v-tab v-if="config.modules.canteen" value="canteen-settings" class="custom-tab">
+      <v-tab v-if="hasModule('canteen')" value="canteen-settings" class="custom-tab">
         <v-icon start>mdi-food-fork-drink</v-icon> 
         Canteen Settings
       </v-tab>
@@ -29,7 +29,7 @@
         <v-icon start>mdi-wallet-membership</v-icon> 
         Wallet & Features
       </v-tab>
-      <v-tab v-if="config.modules.membership" value="plan" class="custom-tab">
+      <v-tab v-if="hasModule('membership')" value="plan" class="custom-tab">
         <v-icon start>mdi-card-account-details-outline</v-icon> 
         Membership Plans
       </v-tab>
@@ -218,7 +218,7 @@
         </v-window-item>
 
         <!-- TAB: Canteen Settings -->
-        <v-window-item v-if="config.modules.canteen" value="canteen-settings">
+        <v-window-item v-if="hasModule('canteen')" value="canteen-settings">
           <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
@@ -301,7 +301,7 @@
 
 
         <!-- TAB: Visitor Settings -->
-        <v-window-item v-if="config.modules.visitor" value="visitor-settings">
+        <v-window-item v-if="hasModule('visitor')" value="visitor-settings">
           <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
@@ -315,9 +315,7 @@
                                     <div class="text-caption text-grey-darken-2">Create multiple entry forms for different visitor types</div>
                                 </div>
                             </div>
-                            <v-btn color="blue" prepend-icon="mdi-plus" @click="openTemplateDialog('Visitor')">
-                                Add Visitor Type
-                            </v-btn>
+
                         </v-card-title>
                         <v-card-text class="pa-4">
                             <v-row v-if="visitorTemplates.length">
@@ -344,7 +342,7 @@
                             <div v-else class="text-center pa-8 border-dashed rounded-lg bg-grey-lighten-4">
                                 <v-icon size="48" color="grey-lighten-1">mdi-account-multiple-plus</v-icon>
                                 <div class="text-subtitle-1 text-grey-darken-1 mt-2">No templates configured</div>
-                                <v-btn variant="text" color="blue" size="small" @click="router.push({ name: 'visitor-config' })">Create Visitor Template</v-btn>
+                                <v-btn variant="text" color="blue" size="small" @click="router.push({ name: 'visitor-config' })">Add Visitor Type</v-btn>
                             </div>
                         </v-card-text>
                     </v-card>
@@ -607,7 +605,7 @@
         </v-window-item>
 
         <!-- TAB: Parking Settings -->
-        <v-window-item v-if="config.modules.parking" value="parking-settings">
+        <v-window-item v-if="hasModule('parking')" value="parking-settings">
           <div class="pa-1" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
             <v-row>
                 <v-col cols="12" md="8">
@@ -998,9 +996,11 @@ import { domainService } from '@/services/appLayer/domainService';
 import AccessLevelManager from '@/pages/apps/places/AccessLevelManager.vue';
 import { appState } from '@/store/appLayerState';
 import BaseButton from "@/components/common/buttons/BaseButton.vue";
+import { useModules } from '@/composables/useModules';
 
 const route = useRoute();
 const router = useRouter();
+const { hasModule } = useModules();
 const saving = ref(false);
 const placeId = ref(null);
 const activeTab = ref('branding');
@@ -1042,7 +1042,16 @@ const getValidatorUrl = (type) => {
 
 const loadTemplates = async () => {
     const all = await passTemplateService.getAll();
-    visitorTemplates.value = all.filter(t => t.type === 'Visitor');
+    // visitorTemplates.value = all.filter(t => t.type === 'Visitor');
+    visitorTemplates.value = [
+        {
+            id: '1',
+            name: 'Standard Visitor',
+            type: 'Visitor',
+            accessMode: 'Security Check',
+            membershipPlanId: null
+        }
+    ];
     parkingTemplates.value = all.filter(t => t.type === 'Parking');
 };
 

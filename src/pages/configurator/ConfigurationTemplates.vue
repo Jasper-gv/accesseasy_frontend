@@ -290,6 +290,322 @@
           </v-row>
           </v-container>
 
+          <!-- Visitor Configuration Form -->
+          <v-container v-else-if="moduleName === 'Visitor'">
+            <v-row>
+              <!-- Basic Template Details -->
+              <v-col cols="12">
+                <h3 class="text-h6 mb-4">Basic Template Details</h3>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="visitorFormData.name"
+                  label="Template Name"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[v => !!v || 'Name is required']"
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="visitorFormData.accessLevel"
+                  :items="accessLevelsList"
+                  item-title="accessLevelName"
+                  item-value="id"
+                  label="Access Level"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  placeholder="Select Access Level"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-switch
+                  v-model="visitorFormData.securityCheck"
+                  label="Security Check Required"
+                  color="primary"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-switch
+                  v-model="visitorFormData.autoEntry"
+                  label="Auto Entry Allowed"
+                  color="primary"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="visitorFormData.duration"
+                  label="Duration (minutes)"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="visitorFormData.validityPeriod"
+                  :items="['Time-based', 'Date-based', 'One-time']"
+                  label="Validity Period"
+                  variant="outlined"
+                  density="compact"
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12"><v-divider class="my-2"></v-divider></v-col>
+
+              <!-- Host Notification Settings -->
+              <v-col cols="12">
+                <h3 class="text-h6 mb-4">Host Notification Settings</h3>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="visitorFormData.hostNotification.method"
+                  :items="notificationMethods"
+                  label="Host Notification Method"
+                  variant="outlined"
+                  density="compact"
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12"><v-divider class="my-2"></v-divider></v-col>
+
+              <!-- Visitor Information Fields -->
+              <v-col cols="12">
+                <h3 class="text-h6 mb-4">Visitor Information Fields</h3>
+                <p class="text-caption text-grey mb-2">Configure default fields and add custom fields as needed.</p>
+              </v-col>
+              
+              <v-col cols="12">
+                <v-card variant="outlined" class="pa-2">
+                  <v-card-text class="px-2 pb-2">
+                    <!-- Header -->
+                    <v-row class="font-weight-bold text-caption text-grey-darken-1 mb-2 d-none d-md-flex">
+                      <v-col cols="1" class="text-center">Enable</v-col>
+                      <v-col cols="3">Field Label</v-col>
+                      <v-col cols="3">Input Type</v-col>
+                      <v-col cols="3">Options / Config</v-col>
+                      <v-col cols="1" class="text-center">Req.</v-col>
+                      <v-col cols="1" class="text-center">Action</v-col>
+                    </v-row>
+
+                    <v-row v-for="(field, index) in visitorFormData.visitorFields" :key="index" class="align-center mb-2">
+                      <!-- Enable Checkbox -->
+                      <v-col cols="2" md="1" class="text-center py-1">
+                         <v-checkbox 
+                            v-model="field.enabled" 
+                            hide-details 
+                            density="compact"
+                            :disabled="field.required && !field.isCustom"
+                         ></v-checkbox>
+                      </v-col>
+
+                      <!-- Field Label -->
+                      <v-col cols="10" md="3" class="py-1">
+                        <v-text-field
+                          v-if="field.isCustom"
+                          v-model="field.label"
+                          label="Label"
+                          variant="outlined"
+                          density="compact"
+                          hide-details
+                        ></v-text-field>
+                        <div v-else class="font-weight-medium pt-2">{{ field.label }}</div>
+                      </v-col>
+
+                      <!-- Input Type -->
+                      <v-col cols="12" md="3" class="py-1" v-if="field.enabled">
+                        <v-select
+                          v-model="field.inputType"
+                          :items="inputTypes"
+                          label="Input Type"
+                          variant="outlined"
+                          density="compact"
+                          hide-details
+                          :disabled="!field.isCustom && field.id === 'purpose'" 
+                        ></v-select>
+                      </v-col>
+                      <v-col cols="12" md="3" class="py-1" v-else></v-col>
+
+                      <!-- Options / Config -->
+                      <v-col cols="12" md="3" class="py-1" v-if="field.enabled">
+                        <v-text-field
+                          v-if="field.inputType === 'Dropdown'"
+                          v-model="field.options"
+                          label="Options (comma separated)"
+                          placeholder="Option 1, Option 2"
+                          variant="outlined"
+                          density="compact"
+                          hide-details
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="3" class="py-1" v-else></v-col>
+
+                      <!-- Required Toggle -->
+                      <v-col cols="6" md="1" class="text-center py-1" v-if="field.enabled">
+                        <v-switch
+                          v-model="field.required"
+                          color="primary"
+                          hide-details
+                          density="compact"
+                          :disabled="!field.isCustom && field.id === 'name'"
+                        ></v-switch>
+                      </v-col>
+                      <v-col cols="6" md="1" class="py-1" v-else></v-col>
+
+                      <!-- Action (Delete Custom) -->
+                      <v-col cols="6" md="1" class="text-center py-1">
+                        <v-btn 
+                            v-if="field.isCustom" 
+                            icon="mdi-delete" 
+                            size="x-small" 
+                            color="error" 
+                            variant="text" 
+                            @click="removeCustomField(index)"
+                        ></v-btn>
+                      </v-col>
+                      
+                      <v-col cols="12"><v-divider v-if="index < visitorFormData.visitorFields.length - 1" class="my-1"></v-divider></v-col>
+                    </v-row>
+
+                    <v-btn 
+                        prepend-icon="mdi-plus" 
+                        variant="text" 
+                        color="primary" 
+                        class="mt-2"
+                        @click="addCustomField"
+                    >
+                        Add Custom Field
+                    </v-btn>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+
+              <v-col cols="12"><v-divider class="my-2"></v-divider></v-col>
+
+              <!-- Visitor Entry Payment -->
+              <v-col cols="12">
+                <div class="d-flex align-center justify-space-between mb-4">
+                   <h3 class="text-h6">Visitor Entry Payment</h3>
+                   <v-switch
+                      v-model="visitorFormData.payment.enabled"
+                      label="Enable Payment"
+                      color="primary"
+                      hide-details
+                      density="compact"
+                   ></v-switch>
+                </div>
+              </v-col>
+              <v-col cols="12" v-if="visitorFormData.payment.enabled">
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model.number="visitorFormData.payment.amount"
+                      label="Entry Amount"
+                      type="number"
+                      prefix="₹"
+                      variant="outlined"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-select
+                      v-model="visitorFormData.payment.gateways"
+                      :items="paymentGateways"
+                      label="Payment Gateway Options"
+                      variant="outlined"
+                      density="compact"
+                      multiple
+                      chips
+                    ></v-select>
+                  </v-col>
+                </v-row>
+              </v-col>
+
+              <v-col cols="12"><v-divider class="my-2"></v-divider></v-col>
+
+              <!-- Visitor Badge Template Configuration -->
+              <v-col cols="12">
+                <h3 class="text-h6 mb-4">Visitor Badge Template</h3>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="visitorFormData.badge.title"
+                  label="Badge Title"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[v => !!v || 'Badge Title is required']"
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-file-input
+                  v-model="visitorFormData.badge.logo"
+                  label="Badge Logo"
+                  variant="outlined"
+                  density="compact"
+                  prepend-icon="mdi-camera"
+                  accept="image/*"
+                  :rules="[v => !!v || 'Logo is required']"
+                ></v-file-input>
+              </v-col>
+
+              <v-col cols="12">
+                <v-card variant="outlined" class="pa-2">
+                   <v-card-title class="text-subtitle-2 px-2">Badge Fields</v-card-title>
+                   <v-card-text class="px-2 pb-2">
+                      <p class="text-caption text-grey mb-2">Default fields (Name, Phone) are always included.</p>
+                      
+                      <!-- Default Fields (Read-only view) -->
+                      <div class="d-flex align-center mb-2">
+                          <v-chip size="small" color="primary" class="mr-2">Visitor Name</v-chip>
+                          <v-chip size="small" color="primary" class="mr-2">Phone Number</v-chip>
+                      </div>
+
+                      <!-- Additional Fields -->
+                      <v-row v-for="(field, index) in visitorFormData.badge.additionalFields" :key="index" class="align-center mb-2">
+                          <v-col cols="10" class="py-1">
+                              <v-select
+                                  v-model="field.fieldId"
+                                  :items="availableBadgeFields"
+                                  item-title="label"
+                                  item-value="id"
+                                  label="Select Field"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details
+                              ></v-select>
+                          </v-col>
+                          <v-col cols="2" class="text-center py-1">
+                              <v-btn 
+                                icon="mdi-delete" 
+                                size="x-small" 
+                                color="error" 
+                                variant="text" 
+                                @click="removeBadgeField(index)"
+                              ></v-btn>
+                          </v-col>
+                      </v-row>
+
+                      <v-btn 
+                        prepend-icon="mdi-plus" 
+                        variant="text" 
+                        color="primary" 
+                        class="mt-2"
+                        @click="addBadgeField"
+                        :disabled="availableBadgeFields.length === 0"
+                      >
+                        Add Badge Field
+                      </v-btn>
+                   </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-container>
+
           <!-- Generic Form (Original) -->
           <v-container v-else>
             <v-row>
@@ -450,6 +766,93 @@ const membershipFormData = ref({
   validityDays: 365
 });
 
+const visitorFormData = ref({
+  name: '',
+  accessLevel: null,
+  securityCheck: false,
+  autoEntry: false,
+  duration: 60,
+  validityPeriod: 'Time-based',
+  hostNotification: {
+    method: 'None', // SMS, Email, Both, None
+  },
+  visitorFields: [], // Array of objects: { id, label, inputType, options, required, isCustom, enabled }
+  payment: {
+    enabled: false,
+    amount: 0,
+    gateways: [] // Stripe, Razorpay, PayPal, Cash on Desk
+  },
+  badge: {
+    title: '',
+    logo: null, // File or URL
+    additionalFields: [] // Array of objects: { fieldId, label }
+  }
+});
+
+const notificationMethods = ['SMS', 'Email', 'Both', 'None'];
+
+const inputTypes = [
+  'Text',
+  'Number',
+  'Dropdown',
+  'Date',
+  'Email',
+  'Phone Number',
+  'Multiline Text'
+];
+
+const defaultVisitorFields = [
+  { id: 'name', label: 'Name', inputType: 'Text', options: '', required: true, isCustom: false, enabled: true },
+  { id: 'purpose', label: 'Purpose of Visit', inputType: 'Dropdown', options: 'Business, Personal, Interview, Delivery', required: true, isCustom: false, enabled: true },
+  { id: 'email', label: 'Email', inputType: 'Email', options: '', required: false, isCustom: false, enabled: false },
+  { id: 'phone', label: 'Phone Number', inputType: 'Phone Number', options: '', required: false, isCustom: false, enabled: false },
+  { id: 'company', label: 'Company Name', inputType: 'Text', options: '', required: false, isCustom: false, enabled: false },
+  { id: 'id_proof', label: 'ID Proof', inputType: 'Text', options: '', required: false, isCustom: false, enabled: false },
+];
+
+const availableBadgeFields = computed(() => {
+  return visitorFormData.value.visitorFields.filter(f => f.enabled && !['name', 'phone'].includes(f.id));
+});
+
+const addCustomField = () => {
+  visitorFormData.value.visitorFields.push({
+    id: `custom_${Date.now()}`,
+    label: 'New Field',
+    inputType: 'Text',
+    options: '',
+    required: false,
+    isCustom: true,
+    enabled: true
+  });
+};
+
+const removeCustomField = (index) => {
+  visitorFormData.value.visitorFields.splice(index, 1);
+};
+
+const addBadgeField = () => {
+  visitorFormData.value.badge.additionalFields.push({
+    fieldId: null,
+    label: ''
+  });
+};
+
+const removeBadgeField = (index) => {
+  visitorFormData.value.badge.additionalFields.splice(index, 1);
+};
+
+const getFieldName = (fieldId) => {
+  const field = visitorFormData.value.visitorFields.find(f => f.id === fieldId);
+  return field ? field.label : '';
+};
+
+const paymentGateways = [
+  'Stripe',
+  'Razorpay',
+  'PayPal',
+  'Cash on Desk'
+];
+
 const accessTypes = [
   { title: 'Membership', value: 'membership' },
   { title: 'Day Pass', value: 'day_pass' },
@@ -553,6 +956,19 @@ const openCreateDialog = async () => {
       validityDays: 365,
       linkedAccessLevel: null
     };
+  } else if (moduleName.value === 'Visitor') {
+     visitorFormData.value = {
+        name: '',
+        accessLevel: null,
+        securityCheck: false,
+        autoEntry: false,
+        duration: 60,
+        validityPeriod: 'Time-based',
+        hostNotification: { method: 'None' },
+        visitorFields: JSON.parse(JSON.stringify(defaultVisitorFields)),
+        payment: { enabled: false, amount: 0, gateways: [] },
+        badge: { title: '', logo: null, additionalFields: [] }
+     };
   } else {
     editedItem.value = { ...defaultItem, moduleType: moduleName.value, linkedAccessLevel: null };
   }
@@ -567,6 +983,20 @@ const editTemplate = async (item) => {
   if (moduleName.value === 'Membership') {
      await loadMembershipData();
      membershipFormData.value = { ...item }; 
+  } else if (moduleName.value === 'Visitor') {
+     // Ensure deep copy and proper structure if loading from existing
+     const itemCopy = JSON.parse(JSON.stringify(item));
+     
+     // Merge with defaults if missing (for legacy or partial updates)
+     // This is a simplified merge, in a real app we might need more robust logic
+     if (!itemCopy.visitorFields || itemCopy.visitorFields.length === 0) {
+         itemCopy.visitorFields = JSON.parse(JSON.stringify(defaultVisitorFields));
+     }
+     if (!itemCopy.badge.additionalFields) {
+         itemCopy.badge.additionalFields = [];
+     }
+
+     visitorFormData.value = itemCopy;
   } else {
     editedItem.value = { ...item };
   }
@@ -614,6 +1044,29 @@ const saveTemplate = async () => {
     } finally {
         saving.value = false;
     }
+  } else if (moduleName.value === 'Visitor') {
+      // Save Visitor Logic
+      if (!visitorFormData.value.name || !visitorFormData.value.badge.title) {
+          alert('Please fill in all mandatory fields (Name, Badge Title)');
+          return;
+      }
+      
+      const newItem = {
+          ...visitorFormData.value,
+          moduleType: 'Visitor',
+          status: 'Active',
+          // Map specific fields to generic ones for list view if needed
+          securityCheck: visitorFormData.value.securityCheck,
+          duration: visitorFormData.value.duration,
+          validityType: visitorFormData.value.validityPeriod
+      };
+
+      if (editedIndex.value > -1) {
+          Object.assign(allTemplates.value[editedIndex.value], newItem);
+      } else {
+          const newId = Math.max(...allTemplates.value.map(t => t.id), 0) + 1;
+          allTemplates.value.push({ ...newItem, id: newId });
+      }
   } else {
     // Save Generic Template Logic
     if (editedIndex.value > -1) {

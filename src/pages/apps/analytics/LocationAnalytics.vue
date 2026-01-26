@@ -42,15 +42,15 @@
         <v-icon start>mdi-view-dashboard</v-icon>
         Overview
       </v-tab>
-      <v-tab value="visitor" class="text-none px-6">
+      <v-tab v-if="hasModule('visitor')" value="visitor" class="text-none px-6">
         <v-icon start>mdi-account-group</v-icon>
         Visitor
       </v-tab>
-      <v-tab value="parking" class="text-none px-6">
+      <v-tab v-if="hasModule('parking')" value="parking" class="text-none px-6">
         <v-icon start>mdi-car-parking</v-icon>
         Parking
       </v-tab>
-      <v-tab value="canteen" class="text-none px-6">
+      <v-tab v-if="hasModule('canteen')" value="canteen" class="text-none px-6">
         <v-icon start>mdi-food</v-icon>
         Canteen
       </v-tab>
@@ -65,7 +65,7 @@
       <v-window-item value="overview">
         <v-row>
           <!-- KPI Cards -->
-          <v-col cols="12" sm="6" md="3">
+          <v-col v-if="hasModule('visitor')" cols="12" sm="6" md="3">
             <v-card class="stat-card" elevation="2">
               <v-card-text>
                 <div class="d-flex align-center justify-space-between">
@@ -85,7 +85,7 @@
             </v-card>
           </v-col>
 
-          <v-col cols="12" sm="6" md="3">
+          <v-col v-if="hasModule('parking')" cols="12" sm="6" md="3">
             <v-card class="stat-card" elevation="2">
               <v-card-text>
                 <div class="d-flex align-center justify-space-between">
@@ -102,7 +102,7 @@
             </v-card>
           </v-col>
 
-          <v-col cols="12" sm="6" md="3">
+          <v-col v-if="hasModule('canteen')" cols="12" sm="6" md="3">
             <v-card class="stat-card" elevation="2">
               <v-card-text>
                 <div class="d-flex align-center justify-space-between">
@@ -189,7 +189,7 @@
       </v-window-item>
 
       <!-- Visitor Analytics Tab -->
-      <v-window-item value="visitor">
+      <v-window-item v-if="hasModule('visitor')" value="visitor">
         <v-row>
           <!-- Summary Cards -->
           <v-col cols="12" md="3" v-for="metric in visitorMetrics" :key="metric.title">
@@ -287,7 +287,7 @@
       </v-window-item>
 
       <!-- Parking Analytics Tab -->
-      <v-window-item value="parking">
+      <v-window-item v-if="hasModule('parking')" value="parking">
         <v-row>
           <v-col cols="12" md="3" v-for="metric in parkingMetrics" :key="metric.title">
             <v-card elevation="2">
@@ -366,7 +366,7 @@
       </v-window-item>
 
       <!-- Canteen Analytics Tab -->
-      <v-window-item value="canteen">
+      <v-window-item v-if="hasModule('canteen')" value="canteen">
         <v-row>
           <v-col cols="12" md="3" v-for="metric in canteenMetrics" :key="metric.title">
             <v-card elevation="2">
@@ -462,6 +462,9 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { analyticsService } from '@/services/appLayer/analyticsService';
 import { appState } from '@/store/appLayerState';
+import { useModules } from '@/composables/useModules';
+
+const { hasModule } = useModules();
 
 const activeTab = ref('overview');
 const dateRange = ref('Last 30 Days');

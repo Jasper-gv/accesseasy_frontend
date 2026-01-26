@@ -98,15 +98,17 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useModules } from "@/composables/useModules";
 
 // --- Reactive state ---
 const activeTab = ref("branches");
 
 const router = useRouter();
 const route = useRoute();
+const { hasModule } = useModules();
 
 // --- Configuration sections ---
-const configurators = [
+const configurators = computed(() => [
   {
     id: "configuration",
     label: "Organization Configurator",
@@ -122,11 +124,11 @@ const configurators = [
     id: "templates",
     label: "Configuration Templates",
     subsections: [
-      { id: "visitor-config", label: "Visitor Configuration" },
-      { id: "parking-config", label: "Parking Configuration" },
-      { id: "canteen-config", label: "Canteen Configuration" },
-      { id: "membership-config", label: "Membership Configuration" },
-    ],
+      { id: "visitor-config", label: "Visitor Configuration", module: 'visitor' },
+      { id: "parking-config", label: "Parking Configuration", module: 'parking' },
+      { id: "canteen-config", label: "Canteen Configuration", module: 'canteen' },
+      { id: "membership-config", label: "Membership Configuration", module: 'membership' },
+    ].filter(s => !s.module || hasModule(s.module)),
 
   },
   // {
@@ -197,11 +199,11 @@ const configurators = [
   //     { id: "zone-configurator", label: "Manage Zones" },
   //   ],
   // },
-];
+]);
 
 // Get all valid route names from configurators
 const validRouteNames = computed(() => {
-  return configurators.flatMap((config) =>
+  return configurators.value.flatMap((config) =>
     config.subsections.map((subsection) => subsection.id)
   );
 });
@@ -247,7 +249,7 @@ onBeforeUnmount(() => {
 });
 
 const breadcrumbs = computed(() => {
-  const subsection = configurators
+  const subsection = configurators.value
     .flatMap((c) => c.subsections.map((s) => ({ ...s, parent: c.label })))
     .find((s) => s.id === activeTab.value);
 
@@ -267,7 +269,7 @@ function goToRoot() {
 }
 
 function goToParent() {
-  const subsection = configurators
+  const subsection = configurators.value
     .flatMap((c) =>
       c.subsections.map((s) => ({ ...s, parentId: c.id, parent: c.label }))
     )
@@ -275,7 +277,7 @@ function goToParent() {
 
   if (subsection?.parentId) {
     // Find the first subsection of that parent and navigate there
-    const parent = configurators.find((c) => c.id === subsection.parentId);
+    const parent = configurators.value.find((c) => c.id === subsection.parentId);
     if (parent && parent.subsections.length) {
       const firstChild = parent.subsections[0].id;
       router.push({ name: firstChild });

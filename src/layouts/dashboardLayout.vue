@@ -312,6 +312,7 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 import { authService } from "@/services/authService";
 import PremiumOverlay from "@/components/common/upgrade/PremiumUpgrade.vue";
+import { useModules } from "@/composables/useModules";
 
 export default {
   name: "CompleteSidebar",
@@ -337,6 +338,7 @@ export default {
     const railSubmenuStyle = ref({});
     const isLoading = ref(false); // ADD THIS
     const loadingItemTitle = ref("");
+    const { hasModule } = useModules();
 
     const startLoading = (itemTitle) => {
       isLoading.value = true;
@@ -672,6 +674,12 @@ export default {
       const role = userRole.value || "Employee";
       return menuItems
         .map((item) => {
+          // Filter out modules if not selected
+          if (item.title === "Visitor Management" && !hasModule('visitor')) return null;
+          if (item.title === "Parking Management" && !hasModule('parking')) return null;
+          if (item.title === "Canteen Management" && !hasModule('canteen')) return null;
+          if (item.title === "Membership Management" && !hasModule('membership')) return null;
+
           if (!item.roles.includes(role)) {
             return null;
           }
